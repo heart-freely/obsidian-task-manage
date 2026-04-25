@@ -1,16 +1,13 @@
 // src/tasks/read-tasks.js
 // 任务解析与缓存模块 —— ES6 版本
 
-// ========== 任务解析专属配置 ==========
-export const CONFIG = {
-    TASK_FOLDERS: ['"pages/A 系统/A 任务系统"'],
-    FILE_NAME_PATTERN: /任务$/,
-    ROOT_PATH: 'pages/A 系统/A 任务系统/'
-};
+import { TASK_FOLDERS, FILE_NAME_PATTERN, ROOT_PATH, ALLOWED_STATUSES } from '../configs/configs-plugin.js';
+import { DateUtils } from '../common.js';
 
-export const ALLOWED_STATUSES = ['todo', 'planned', 'in-progress', 'completed', 'cancelled'];
+// 重新导出 ROOT_PATH 供其他模块使用（保持向后兼容）
+export { ROOT_PATH };
 
-// 匹配正则
+// 匹配正则（保留在模块内，因为与任务解析紧密相关）
 export const RX = {
     priority: /⏬|🔽|🔼|⏫|🔺/g,
     repeat: /🔁\s*(every\s+(day|week|month|year))/i,
@@ -25,17 +22,13 @@ export const RX = {
     forbid: /⛔\s*([^\s,]+(?:\s*,\s*[^\s,]+)*)/
 };
 
-// 简单的日期工具（避免循环依赖）
-function setStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-function setEnd(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999); }
-
-// ========== 任务状态提取 ==========
+// 任务状态提取
 export function getTaskStatus(line) {
-    var m = line.match(/^\s*- \[(.)\]\s*/);
+    const m = line.match(/^\s*- \[(.)\]\s*/);
     return m ? ({ x: 'completed', X: 'completed', '-': 'cancelled', '/': 'in-progress', '?': 'planned' })[m[1]] || 'todo' : 'todo';
 }
 
-// ========== 状态图标 ==========
+// 状态图标
 export function getStatusIcon(task) {
     if (task._status === 'completed' || task.completed) return '✅';
     if (task._status === 'in-progress') return '⏩';
@@ -44,29 +37,29 @@ export function getStatusIcon(task) {
     return '🔲';
 }
 
-// ========== 今日任务判断 ==========
+// 今天任务判断
 export function isTaskToday(task) {
-    var today = new Date(); today.setHours(0, 0, 0, 0);
-    var tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-    function check(d) { return d ? (new Date(d) >= today && new Date(d) < tomorrow) : false; }
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    const check = d => d ? (new Date(d) >= today && new Date(d) < tomorrow) : false;
     return check(task._scheduled) || check(task._due) || check(task._starts) || check(task._created);
 }
 
-// ========== 计算任务时间范围 ==========
+// 计算任务时间范围
 export function computeTaskTimeRange(task) {
-    var min = Infinity, max = -Infinity;
-    function add(d) {
-        if (d) { var ts = new Date(d).getTime(); if (ts < min) min = ts; if (ts > max) max = ts; }
-    }
+    let min = Infinity, max = -Infinity;
+    const add = d => {
+        if (d) { const ts = new Date(d).getTime(); if (ts < min) min = ts; if (ts > max) max = ts; }
+    };
     add(task._scheduled); add(task._due); add(task._starts);
     if (task._done) add(task._done);
     return min === Infinity ? null : {
-        start: setStart(new Date(min)).getTime(),
-        end: setEnd(new Date(max)).getTime()
+        start: DateUtils.setStart(new Date(min)).getTime(),
+        end: DateUtils.setEnd(new Date(max)).getTime()
     };
 }
 
-// ========== 补全任务属性 ==========
+// 补全任务属性
 export function ensureTaskProperties(task) {
     if (!task.hasOwnProperty('_cleanText')) {
         task._cleanText = task.text
@@ -86,7 +79,7 @@ export function ensureTaskProperties(task) {
             .trim() || task.text;
     }
     if (!task.hasOwnProperty('_tooltip')) {
-        var parts = [];
+        const parts = [];
         parts.push(getStatusIcon(task) + ' ' + task._cleanText);
         if (task._priorityIcon) parts.push(task._priorityIcon);
         if (task._repeat) parts.push('🔁 ' + task._repeat);
@@ -104,23 +97,20 @@ export function ensureTaskProperties(task) {
     }
 }
 
-// ========== 加载所有任务（使用 Dataview 页面） ==========
+// 加载所有任务（使用 Dataview 页面）
 export function getAllTasks(force, dv, state) {
     if (!state) throw new Error('Global state context is required');
     if (state.cachedAllTasks && !force) return state.cachedAllTasks;
 
-    var tasks = [];
-    for (var k = 0; k < CONFIG.TASK_FOLDERS.length; k++) {
-        var folder = CONFIG.TASK_FOLDERS[k];
-        var pages = dv.pages(folder);
+    const tasks = [];
+    for (const folder of TASK_FOLDERS) {
+        const pages = dv.pages(folder);
         if (!pages || !pages.length) continue;
-        for (var i = 0; i < pages.length; i++) {
-            var page = pages[i];
-            if (!CONFIG.FILE_NAME_PATTERN.test(page.file.name)) continue;
+        for (const page of pages) {
+            if (!FILE_NAME_PATTERN.test(page.file.name)) continue;
             if (!page.file.tasks) continue;
-            for (var j = 0; j < page.file.tasks.length; j++) {
-                var task = page.file.tasks[j];
-                var fullLine = (task.completed ? '- [x] ' : '- [ ] ') + task.text;
+            for (const task of page.file.tasks) {
+                const fullLine = (task.completed ? '- [x] ' : '- [ ] ') + task.text;
                 task._fullLine = fullLine;
                 task._status = task.status ? ({ '/': 'in-progress', '?': 'planned', '-': 'cancelled', x: 'completed', X: 'completed' })[task.status] || 'todo' : getTaskStatus(fullLine);
                 function m(rx, idx) { return fullLine.match(rx) ? fullLine.match(rx)[idx !== undefined ? idx : 1] || null : null; }
@@ -140,10 +130,9 @@ export function getAllTasks(force, dv, state) {
         }
     }
     state.cachedAllTasks = tasks;
-    // 清空并重建 ID 映射（直接替换对象，性能更好）
     state.taskIdMap = {};
-    for (var i = 0; i < tasks.length; i++) {
-        if (tasks[i]._id) state.taskIdMap[tasks[i]._id] = tasks[i];
+    for (const task of tasks) {
+        if (task._id) state.taskIdMap[task._id] = task;
     }
     return tasks;
 }

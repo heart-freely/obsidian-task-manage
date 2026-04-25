@@ -29,14 +29,30 @@ exit
 
 ```text
 src/
-├── common.js           // 全局状态、配置、工具函数、持久化、CSS
-├── taskEngine.js       // 任务解析、筛选、树构建/排序（与视图无关的核心算法）
-├── ui.js               // 左侧任务树、筛选面板、控制面板等 UI 组件
-├── charts.js           // 图表数据计算、渲染、缩放、模态
-├── views/
-│   └── TaskPanelView.js    // 当前的任务面板视图（ItemView 子类）
-│   （未来可添加：GanttView.js, CalendarView.js, TableView.js 等）
-├── main.js             // 插件入口，注册所有视图、命令、图标
+├── common.js                  # 纯工具函数（日期、DOM、节流等）
+├── configs/
+│   └── plugin-configs.js      # 所有可配置常量（颜色、正则、列表等）
+├── storage/
+│   └── state-persistence.js   # 筛选状态的保存/恢复
+├── tasks/
+│   ├── read-tasks.js          # 原始任务读取与解析
+│   └── filter-tasks.js        # 纯筛选逻辑（根据条件过滤任务数组）
+├── dataview/
+│   └── calcul-dataview.js     # 基于 dv 的数据查询扩展（如有）
+├── echarts/
+│   ├── draw-echarts.js        # 图表构建（接收数据、配置，返回实例）
+│   └── chart-utils.js         # 图表数据计算工具（饼图数据汇总等）
+├── panel/
+│   ├── ui-buttons.js          # 通用按钮、工具栏构建
+│   ├── ui-tree.js             # 左侧树组件（纯渲染，不关心数据来源）
+│   ├── ui-panel.js            # 面板布局骨架（分隔条等）
+│   └── views/                 # 各类视图入口（每个视图是一个类）
+│       ├── base-task-view.js  # 基类，组装通用逻辑
+│       ├── tasks-data-view.js # 当前主视图（列表+图表）
+│       ├── tasks-tree-view.js # 其他视图...
+│       └── ...
+├── main.js                    # 插件入口，仅注册视图、命令、功能区图标
+└── styles.css                 # 所有样式（替代 JS 动态注入）
 
 ```
 
