@@ -105,9 +105,8 @@ export function ensureTaskProperties(task) {
 }
 
 // ========== 加载所有任务（使用 Dataview 页面） ==========
-export function getAllTasks(force, dv) {
-    var state = window.__taskDataViewState;
-    if (!state) throw new Error('Global state __taskDataViewState not found');
+export function getAllTasks(force, dv, state) {
+    if (!state) throw new Error('Global state context is required');
     if (state.cachedAllTasks && !force) return state.cachedAllTasks;
 
     var tasks = [];
@@ -141,10 +140,8 @@ export function getAllTasks(force, dv) {
         }
     }
     state.cachedAllTasks = tasks;
-    // 清空并重建 ID 映射
-    for (var key in state.taskIdMap) {
-        if (state.taskIdMap.hasOwnProperty(key)) delete state.taskIdMap[key];
-    }
+    // 清空并重建 ID 映射（直接替换对象，性能更好）
+    state.taskIdMap = {};
     for (var i = 0; i < tasks.length; i++) {
         if (tasks[i]._id) state.taskIdMap[tasks[i]._id] = tasks[i];
     }
