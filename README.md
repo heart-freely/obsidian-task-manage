@@ -36,35 +36,57 @@ exit
 # 代码结构
 
 ```text
-ssrc/
-├── common.js                         # 日期工具、节流、简易DOM创建
-├── styles.css                        # 所有样式（外部化）
-├── main.js                           # 极简插件入口（注册视图、命令、图标）
+src/
+├── __mocks__/                          # Jest 模拟模块
+│   └── obsidian.js                     #   Obsidian API 模拟
+├── __tests__/                          # 单元测试
+│   ├── common.test.js                  #   日期工具测试
+│   ├── storage-persist.test.js         #   持久化管理器测试
+│   ├── storage-persistence.test.js     #   （可能已废弃，可删除）
+│   └── tasks-filter.test.js            #   筛选函数测试
+├── common.js                           # 通用工具（日期、节流、DOM 创建）
 ├── configs/
-│   └── configs-plugin.js             # 全部可配置常量（颜色、正则、状态、排序模式等）
+│   └── configs-plugin.js               # 可配置常量（颜色、状态、排序、路径等）
+├── dataview/
+│   └── dataview-calcul.js              # Dataview 扩展计算（预留）
 ├── echarts/
-│   ├── echarts-draw.js               # 图表渲染：数据计算、饼图/柱状图创建、模态放大
-│   └── echart-utils.js               # 预留扩展
+│   ├── echarts-calcul.js               # 图表数据统计（纯函数）
+│   └── echarts-utils.js                # ECharts 本地加载（导入打包后的 echarts）
+├── main.js                             # 插件入口，注册视图、命令、设置面板
 ├── panel/
-│   ├── panel.js                      # 核心协调器：状态初始化、筛选缓存、renderAll/renderFullUI
-│   ├── panel-base.js                 # 预留面板基类
-│   ├── panel-tree.js                 # 左侧任务树组件（构建、排序、渲染、折叠/聚焦交互）
-│   ├── panel-filters-date.js         # 日期筛选面板：快捷按钮、年/季/月/周/星期级联
-│   ├── panel-filters-mark.js         # 标记筛选面板：执行状态、包含/排除标记、执行查询与重置
-│   ├── panel-controls.js             # 控制栏与排序栏（间隔模式、循环/完成/取消/文件夹切换、排序）
-│   ├── panel-layout.js               # 预留主布局构建
 │   ├── interact/
-│   │   ├── interact-chart.js         # 图表交互：Alt+滚轮缩放、分隔条拖拽、ResizeObserver、提示
-│   │   └── interact-bottons.js       # 预留按钮交互
+│   │   ├── interact-chart.js           #   图表交互：缩放、拖拽分隔条、ResizeObserver
+│   │   └── interact-tooltip.js         #   全局 Tooltip 管理器
+│   ├── panel.js                        #   核心协调器，BaseTaskView，NavigatorView，导航核心逻辑
+│   ├── panel-control-bottons.js        #   控制栏：刷新、间隔模式、循环/完成/取消切换
+│   ├── panel-date-bottons.js           #   日期级联选择器（年/季/月/周/日）
+│   ├── panel-hide-bottons.js           #   显示/隐藏筛选面板与任务树
+│   ├── panel-mark-bottons.js           #   执行状态、包含/排除标记面板
+│   ├── panel-quick-bottons.js          #   快捷日期按钮 + 执行查询按钮
+│   ├── panel-sidebar-bottons.js        #   左侧视图切换图标按钮
+│   ├── panel-sort-bottons.js           #   排序栏组件（6 种排序键）
+│   ├── panel-tree-view.js              #   任务树组件（含虚拟滚动、防抖）
+│   ├── panel-switch-views.js           #   （可能未使用，可删）
 │   └── views/
-│       ├── view-base-tasks.js        # 任务视图基类（封装 dv 构建、生命周期、清理）
-│       ├── view-data-tasks.js        # 当前“任务面板”视图定义
-│       └── view-*.js                 # 预留其他视图（日历、甘特图等）
+│       ├── view-data-tasks.js          #   数据视图渲染：图表绘制
+│       ├── view-matrix-tasks.js        #   矩阵视图渲染：四象限分类
+│       ├── view-kanban-tasks.js        #   看板视图渲染：三列状态卡片
+│       ├── view-calendar-tasks.js      #   （预留）日历视图
+│       ├── view-edit-tasks.js          #   （预留）编辑视图
+│       ├── view-gantt-tasks.js         #   （预留）甘特图视图
+│       ├── view-list-tasks.js          #   （预留）列表视图
+│       ├── view-table-tasks.js         #   （预留）表格视图
+│       ├── view-time-tasks.js          #   （预留）时间轴视图
+│       └── view-tree-tasks.js          #   （预留）树状图视图
 ├── storage/
-│   └── storage-persistence.js        # 状态持久化：保存/恢复筛选条件、折叠节点等
-└── tasks/
-    ├── tasks-read.js                 # 任务读取与解析（Dataview API、正则、属性补全、缓存）
-    └── tasks-filter.js               # 纯筛选函数（日期、状态、标记、路径）
+│   └── storage-persist.js              # 初始状态创建、筛选指纹、持久化管理器
+├── tasks/
+│   ├── tasks-filter.js                 # 通用任务筛选（日期、状态、标记）
+│   ├── tasks-read.js                   # Dataview 任务读取、解析与缓存
+│   ├── tasks-matrix.js                 # 矩阵数据逻辑（基于 Tasks 插件）
+│   └── tasks-kanban.js                 # 看板数据逻辑（基于 Tasks 插件）
+└── utils/
+    └── logger.js                       # 简易日志工具（生产环境静默）
 
 ```
 
