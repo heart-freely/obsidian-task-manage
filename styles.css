@@ -1,8 +1,29 @@
-/*
+/* src/styles.css */
+/* 任务面板插件所有样式 */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
+.cascade-btn, .quick-btn, .sort-btn { border:none; cursor:pointer; }
+.cascade-btn, .quick-btn { padding:4px 14px; border-radius:20px; background:var(--interactive-normal); color:var(--text-normal); }
+.cascade-btn-active, .quick-btn-active, .sort-btn-active { background:var(--interactive-accent)!important; color:white; font-weight:bold; }
+.cascade-btn-disabled { background:var(--background-modifier-muted)!important; color:var(--text-muted); cursor:not-allowed; opacity:0.6; }
+.sort-btn { padding:2px 12px; border-radius:12px; background:var(--interactive-normal); color:var(--text-normal); font-size:12px; }
+.filter-section { margin-bottom:16px; padding:12px; background:var(--background-secondary); border-radius:12px; }
+.filter-label { font-weight:bold; font-size:13px; min-width:70px; color:var(--text-accent); }
+.main-layout { display:flex; flex-wrap:nowrap; gap:0; margin-top:16px; height:calc(100vh - 280px); max-height:80vh; overflow:hidden; }
+.left-panel { width:300px; min-width:200px; border:1px solid var(--background-modifier-border); border-radius:8px; padding:8px; overflow-y:auto; height:100%; max-height:none; transition:width 0.2s; }
+.left-panel ul li { content-visibility:auto; contain-intrinsic-size:28px; }
+.chart-panel { flex:1; min-width:0; border:1px solid var(--background-modifier-border); border-radius:8px; padding:0; display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden; position:relative; }
+.chart-grid { width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0; padding:8px; align-items:stretch; justify-items:stretch; }
+.chart-item { background:var(--background-secondary); border-radius:8px; padding:4px; display:flex; flex-direction:column; height:250px; overflow:hidden; box-sizing:border-box; }
+.chart-item .chart-header { display:flex; justify-content:space-between; align-items:center; height:24px; }
+.chart-body { flex:1; min-height:0; width:100%; transform-origin:0 0; overflow:hidden; }
+.resizer { width:6px; cursor:col-resize; background:var(--background-modifier-border); }
+.resizer:hover { background:var(--interactive-accent); }
+.dataview-tooltip { position:fixed!important; background:#2d2d2d; color:#f0f0f0; border:1px solid #555; border-radius:8px; padding:10px 14px; pointer-events:none; z-index:10000; max-width:450px; box-shadow:0 4px 12px rgba(0,0,0,0.3); font-size:13px; line-height:1.5; white-space:normal; display:none; }
+.progress-bar { width:70px; height:6px; border-radius:3px; margin-left:8px; overflow:hidden; display:inline-flex; flex-shrink:0; font-size:0; background:transparent!important; }
+.progress-segment { height:100%; }
+.progress-text { margin-left:4px; font-size:11px; color:var(--text-muted); }
+.empty-message { padding:40px; text-align:center; color:var(--text-muted); font-style:italic; }
+.zoom-btn { background:none; border:none; cursor:pointer; font-size:16px; margin-left:8px; }
+.task-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 60px); display:inline-block; vertical-align:middle; }
+.today-marker { color:#ffaa00; margin-right:4px; }
+.scale-hint { position:absolute; top:8px; right:12px; background:rgba(0,0,0,0.6); color:#ddd; padding:4px 12px; border-radius:12px; font-size:12px; pointer-events:none; z-index:10; opacity:0.9; transition:opacity 0.5s; }
