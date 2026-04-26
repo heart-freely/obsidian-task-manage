@@ -19,6 +19,9 @@ npm run build
 ```powershell
 npm run dev
 ```
+## 重载插件
+
+Ctrl/Cmd + P，输入中文“重载插件”
 
 ## 退出容器
 ```powershell
@@ -28,31 +31,35 @@ exit
 # 代码结构
 
 ```text
-src/
-├── common.js                  # 纯工具函数（日期、DOM、节流等）
+ssrc/
+├── common.js                         # 日期工具、节流、简易DOM创建
+├── styles.css                        # 所有样式（外部化）
+├── main.js                           # 极简插件入口（注册视图、命令、图标）
 ├── configs/
-│   └── plugin-configs.js      # 所有可配置常量（颜色、正则、列表等）
-├── storage/
-│   └── state-persistence.js   # 筛选状态的保存/恢复
-├── tasks/
-│   ├── read-tasks.js          # 原始任务读取与解析
-│   └── filter-tasks.js        # 纯筛选逻辑（根据条件过滤任务数组）
-├── dataview/
-│   └── calcul-dataview.js     # 基于 dv 的数据查询扩展（如有）
+│   └── configs-plugin.js             # 全部可配置常量（颜色、正则、状态、排序模式等）
 ├── echarts/
-│   ├── draw-echarts.js        # 图表构建（接收数据、配置，返回实例）
-│   └── chart-utils.js         # 图表数据计算工具（饼图数据汇总等）
+│   ├── echarts-draw.js               # 图表渲染：数据计算、饼图/柱状图创建、模态放大
+│   └── echart-utils.js               # 预留扩展
 ├── panel/
-│   ├── ui-buttons.js          # 通用按钮、工具栏构建
-│   ├── ui-tree.js             # 左侧树组件（纯渲染，不关心数据来源）
-│   ├── ui-panel.js            # 面板布局骨架（分隔条等）
-│   └── views/                 # 各类视图入口（每个视图是一个类）
-│       ├── base-task-view.js  # 基类，组装通用逻辑
-│       ├── tasks-data-view.js # 当前主视图（列表+图表）
-│       ├── tasks-tree-view.js # 其他视图...
-│       └── ...
-├── main.js                    # 插件入口，仅注册视图、命令、功能区图标
-└── styles.css                 # 所有样式（替代 JS 动态注入）
+│   ├── panel.js                      # 核心协调器：状态初始化、筛选缓存、renderAll/renderFullUI
+│   ├── panel-base.js                 # 预留面板基类
+│   ├── panel-tree.js                 # 左侧任务树组件（构建、排序、渲染、折叠/聚焦交互）
+│   ├── panel-filters-date.js         # 日期筛选面板：快捷按钮、年/季/月/周/星期级联
+│   ├── panel-filters-mark.js         # 标记筛选面板：执行状态、包含/排除标记、执行查询与重置
+│   ├── panel-controls.js             # 控制栏与排序栏（间隔模式、循环/完成/取消/文件夹切换、排序）
+│   ├── panel-layout.js               # 预留主布局构建
+│   ├── interact/
+│   │   ├── interact-chart.js         # 图表交互：Alt+滚轮缩放、分隔条拖拽、ResizeObserver、提示
+│   │   └── interact-bottons.js       # 预留按钮交互
+│   └── views/
+│       ├── view-base-tasks.js        # 任务视图基类（封装 dv 构建、生命周期、清理）
+│       ├── view-data-tasks.js        # 当前“任务面板”视图定义
+│       └── view-*.js                 # 预留其他视图（日历、甘特图等）
+├── storage/
+│   └── storage-persistence.js        # 状态持久化：保存/恢复筛选条件、折叠节点等
+└── tasks/
+    ├── tasks-read.js                 # 任务读取与解析（Dataview API、正则、属性补全、缓存）
+    └── tasks-filter.js               # 纯筛选函数（日期、状态、标记、路径）
 
 ```
 

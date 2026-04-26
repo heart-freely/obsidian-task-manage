@@ -1,13 +1,8 @@
-// src/tasks/read-tasks.js
-// 任务解析与缓存模块 —— ES6 版本
+// src/tasks/tasks-read.js
+// 任务解析与缓存模块
+import { CONFIG } from '../configs/configs-plugin';
+import { DateUtils } from '../common';
 
-import { TASK_FOLDERS, FILE_NAME_PATTERN, ROOT_PATH, ALLOWED_STATUSES } from '../configs/configs-plugin.js';
-import { DateUtils } from '../common.js';
-
-// 重新导出 ROOT_PATH 供其他模块使用（保持向后兼容）
-export { ROOT_PATH };
-
-// 匹配正则（保留在模块内，因为与任务解析紧密相关）
 export const RX = {
     priority: /⏬|🔽|🔼|⏫|🔺/g,
     repeat: /🔁\s*(every\s+(day|week|month|year))/i,
@@ -22,13 +17,11 @@ export const RX = {
     forbid: /⛔\s*([^\s,]+(?:\s*,\s*[^\s,]+)*)/
 };
 
-// 任务状态提取
 export function getTaskStatus(line) {
     const m = line.match(/^\s*- \[(.)\]\s*/);
     return m ? ({ x: 'completed', X: 'completed', '-': 'cancelled', '/': 'in-progress', '?': 'planned' })[m[1]] || 'todo' : 'todo';
 }
 
-// 状态图标
 export function getStatusIcon(task) {
     if (task._status === 'completed' || task.completed) return '✅';
     if (task._status === 'in-progress') return '⏩';
@@ -37,7 +30,6 @@ export function getStatusIcon(task) {
     return '🔲';
 }
 
-// 今天任务判断
 export function isTaskToday(task) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
@@ -45,7 +37,6 @@ export function isTaskToday(task) {
     return check(task._scheduled) || check(task._due) || check(task._starts) || check(task._created);
 }
 
-// 计算任务时间范围
 export function computeTaskTimeRange(task) {
     let min = Infinity, max = -Infinity;
     const add = d => {
@@ -59,7 +50,6 @@ export function computeTaskTimeRange(task) {
     };
 }
 
-// 补全任务属性
 export function ensureTaskProperties(task) {
     if (!task.hasOwnProperty('_cleanText')) {
         task._cleanText = task.text
@@ -97,35 +87,38 @@ export function ensureTaskProperties(task) {
     }
 }
 
-// 加载所有任务（使用 Dataview 页面）
 export function getAllTasks(force, dv, state) {
     if (!state) throw new Error('Global state context is required');
     if (state.cachedAllTasks && !force) return state.cachedAllTasks;
 
     const tasks = [];
-    for (const folder of TASK_FOLDERS) {
+    for (const folder of CONFIG.TASK_FOLDERS) {
         const pages = dv.pages(folder);
         if (!pages || !pages.length) continue;
         for (const page of pages) {
-            if (!FILE_NAME_PATTERN.test(page.file.name)) continue;
+            if (!CONFIG.FILE_NAME_PATTERN.test(page.file.name)) continue;
             if (!page.file.tasks) continue;
             for (const task of page.file.tasks) {
-                const fullLine = (task.completed ? '- [x] ' : '- [ ] ') + task.text;
-                task._fullLine = fullLine;
-                task._status = task.status ? ({ '/': 'in-progress', '?': 'planned', '-': 'cancelled', x: 'completed', X: 'completed' })[task.status] || 'todo' : getTaskStatus(fullLine);
-                function m(rx, idx) { return fullLine.match(rx) ? fullLine.match(rx)[idx !== undefined ? idx : 1] || null : null; }
-                task._created = m(RX.created); task._scheduled = m(RX.scheduled); task._starts = m(RX.starts);
-                task._due = m(RX.due); task._done = m(RX.done); task._cancel = m(RX.cancel) || '';
-                task._tag = m(RX.tag); task._id = m(RX.id); task._forbid = m(RX.forbid) ? m(RX.forbid).replace(/\s/g, '') : '';
-                task._repeat = m(RX.repeat); task._priorityIcon = (fullLine.match(RX.priority) || [null])[0];
-                task._marks = {
-                    priority: !!task._priorityIcon, repeat: !!task._repeat, created: !!task._created,
-                    scheduled: !!task._scheduled, starts: !!task._starts, due: !!task._due, done: !!task._done,
-                    cancel: !!task._cancel, tag: !!task._tag, id: !!task._id, forbid: !!task._forbid
-                };
-                task._cachedTimeRange = computeTaskTimeRange(task);
-                ensureTaskProperties(task);
-                tasks.push(task);
+                try {
+                    const fullLine = (task.completed ? '- [x] ' : '- [ ] ') + task.text;
+                    task._fullLine = fullLine;
+                    task._status = task.status ? ({ '/': 'in-progress', '?': 'planned', '-': 'cancelled', x: 'completed', X: 'completed' })[task.status] || 'todo' : getTaskStatus(fullLine);
+                    function m(rx, idx) { return fullLine.match(rx) ? fullLine.match(rx)[idx !== undefined ? idx : 1] || null : null; }
+                    task._created = m(RX.created); task._scheduled = m(RX.scheduled); task._starts = m(RX.starts);
+                    task._due = m(RX.due); task._done = m(RX.done); task._cancel = m(RX.cancel) || '';
+                    task._tag = m(RX.tag); task._id = m(RX.id); task._forbid = m(RX.forbid) ? m(RX.forbid).replace(/\s/g, '') : '';
+                    task._repeat = m(RX.repeat); task._priorityIcon = (fullLine.match(RX.priority) || [null])[0];
+                    task._marks = {
+                        priority: !!task._priorityIcon, repeat: !!task._repeat, created: !!task._created,
+                        scheduled: !!task._scheduled, starts: !!task._starts, due: !!task._due, done: !!task._done,
+                        cancel: !!task._cancel, tag: !!task._tag, id: !!task._id, forbid: !!task._forbid
+                    };
+                    task._cachedTimeRange = computeTaskTimeRange(task);
+                    ensureTaskProperties(task);
+                    tasks.push(task);
+                } catch (e) {
+                    console.warn('任务解析失败，已跳过：', task, e);
+                }
             }
         }
     }

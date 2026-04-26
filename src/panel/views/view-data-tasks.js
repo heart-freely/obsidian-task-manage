@@ -1,6 +1,6 @@
 // src/panel/views/view-data-tasks.js
 import { BaseTaskView } from './view-base-tasks';
-import { startDataViewCore } from './view-data-core';
+import { startDataViewCore } from '../panel';   // 新路径
 
 export const VIEW_TYPE_TASK_DATAVIEW = 'task-dataview-view';
 

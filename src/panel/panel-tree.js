@@ -1,35 +1,25 @@
-// src/panel/ui-tree.js
-// 任务树组件 —— 负责左侧面板的树形展示、折叠、聚焦
+// src/panel/panel-tree.js
+// 任务树组件（含虚拟滚动）
 
 import * as readTasks from '../tasks/tasks-read';
-import {
-    ROOT_PATH,
-    ALLOWED_STATUSES,
-    STATUS_NAMES,
-    STATUS_COLORS
-} from '../configs/configs-plugin';
+import { CONFIG } from '../configs/configs-plugin';
 
-/**
- * 任务树渲染器
- * 使用方式：
- *   const tree = new TaskTreeRenderer({ container, dv, app, state, collapsedNodes, ... });
- *   tree.render(filteredTasks);
- */
+const ROW_HEIGHT = 28;              // 每行的固定高度（与样式一致）
+const BUFFER_COUNT = 5;             // 可视区外缓冲行数
+
 export class TaskTreeRenderer {
     constructor(options) {
         this.container = options.container;
         this.dv = options.dv;
         this.app = options.app;
-        this.state = options.state;           // 主状态对象（用于读取排序、hideFolders、filterRootPath等）
-        this.collapsedNodes = options.collapsedNodes;  // 折叠记录对象（可读写）
-        this.onFilterRootPathChange = options.onFilterRootPathChange; // 聚焦变化回调
-        this.onCollapseChange = options.onCollapseChange;             // 折叠变化回调（用于持久化）
-        this.onBeforeRender = options.onBeforeRender || (() => {});   // 每次渲染前调用（如保存状态）
+        this.state = options.state;
+        this.collapsedNodes = options.collapsedNodes;
+        this.tooltip = options.tooltip;
+        this.onFilterRootPathChange = options.onFilterRootPathChange;
+        this.onCollapseChange = options.onCollapseChange;
+        this._getFilteredTasks = null;
     }
 
-    /**
-     * 主渲染入口：传入过滤后的任务，重新构建并绘制树
-     */
     render(tasks) {
         if (!this.container) return;
         const rootNodes = this._buildTree(tasks);
@@ -39,9 +29,8 @@ export class TaskTreeRenderer {
         this._renderLeftPanel(flat);
     }
 
-    // ===== 树构建（与原有逻辑一致） =====
     _buildTree(tasks) {
-        const rootPrefix = ROOT_PATH;
+        const rootPrefix = CONFIG.ROOT_PATH;
         const fileMap = {};
         tasks.forEach(t => {
             const p = t.path;
@@ -98,7 +87,6 @@ export class TaskTreeRenderer {
         return rootNodes;
     }
 
-    // ===== 节点统计 =====
     _calcNodeStats(node) {
         const stats = { todo: 0, planned: 0, 'in-progress': 0, completed: 0, cancelled: 0, total: 0 };
         if (node.type === 'task') { stats[node.task._status]++; stats.total++; return stats; }
@@ -110,7 +98,6 @@ export class TaskTreeRenderer {
         return stats;
     }
 
-    // ===== 排序 =====
     _sortTreeNodes(nodes) {
         nodes.sort((a, b) => {
             return a.type !== b.type ? (a.type === 'folder' ? -1 : 1) : a.name.localeCompare(b.name);
@@ -146,7 +133,6 @@ export class TaskTreeRenderer {
         });
     }
 
-    // ===== 扁平化 =====
     _flattenTreeForDisplay(nodes, level, result) {
         nodes.forEach(node => {
             if (this.state.hideFolders && node.type === 'folder') {
@@ -171,13 +157,11 @@ export class TaskTreeRenderer {
         });
     }
 
-    // ===== 核心 DOM 渲染 =====
     _renderLeftPanel(flatNodes) {
         const container = this.container;
         if (!container) return;
         container.innerHTML = '';
 
-        // 聚焦提示条
         if (this.state.filterRootPath) {
             const ind = document.createElement('div');
             ind.innerHTML = '📌 已聚焦：' + this.state.filterRootPath +
@@ -193,27 +177,66 @@ export class TaskTreeRenderer {
             return;
         }
 
-        const ul = document.createElement('ul');
-        ul.style.cssText = 'list-style:none;padding-left:0;content-visibility:auto;contain-intrinsic-size:1px 28px;';
+        // 虚拟滚动设置
+        const totalHeight = flatNodes.length * ROW_HEIGHT;
+        const ul = document.createElement('div');   // 使用 div 作为滚动容器外部，ul 作为内部占位
+        ul.style.cssText = 'position:relative; height:100%; overflow-y:auto; content-visibility:auto; contain-intrinsic-size:1px 28px;';
 
-        // 事件委托：工具提示
+        const inner = document.createElement('div');
+        inner.style.height = totalHeight + 'px';
+        inner.style.position = 'relative';
+        ul.appendChild(inner);
+
+        // 可见范围渲染
+        const renderRange = () => {
+            const scrollTop = ul.scrollTop;
+            const containerHeight = ul.clientHeight || 400;
+            const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_COUNT);
+            const endIdx = Math.min(flatNodes.length - 1, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER_COUNT);
+
+            // 清空 inner，但保留渲染过的片段（通过 data-index 识别）
+            const children = inner.querySelectorAll('[data-index]');
+            const existingSet = new Set();
+            children.forEach(el => {
+                const idx = parseInt(el.getAttribute('data-index'), 10);
+                if (idx >= startIdx && idx <= endIdx) {
+                    existingSet.add(idx);
+                } else {
+                    el.remove();
+                }
+            });
+
+            for (let i = startIdx; i <= endIdx; i++) {
+                if (existingSet.has(i)) continue;
+                const node = flatNodes[i];
+                const row = this._createNodeRow(node, i);
+                row.style.position = 'absolute';
+                row.style.top = (i * ROW_HEIGHT) + 'px';
+                row.setAttribute('data-index', i);
+                inner.appendChild(row);
+            }
+        };
+
+        ul.addEventListener('scroll', renderRange, { passive: true });
+        // 首次渲染
+        setTimeout(renderRange, 0);
+
+        // tooltip / click 委托 (绑定在 ul 上)
         ul.addEventListener('mouseover', e => {
             if (this.state.modalOpen) return;
             const target = e.target.closest('[data-tooltip-html]');
-            if (target && this.state.tooltipDiv) {
-                this.state.tooltipDiv.innerHTML = target.getAttribute('data-tooltip-html');
-                this.state.tooltipDiv.style.display = 'block';
+            if (target && this.tooltip) {
+                const html = target.getAttribute('data-tooltip-html');
+                this.tooltip.show(html, e.clientX, e.clientY);
             }
         });
         ul.addEventListener('mousemove', e => {
-            if (this.state.modalOpen || !this.state.tooltipDiv || this.state.tooltipDiv.style.display === 'none') return;
-            this.state.tooltipDiv.style.left = (e.clientX + 15) + 'px';
-            this.state.tooltipDiv.style.top = (e.clientY + 15) + 'px';
+            if (this.state.modalOpen || !this.tooltip) return;
+            this.tooltip.move(e.clientX, e.clientY);
         });
         ul.addEventListener('mouseleave', () => {
-            if (!this.state.modalOpen && this.state.tooltipDiv) this.state.tooltipDiv.style.display = 'none';
+            if (!this.state.modalOpen && this.tooltip) this.tooltip.hide();
         });
-        // 事件委托：跳转任务
         ul.addEventListener('click', e => {
             const target = e.target.closest('[data-task-link]');
             if (!target) return;
@@ -221,107 +244,96 @@ export class TaskTreeRenderer {
             this.app.workspace.openLinkText(link, '', { active: true });
         });
 
-        const self = this; // 保留引用供内部函数使用
-
-        function renderNode(node) {
-            const li = document.createElement('li');
-            li.style.margin = '0';
-            const header = document.createElement('div');
-            header.style.cssText = 'display:flex;align-items:center;cursor:pointer;padding:2px 0;height:28px;';
-            header.style.paddingLeft = (node.level * 16) + 'px';
-            const toggle = document.createElement('span');
-            toggle.style.cssText = 'width:16px;text-align:center;font-size:12px;';
-
-            if (node.type === 'task') {
-                toggle.style.visibility = 'hidden';
-                header.appendChild(toggle);
-                const task = node.task;
-                if (readTasks.isTaskToday(task)) {
-                    const mk = document.createElement('span');
-                    mk.className = 'today-marker';
-                    mk.textContent = '🔹';
-                    header.appendChild(mk);
-                }
-                const statusIcon = document.createElement('span');
-                statusIcon.textContent = readTasks.getStatusIcon(task) + ' ';
-                statusIcon.style.marginLeft = '4px';
-                header.appendChild(statusIcon);
-                const descSpan = document.createElement('span');
-                descSpan.className = 'task-text';
-                descSpan.textContent = task._cleanText;
-                header.appendChild(descSpan);
-                header.setAttribute('data-tooltip-html', task._tooltipHtml);
-                header.setAttribute('data-task-link', task.path + '#' + (task.line + 1));
-                li.appendChild(header);
-                return li;
-            }
-
-            const expanded = !self.collapsedNodes[node.fullPath];
-            toggle.textContent = expanded ? '▼' : '▶';
-            toggle.onclick = (e) => {
-                e.stopPropagation();
-                if (self.collapsedNodes[node.fullPath]) {
-                    delete self.collapsedNodes[node.fullPath];
-                } else {
-                    self.collapsedNodes[node.fullPath] = true;
-                }
-                // 触发折叠变化（持久化），并重新渲染树
-                if (self.onCollapseChange) self.onCollapseChange();
-                self.renderFromCurrentFilter();
-            };
-            header.appendChild(toggle);
-
-            const iconSpan = document.createElement('span');
-            iconSpan.style.cssText = 'margin-left:4px;font-weight:bold;color:var(--text-accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;';
-            iconSpan.textContent = node.type === 'folder' ? '📁 ' + node.name : '📄 ' + node.name + ' (' + node.tasks.length + ')';
-            header.appendChild(iconSpan);
-
-            const stats = self._calcNodeStats(node);
-            if (stats.total > 0) {
-                const prog = document.createElement('div');
-                prog.style.cssText = 'display:inline-flex;width:70px;height:6px;border-radius:3px;margin-left:8px;overflow:hidden;flex-shrink:0;background:transparent;font-size:0;line-height:0;';
-                ALLOWED_STATUSES.forEach(st => {
-                    if (stats[st] > 0) {
-                        const seg = document.createElement('div');
-                        seg.style.cssText = `display:inline-block;height:6px;width:${(stats[st]/stats.total*100).toFixed(2)}%;background-color:${STATUS_COLORS[st]}!important;min-width:1px;vertical-align:top;`;
-                        seg.title = STATUS_NAMES[st] + ': ' + stats[st];
-                        prog.appendChild(seg);
-                    }
-                });
-                header.appendChild(prog);
-                const pct = document.createElement('span');
-                pct.className = 'progress-text';
-                pct.textContent = Math.round(stats.completed / stats.total * 100) + '%';
-                header.appendChild(pct);
-            }
-
-            header.onclick = (e) => {
-                e.stopPropagation();
-                const newPath = self.state.filterRootPath === node.fullPath ? null : node.fullPath;
-                self.onFilterRootPathChange(newPath);
-            };
-            li.appendChild(header);
-            return li;
-        }
-
-        flatNodes.forEach(n => ul.appendChild(renderNode(n)));
         container.appendChild(ul);
+        // 存储引用以便 resize 时重新计算
+        this._flatNodes = flatNodes;
+        this._renderRange = renderRange;
     }
 
-    /**
-     * 从当前筛选缓存重新渲染（用于折叠切换后）
-     * 需要在外部提供获取过滤后任务的方法
-     */
+    _createNodeRow(node, index) {
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;align-items:center;cursor:pointer;padding:2px 0;height:28px;';
+        header.style.paddingLeft = (node.level * 16) + 'px';
+
+        const toggle = document.createElement('span');
+        toggle.style.cssText = 'width:16px;text-align:center;font-size:12px;';
+
+        if (node.type === 'task') {
+            toggle.style.visibility = 'hidden';
+            header.appendChild(toggle);
+            const task = node.task;
+            if (readTasks.isTaskToday(task)) {
+                const mk = document.createElement('span');
+                mk.className = 'today-marker';
+                mk.textContent = '🔹';
+                header.appendChild(mk);
+            }
+            const statusIcon = document.createElement('span');
+            statusIcon.textContent = readTasks.getStatusIcon(task) + ' ';
+            statusIcon.style.marginLeft = '4px';
+            header.appendChild(statusIcon);
+            const descSpan = document.createElement('span');
+            descSpan.className = 'task-text';
+            descSpan.textContent = task._cleanText;
+            header.appendChild(descSpan);
+            header.setAttribute('data-tooltip-html', task._tooltipHtml);
+            header.setAttribute('data-task-link', task.path + '#' + (task.line + 1));
+            return header;
+        }
+
+        const expanded = !this.collapsedNodes[node.fullPath];
+        toggle.textContent = expanded ? '▼' : '▶';
+        toggle.onclick = (e) => {
+            e.stopPropagation();
+            if (this.collapsedNodes[node.fullPath]) {
+                delete this.collapsedNodes[node.fullPath];
+            } else {
+                this.collapsedNodes[node.fullPath] = true;
+            }
+            if (this.onCollapseChange) this.onCollapseChange();
+            this.renderFromCurrentFilter();
+        };
+        header.appendChild(toggle);
+
+        const iconSpan = document.createElement('span');
+        iconSpan.style.cssText = 'margin-left:4px;font-weight:bold;color:var(--text-accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;';
+        iconSpan.textContent = node.type === 'folder' ? '📁 ' + node.name : '📄 ' + node.name + ' (' + node.tasks.length + ')';
+        header.appendChild(iconSpan);
+
+        const stats = this._calcNodeStats(node);
+        if (stats.total > 0) {
+            const prog = document.createElement('div');
+            prog.style.cssText = 'display:inline-flex;width:70px;height:6px;border-radius:3px;margin-left:8px;overflow:hidden;flex-shrink:0;background:transparent;font-size:0;line-height:0;';
+            CONFIG.ALLOWED_STATUSES.forEach(st => {
+                if (stats[st] > 0) {
+                    const seg = document.createElement('div');
+                    seg.style.cssText = `display:inline-block;height:6px;width:${(stats[st]/stats.total*100).toFixed(2)}%;background-color:${CONFIG.STATUS_COLORS[st]}!important;min-width:1px;vertical-align:top;`;
+                    seg.title = CONFIG.STATUS_NAMES[st] + ': ' + stats[st];
+                    prog.appendChild(seg);
+                }
+            });
+            header.appendChild(prog);
+            const pct = document.createElement('span');
+            pct.className = 'progress-text';
+            pct.textContent = Math.round(stats.completed / stats.total * 100) + '%';
+            header.appendChild(pct);
+        }
+
+        header.onclick = (e) => {
+            e.stopPropagation();
+            const newPath = this.state.filterRootPath === node.fullPath ? null : node.fullPath;
+            this.onFilterRootPathChange(newPath);
+        };
+
+        return header;
+    }
+
     renderFromCurrentFilter() {
-        // 此方法假设外部注入 getFilteredTasks 函数
         if (this._getFilteredTasks) {
             this.render(this._getFilteredTasks());
         }
     }
 
-    /**
-     * 设置获取过滤后任务的函数（由 main.js 注入）
-     */
     setFilteredTasksProvider(fn) {
         this._getFilteredTasks = fn;
     }
