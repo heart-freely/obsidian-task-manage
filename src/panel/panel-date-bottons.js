@@ -1,16 +1,15 @@
-// src/panel/panel-filters-date.js
-// 日期筛选面板：快捷按钮 + 年/季/月/周/星期级联选择器
-
+// src/panel/panel-date-bottons.js
 import { DateUtils } from '../common';
 import { CONFIG } from '../configs/configs-plugin';
 
-function clearQuickHighlights(state) {
-    state.quickBtns.forEach(b => b.className = 'quick-btn');
-}
-
-function clearDateSelections(state) {
+/* ---------- 内部辅助 ---------- */
+function clearCascadeSelections(state) {
     state.dateState.selections = { years: {}, quarters: {}, months: {}, weeks: {}, weekdays: {} };
     updateDateButtonStyles(state);
+}
+
+export function resetCascadeDateUI(state) {
+    clearCascadeSelections(state);
 }
 
 function updateDateButtonStyles(state) {
@@ -65,11 +64,14 @@ function updateDateButtonStyles(state) {
     });
 }
 
+/* ---------- 日期范围计算 ---------- */
 export function getQueryRangeFromDateSelection(state) {
     const s = state.dateState.selections;
     const years = Object.keys(s.years);
     if (!years.length) return null;
     years.sort();
+
+    // 周几
     const wdKeys = Object.keys(s.weekdays);
     if (wdKeys.length) {
         const ranges = wdKeys.map(k => {
@@ -86,6 +88,8 @@ export function getQueryRangeFromDateSelection(state) {
             end: DateUtils.setEnd(new Date(Math.max(...ranges.map(r => r.end))))
         };
     }
+
+    // 周
     const wKeys = Object.keys(s.weeks);
     if (wKeys.length) {
         const ranges = wKeys.map(k => {
@@ -101,6 +105,8 @@ export function getQueryRangeFromDateSelection(state) {
             end: DateUtils.setEnd(new Date(Math.max(...ranges.map(r => r.end))))
         };
     }
+
+    // 月
     const mKeys = Object.keys(s.months);
     if (mKeys.length) {
         const ranges = mKeys.map(k => {
@@ -112,6 +118,8 @@ export function getQueryRangeFromDateSelection(state) {
             end: DateUtils.setEnd(new Date(Math.max(...ranges.map(r => r.end))))
         };
     }
+
+    // 季度
     const qKeys = Object.keys(s.quarters);
     if (qKeys.length) {
         const ranges = qKeys.map(k => {
@@ -123,6 +131,8 @@ export function getQueryRangeFromDateSelection(state) {
             end: DateUtils.setEnd(new Date(Math.max(...ranges.map(r => r.end))))
         };
     }
+
+    // 年
     const ranges = years.map(y => DateUtils.getYearRangeByYear(+y));
     return {
         start: DateUtils.setStart(new Date(Math.min(...ranges.map(r => r.start)))),
@@ -130,80 +140,9 @@ export function getQueryRangeFromDateSelection(state) {
     };
 }
 
-export function buildDateFilterPanel(container, dv, state) {
+/* ---------- 构建级联面板 ---------- */
+export function buildDateCascadePanel(container, dv, state) {
     const dateSection = dv.el('div', '', { cls: 'filter-section' });
-    const quickRow = dv.el('div', '');
-    quickRow.style.cssText = 'margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px;';
-    const quickDefs = [
-        { label: '今天', range: () => DateUtils.getDayRange(new Date()) },
-        { label: '昨天', range: () => { const d = new Date(); d.setDate(d.getDate() - 1); return DateUtils.getDayRange(d); } },
-        { label: '明天', range: () => { const d = new Date(); d.setDate(d.getDate() + 1); return DateUtils.getDayRange(d); } },
-        { label: '本周', range: () => DateUtils.getWeekRange(new Date()) },
-        { label: '本月', range: () => DateUtils.getMonthRange(new Date()) },
-        { label: '所有任务', range: null }
-    ];
-    state.quickBtns = [];
-    quickDefs.forEach(def => {
-        const btn = dv.el('button', def.label, { cls: 'quick-btn' });
-        btn.onclick = () => {
-            clearQuickHighlights(state);
-            btn.classList.add('quick-btn-active');
-            clearDateSelections(state);
-            if (def.label === '所有任务') {
-                state.dateFilterState.isAll = true;
-                state.dateFilterState.start = state.dateFilterState.end = null;
-            } else {
-                state.dateFilterState.isAll = false;
-                const r = def.range();
-                state.dateFilterState.start = r.start;
-                state.dateFilterState.end = r.end;
-            }
-            state.filterCache.fingerprint = '';
-        };
-        quickRow.appendChild(btn);
-        state.quickBtns.push(btn);
-        if (def.label === '本周') {
-            const prevBtn = dv.el('button', '上周', { cls: 'quick-btn' });
-            prevBtn.onclick = () => {
-                clearQuickHighlights(state); clearDateSelections(state);
-                const now = new Date(); now.setDate(now.getDate() - 7);
-                const r = DateUtils.getWeekRange(now);
-                state.dateFilterState.isAll = false; state.dateFilterState.start = r.start; state.dateFilterState.end = r.end;
-                state.filterCache.fingerprint = ''; prevBtn.classList.add('quick-btn-active');
-            };
-            quickRow.appendChild(prevBtn); state.quickBtns.push(prevBtn);
-            const nextBtn = dv.el('button', '下周', { cls: 'quick-btn' });
-            nextBtn.onclick = () => {
-                clearQuickHighlights(state); clearDateSelections(state);
-                const now = new Date(); now.setDate(now.getDate() + 7);
-                const r = DateUtils.getWeekRange(now);
-                state.dateFilterState.isAll = false; state.dateFilterState.start = r.start; state.dateFilterState.end = r.end;
-                state.filterCache.fingerprint = ''; nextBtn.classList.add('quick-btn-active');
-            };
-            quickRow.appendChild(nextBtn); state.quickBtns.push(nextBtn);
-        }
-        if (def.label === '本月') {
-            const prevBtn = dv.el('button', '上月', { cls: 'quick-btn' });
-            prevBtn.onclick = () => {
-                clearQuickHighlights(state); clearDateSelections(state);
-                const now = new Date(); now.setMonth(now.getMonth() - 1);
-                const r = DateUtils.getMonthRange(now);
-                state.dateFilterState.isAll = false; state.dateFilterState.start = r.start; state.dateFilterState.end = r.end;
-                state.filterCache.fingerprint = ''; prevBtn.classList.add('quick-btn-active');
-            };
-            quickRow.appendChild(prevBtn); state.quickBtns.push(prevBtn);
-            const nextBtn = dv.el('button', '下月', { cls: 'quick-btn' });
-            nextBtn.onclick = () => {
-                clearQuickHighlights(state); clearDateSelections(state);
-                const now = new Date(); now.setMonth(now.getMonth() + 1);
-                const r = DateUtils.getMonthRange(now);
-                state.dateFilterState.isAll = false; state.dateFilterState.start = r.start; state.dateFilterState.end = r.end;
-                state.filterCache.fingerprint = ''; nextBtn.classList.add('quick-btn-active');
-            };
-            quickRow.appendChild(nextBtn); state.quickBtns.push(nextBtn);
-        }
-    });
-    dateSection.appendChild(quickRow);
 
     const rows = [dv.el('div', ''), dv.el('div', ''), dv.el('div', ''), dv.el('div', ''), dv.el('div', '')];
     const labels = ['年份', '季度', '月份', '周数', '周几'];
@@ -213,11 +152,11 @@ export function buildDateFilterPanel(container, dv, state) {
         dateSection.appendChild(row);
     });
 
+    // 年份按钮
     state.yearBtns = [];
     CONFIG.YEAR_LIST.forEach(y => {
         const btn = dv.el('button', y.toString(), { cls: 'cascade-btn' });
         btn.onclick = () => {
-            clearQuickHighlights(state);
             if (state.dateState.selections.years[y]) delete state.dateState.selections.years[y];
             else state.dateState.selections.years[y] = true;
             if (Object.keys(state.dateState.selections.years).length !== 1) {
@@ -233,6 +172,7 @@ export function buildDateFilterPanel(container, dv, state) {
         state.yearBtns.push(btn);
     });
 
+    // 季度按钮
     state.quarterBtns = [];
     for (let q = 1; q <= 4; q++) {
         (function(qq) {
@@ -257,6 +197,7 @@ export function buildDateFilterPanel(container, dv, state) {
         })(q);
     }
 
+    // 月份按钮
     state.monthBtns = [];
     for (let m = 1; m <= 12; m++) {
         (function(mm) {
@@ -280,6 +221,7 @@ export function buildDateFilterPanel(container, dv, state) {
         })(m);
     }
 
+    // 周数按钮
     state.weekBtns = [];
     for (let w = 1; w <= 4; w++) {
         (function(ww) {
@@ -302,6 +244,7 @@ export function buildDateFilterPanel(container, dv, state) {
         })(w);
     }
 
+    // 周几按钮
     state.weekdayBtns = [];
     ['周一', '周二', '周三', '周四', '周五', '周六', '周日'].forEach((wd, d) => {
         (function(idx) {
@@ -320,10 +263,6 @@ export function buildDateFilterPanel(container, dv, state) {
             state.weekdayBtns.push(btn);
         })(d);
     });
-    container.appendChild(dateSection);
-}
 
-export function resetDateFilterUI(state) {
-    clearQuickHighlights(state);
-    clearDateSelections(state);
+    container.appendChild(dateSection);
 }

@@ -1,11 +1,11 @@
-// src/panel/panel-tree.js
-// 任务树组件（含虚拟滚动）
+// src/panel/panel-tree-view.js
+// 任务树组件（含虚拟滚动与 requestAnimationFrame 防抖）
 
 import * as readTasks from '../tasks/tasks-read';
 import { CONFIG } from '../configs/configs-plugin';
 
-const ROW_HEIGHT = 28;              // 每行的固定高度（与样式一致）
-const BUFFER_COUNT = 5;             // 可视区外缓冲行数
+const ROW_HEIGHT = 28;          // 每行像素高度
+const BUFFER_COUNT = 5;         // 上下缓冲行数
 
 export class TaskTreeRenderer {
     constructor(options) {
@@ -20,6 +20,7 @@ export class TaskTreeRenderer {
         this._getFilteredTasks = null;
     }
 
+    // ======================== 对外方法 ========================
     render(tasks) {
         if (!this.container) return;
         const rootNodes = this._buildTree(tasks);
@@ -29,6 +30,17 @@ export class TaskTreeRenderer {
         this._renderLeftPanel(flat);
     }
 
+    renderFromCurrentFilter() {
+        if (this._getFilteredTasks) {
+            this.render(this._getFilteredTasks());
+        }
+    }
+
+    setFilteredTasksProvider(fn) {
+        this._getFilteredTasks = fn;
+    }
+
+    // ======================== 内部构建 ========================
     _buildTree(tasks) {
         const rootPrefix = CONFIG.ROOT_PATH;
         const fileMap = {};
@@ -107,14 +119,32 @@ export class TaskTreeRenderer {
                 node.tasks.sort((a, b) => {
                     const sort = this.state.leftSort;
                     const order = sort.order === 'asc' ? 1 : -1;
-                    if (sort.type === 'status') {
+                    const type = sort.type;
+
+                    if (type === 'status') {
                         const map = { todo: 0, planned: 1, 'in-progress': 2, cancelled: 3, completed: 4 };
                         return ((map[a._status] ?? 5) - (map[b._status] ?? 5)) * order;
                     }
-                    if (sort.type === 'priority') {
+                    if (type === 'priority') {
                         const prio = { '🔺': 0, '⏫': 1, '🔼': 2, '🔽': 3, '⏬': 4 };
                         return ((prio[a._priorityIcon] ?? 5) - (prio[b._priorityIcon] ?? 5)) * order;
                     }
+                    if (type === 'scheduled' || type === 'start' || type === 'due') {
+                        const field = '_' + type;
+                        const da = a[field] ? new Date(a[field]).getTime() : null;
+                        const db = b[field] ? new Date(b[field]).getTime() : null;
+                        if (!da && !db) return 0;
+                        if (!da) return 1;
+                        if (!db) return -1;
+                        return (da - db) * order;
+                    }
+                    if (type === 'filename') {
+                        const nameA = (a.path || '').split('/').pop().replace(/\.md$/, '').toLowerCase();
+                        const nameB = (b.path || '').split('/').pop().replace(/\.md$/, '').toLowerCase();
+                        return nameA.localeCompare(nameB) * order;
+                    }
+
+                    // 默认综合时间
                     const getTime = task => {
                         const fields = ['_created', '_starts', '_scheduled', '_due', '_cancel', '_done'];
                         for (let i = 0; i < fields.length; i++) {
@@ -157,11 +187,13 @@ export class TaskTreeRenderer {
         });
     }
 
+    // ======================== 虚拟滚动渲染 ========================
     _renderLeftPanel(flatNodes) {
         const container = this.container;
         if (!container) return;
         container.innerHTML = '';
 
+        // 聚焦提示条
         if (this.state.filterRootPath) {
             const ind = document.createElement('div');
             ind.innerHTML = '📌 已聚焦：' + this.state.filterRootPath +
@@ -177,9 +209,8 @@ export class TaskTreeRenderer {
             return;
         }
 
-        // 虚拟滚动设置
         const totalHeight = flatNodes.length * ROW_HEIGHT;
-        const ul = document.createElement('div');   // 使用 div 作为滚动容器外部，ul 作为内部占位
+        const ul = document.createElement('div');
         ul.style.cssText = 'position:relative; height:100%; overflow-y:auto; content-visibility:auto; contain-intrinsic-size:1px 28px;';
 
         const inner = document.createElement('div');
@@ -187,14 +218,14 @@ export class TaskTreeRenderer {
         inner.style.position = 'relative';
         ul.appendChild(inner);
 
-        // 可见范围渲染
+        // 可见区渲染函数
         const renderRange = () => {
             const scrollTop = ul.scrollTop;
             const containerHeight = ul.clientHeight || 400;
             const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_COUNT);
             const endIdx = Math.min(flatNodes.length - 1, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER_COUNT);
 
-            // 清空 inner，但保留渲染过的片段（通过 data-index 识别）
+            // 移除不在可见区的旧行
             const children = inner.querySelectorAll('[data-index]');
             const existingSet = new Set();
             children.forEach(el => {
@@ -206,6 +237,7 @@ export class TaskTreeRenderer {
                 }
             });
 
+            // 添加新行
             for (let i = startIdx; i <= endIdx; i++) {
                 if (existingSet.has(i)) continue;
                 const node = flatNodes[i];
@@ -217,11 +249,17 @@ export class TaskTreeRenderer {
             }
         };
 
-        ul.addEventListener('scroll', renderRange, { passive: true });
+        // 使用 requestAnimationFrame 防抖
+        let rafId = null;
+        ul.addEventListener('scroll', () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(renderRange);
+        }, { passive: true });
+
         // 首次渲染
         setTimeout(renderRange, 0);
 
-        // tooltip / click 委托 (绑定在 ul 上)
+        // 事件委托：tooltip 与跳转
         ul.addEventListener('mouseover', e => {
             if (this.state.modalOpen) return;
             const target = e.target.closest('[data-tooltip-html]');
@@ -245,16 +283,13 @@ export class TaskTreeRenderer {
         });
 
         container.appendChild(ul);
-        // 存储引用以便 resize 时重新计算
-        this._flatNodes = flatNodes;
-        this._renderRange = renderRange;
     }
 
+    // 创建单行 DOM（文件/文件夹/任务）
     _createNodeRow(node, index) {
         const header = document.createElement('div');
         header.style.cssText = 'display:flex;align-items:center;cursor:pointer;padding:2px 0;height:28px;';
         header.style.paddingLeft = (node.level * 16) + 'px';
-
         const toggle = document.createElement('span');
         toggle.style.cssText = 'width:16px;text-align:center;font-size:12px;';
 
@@ -326,15 +361,5 @@ export class TaskTreeRenderer {
         };
 
         return header;
-    }
-
-    renderFromCurrentFilter() {
-        if (this._getFilteredTasks) {
-            this.render(this._getFilteredTasks());
-        }
-    }
-
-    setFilteredTasksProvider(fn) {
-        this._getFilteredTasks = fn;
     }
 }

@@ -1,4 +1,6 @@
-// src/panel/views/view-base-tasks.js
+// src/panel/panel-views.js
+// 任务视图基类
+
 import { ItemView } from 'obsidian';
 
 export class BaseTaskView extends ItemView {

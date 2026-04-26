@@ -1,27 +1,18 @@
 // src/echarts/echarts-utils.js
-// ECharts 辅助工具（从本地文件加载）
+// 直接导入打包的 ECharts，无需动态加载
+import * as echarts from 'echarts';
 
+// 确保全局可用（兼容旧代码中 window.echarts 引用）
+if (typeof window !== 'undefined') {
+    window.echarts = echarts;
+}
+
+export { echarts };
+
+// 保留 ensureEcharts 接口以兼容现有调用，但直接同步调用回调
 export function ensureEcharts(callback) {
-    if (window.echarts) {
-        callback(window.echarts);
-        return;
+    // 立即调用，因为 echarts 已同步可用
+    if (typeof callback === 'function') {
+        callback(echarts);
     }
-
-    // 插件根目录下的 echarts.min.js
-    const script = document.createElement('script');
-    // __dirname 在 Obsidian 中指向当前插件目录
-    script.src = __dirname + '/echarts.min.js';
-    script.onload = () => {
-        if (window.echarts) {
-            callback(window.echarts);
-        } else {
-            console.error('ECharts 加载失败（本地文件可能不存在）');
-            callback(null);
-        }
-    };
-    script.onerror = () => {
-        console.error('ECharts 本地文件加载失败');
-        callback(null);
-    };
-    document.head.appendChild(script);
 }

@@ -3,10 +3,6 @@
 
 import { throttleByFrame } from '../../common';
 
-/**
- * 初始化图表区域的交互
- * @returns {Function} 清理函数
- */
 export function initChartInteractions(chartDiv, resizer, leftDiv, state, collapsedNodes, saveFilterState) {
     // ---------- 缩放更新 ----------
     function updateChartScale() {
@@ -25,16 +21,23 @@ export function initChartInteractions(chartDiv, resizer, leftDiv, state, collaps
     }
 
     // ---------- Alt + 滚轮缩放 ----------
-    const handleScale = throttleByFrame((e) => {
+    // 核心修复：立即调用 preventDefault，防止滚动；用节流处理缩放计算
+    const onWheel = (e) => {
         if (!e.altKey) return;
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        state.chartScale = Math.max(0.5, Math.min(3, state.chartScale + delta));
-        updateChartScale();
-        debouncedResize();
-        saveFilterState(state, collapsedNodes);
-    });
-    chartDiv.addEventListener('wheel', handleScale, { passive: false });
+        e.preventDefault();          // 立即阻止默认滚动行为
+        // 将缩放更新节流化
+        if (!onWheel._throttleHandle) {
+            onWheel._throttleHandle = throttleByFrame((evt) => {
+                const delta = evt.deltaY > 0 ? -0.1 : 0.1;
+                state.chartScale = Math.max(0.5, Math.min(3, state.chartScale + delta));
+                updateChartScale();
+                debouncedResize();
+                saveFilterState(state, collapsedNodes);
+            });
+        }
+        onWheel._throttleHandle(e);
+    };
+    chartDiv.addEventListener('wheel', onWheel, { passive: false });
 
     // ---------- 缩放提示 ----------
     const hint = document.createElement('div');
@@ -75,9 +78,9 @@ export function initChartInteractions(chartDiv, resizer, leftDiv, state, collaps
 
     // ---------- 清理 ----------
     return function cleanup() {
-        chartDiv.removeEventListener('wheel', handleScale);
+        chartDiv.removeEventListener('wheel', onWheel);
         resizer.removeEventListener('mousedown', onMouseDown);
-        window.removeEventListener('mousemove', onMouseMove); // 安全移除
+        window.removeEventListener('mousemove', onMouseMove);
         if (state.resizeObserver) {
             state.resizeObserver.disconnect();
             state.resizeObserver = null;
