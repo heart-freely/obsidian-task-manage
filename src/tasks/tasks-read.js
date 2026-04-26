@@ -1,5 +1,6 @@
 // src/tasks/tasks-read.js
 // 任务解析与缓存模块
+import logger from '../utils/logger';
 import { CONFIG } from '../configs/configs-plugin';
 import { DateUtils } from '../common';
 
@@ -117,7 +118,7 @@ export function getAllTasks(force, dv, state) {
                     ensureTaskProperties(task);
                     tasks.push(task);
                 } catch (e) {
-                    console.warn('任务解析失败，已跳过：', task, e);
+                    logger.warn('任务解析失败，已跳过：', task, e);
                 }
             }
         }

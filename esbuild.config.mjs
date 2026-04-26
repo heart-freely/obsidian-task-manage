@@ -34,11 +34,13 @@ const context = await esbuild.context({
 		...builtinModules],
 	format: "cjs",
 	target: "es2018",
+	platform: 'node',      // 重要：保留 __dirname、require 等 Node 变量
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: "main.js",
 	minify: false,
+	define: prod ? { 'process.env.NODE_ENV': '"production"' } : {},
 });
 
 if (prod) {

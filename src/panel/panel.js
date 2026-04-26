@@ -26,7 +26,7 @@ import {
     getFilterFingerprint,
     getEffectiveDateRange
 } from './state/state-manage';
-import { PersistenceManager } from '../storage/storage-persistence';
+import { PersistenceManager } from '../storage/storage-persist';
 import { CONFIG } from '../configs/configs-plugin';
 
 export async function startDataViewCore(dv, app, storageAdapter, instanceId = 'default') {

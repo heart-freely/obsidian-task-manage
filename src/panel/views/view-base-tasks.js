@@ -1,15 +1,14 @@
 // src/panel/views/view-base-tasks.js
-// 任务视图基类 —— 封装通用生命周期和 dv 对象构建
-
 import { ItemView } from 'obsidian';
 
 export class BaseTaskView extends ItemView {
-    constructor(leaf) {
+    constructor(leaf, storageAdapter, instanceId) {
         super(leaf);
         this._cleanupFn = null;
+        this._storageAdapter = storageAdapter;
+        this._instanceId = instanceId;
     }
 
-    // 子类必须覆盖
     getViewType() { throw new Error('Must override getViewType()'); }
     getDisplayText() { return 'Task View'; }
     getIcon() { return 'bar-chart-3'; }
@@ -21,7 +20,6 @@ export class BaseTaskView extends ItemView {
             return;
         }
 
-        // 构造 dv 对象（所有视图共用）
         const dv = {
             pages: (source) => dvPlugin.api.pages(source) || [],
             page: (path) => {
@@ -50,8 +48,7 @@ export class BaseTaskView extends ItemView {
         };
 
         this.contentEl.empty();
-        // 调用子类的核心启动逻辑，返回清理函数
-        this._cleanupFn = await this._startCore(dv, this.app);
+        this._cleanupFn = await this._startCore(dv, this.app, this._storageAdapter, this._instanceId);
     }
 
     async onClose() {
@@ -62,8 +59,7 @@ export class BaseTaskView extends ItemView {
         document.querySelectorAll('.dataview-tooltip').forEach(el => el.remove());
     }
 
-    // 子类必须实现：启动核心逻辑，返回清理函数
-    async _startCore(dv, app) {
-        throw new Error('Must override _startCore(dv, app)');
+    async _startCore(dv, app, storageAdapter, instanceId) {
+        throw new Error('Must override _startCore(dv, app, storageAdapter, instanceId)');
     }
 }

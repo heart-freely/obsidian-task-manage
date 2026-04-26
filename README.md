@@ -12,6 +12,11 @@ docker run -it --rm -v ${PWD}:/app -w /app node:20-bullseye bash
 ```powershell
 npm run build
 ```
+## 单元测试
+
+```powershell
+npm test
+```
 
 ## 监听模式
 只要这个窗口不关闭，Docker 就会在后台帮你实时监听代码变化，并自动编译。
