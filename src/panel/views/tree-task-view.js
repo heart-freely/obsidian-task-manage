@@ -1,10 +1,12 @@
 // src/panel/views/tree-task-view.js
 import * as readTasks from '../../tasks/read/read-tasks';
 import { CONFIG } from '../../configs/plugin-configs';
+import { BaseTaskView } from './base-task-view';
 
 const ROW_HEIGHT = 28;
 const BUFFER_COUNT = 5;
 
+// ========== 树渲染函数（保持不变） ==========
 export function renderTreePanel(container, flatNodes, context) {
     const { state, dv, app, collapsedNodes, tooltip, onFilterRootPathChange, onCollapseChange, onRefresh } = context;
     if (!container) return;
@@ -24,7 +26,7 @@ export function renderTreePanel(container, flatNodes, context) {
 
     const totalHeight = flatNodes.length * ROW_HEIGHT;
     const ul = document.createElement('div');
-    ul.style.cssText = 'position:relative; height:100%; overflow-y:auto; content-visibility:auto; contain-intrinsic-size:1px 28px;';
+    ul.style.cssText = 'position:relative; height:100%; overflow-y:auto;';
     const inner = document.createElement('div');
     inner.style.height = totalHeight + 'px'; inner.style.position = 'relative';
     ul.appendChild(inner);
@@ -145,4 +147,16 @@ function calcNodeStats(node) {
     if (node.tasks) node.tasks.forEach(t => { stats[t._status]++; stats.total++; });
     if (node.children) node.children.forEach(ch => { const cs = calcNodeStats(ch); for (const k in cs) if (Object.hasOwn(cs, k)) stats[k] += cs[k]; });
     return stats;
+}
+
+// ========== 占位视图类 ==========
+export const VIEW_TYPE_TREE = 'tree-task-view';
+export class TreeTaskView extends BaseTaskView {
+    getViewType() { return VIEW_TYPE_TREE; }
+    getDisplayText() { return '任务树'; }
+    getIcon() { return 'git-branch'; }
+    async _startCore(dv, app, storageAdapter, instanceId) {
+        dv.container.innerHTML = '<div class="empty-message">🌲 任务树视图即将上线</div>';
+        return { cleanup: () => {}, updateSort: () => {} };
+    }
 }

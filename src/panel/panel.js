@@ -14,16 +14,25 @@ import { TooltipManager } from './interacts/tooltip-interact';
 import { createInitialState, getFilterFingerprint, getEffectiveDateRange, PersistenceManager } from '../storage/persist-storage';
 import { CONFIG } from '../configs/plugin-configs';
 import { startMatrixView } from './views/matrix-task-view';
+import { startKanbanView } from './views/kanban-task-view';
 import { buildViewSwitcher } from './bars/side-botton-bar';
 import { buildHideButtons } from './bars/hide-botton-bar';
 import { TaskTreeRenderer } from './components/tree-view-components';
 import { BaseTaskView } from './views/base-task-view';
+import { startListBaseView } from './views/base-list-view';
+import {
+    fetchImportantTasks,
+    fetchRecurringTasks,
+    fetchTodayTasks,
+    fetchFutureTasks,
+    fetchOverdueTasks,
+    fetchDependsTasks,
+    fetchTagTasks,
+    fetchTasks
+} from '../tasks/process/task-query-process';
 
 export const VIEW_TYPE_NAVIGATOR = 'navigator-view';
 
-// -----------------------------
-// 导航视图
-// -----------------------------
 export class NavigatorView extends BaseTaskView {
     getViewType() { return VIEW_TYPE_NAVIGATOR; }
     getDisplayText() { return '任务导航中心'; }
@@ -43,26 +52,21 @@ export class NavigatorView extends BaseTaskView {
     setState(state) { if (state && state.subViewType) this._lastViewType = state.subViewType; }
 }
 
-// -----------------------------
-// 导航核心逻辑
-// -----------------------------
 export async function startNavigatorCore(dv, app, storageAdapter, instanceId, initialSubView, navigatorView) {
     document.querySelectorAll('.dataview-tooltip').forEach(el => el.remove());
 
-    // 共享排序对象，矩阵视图直接引用，确保排序同步
     const sharedSortState = { type: 'status', order: 'asc' };
     const tooltipManager = new TooltipManager(); tooltipManager.ensureDiv();
     const state = createInitialState();
-    state.leftSort = sharedSortState;          // 头部排序栏也使用此对象
+    state.leftSort = sharedSortState;
     const collapsedNodes = {};
     state.collapsedNodes = collapsedNodes;
     const persistence = new PersistenceManager(storageAdapter, 'nav');
 
     let currentSubViewType = null;
-    let currentSubView = null;          // 当前子视图控制对象 (cleanup, updateSort)
+    let currentSubView = null;
     let dataViewStatuses = [...CONFIG.ALLOWED_STATUSES];
 
-    // 布局
     const outerWithSidebar = dv.el('div', '', { cls: 'navigator-outer-with-sidebar' });
     const sidebar = dv.el('div', '', { cls: 'navigator-sidebar' });
     const mainArea = dv.el('div', '', { cls: 'navigator-main' });
@@ -84,7 +88,6 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
     outerWithSidebar.appendChild(mainArea);
     dv.container.appendChild(outerWithSidebar);
 
-    // 任务树
     const treeRenderer = new TaskTreeRenderer({
         container: treePanel, dv, app, state, collapsedNodes, tooltip: tooltipManager,
         onFilterRootPathChange: (path) => {
@@ -97,7 +100,6 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
     });
     treeRenderer.setFilteredTasksProvider(() => state.filterCache.tasks || []);
 
-    // 构建头部（固定栏 + 筛选区）
     function buildHeader() {
         stickyHeader.innerHTML = '';
         const quickRow = dv.el('div', '', { cls: 'quick-row' });
@@ -163,7 +165,6 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
         }
     }
 
-    // 刷新任务树和视图内容
     async function refreshCurrentView() {
         const filtered = applyNavFilters();
         treeRenderer.render(filtered);
@@ -189,46 +190,89 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
     }
 
     async function renderContent(filteredTasks) {
+        const selfRenderedViews = [
+            'inbox-task-view',
+            'important-task-view', 'recurring-task-view', 'today-task-view',
+            'future-n-task-view', 'future-all-task-view', 'overdue-task-view',
+            'depends-task-view', 'tag-task-view',
+            'organize-task-view', 'timeline-task-view', 'table-task-view',
+            'tree-task-view', 'calendar-task-view', 'pomodoro-task-view'
+        ];
+
+        if (selfRenderedViews.includes(currentSubViewType)) {
+            return;
+        }
+
         viewPanel.innerHTML = '';
         if (!currentSubViewType) return;
         if (currentSubViewType === 'task-dataview-view') {
             drawCharts(viewPanel, filteredTasks, {
-                dv, state,
-                formatDate: DateUtils.formatDate,
-                setStart: DateUtils.setStart,
-                setEnd: DateUtils.setEnd,
+                dv, state, formatDate: DateUtils.formatDate, setStart: DateUtils.setStart, setEnd: DateUtils.setEnd,
                 getEffectiveDateRange: () => getEffectiveDateRange(state)
             });
-        } else if (currentSubViewType === 'matrix-tasks-view') {
-            // 矩阵视图：直接调用 updateSort 即可，因为它内部使用 sharedSortState
-            if (currentSubView && currentSubView.updateSort) {
-                await currentSubView.updateSort();
-            }
+        } else if (currentSubViewType === 'matrix-tasks-view' || currentSubViewType === 'kanban-task-view') {
+            if (currentSubView && currentSubView.updateSort) await currentSubView.updateSort();
         }
     }
 
     async function activateSubView(viewType, force = false) {
         if (!force && currentSubViewType === viewType) return;
         if (currentSubViewType === 'task-dataview-view') dataViewStatuses = [...state.markFilterState.statuses];
-        if (currentSubView && currentSubView.cleanup) {
-            try { await currentSubView.cleanup(); } catch (e) { console.error(e); }
-            currentSubView = null;
-        }
+        if (currentSubView && currentSubView.cleanup) { try { await currentSubView.cleanup(); } catch (e) { console.error(e); } currentSubView = null; }
         currentSubViewType = viewType;
 
-        if (viewType === 'matrix-tasks-view') {
+        if (['matrix-tasks-view', 'kanban-task-view', 'inbox-task-view', 'organize-task-view'].includes(viewType)) {
             state.markFilterState.statuses = ['todo', 'planned', 'in-progress'];
-            buildHeader();
-            try {
-                currentSubView = await startMatrixView(app, viewPanel, sharedSortState);
-                // 立即应用当前排序
-                if (currentSubView.updateSort) await currentSubView.updateSort();
-            } catch (e) { viewPanel.innerHTML = '<div class="empty-message">矩阵视图加载失败</div>'; return; }
         } else {
-            // 数据视图恢复状态
             state.markFilterState.statuses = [...dataViewStatuses];
-            buildHeader();
-            currentSubView = null;
+        }
+        buildHeader();
+
+        try {
+            if (viewType === 'matrix-tasks-view') {
+                currentSubView = await startMatrixView(app, viewPanel, sharedSortState);
+            } else if (viewType === 'kanban-task-view') {
+                currentSubView = await startKanbanView(dv, app, viewPanel);
+            } else if (viewType === 'important-task-view') {
+                const { startImportantView } = await import('./views/important-task-view');
+                currentSubView = await startImportantView(dv, app, viewPanel);
+            } else if (viewType === 'recurring-task-view') {
+                const { startRecurringView } = await import('./views/recurring-task-view');
+                currentSubView = await startRecurringView(dv, app, viewPanel);
+            } else if (viewType === 'today-task-view') {
+                const { startTodayView } = await import('./views/today-task-view');
+                currentSubView = await startTodayView(dv, app, viewPanel);
+            } else if (viewType === 'future-n-task-view') {
+                currentSubView = await startListBaseView(app, viewPanel, (app) => fetchFutureTasks(app, 15), '未来15天', 'rgba(97, 175, 239, 0.25)');
+            } else if (viewType === 'future-all-task-view') {
+                currentSubView = await startListBaseView(app, viewPanel, async (app) => {
+                    const tasks = await fetchTasks(app);
+                    const now = window.moment();
+                    return tasks.filter(t => {
+                        const date = t.dueDate || t.scheduledDate;
+                        return date && window.moment(date).isAfter(now);
+                    });
+                }, '未来所有任务', 'rgba(100, 200, 200, 0.25)');
+            } else if (viewType === 'overdue-task-view') {
+                currentSubView = await startListBaseView(app, viewPanel, fetchOverdueTasks, '逾期任务', 'rgba(255, 130, 130, 0.25)');
+            } else if (viewType === 'depends-task-view') {
+                const { startDependsView } = await import('./views/depends-task-view');
+                currentSubView = await startDependsView(dv, app, viewPanel);
+            } else if (viewType === 'tag-task-view') {
+                const { startTagView } = await import('./views/tag-task-view');
+                currentSubView = await startTagView(dv, app, viewPanel);
+            } else if (viewType === 'inbox-task-view') {
+                const { startInboxView } = await import('./views/inbox-task-view');
+                currentSubView = await startInboxView(dv, app, viewPanel);
+            } else if (['organize-task-view', 'timeline-task-view', 'table-task-view', 'tree-task-view', 'calendar-task-view', 'pomodoro-task-view'].includes(viewType)) {
+                const { startTimelineView } = await import('./views/timeline-task-view');
+                currentSubView = await startTimelineView(dv, app, viewPanel);
+            } else {
+                currentSubView = null;
+            }
+        } catch (e) {
+            viewPanel.innerHTML = '<div class="empty-message">视图加载失败</div>';
+            return;
         }
 
         await refreshCurrentView();
@@ -236,40 +280,67 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
         if (navigatorView) { navigatorView._lastViewType = viewType; navigatorView.app.workspace.requestSaveLayout(); }
     }
 
-    // 初始化
     buildViewSwitcher(sidebar, dv, app, initialSubView, activateSubView);
     state.showTree = state.showTree ?? false;
     state.showFilters = state.showFilters ?? false;
     buildHeader();
     treePanel.style.display = state.showTree ? '' : 'none';
 
-    await persistence.load(state, collapsedNodes, () => {
-        const thisWeek = DateUtils.getWeekRange(new Date());
-        return { start: thisWeek.start, end: thisWeek.end };
-    }, (msg) => new Notice(msg));
+    await persistence.load(state, collapsedNodes, () => { const tw = DateUtils.getWeekRange(new Date()); return { start: tw.start, end: tw.end }; }, (msg) => new Notice(msg));
 
     dataViewStatuses = [...state.dataViewStatuses || CONFIG.ALLOWED_STATUSES];
-    if (initialSubView === 'matrix-tasks-view') {
+    if (['matrix-tasks-view', 'kanban-task-view'].includes(initialSubView)) {
         state.markFilterState.statuses = ['todo', 'planned', 'in-progress'];
     } else {
         state.markFilterState.statuses = [...dataViewStatuses];
     }
 
-    if (initialSubView === 'matrix-tasks-view') {
-        try {
+    try {
+        if (initialSubView === 'matrix-tasks-view') {
             currentSubView = await startMatrixView(app, viewPanel, sharedSortState);
-            if (currentSubView.updateSort) await currentSubView.updateSort();
-        } catch (e) { viewPanel.innerHTML = '<div class="empty-message">矩阵视图加载失败</div>'; }
-    }
+        } else if (initialSubView === 'kanban-task-view') {
+            currentSubView = await startKanbanView(dv, app, viewPanel);
+        } else if (initialSubView === 'important-task-view') {
+            const { startImportantView } = await import('./views/important-task-view');
+            currentSubView = await startImportantView(dv, app, viewPanel);
+        } else if (initialSubView === 'recurring-task-view') {
+            const { startRecurringView } = await import('./views/recurring-task-view');
+            currentSubView = await startRecurringView(dv, app, viewPanel);
+        } else if (initialSubView === 'today-task-view') {
+            const { startTodayView } = await import('./views/today-task-view');
+            currentSubView = await startTodayView(dv, app, viewPanel);
+        } else if (initialSubView === 'future-n-task-view') {
+            currentSubView = await startListBaseView(app, viewPanel, (app) => fetchFutureTasks(app, 15), '未来15天', 'rgba(97, 175, 239, 0.25)');
+        } else if (initialSubView === 'future-all-task-view') {
+            currentSubView = await startListBaseView(app, viewPanel, async (app) => {
+                const tasks = await fetchTasks(app);
+                const now = window.moment();
+                return tasks.filter(t => {
+                    const date = t.dueDate || t.scheduledDate;
+                    return date && window.moment(date).isAfter(now);
+                });
+            }, '未来所有任务', 'rgba(100, 200, 200, 0.25)');
+        } else if (initialSubView === 'overdue-task-view') {
+            currentSubView = await startListBaseView(app, viewPanel, fetchOverdueTasks, '逾期任务', 'rgba(255, 130, 130, 0.25)');
+        } else if (initialSubView === 'depends-task-view') {
+            const { startDependsView } = await import('./views/depends-task-view');
+            currentSubView = await startDependsView(dv, app, viewPanel);
+        } else if (initialSubView === 'tag-task-view') {
+            const { startTagView } = await import('./views/tag-task-view');
+            currentSubView = await startTagView(dv, app, viewPanel);
+        } else if (initialSubView === 'inbox-task-view') {
+            const { startInboxView } = await import('./views/inbox-task-view');
+            currentSubView = await startInboxView(dv, app, viewPanel);
+        }
+    } catch (e) { viewPanel.innerHTML = '<div class="empty-message">视图加载失败</div>'; }
 
     currentSubViewType = initialSubView;
     const filtered = applyNavFilters();
     treeRenderer.render(filtered);
 
-    // 首次渲染内容
-    if (currentSubViewType === 'matrix-tasks-view' && currentSubView && currentSubView.updateSort) {
-        await currentSubView.updateSort();
-    } else {
+    if (currentSubViewType === 'matrix-tasks-view' || currentSubViewType === 'kanban-task-view') {
+        if (currentSubView && currentSubView.updateSort) await currentSubView.updateSort();
+    } else if (currentSubViewType === 'task-dataview-view') {
         await renderContent(filtered);
     }
 

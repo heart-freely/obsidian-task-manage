@@ -1,23 +1,38 @@
 // src/tasks/process/matrix-task-process.js
-const FOLDER = "pages/A 系统/A 任务系统";
-const FILENAME_REGEX = /任务\.md$/;
+import {
+    TASK_FOLDER_PATH,
+    TASK_FILENAME_REGEX_TASKS,
+    TASK_FILENAME_REGEXP,
+    PRIORITY_ICONS
+} from '../../configs/plugin-configs';
+
 const STATUS_SYMBOLS = [" ", "?", "/"];
-const PRIORITY_ICONS = { 0: '🔺', 1: '⏫', 2: '🔼', 3: '🔽', 4: '⏬' };
+
+// 优先级 -> 四象限索引（局部常量，不再放进全局配置）
+const PRIORITY_TO_QUADRANT = {
+    1: 0,  // 最高优先级 → 紧急重要
+    2: 1,  // 高        → 不紧急但重要
+    3: 2,  // 中        → 紧急但不重要
+    4: 3,  // 低        → 不紧急不重要
+    // 无优先级（'none'）在逻辑中默认归入象限3
+};
 
 const dateCache = new Map();
 function formatDate(date) {
     if (!date) return null;
     const key = String(date);
     if (dateCache.has(key)) return dateCache.get(key);
-    const formatted = window.moment ? window.moment(date).format("YYYY-MM-DD") : new Date(date).toISOString().slice(0, 10);
+    const formatted = window.moment
+        ? window.moment(date).format("YYYY-MM-DD")
+        : new Date(date).toISOString().slice(0, 10);
     dateCache.set(key, formatted);
     return formatted;
 }
 
 export function fetchRawTasks(app) {
     const tasksPlugin = app.plugins.plugins['obsidian-tasks-plugin'];
-    if (!tasksPlugin) return Promise.reject('obsidian-tasks-plugin not found');
-    const query = `path includes "${FOLDER}" filename regex matches "${FILENAME_REGEX.source}"`;
+    if (!tasksPlugin) return Promise.reject('需要 Tasks 插件');
+    const query = `path includes "${TASK_FOLDER_PATH}" filename regex matches ${TASK_FILENAME_REGEX_TASKS}`;
     return tasksPlugin.getTasks(query);
 }
 
@@ -25,14 +40,14 @@ export function processTasks(allTasks, hideRecurring = false) {
     const quadrantsData = [[], [], [], []];
     allTasks.forEach(t => {
         const fileName = t.path.split('/').pop();
-        if (!FILENAME_REGEX.test(fileName)) return;
+        if (!TASK_FILENAME_REGEXP.test(fileName)) return;
         const sym = t.status.symbol;
         if (!STATUS_SYMBOLS.includes(sym)) return;
         if (hideRecurring && t.recurrence) return;
 
         const priorityNum = (t.priority === "none" || t.priority == null) ? 5 : parseInt(t.priority);
-        const priorityIcon = PRIORITY_ICONS[priorityNum] || '';
-        const statusText = sym === '/' ? '进行中' : (t.scheduledDate || t.startDate ? '计划中' : '未开始');
+        const priorityIcon = PRIORITY_ICONS[t.priority] || '';
+        const statusText = sym === '/' ? '进行中' : (sym === '?' ? '计划中' : '未开始');
         const tags = (t.tags || []).map(tag => tag.replace(/^#/, ''));
         const sortDate = t.scheduledDate || t.startDate || t.dueDate;
         const sortTimestamp = sortDate ? new Date(sortDate).getTime() : null;
@@ -53,12 +68,13 @@ export function processTasks(allTasks, hideRecurring = false) {
             line: t.lineNumber,
             fileName: fileName.replace(/\.md$/, ''),
             isRecurring: !!t.recurrence,
-            sortTimestamp
+            sortTimestamp,
+            _status: t.status?.symbol === '/' ? 'in-progress' : (t.status?.symbol === '?' ? 'planned' : 'todo')
         };
 
-        const eff = priorityNum === 5 ? 3 : priorityNum;
-        const idx = [0,1,2,3].find(i => i === eff) ?? 3;
-        quadrantsData[idx].push(taskItem);
+        // 使用显式映射，无优先级默认象限3（不紧急不重要）
+        const quadIndex = PRIORITY_TO_QUADRANT[priorityNum] ?? 3;
+        quadrantsData[quadIndex].push(taskItem);
     });
     return quadrantsData;
 }

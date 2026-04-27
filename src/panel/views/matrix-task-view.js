@@ -1,19 +1,12 @@
 // src/panel/views/matrix-task-view.js
 import { fetchRawTasks, processTasks, sortTasks } from '../../tasks/process/matrix-task-process';
+import { createTaskCard, normalizeTaskCardData } from './base-task-view';
 
-/**
- * @param {Obsidian.App} app
- * @param {HTMLElement} container
- * @param {Object} sharedSort 共享排序对象 { type, order }，必须传入
- * @param {Object} [state] 初始状态
- */
-export async function startMatrixView(app, container, sharedSort, state = {}) {
-    // 直接使用传入的共享排序对象，不要创建副本
-    const currentSort = sharedSort;
-
+export async function startMatrixView(app, container, leftSort, state = {}) {
     let hideRecurring = state.hideRecurring || false;
     let cachedRawTasks = null;
     let cachedQuadrantsData = null;
+    let currentSort = leftSort || { type: 'status', order: 'asc' };
     let currentState = null;
     let currentFilterRootPath = null;
 
@@ -24,29 +17,10 @@ export async function startMatrixView(app, container, sharedSort, state = {}) {
         { name: "🔽⏬️ 不紧急也不重要", color: "rgba(100, 180, 255, 0.2)", emptyMsg: "📎 暂无不重要不紧急任务，合理放松" }
     ];
 
-    function getStatusText(statuses) {
-        const labels = statuses.map(s => {
-            if (s === 'todo') return '未开始'; if (s === 'planned') return '计划中'; if (s === 'in-progress') return '进行中';
-            if (s === 'completed') return '已完成'; if (s === 'cancelled') return '已取消'; return '';
-        }).filter(Boolean);
-        return labels.length ? labels.join(' / ') : '全部状态';
-    }
-
     function normalizePath(p) { return (p || '').replace(/\.md$/, ''); }
 
-    async function renderMatrix() {
-        if (!cachedQuadrantsData) {
-            // 数据还未加载，尝试初始化
-            try {
-                cachedRawTasks = await fetchRawTasks(app);
-                cachedQuadrantsData = processTasks(cachedRawTasks, hideRecurring);
-            } catch (e) {
-                container.innerHTML = '<div class="empty-placeholder">❌ 未检测到 Tasks 插件</div>';
-                return;
-            }
-        }
-
-        // 应用路径筛选
+    function renderMatrix() {
+        if (!cachedQuadrantsData) return;
         let quadrantsData = cachedQuadrantsData;
         if (currentFilterRootPath) {
             const normalizedFilter = normalizePath(currentFilterRootPath);
@@ -54,81 +28,98 @@ export async function startMatrixView(app, container, sharedSort, state = {}) {
                 tasks.filter(t => normalizePath(t.path).startsWith(normalizedFilter))
             );
         }
-
-        // 根据 sharedSort 排序（此时 currentSort === sharedSort）
         const sortedData = quadrantsData.map(tasks => sortTasks(tasks, currentSort));
-
         container.innerHTML = '';
-        const matrixContainer = document.createElement('div'); matrixContainer.className = 'matrix-container';
-        const controlBar = document.createElement('div'); controlBar.className = 'control-bar';
-        const total = sortedData.flat().length;
-        const statusText = currentState ? getStatusText(currentState.markFilterState.statuses) : '未开始 / 计划中 / 进行中';
-        controlBar.innerHTML = `<strong>📋 总任务: ${total}</strong> (仅${statusText})`;
-        matrixContainer.appendChild(controlBar);
 
-        const grid = document.createElement('div'); grid.className = 'coord-grid';
+        const controlBar = document.createElement('div');
+        controlBar.className = 'control-bar';
+        const total = sortedData.flat().length;
+        const statusText = currentState
+            ? currentState.markFilterState.statuses.join(' / ')
+            : '未开始 / 计划中 / 进行中';
+        controlBar.innerHTML = `<strong>📋 总任务: ${total}</strong> (仅${statusText})`;
+        container.appendChild(controlBar);
+
+        const grid = document.createElement('div');
+        grid.className = 'view-grid cols-2';
+
         QUADRANTS.forEach((quad, idx) => {
             const tasks = sortedData[idx];
-            const col = document.createElement('div'); col.className = 'coord-col'; col.style.setProperty('--quad-color', quad.color);
-            col.innerHTML = `<div class="quad-header"><span>${quad.name}</span><span class="task-count">${tasks.length}</span></div><ul class="quad-list"></ul>`;
-            const listEl = col.querySelector('.quad-list');
-            if (!tasks.length) listEl.innerHTML = `<li class="empty-placeholder">${quad.emptyMsg}</li>`;
-            else listEl.innerHTML = tasks.map(t => `
-                <li class="task-item" data-path="${t.path}" data-line="${t.line}">
-                    <div class="task-desc">${t.desc}</div>
-                    <div class="task-meta">
-                        <span>${t.statusText}</span>${t.priorityIcon ? `<span>${t.priorityIcon} 优先级</span>` : ''}
-                        ${t.scheduled ? `<span>⏳ ${t.scheduled}</span>` : ''}${t.start ? `<span>🛫 ${t.start}</span>` : ''}
-                        ${t.due ? `<span>📅 ${t.due}</span>` : ''}${t.tags.length ? `<span>🏁 ${t.tags.join(', ')}</span>` : ''}
-                        <span>📄 ${t.fileName}</span>
-                    </div>
-                </li>`).join('');
+            const col = document.createElement('div');
+            col.className = 'view-col';
+            col.style.setProperty('--quad-color', quad.color);
+            col.style.maxHeight = '400px';  // 恢复高度限制
+
+            const header = document.createElement('div');
+            header.className = 'col-header';
+            header.innerHTML = `
+                <span>${quad.name}</span>
+                <span class="task-count">${tasks.length}</span>
+            `;
+            col.appendChild(header);
+
+            const list = document.createElement('ul');
+            list.className = 'task-list';
+
+            if (!tasks.length) {
+                list.innerHTML = `<li class="empty-placeholder">${quad.emptyMsg}</li>`;
+            } else {
+                tasks.forEach(t => {
+                    const cardData = normalizeTaskCardData({
+                        description: t.desc,
+                        priority: String(t.priorityNum === 5 ? 'none' : t.priorityNum),
+                        status: t._status,
+                        scheduled: t.scheduled,
+                        start: t.start,
+                        due: t.due,
+                        tags: t.tags,
+                        fileName: t.fileName,
+                        path: t.path,
+                        lineNumber: t.line
+                    });
+                    const card = createTaskCard(cardData, app);
+                    list.appendChild(card);
+                });
+            }
+            col.appendChild(list);
             grid.appendChild(col);
         });
-        matrixContainer.appendChild(grid);
-
-        matrixContainer.addEventListener('click', async (e) => {
-            const item = e.target.closest('.task-item'); if (!item) return;
-            const file = app.vault.getAbstractFileByPath(item.dataset.path);
-            if (file) { const leaf = app.workspace.getLeaf(false); await leaf.openFile(file); setTimeout(() => leaf.view?.editor?.setCursor({ line: parseInt(item.dataset.line), ch: 0 }), 30); }
-        });
-
-        container.appendChild(matrixContainer);
+        container.appendChild(grid);
     }
 
-    // 获取外部状态更新的函数
+    async function init() {
+        try {
+            cachedRawTasks = await fetchRawTasks(app);
+            cachedQuadrantsData = processTasks(cachedRawTasks, hideRecurring);
+            renderMatrix();
+        } catch (e) {
+            container.innerHTML = '<div class="empty-placeholder">❌ 未检测到 Tasks 插件</div>';
+        }
+    }
+
     async function update(params) {
-        const { state: newState, leftSort } = params;
+        const { state: newState, leftSort: newSort } = params;
         if (newState) {
             currentState = newState;
             hideRecurring = newState.hideRepeatTasks;
             currentFilterRootPath = newState.filterRootPath;
         }
-        if (leftSort) {
-            // 修改共享对象的值，同步到 currentSort (它们指向同一对象，通常已经同步)
-            currentSort.type = leftSort.type;
-            currentSort.order = leftSort.order;
-        }
-        // 重新处理数据（如果有新数据）
+        if (newSort) currentSort = newSort;
         if (cachedRawTasks) {
             cachedQuadrantsData = processTasks(cachedRawTasks, hideRecurring);
+        } else {
+            try {
+                cachedRawTasks = await fetchRawTasks(app);
+                cachedQuadrantsData = processTasks(cachedRawTasks, hideRecurring);
+            } catch (e) {}
         }
-        await renderMatrix();
+        renderMatrix();
     }
 
-    // 排序变化时直接调用 renderMatrix，因为 currentSort 已经是共享对象
-    async function updateSort() {
-        await renderMatrix();
-    }
+    await init();
 
-    // 初始加载
-    try {
-        cachedRawTasks = await fetchRawTasks(app);
-        cachedQuadrantsData = processTasks(cachedRawTasks, hideRecurring);
-        await renderMatrix();
-    } catch (e) {
-        container.innerHTML = '<div class="empty-placeholder">❌ 未检测到 Tasks 插件</div>';
-    }
-
-    return { cleanup: () => { container.innerHTML = ''; }, updateSort };
+    return {
+        cleanup: () => { container.innerHTML = ''; },
+        updateSort: (newSort) => { currentSort = newSort || currentSort; renderMatrix(); }
+    };
 }
