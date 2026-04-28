@@ -1,138 +1,124 @@
 // src/storage/persist-storage.js
 import { CONFIG } from '../configs/plugin-configs';
 
-export function createInitialState(options = {}) {
+export function createInitialState() {
     return {
         cachedAllTasks: null,
         filterCache: { fingerprint: '', tasks: null },
-        quickBtns: [],
-        yearBtns: [], quarterBtns: [], monthBtns: [], weekBtns: [], weekdayBtns: [],
-        dateState: { selections: { years: {}, quarters: {}, months: {}, weeks: {}, weekdays: {} } },
-        dateFilterState: { start: null, end: null, isAll: false },
-        markFilterState: { statuses: [...CONFIG.ALLOWED_STATUSES], includeMarks: [], excludeMarks: [] },
-        hideRepeatTasks: true, hideCompletedTasks: true, hideCancelledTasks: true,
-        intervalMode: options.intervalMode || CONFIG.INTERVAL_MODES.SCHEDULED_DUE,
+        dateTaskMapCache: null,
+        dateFilterState: {
+            start: null,
+            end: null,
+            isAll: false
+        },
+        markFilterState: {
+            statuses: [...CONFIG.ALLOWED_STATUSES],
+            includeMarks: [],
+            excludeMarks: []
+        },
+        hideRepeatTasks: true,
+        hideCompletedTasks: true,
+        hideCancelledTasks: true,
+        hideFolders: true,
+        showFilters: false,
+        showTree: false,
         leftSort: { type: 'status', order: 'asc' },
+        quickBtns: [],
+        activeQuickBtn: null,
+        dateState: {
+            selections: { years: {}, quarters: {}, months: {}, weeks: {}, weekdays: {} }
+        },
+        yearBtns: [],
+        quarterBtns: [],
+        monthBtns: [],
+        weekBtns: [],
+        weekdayBtns: [],
         collapsedNodes: {},
-        leftPanelWidth: options.leftPanelWidth || 300,
-        chartContainer: null, chartInstances: [], chartScale: options.chartScale || 1,
-        flatDisplayNodes: [], tooltipDiv: null, resizeObserver: null, taskIdMap: {},
-        hideFolders: options.hideFolders ?? true, filterRootPath: null, modalOpen: false,
-        treeRenderer: null, activeQuickBtn: null,
-        showTree: options.showTree ?? false, showFilters: options.showFilters ?? false,
-        dataViewStatuses: [...CONFIG.ALLOWED_STATUSES]
+        filterRootPath: null,
+        chartInstances: [],       // 图表实例列表，必须初始化为空数组
+        chartScale: 1,
+        leftPanelWidth: 300,
+        intervalMode: 'scheduled-due',
+        dataViewStatuses: null,
+        taskIdMap: {}
     };
 }
 
 export function getFilterFingerprint(state) {
+    const s = state.dateFilterState;
     return [
-        state.dateFilterState.start ? state.dateFilterState.start.getTime() : null,
-        state.dateFilterState.end ? state.dateFilterState.end.getTime() : null,
-        state.dateFilterState.isAll,
+        s.start ? s.start.getTime() : null,
+        s.end ? s.end.getTime() : null,
+        s.isAll,
         state.markFilterState.statuses.join(','),
         state.markFilterState.includeMarks.join(','),
         state.markFilterState.excludeMarks.join(','),
-        state.hideRepeatTasks, state.hideCompletedTasks, state.hideCancelledTasks,
-        state.filterRootPath
+        state.hideRepeatTasks,
+        state.hideCompletedTasks,
+        state.hideCancelledTasks,
+        state.filterRootPath || ''
     ].join('|');
 }
 
 export function getEffectiveDateRange(state) {
-    if (state.dateFilterState.isAll) return null;
-    if (state.dateFilterState.start && state.dateFilterState.end) {
-        return { start: state.dateFilterState.start, end: state.dateFilterState.end };
-    }
-    return null;
+    if (state.dateFilterState.isAll || !state.dateFilterState.start || !state.dateFilterState.end) return null;
+    return { start: state.dateFilterState.start, end: state.dateFilterState.end };
 }
 
 export class PersistenceManager {
-    constructor(storage, instanceId = 'default') {
+    constructor(storage, scope) {
         this.storage = storage;
-        this.key = `taskDataView_${instanceId}`;
+        this.scope = scope;
     }
 
     async save(state, collapsedNodes) {
         try {
             const data = {
-                dateFilterState: {
-                    isAll: state.dateFilterState.isAll,
-                    start: state.dateFilterState.start ? state.dateFilterState.start.getTime() : null,
-                    end: state.dateFilterState.end ? state.dateFilterState.end.getTime() : null
-                },
-                markFilterState: state.markFilterState,
+                showFilters: state.showFilters,
+                showTree: state.showTree,
                 hideRepeatTasks: state.hideRepeatTasks,
                 hideCompletedTasks: state.hideCompletedTasks,
                 hideCancelledTasks: state.hideCancelledTasks,
-                intervalMode: state.intervalMode,
-                leftSort: state.leftSort,
-                leftPanelWidth: state.leftPanelWidth,
-                collapsedNodes: Object.keys(collapsedNodes),
                 hideFolders: state.hideFolders,
-                filterRootPath: state.filterRootPath || null,
+                leftSort: state.leftSort,
+                markFilterState: state.markFilterState,
+                collapsedNodes: collapsedNodes || state.collapsedNodes,
                 chartScale: state.chartScale,
-                activeQuickBtn: state.activeQuickBtn || null,
-                showTree: state.showTree,
-                showFilters: state.showFilters,
-                dataViewStatuses: state.dataViewStatuses
+                leftPanelWidth: state.leftPanelWidth,
+                intervalMode: state.intervalMode,
+                dataViewStatuses: state.dataViewStatuses,
             };
-            await this.storage.setItem(this.key, JSON.stringify(data));
+            await this.storage.setItem(this.scope, JSON.stringify(data));
         } catch (e) {
-            console.error('保存筛选状态失败', e);
+            console.error('持久化失败', e);
         }
     }
 
-    async load(state, collapsedNodes, getDefaultDateRange, showWarning) {
+    async load(state, collapsedNodes, defaultDateRangeFn, noticeFn) {
         try {
-            const raw = await this.storage.getItem(this.key);
-            if (!raw) return false;
-            const data = JSON.parse(raw);
-            if (data.dateFilterState) {
-                state.dateFilterState.isAll = data.dateFilterState.isAll;
-                state.dateFilterState.start = data.dateFilterState.start ? new Date(data.dateFilterState.start) : null;
-                state.dateFilterState.end = data.dateFilterState.end ? new Date(data.dateFilterState.end) : null;
-                if (!state.dateFilterState.isAll && (!state.dateFilterState.start || !state.dateFilterState.end)) {
-                    const defaultRange = getDefaultDateRange();
-                    if (defaultRange) {
-                        state.dateFilterState.start = defaultRange.start;
-                        state.dateFilterState.end = defaultRange.end;
-                    }
-                }
-            } else {
-                const defaultRange = getDefaultDateRange();
-                if (defaultRange) {
-                    state.dateFilterState.isAll = false;
-                    state.dateFilterState.start = defaultRange.start;
-                    state.dateFilterState.end = defaultRange.end;
-                }
+            const raw = await this.storage.getItem(this.scope);
+            if (!raw) return;
+            const saved = JSON.parse(raw);
+            if (saved) {
+                state.showFilters = saved.showFilters ?? false;
+                state.showTree = saved.showTree ?? false;
+                state.hideRepeatTasks = saved.hideRepeatTasks ?? true;
+                state.hideCompletedTasks = saved.hideCompletedTasks ?? true;
+                state.hideCancelledTasks = saved.hideCancelledTasks ?? true;
+                state.hideFolders = saved.hideFolders ?? true;
+                state.leftSort = saved.leftSort || { type: 'status', order: 'asc' };
+                state.markFilterState = saved.markFilterState || { statuses: [...CONFIG.ALLOWED_STATUSES], includeMarks: [], excludeMarks: [] };
+                Object.assign(collapsedNodes, saved.collapsedNodes || {});
+                state.chartScale = saved.chartScale || 1;
+                state.leftPanelWidth = saved.leftPanelWidth || 300;
+                state.intervalMode = saved.intervalMode || 'scheduled-due';
+                state.dataViewStatuses = saved.dataViewStatuses || [...CONFIG.ALLOWED_STATUSES];
+                // 确保 chartInstances 仍存在
+                if (!Array.isArray(state.chartInstances)) state.chartInstances = [];
             }
-            if (data.markFilterState) {
-                state.markFilterState.statuses = data.markFilterState.statuses || [];
-                state.markFilterState.includeMarks = data.markFilterState.includeMarks || [];
-                state.markFilterState.excludeMarks = data.markFilterState.excludeMarks || [];
-            }
-            state.hideRepeatTasks = data.hideRepeatTasks ?? true;
-            state.hideCompletedTasks = data.hideCompletedTasks ?? true;
-            state.hideCancelledTasks = data.hideCancelledTasks ?? true;
-            state.intervalMode = data.intervalMode || 'scheduled-due';
-            state.leftSort = data.leftSort || { type: 'status', order: 'asc' };
-            state.leftPanelWidth = data.leftPanelWidth || 300;
-
-            for (const key in collapsedNodes) delete collapsedNodes[key];
-            const nodes = data.collapsedNodes || [];
-            nodes.forEach(n => collapsedNodes[n] = true);
-
-            state.hideFolders = data.hideFolders ?? true;
-            state.filterRootPath = data.filterRootPath || null;
-            state.chartScale = data.chartScale || 1;
-            state.activeQuickBtn = data.activeQuickBtn || null;
-            state.showTree = data.showTree ?? false;
-            state.showFilters = data.showFilters ?? false;
-            state.dataViewStatuses = data.dataViewStatuses || [...CONFIG.ALLOWED_STATUSES];
-            return true;
         } catch (e) {
-            console.error('恢复筛选状态失败，已使用默认设置', e);
-            if (showWarning) try { showWarning('筛选状态数据已损坏，已重置为默认设置'); } catch (ignore) {}
-            return false;
+            if (noticeFn) noticeFn('⚠️ 加载上次视图状态失败，已重置默认设置');
+            console.error('加载持久化数据失败', e);
         }
     }
 }
