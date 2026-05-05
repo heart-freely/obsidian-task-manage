@@ -1,0 +1,54 @@
+# 依赖和构建产物
+node_modules/
+dist/
+build/
+*.local
+*.log
+
+# 测试和模拟数据
+__mocks__/
+__tests__/
+*.test.js
+jest.config.js
+jest.setup.js
+
+# 配置文件（通常不需要AI处理）
+babel.config.js
+esbuild.config.mjs
+version-bump.mjs
+.editorconfig
+.npmrc
+package-lock.json
+
+# 版本控制
+.git/
+.gitignore
+
+# 环境变量和敏感信息
+.env
+.env.*
+*.key
+*.pem
+
+# IDE 配置（除非需要AI配合编辑）
+.vscode/
+*.code-workspace
+
+# 文档（只读参考，无需修改）
+AGENTS.md
+LICENSE
+README.md
+styles.css
+
+# 其他临时文件
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 数据文件（可能较大，且非代码）
+data.json
+
+# 第三方库
+echarts/   # 如果 echarts.js 是第三方库，建议排除；如果是自定义代码，则保留

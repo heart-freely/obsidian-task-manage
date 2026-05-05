@@ -18,6 +18,8 @@ export function drawCharts(container, tasks, context) {
         return;
     }
 
+    // 防御：确保 chartInstances 是一个数组
+    if (!Array.isArray(state.chartInstances)) state.chartInstances = [];
     state.chartInstances.forEach(c => { try { c.dispose(); } catch (e) {} });
     state.chartInstances = [];
 
@@ -87,7 +89,7 @@ export function drawCharts(container, tasks, context) {
     // ---- 数据统计 ----
     const statusCounts = {}; CONFIG.ALLOWED_STATUSES.forEach(s => statusCounts[s] = 0);
     const prioCounts = {}; CONFIG.PRIORITY_ORDER.forEach(p => prioCounts[p] = 0);
-    const repeatCounts = {}; CONFIG.REPEAT_TYPES.forEach(r => repeatCounts[r] = 0);
+    const repeatCounts = {}; CONFIG.REPEAT_ORDER.forEach(r => repeatCounts[r] = 0);
     const dateCounts = {}; CONFIG.DATE_MARK_ORDER.forEach(m => dateCounts[m] = 0);
     let idCnt = 0, forbidCnt = 0, bothCnt = 0;
     const tagMap = {};
@@ -95,7 +97,7 @@ export function drawCharts(container, tasks, context) {
         statusCounts[t._status]++;
         if (t._priorityIcon) prioCounts[t._priorityIcon]++;
         if (t._repeat) {
-            CONFIG.REPEAT_TYPES.forEach(r => {
+            CONFIG.REPEAT_ORDER.forEach(r => {
                 if (t._repeat.toLowerCase().includes(r)) repeatCounts[r]++;
             });
         }
@@ -128,7 +130,7 @@ export function drawCharts(container, tasks, context) {
 
     const ch3 = createChartItem('🔄 循环周期');
     const i3 = echarts.init(ch3.chartDiv);
-    i3.setOption(makePieOption(CONFIG.REPEAT_TYPES.map((r, i) => ({
+    i3.setOption(makePieOption(CONFIG.REPEAT_ORDER.map((r, i) => ({
         name: '🔁 ' + r,
         value: repeatCounts[r],
         itemStyle: { color: CONFIG.REPEAT_COLORS[i] }

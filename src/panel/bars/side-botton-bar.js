@@ -16,8 +16,9 @@ export function buildViewSwitcher(container, dv, app, activeType, onActivate) {
         {
             label: '组织',
             buttons: [
-                { icon: '🧩', type: 'matrix-tasks-view', title: '任务矩阵' },    // 保持原有
-                { icon: '📋', type: 'kanban-task-view', title: '任务看板' }      // 保持原有
+                { icon: '🧩', type: 'matrix-tasks-view', title: '任务矩阵' },
+                { icon: '📋', type: 'kanban-task-view', title: '任务看板' },
+                { icon: '📊', type: 'gantt-task-view', title: '甘特图' }
             ]
         },
         {
@@ -31,10 +32,10 @@ export function buildViewSwitcher(container, dv, app, activeType, onActivate) {
                 { icon: '⏰', type: 'overdue-task-view', title: '逾期任务' },
                 { icon: '🔗', type: 'depends-task-view', title: '依赖任务' },
                 { icon: '🏷️', type: 'tag-task-view', title: '标签任务' },
-                { icon: '🕒', type: 'timeline-task-view', title: '时间轴' },
+                { icon: '🕒', type: 'timeline-task-view', title: '所有任务时间轴' },
                 { icon: '📑', type: 'table-task-view', title: '任务表' },
                 { icon: '🌲', type: 'tree-task-view', title: '任务树' },
-                { icon: '📅', type: 'calendar-task-view', title: '日历图' }
+                { icon: '📆', type: 'calendar-task-view', title: '日历图' }
             ]
         },
         {

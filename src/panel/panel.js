@@ -170,6 +170,11 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
         treeRenderer.render(filtered);
         await renderContent(filtered);
         await persistence.save(state, collapsedNodes);
+
+        // 刷新甘特图/日历等需要同步的视图
+        if (['calendar-task-view', 'gantt-task-view'].includes(currentSubViewType) && currentSubView?.updateSort) {
+            await currentSubView.updateSort();
+        }
     }
 
     function applyNavFilters() {
@@ -196,7 +201,7 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
             'future-n-task-view', 'future-all-task-view', 'overdue-task-view',
             'depends-task-view', 'tag-task-view',
             'organize-task-view', 'timeline-task-view', 'table-task-view',
-            'tree-task-view', 'calendar-task-view', 'pomodoro-task-view'
+            'tree-task-view', 'calendar-task-view', 'gantt-task-view', 'pomodoro-task-view'
         ];
 
         if (selfRenderedViews.includes(currentSubViewType)) {
@@ -264,11 +269,21 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
             } else if (viewType === 'inbox-task-view') {
                 const { startInboxView } = await import('./views/inbox-task-view');
                 currentSubView = await startInboxView(dv, app, viewPanel);
-            } else if (['organize-task-view', 'timeline-task-view', 'table-task-view', 'tree-task-view', 'calendar-task-view', 'pomodoro-task-view'].includes(viewType)) {
+            } else if (viewType === 'timeline-task-view') {
                 const { startTimelineView } = await import('./views/timeline-task-view');
                 currentSubView = await startTimelineView(dv, app, viewPanel);
+            } else if (viewType === 'table-task-view') {
+                const { startTableTaskView } = await import('./views/table-task-view');
+                currentSubView = await startTableTaskView(dv, app, viewPanel);
+            } else if (viewType === 'calendar-task-view') {
+                const { startCalendarView } = await import('./views/calendar-task-view');
+                currentSubView = await startCalendarView(dv, app, viewPanel, state);
+            } else if (viewType === 'gantt-task-view') {
+                const { startGanttView } = await import('./views/gantt-task-view');
+                currentSubView = await startGanttView(dv, app, viewPanel, state);
             } else {
-                currentSubView = null;
+                currentSubView = { cleanup: () => {}, updateSort: () => {} };
+                viewPanel.innerHTML = '<div class="empty-message">🛠️ 此视图即将上线</div>';
             }
         } catch (e) {
             viewPanel.innerHTML = '<div class="empty-message">视图加载失败</div>';
@@ -331,6 +346,18 @@ export async function startNavigatorCore(dv, app, storageAdapter, instanceId, in
         } else if (initialSubView === 'inbox-task-view') {
             const { startInboxView } = await import('./views/inbox-task-view');
             currentSubView = await startInboxView(dv, app, viewPanel);
+        } else if (initialSubView === 'timeline-task-view') {
+            const { startTimelineView } = await import('./views/timeline-task-view');
+            currentSubView = await startTimelineView(dv, app, viewPanel);
+        } else if (initialSubView === 'table-task-view') {
+            const { startTableTaskView } = await import('./views/table-task-view');
+            currentSubView = await startTableTaskView(dv, app, viewPanel);
+        } else if (initialSubView === 'calendar-task-view') {
+            const { startCalendarView } = await import('./views/calendar-task-view');
+            currentSubView = await startCalendarView(dv, app, viewPanel, state);
+        } else if (initialSubView === 'gantt-task-view') {
+            const { startGanttView } = await import('./views/gantt-task-view');
+            currentSubView = await startGanttView(dv, app, viewPanel, state);
         }
     } catch (e) { viewPanel.innerHTML = '<div class="empty-message">视图加载失败</div>'; }
 
