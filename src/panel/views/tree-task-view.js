@@ -463,3 +463,22 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 		},
 	};
 }
+
+// ===== 为兼容其他模块添加的导出 =====
+
+/**
+ * 渲染树形面板（与 startTreeView 功能相同）
+ * 用于 tree-view-components.js 中的导入
+ */
+export const renderTreePanel = startTreeView;
+
+/**
+ * 树视图类（占位，因为当前实现使用函数式 startTreeView）
+ * 若需要类形式，可以后续包装，目前先导出空对象让编译通过
+ */
+export const TreeTaskView = {};
+
+/**
+ * 树视图类型标识
+ */
+export const VIEW_TYPE_TREE = "tree-task-view";

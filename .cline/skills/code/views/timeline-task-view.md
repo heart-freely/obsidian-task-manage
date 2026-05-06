@@ -1,44 +1,61 @@
----
-name: 任务时间轴视图开发
-description: 开发或修改时间轴视图，按截止日期等时间字段分组排序
-triggers:
-  - 修改时间轴视图
-  - 调整分组或排序规则
----
+状态模型 (@skill-state) <!-- @sync -->
 
-# 任务时间轴视图 Skill
+无内部状态
+事件流 (@skill-flow) <!-- @sync -->
 
-## 文件
-`src/panel/views/timeline-task-view.js`
+加载 → 过滤 → 两级分组 → 渲染
+数据流伪代码 <!-- @sync -->
+text
 
-## 功能
-- 按截止日期（或计划日期）分组展示未完成、非循环任务
-- 无日期的任务单独置底一组
-- 组内再按状态分组，然后按优先级降序
+tasks = getAllTasks(dv, state)
+filtered = tasks.filter(!t.isRecurring && statusIsTODO)
+// 第一级分组：key = due 或 scheduled，缺失则 'no-date'
+dueGroups = new Map()
+for each task: 
+  dateKey = task.due || task.scheduled || 'no-date'
+  dueGroups.get(dateKey).push(task)
+对每个 dueGroup：
+  按状态分组（固定顺序）
+  每个状态组内按 priority 降序排序
+渲染：外层按日期排序（无日期最后），内层按状态顺序
 
-## 实现方式
-- 获取任务过滤未完成非循环
-- 分组：先按 `due` 分组（无日期则'无截止日期'），再按状态分组
-- 组内排序：优先级降序
+关键算法复杂度 (@skill-algorithm) <!-- @sync -->
 
-## 核心函数
-- `groupByDue(tasks)` → Map<string, Task[]>
+O(n) 分组 + O(n log n) 排序
+公共调用 (@skill-api) <!-- @sync -->
 
-## 数据流伪代码
-1. tasks = getAllTasks(dv, state)
-2. filtered = tasks.filter(未完成、非循环)
-3. 构建分组：due 存在 → 以其为键；否则 → '无截止日期'
-4. 每个 due 组内再按状态分组，排序
-5. 渲染
+    readTasks.getAllTasks
 
-## 关键条件
-- 无日期任务放在最后
+    createTaskCard
 
-## 修改指南
-- 可改为按 scheduled 分组
-## AI 命令
-生成或修改时：
-- 数据源：`readTasks.getAllTasks`，过滤未完成、非循环。
-- 分组：第一级 `task.due`（缺失则归入“无日期”组），第二级状态固定标签。
-- 排序：日期组升序（无日期最后），组内优先级降序。
-- 渲染：使用卡片和嵌套容器。
+关键条件 (@skill-condition) <!-- @sync -->
+
+    日期键优先级：due > scheduled > 无日期。
+
+    同一天内的状态顺序固定（未开始 → 计划中 → 进行中）。
+
+    无日期的组放在所有日期组之后。
+
+依赖 <!-- @sync -->
+
+    readTasks.getAllTasks
+
+    createTaskCard
+
+    BaseTaskView
+
+错误处理 <!-- @sync -->
+
+    日期无效的任务归入无日期组。
+
+    无任务时显示占位符。
+
+测试要点 <!-- @manual -->
+
+    验证按截止日期升序排列，无日期在最后。
+
+    验证组内状态分组顺序正确。
+
+修改指南 <!-- @auto-record -->
+
+    2026-05-06: 初始版本（基于 v3.1 格式规范化）

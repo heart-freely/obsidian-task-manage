@@ -62,3 +62,4 @@ export function buildMarkPanel(container, dv, state) {
 	container.appendChild(markRow);
 	return markRow;
 }
+export const buildMarkFilterPanel = buildMarkPanel;

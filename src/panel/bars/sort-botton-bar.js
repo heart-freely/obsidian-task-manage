@@ -4,11 +4,11 @@
 // 功能：提供任务列表的排序控制按钮，支持按不同字段（优先级、截止日期、
 //       创建时间、标签等）进行排序，并支持升序/降序切换。
 // 依赖：无
-// 调用方：panel.js - 各视图初始化时调用 buildSortPanel
+// 调用方：panel.js - 各视图初始化时调用 buildSortPanel / buildSortRow
 // ============================================================================
 
 /**
- * 构建排序控制面板
+ * 构建排序控制面板 (别名：buildSortRow)
  * @param {HTMLElement} container - 父容器
  * @param {Object} dv - Dataview 实例
  * @param {Object} state - 全局状态对象（需包含 sortField, sortOrder 等）
@@ -59,9 +59,6 @@ export function buildSortPanel(container, dv, state) {
 			});
 			btn.classList.add("sort-btn-active");
 			// 更新按钮文本显示排序方向
-			sortFields.forEach((s) => {
-				// 无需更新所有按钮，状态变更后下次渲染会重新构建
-			});
 			btn.textContent =
 				sf.label +
 				(state.sortField === sf.field
@@ -81,3 +78,6 @@ export function buildSortPanel(container, dv, state) {
 	container.appendChild(sortRow);
 	return sortRow;
 }
+
+/** 兼容别名 — panel.js 中使用 buildSortRow 导入 */
+export { buildSortPanel as buildSortRow };

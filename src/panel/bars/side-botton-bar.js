@@ -8,7 +8,7 @@
 // ============================================================================
 
 /**
- * 构建侧边视图切换按钮栏
+ * 构建侧边视图切换按钮栏 (别名：buildViewSwitcher)
  * @param {HTMLElement} container - 父容器
  * @param {Object} dv - Dataview 实例
  * @param {Object} state - 全局状态对象（需包含 sideViewType 等）
@@ -54,3 +54,6 @@ export function buildSideButtonBar(container, dv, state) {
 	container.appendChild(sideRow);
 	return sideRow;
 }
+
+/** 兼容别名 — panel.js 中使用 buildViewSwitcher 导入 */
+export { buildSideButtonBar as buildViewSwitcher };

@@ -131,3 +131,5 @@ export function buildHidePanel(container, dv, state) {
 	container.appendChild(hideRow);
 	return hideRow;
 }
+
+export const buildHideButtons = buildHidePanel;

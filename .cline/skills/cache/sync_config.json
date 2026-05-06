@@ -1,0 +1,6 @@
+{
+  "prefer": "ask",
+  "autoSnapshot": true,
+  "keepSnapshotsCount": 20,
+  "syncCooldownMinutes": 5
+}
