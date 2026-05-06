@@ -34,7 +34,7 @@
 > | 恢复对话 / 加载快照            | [sync/recover-snapshots.md](sync/recover-snapshots.md) | `恢复对话` `加载快照`            |
 > | 清理快照                       | [sync/clear-snapshots.md](sync/clear-snapshots.md)     | `清理快照`                       |
 > | 更新技能（同步代码到技能文件） | [sync/update-skill.md](sync/update-skill.md)           | `更新技能` `同步技能` `全局同步` |
-> | 代码注释规范                   | [sync/comment-code.md](sync/comment-code.md)           | `注释规范` `如何写注释`          |
+> | 代码注释规范                   | [sync/update-comment.md](sync/update-comment.md)       | `注释规范` `如何写注释`          |
 >
 > ## 常用触发词速览
 > | 触发词                   | 对应技能                                 |

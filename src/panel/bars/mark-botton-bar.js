@@ -1,98 +1,64 @@
-// src/panel/panel-mark-bottons.js
-import { CONFIG } from '../../configs/plugin-configs';
+// ============================================================================
+// 标记面板 (Mark/Tag Filter Panel)
+// ============================================================================
+// 功能：提供任务的标签筛选面板，支持多选标签进行任务过滤。
+//       用户可通过标签对任务进行快速分类筛选。
+// 依赖：无
+// 调用方：panel.js - 各视图初始化时调用 buildMarkPanel
+// ============================================================================
 
-export function buildMarkFilterPanel(container, dv, state, currentViewType) {
-    const wrapper = dv.el('div', '', { cls: 'filter-section' });
+/**
+ * 构建标签筛选面板
+ * @param {HTMLElement} container - 父容器
+ * @param {Object} dv - Dataview 实例
+ * @param {Object} state - 全局状态对象（需包含 selectedTag, allTags）
+ * @returns {HTMLElement} 标签面板 DOM 元素
+ */
+export function buildMarkPanel(container, dv, state) {
+	const markRow = dv.el("div", "");
+	markRow.style.cssText =
+		"display:flex; align-items:center; padding:12px 0 8px 0; gap:12px; flex-wrap:wrap;";
 
-    // 执行状态
-    const statusDiv = dv.el('div', '');
-    statusDiv.style.cssText = 'display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px;';
-    statusDiv.appendChild(dv.el('span', '执行状态', { cls: 'filter-label' }));
-    CONFIG.ALLOWED_STATUSES.forEach(st => {
-        const active = state.markFilterState.statuses.includes(st);
-        const btn = dv.el('button', CONFIG.STATUS_NAMES[st]);
-        // 所有按钮均可点击，无禁用状态
-        btn.style.cssText = 'padding:2px 10px; border-radius:16px; background:' +
-            (active ? 'var(--interactive-accent)' : 'var(--interactive-normal)') +
-            '; color:' + (active ? 'white' : 'var(--text-normal)') + '; font-size:12px;';
-        btn.onclick = () => {
-            const idx = state.markFilterState.statuses.indexOf(st);
-            if (idx === -1) {
-                state.markFilterState.statuses.push(st);
-                btn.style.background = 'var(--interactive-accent)';
-                btn.style.color = 'white';
-            } else {
-                state.markFilterState.statuses.splice(idx, 1);
-                btn.style.background = 'var(--interactive-normal)';
-                btn.style.color = 'var(--text-normal)';
-            }
-            state.filterCache.fingerprint = '';
-        };
-        statusDiv.appendChild(btn);
-    });
-    wrapper.appendChild(statusDiv);
+	// ── "全部"按钮 ────────────────────────────────────────────────────
+	// 清除标签筛选，显示所有任务
+	const allBtn = dv.el("button", "全部", {
+		cls: "tag-btn" + (!state.selectedTag ? " tag-btn-active" : ""),
+	});
+	allBtn.onclick = () => {
+		state.selectedTag = "";
+		// 更新所有标签按钮的样式
+		document.querySelectorAll(".tag-btn").forEach((b) => {
+			b.classList.remove("tag-btn-active");
+		});
+		allBtn.classList.add("tag-btn-active");
+		state.filterCache.fingerprint = "";
+	};
+	markRow.appendChild(allBtn);
 
-    // 包含标记
-    const incDiv = dv.el('div', '');
-    incDiv.style.cssText = 'display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px;';
-    incDiv.appendChild(dv.el('span', '包含标记', { cls: 'filter-label' }));
-    CONFIG.ALL_MARKS.forEach(mk => {
-        const active = state.markFilterState.includeMarks.includes(mk);
-        const btn = dv.el('button', CONFIG.MARK_NAMES[mk]);
-        btn.style.cssText = 'padding:2px 8px; border-radius:16px; background:' +
-            (active ? 'var(--interactive-accent)' : 'var(--interactive-normal)') +
-            '; color:' + (active ? 'white' : 'var(--text-normal)') + '; font-size:12px;';
-        btn.dataset.mark = mk; btn.dataset.type = 'include';
-        btn.onclick = () => {
-            const incIdx = state.markFilterState.includeMarks.indexOf(mk);
-            const excIdx = state.markFilterState.excludeMarks.indexOf(mk);
-            if (incIdx === -1) {
-                state.markFilterState.includeMarks.push(mk);
-                if (excIdx !== -1) state.markFilterState.excludeMarks.splice(excIdx, 1);
-                btn.style.background = 'var(--interactive-accent)'; btn.style.color = 'white';
-                document.querySelectorAll(`button[data-mark="${mk}"][data-type="exclude"]`).forEach(b => {
-                    b.style.background = 'var(--interactive-normal)'; b.style.color = 'var(--text-normal)';
-                });
-            } else {
-                state.markFilterState.includeMarks.splice(incIdx, 1);
-                btn.style.background = 'var(--interactive-normal)'; btn.style.color = 'var(--text-normal)';
-            }
-            state.filterCache.fingerprint = '';
-        };
-        incDiv.appendChild(btn);
-    });
-    wrapper.appendChild(incDiv);
+	// ── 标签按钮 ──────────────────────────────────────────────────────
+	// 根据 state.allTags 动态生成标签按钮
+	state.allTags.forEach((tag) => {
+		const btn = dv.el("button", "#" + tag, {
+			cls:
+				"tag-btn" +
+				(state.selectedTag === tag ? " tag-btn-active" : ""),
+		});
+		btn.onclick = () => {
+			state.selectedTag = state.selectedTag === tag ? "" : tag;
+			// 更新所有标签按钮的样式
+			document.querySelectorAll(".tag-btn").forEach((b) => {
+				b.classList.remove("tag-btn-active");
+			});
+			if (state.selectedTag) {
+				btn.classList.add("tag-btn-active");
+			} else {
+				allBtn.classList.add("tag-btn-active");
+			}
+			state.filterCache.fingerprint = "";
+		};
+		markRow.appendChild(btn);
+	});
 
-    // 排除标记
-    const excDiv = dv.el('div', '');
-    excDiv.style.cssText = 'display:flex; flex-wrap:wrap; align-items:center; gap:6px;';
-    excDiv.appendChild(dv.el('span', '排除标记', { cls: 'filter-label' }));
-    CONFIG.ALL_MARKS.forEach(mk => {
-        const active = state.markFilterState.excludeMarks.includes(mk);
-        const btn = dv.el('button', CONFIG.MARK_NAMES[mk]);
-        btn.style.cssText = 'padding:2px 8px; border-radius:16px; background:' +
-            (active ? 'var(--interactive-accent)' : 'var(--interactive-normal)') +
-            '; color:' + (active ? 'white' : 'var(--text-normal)') + '; font-size:12px;';
-        btn.dataset.mark = mk; btn.dataset.type = 'exclude';
-        btn.onclick = () => {
-            const excIdx = state.markFilterState.excludeMarks.indexOf(mk);
-            const incIdx = state.markFilterState.includeMarks.indexOf(mk);
-            if (excIdx === -1) {
-                state.markFilterState.excludeMarks.push(mk);
-                if (incIdx !== -1) state.markFilterState.includeMarks.splice(incIdx, 1);
-                btn.style.background = 'var(--interactive-accent)'; btn.style.color = 'white';
-                document.querySelectorAll(`button[data-mark="${mk}"][data-type="include"]`).forEach(b => {
-                    b.style.background = 'var(--interactive-normal)'; b.style.color = 'var(--text-normal)';
-                });
-            } else {
-                state.markFilterState.excludeMarks.splice(excIdx, 1);
-                btn.style.background = 'var(--interactive-normal)'; btn.style.color = 'var(--text-normal)';
-            }
-            state.filterCache.fingerprint = '';
-        };
-        excDiv.appendChild(btn);
-    });
-    wrapper.appendChild(excDiv);
-
-    container.appendChild(wrapper);
+	container.appendChild(markRow);
+	return markRow;
 }

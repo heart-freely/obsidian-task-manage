@@ -1,71 +1,56 @@
-// src/panel/bars/side-botton-bar.js
-export function buildViewSwitcher(container, dv, app, activeType, onActivate) {
-    const groups = [
-        {
-            label: '收集',
-            buttons: [
-                { icon: '📥', type: 'inbox-task-view', title: '任务收集箱' }
-            ]
-        },
-        {
-            label: '整理',
-            buttons: [
-                { icon: '📂', type: 'organize-task-view', title: '任务整理处' }
-            ]
-        },
-        {
-            label: '组织',
-            buttons: [
-                { icon: '🧩', type: 'matrix-tasks-view', title: '任务矩阵' },
-                { icon: '📋', type: 'kanban-task-view', title: '任务看板' },
-                { icon: '📊', type: 'gantt-task-view', title: '甘特图' }
-            ]
-        },
-        {
-            label: '回顾',
-            buttons: [
-                { icon: '⭐', type: 'important-task-view', title: '重要任务' },
-                { icon: '🔄', type: 'recurring-task-view', title: '循环任务' },
-                { icon: '📅', type: 'today-task-view', title: '今天任务' },
-                { icon: '🔜', type: 'future-n-task-view', title: '未来 n 天' },
-                { icon: '⏳', type: 'future-all-task-view', title: '未来所有任务' },
-                { icon: '⏰', type: 'overdue-task-view', title: '逾期任务' },
-                { icon: '🔗', type: 'depends-task-view', title: '依赖任务' },
-                { icon: '🏷️', type: 'tag-task-view', title: '标签任务' },
-                { icon: '🕒', type: 'timeline-task-view', title: '所有任务时间轴' },
-                { icon: '📑', type: 'table-task-view', title: '任务表' },
-                { icon: '🌲', type: 'tree-task-view', title: '任务树' },
-                { icon: '📆', type: 'calendar-task-view', title: '日历图' }
-            ]
-        },
-        {
-            label: '统计',
-            buttons: [
-                { icon: '📈', type: 'task-dataview-view', title: '统计分析' },
-                { icon: '🍅', type: 'pomodoro-task-view', title: '番茄钟统计' }
-            ]
-        }
-    ];
+// ============================================================================
+// 侧边视图切换按钮栏 (Side View Switcher Bar)
+// ============================================================================
+// 功能：提供侧边视图的模式切换按钮，用于在不同视图模式（如列表、表格、
+//       卡片、树形等）之间快速切换。
+// 依赖：无
+// 调用方：panel.js - 与主视图配合使用
+// ============================================================================
 
-    container.innerHTML = '';
-    groups.forEach(group => {
-        const groupDiv = dv.el('div', '', { cls: 'view-switch-group' });
-        groupDiv.style.cssText = 'margin-bottom:12px;';
-        const label = dv.el('div', group.label, { cls: 'view-switch-group-label' });
-        label.style.cssText = 'font-weight:bold;font-size:0.9em;color:var(--text-accent);margin-bottom:4px;';
-        groupDiv.appendChild(label);
+/**
+ * 构建侧边视图切换按钮栏
+ * @param {HTMLElement} container - 父容器
+ * @param {Object} dv - Dataview 实例
+ * @param {Object} state - 全局状态对象（需包含 sideViewType 等）
+ * @returns {HTMLElement} 侧边按钮栏 DOM 元素
+ */
+export function buildSideButtonBar(container, dv, state) {
+	const sideRow = dv.el("div", "");
+	sideRow.style.cssText =
+		"display:flex; align-items:center; padding:12px 0 8px 0; gap:8px; flex-wrap:wrap;";
 
-        group.buttons.forEach(def => {
-            const active = def.type === activeType;
-            const btn = dv.el('button', def.icon, {
-                cls: 'nav-btn' + (active ? ' nav-btn-active' : ''),
-                attr: { title: def.title }
-            });
-            btn.style.cssText = 'width:36px;height:36px;padding:4px;font-size:18px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;border-radius:8px;cursor:pointer;';
-            if (active) { btn.style.background = 'var(--interactive-accent)'; btn.style.color = 'white'; }
-            btn.addEventListener('click', () => onActivate(def.type));
-            groupDiv.appendChild(btn);
-        });
-        container.appendChild(groupDiv);
-    });
+	// ── 视图模式按钮定义 ─────────────────────────────────────────────
+	// 每个按钮对应一种视图类型
+	const views = [
+		{ type: "list", label: "📋 列表", title: "列表视图" },
+		{ type: "grid", label: "🔲 卡片", title: "卡片视图" },
+		{ type: "table", label: "📊 表格", title: "表格视图" },
+		{ type: "tree", label: "🌳 树形", title: "树形视图" },
+		{ type: "timeline", label: "📅 时间线", title: "时间线视图" },
+	];
+
+	views.forEach((view) => {
+		const btn = dv.el("button", view.label, {
+			cls:
+				"side-btn" +
+				(state.sideViewType === view.type ? " side-btn-active" : ""),
+			title: view.title,
+		});
+		btn.onclick = () => {
+			state.sideViewType = view.type;
+			// 更新所有侧边按钮的样式
+			document.querySelectorAll(".side-btn").forEach((b) => {
+				b.classList.remove("side-btn-active");
+			});
+			btn.classList.add("side-btn-active");
+			// 触发视图刷新
+			if (state.onViewChange) {
+				state.onViewChange(view.type);
+			}
+		};
+		sideRow.appendChild(btn);
+	});
+
+	container.appendChild(sideRow);
+	return sideRow;
 }
