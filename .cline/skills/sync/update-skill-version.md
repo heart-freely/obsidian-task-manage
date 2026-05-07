@@ -1,10 +1,8 @@
 ---
-  name: 版本迁移
-  description: 检查 Skill 文件的 skill-version，执行格式迁移到最新标准。
-  triggers:
-    - 升级技能格式
-    - 迁移版本
-    - 检查版本
+name: 版本迁移
+description: 检查 Skill 文件的 skill-version，执行格式迁移到最新标准。
+triggers:
+  - 升级技能格式|迁移版本|检查版本
 ---
 
   # 版本迁移 Skill

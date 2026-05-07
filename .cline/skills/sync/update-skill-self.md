@@ -1,10 +1,8 @@
 ---
-  name: 自举验证
-  description: 验证 sync/ 下核心 Skill 自身是否符合注释规范，生成元文档。
-  triggers:
-    - 验证自身
-    - 自举
-    - 检查自身规范
+name: 自举验证
+description: 验证 sync/ 下核心 Skill 自身是否符合注释规范，生成元文档。
+triggers:
+  - 验证自身|自举|检查自身规范
 ---
 
 # 自举验证 Skill
