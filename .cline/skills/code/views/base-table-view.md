@@ -1,13 +1,7 @@
-
----
-
-## 5. `.cline/skills/code/views/base-table-view.md`（通用表格工厂）
-
-```markdown
 ---
 name: 通用表格工厂开发
-description: 开发或修改通用表格视图工厂函数
-skill-version: 3.1
+description: 快速构建带分组、可折叠的表格视图
+skill-version: 4.0
 triggers:
   - 创建表格视图
   - 修改表格工厂
@@ -26,101 +20,63 @@ triggers:
 - Skill：`.cline/skills/code/views/base-table-view.md`
 
 ## 功能 <!-- @manual -->
-- 提供表格视图工厂，支持多级分组、列显示切换
-- 支持点击表头排序、分组展开/收起
+- 表格视图工厂，支持多级分组、列显示切换、分组折叠
 
 ## 实现方式 <!-- @sync -->
-- 类似列表工厂，但渲染为 `<table>` 或多级嵌套 DOM，支持分组标题行
-- 分组模式下每组标题行可折叠
+- 渲染为 `<table>` 或嵌套 div
+- 分组标题行可点击折叠
 
 ## 核心函数 (@skill-sig) <!-- @sync -->
-- `startTableBaseView(app: App, container: HTMLElement, fetchTasks: () => Task[], title: string, columns: ColumnDef[], viewState: TableViewState): { cleanup: () => void, updateSort: (key: string, asc: boolean) => void }` - 初始化表格视图
+- `startTableBaseView(app, container, fetchTasks, title, columns, viewState): { cleanup, updateSort }`
 
 ## DOM 结构 (@skill-dom) <!-- @sync -->
 ```html
 <div class="base-table-view">
   <div class="view-header">...</div>
-  <table class="task-table">
-    <thead>
-      <tr>
-        <th data-sort="status">状态</th>
-        <th data-sort="description">描述</th>
-        <th data-sort="priority">优先级</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr class="group-row" data-group-key="status:backlog">
-        <td colspan="3">未开始 (3个任务)</td>
-      </tr>
-      <tr class="task-row">...</tr>
-    </tbody>
-  </table>
+  <table class="task-table"><thead><tr>...</tr></thead><tbody></tbody></table>
 </div>
-状态模型 (@skill-state) <!-- @sync -->
-js
+```
 
-viewState = {
-  tasks: Task[],
-  sortKey: string,
-  sortAsc: boolean,
-  groupBy: 'status' | 'priority' | null,
-  collapsedGroups: Set<string>
-}
+## 状态模型 (@skill-state) <!-- @sync -->
 
-事件流 (@skill-flow) <!-- @sync -->
+```
+{ tasks, sortKey, sortAsc, groupBy, collapsedGroups }
+```
 
-    调用 startTableBaseView → 构建表头、分组 → 渲染
+## 事件流 <!-- @sync -->
 
-    点击表头排序 → 更新排序 → 重新渲染表格
+- 初始化 → 渲染
+- 点击表头排序 → 重新渲染
+- 点击分组标题 → 折叠/展开
 
-    点击分组标题行 → 切换折叠状态 → 显示/隐藏该组任务行
+## 数据流伪代码 <!-- @sync -->
 
-数据流伪代码 <!-- @sync -->
-text
+fetch → 分组（可选）→ 排序 → 构建表行
 
-fetchTasks() → tasks
-if (groupBy) 分组 tasks
-排序 tasks（或每组内排序）
-生成表行：分组标题行 + 任务行（每个任务一行）
+## 关键算法复杂度 <!-- @sync -->
 
-关键算法复杂度 (@skill-algorithm) <!-- @sync -->
+分组 O(n)，排序 O(n log n)，渲染 O(n)
 
-    分组：O(n)
+## 公共调用 <!-- @sync -->
 
-    排序：O(n log n)
+- `createTaskCard` (可选)
 
-    渲染：O(n)（大任务量建议分页）
+## 关键条件 <!-- @sync -->
 
-公共调用 (@skill-api) <!-- @sync -->
+- 分组模式下每组可折叠
 
-    createTaskCard（可复用其元数据渲染）
+## 依赖 <!-- @sync -->
 
-    normalizeTaskCardData
+- `BaseTaskView` (`.cline/skills/code/views/base-task-view.md`)
 
-关键条件 (@skill-condition) <!-- @sync -->
+## 错误处理 <!-- @sync -->
 
-    分组模式下，每组标题行可折叠，折叠后隐藏子任务行。
+- 无数据显示空状态
 
-    支持多列排序时（可选）可扩展。
+## 测试要点 <!-- @manual -->
 
-依赖 <!-- @sync -->
+- 验证分组折叠功能
 
-    BaseTaskView
+## 修改指南 <!-- @auto-record -->
 
-    createTaskCard
-
-错误处理 <!-- @sync -->
-
-    无数据时显示空状态。
-
-    无效列配置时跳过该列。
-
-测试要点 <!-- @manual -->
-
-    验证分组折叠/展开功能。
-
-    验证表头排序影响整个表格。
-
-修改指南 <!-- @auto-record -->
-
-    2026-05-06: 初始版本（基于 v3.1 格式规范化）
+- 2026-05-07: v4.0 初始化

@@ -1,13 +1,7 @@
-
----
-
-## 3. `.cline/skills/code/views/overdue-task-view.md`
-
-```markdown
 ---
 name: 逾期任务视图开发
-description: 开发或修改逾期任务视图，显示未完成且截止日期已过的任务
-skill-version: 3.1
+description: 显示未完成且截止日期已过的任务
+skill-version: 4.0
 triggers:
   - 修改逾期任务视图
   - 调整逾期判定逻辑
@@ -27,102 +21,41 @@ triggers:
 - Skill：`.cline/skills/code/views/overdue-task-view.md`
 
 ## 功能 <!-- @manual -->
-- 筛选未完成、非循环，且截止日期小于今天的任务
-- 可按状态分组（未开始、计划中、进行中）
-- 组内先按截止日期远近排序，再按优先级降序
+- 筛选未完成、非循环、且截止日期 < 今天的任务
+- 按状态分组，组内按截止日期升序，优先级降序
 
 ## 实现方式 <!-- @sync -->
-- 调用 `readTasks.getAllTasks` 获取全量任务
-- 过滤条件：`!task.isRecurring && task.status.type === 'TODO' && task.due && task.due < today`
-- 分组后排序渲染
+- 过滤 `!isRecurring && status TODO && due < today`
 
 ## 核心函数 (@skill-sig) <!-- @sync -->
-- `fetchOverdueTasks(dv: DataView, state: AppState): Task[]` - 获取逾期任务列表
-- `groupByStatus(tasks: Task[]): Map<string, Task[]>` - 按状态分组（固定顺序）
-- `sortTaskGroup(tasks: Task[]): Task[]` - 先 due 升序，再 priority 降序
+- `fetchOverdueTasks(dv, state): Task[]`
+- `groupByStatus(tasks): Map<string, Task[]>`
 
-## DOM 结构 (@skill-dom) <!-- @sync -->
-```html
-<div class="overdue-view">
-  <div class="task-group" data-status="backlog">
-    <h3>📍 未开始</h3>
-    <ul class="task-list"></ul>
-  </div>
-  <div class="task-group" data-status="planned">
-    <h3>📅 计划中</h3>
-    <ul class="task-list"></ul>
-  </div>
-  <div class="task-group" data-status="inProgress">
-    <h3>⏩ 进行中</h3>
-    <ul class="task-list"></ul>
-  </div>
-</div>
+## DOM 结构 <!-- @sync -->
+同标准分组视图
 
-状态模型 (@skill-state) <!-- @sync -->
+## 状态模型 <!-- @sync -->
+无内部状态
 
-无内部状态（纯展示视图）
-事件流 (@skill-flow) <!-- @sync -->
+## 事件流 <!-- @sync -->
+加载 → 过滤 → 分组 → 排序 → 渲染
 
-    加载数据 → fetchOverdueTasks → 分组 → 排序 → 渲染
+## 关键算法复杂度 <!-- @sync -->
+O(n) 过滤，O(n log n) 排序
 
-数据流伪代码 <!-- @sync -->
-text
+## 公共调用 <!-- @sync -->
+- `readTasks.getAllTasks`
+- `DateUtils`
+- `createTaskCard`
 
-tasks = getAllTasks(dv, state)
-filtered = tasks.filter(t => 
-  !t.isRecurring && 
-  [' ', '?', '/'].includes(t.statusSymbol) &&  // TODO 状态的三种子状态
-  t.due && 
-  t.due < today
-)
-groups = groupByStatus(filtered)  // 按状态符号分组
-每组内按 due 升序，priority 降序排序
-渲染（使用 createTaskCard）
+## 依赖 <!-- @sync -->
+- `BaseTaskView`
 
-关键算法复杂度 (@skill-algorithm) <!-- @sync -->
+## 错误处理 <!-- @sync -->
+- 无逾期任务显示占位符
 
-    过滤：O(n)
+## 测试要点 <!-- @manual -->
+- 验证截止日期昨天的任务显示，今天的不显示
 
-    分组：O(n)
-
-    组内排序：O(m log m)
-
-公共调用 (@skill-api) <!-- @sync -->
-
-    readTasks.getAllTasks(dv, state)
-
-    DateUtils.compareDate(date1, date2)
-
-    createTaskCard(normalizeTaskCardData(task))
-
-关键条件 (@skill-condition) <!-- @sync -->
-
-    无截止日期的任务不视为逾期，直接排除。
-
-    仅包含 statusSymbol 为空格、问号、斜杠的任务（即未开始、计划中、进行中）。
-
-依赖 <!-- @sync -->
-
-    readTasks.getAllTasks
-
-    DateUtils
-
-    createTaskCard
-
-    BaseTaskView
-
-错误处理 <!-- @sync -->
-
-    无逾期任务时显示“暂无逾期任务”占位符。
-
-    日期比较失败时跳过该任务并输出警告。
-
-测试要点 <!-- @manual -->
-
-    验证截止日期为昨天的任务被显示，今天的任务不显示。
-
-    验证状态分组顺序固定且组内排序正确。
-
-修改指南 <!-- @auto-record -->
-
-    2026-05-06: 初始版本（基于 v3.1 格式规范化）
+## 修改指南 <!-- @auto-record -->
+- 2026-05-07: v4.0 初始化

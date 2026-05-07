@@ -1,32 +1,46 @@
-> # 视图技能索引
->
-> 本文件列出所有视图技能，方便 AI 快速定位。每个技能文件对应一个视图源码文件。
->
-> | 视图名称     | 技能文件                | 触发词（部分）                  | 功能简述                                                     |
-> | ------------ | ----------------------- | ------------------------------- | ------------------------------------------------------------ |
-> | 基类视图     | base-task-view.md       | `修改任务卡片` `调整数据标准化` | 提供 `BaseTaskView`、`createTaskCard`、`normalizeTaskCardData` |
-> | 通用列表工厂 | base-list-view.md       | `创建列表视图` `修改列表工厂`   | 快速构建简单列表视图的工厂函数                               |
-> | 通用表格工厂 | base-table-view.md      | `创建表格视图` `修改表格工厂`   | 快速构建表格式视图的工厂函数                                 |
-> | 收集箱       | inbox-task-view.md      | `修改收件箱` `调整任务收集`     | 汇聚未开始与计划中任务，排除循环                             |
-> | 看板         | kanban-task-view.md     | `修改看板` `添加看板列`         | 三列状态看板（未开始/计划中/进行中）                         |
-> | 四象限矩阵   | matrix-task-view.md     | `修改象限` `调整四象限`         | 艾森豪威尔矩阵，按优先级分区                                 |
-> | 日历         | calendar-task-view.md   | `修改日历` `调整日历交集`       | 日/周/月/季/年视图，任务与时间段交集                         |
-> | 甘特图       | gantt-task-view.md      | `修改甘特图` `调整依赖箭头`     | Canvas 甘特图，依赖关系，虚拟滚动                            |
-> | 整理箱       | organize-task-view.md   | `修改整理箱` `调整编辑预览`     | 多级筛选、标记批量编辑、快照撤回                             |
-> | 统计分析     | data-tasks-view.md      | `修改统计图表` `添加统计维度`   | 任务树与 ECharts 联动，下钻统计                              |
-> | 今天任务     | today-task-view.md      | `修改今天任务` `调整日期过滤`   | 筛选与今天相关的所有未完成/循环任务                          |
-> | 逾期任务     | overdue-task-view.md    | `修改逾期视图` `调整逾期判定`   | 截止日期已过的未完成非循环任务                               |
-> | 未来 N 天    | future-task-n-view.md   | `修改未来15天` `调整时间窗口`   | 未来 15 天内（含）有交集的未完成非循环任务                   |
-> | 全部未来任务 | future-task-all-view.md | `修改全部未来` `调整未来范围`   | 今天之后所有未完成非循环任务                                 |
-> | 循环任务     | recurring-task-view.md  | `修改循环视图` `调整周期分组`   | 按优先级-周期-文件三级分组展示循环任务                       |
-> | 重要任务     | important-task-view.md  | `修改重要任务` `调整优先级阈值` | 未完成且优先级为最高/高/中的任务                             |
-> | 时间线       | timeline-task-view.md   | `修改时间线` `调整截止分组`     | 按截止日期-状态分组，无日期任务置底                          |
-> | 所有任务表   | table-task-view.md      | `修改任务表` `调整多级分组`     | 所有任务的状态-计划日期-优先级三级嵌套表格                   |
-> | 标签聚合     | tag-task-view.md        | `修改标签视图` `调整标签筛选`   | 按 🏁 标签分组展示任务                                        |
-> | 依赖任务     | depends-task-view.md    | `修改依赖视图` `调整依赖解析`   | 展示 🆔 与 ⛔ 依赖关系                                         |
-> | 单任务编辑   | edit-tasks-view.md      | `修改单任务编辑` `调整编辑界面` | 直接文本编辑单个任务并写回文件                               |
-> | 任务树       | tree-task-view.md       | `修改任务树` `调整父子关系`     | 基于 YAML / Wiki 链接构建父子任务树                          |
-> | 番茄钟       | pomodoro-task-view.md   | `修改番茄钟` `调整计时`         | 简单番茄钟计时器，关联任务                                   |
-> | 通用视图列表 | view-list-tasks.md      | `修改视图列表` `调整通用渲染`   | 通用任务列表渲染组件                                         |
->
-> > 每个技能文件的完整 YAML 头部位于文件顶部，AI 可直接读取。
+---
+name: 视图注册中心
+description: 统一导出所有视图类型和注册逻辑
+skill-version: 4.0
+triggers:
+  - 修改视图注册
+  - 添加新视图
+---
+
+# 视图注册中心 Skill
+
+## 文件 <!-- @sync -->
+`src/panel/views/views.js`
+
+## 导出 <!-- @sync -->
+- `VIEW_TYPES`
+- `registerViews`
+- `getViewInstance`
+
+## 关联文件 <!-- @sync -->
+- 源码：`src/panel/views/views.js`
+- Skill：`.cline/skills/code/views/views.md`
+
+## 功能 <!-- @manual -->
+- 聚合所有视图模块
+- 提供注册和获取视图实例的统一接口
+
+## 实现方式 <!-- @sync -->
+- 导入各视图类，导出映射表
+- 注册到 Obsidian 视图注册表
+
+## 核心函数 (@skill-sig) <!-- @sync -->
+- `registerViews(plugin: Plugin): void`
+- `getViewInstance(type: string): ItemView`
+
+## 状态模型 <!-- @sync -->
+无内部状态
+
+## 事件流 <!-- @sync -->
+插件加载 → 调用 `registerViews` → 注册所有视图
+
+## 依赖 <!-- @sync -->
+- 各视图 Skill 文件（见列表）
+
+## 修改指南 <!-- @auto-record -->
+- 2026-05-07: v4.0 初始化

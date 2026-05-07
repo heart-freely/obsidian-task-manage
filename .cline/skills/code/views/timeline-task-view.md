@@ -1,61 +1,74 @@
-状态模型 (@skill-state) <!-- @sync -->
+---
+name: 任务时间轴视图开发
+description: 按截止日期分组，无日期单独置底，组内按状态再分组
+skill-version: 4.0
+triggers:
+    - 修改时间轴视图
+    - 调整分组或排序规则
+---
+
+# 任务时间轴视图 Skill
+
+## 文件 <!-- @sync -->
+`src/panel/views/timeline-task-view.js`
+
+## 导出 <!-- @sync -->
+- `TimelineTaskView`
+- `VIEW_TYPE_TIMELINE`
+
+## 关联文件 <!-- @sync -->
+- 源码：`src/panel/views/timeline-task-view.js`
+- Skill：`.cline/skills/code/views/timeline-task-view.md`
+
+## 功能 <!-- @manual -->
+- 第一级按截止日期（或计划日期）分组
+- 无日期组置底
+- 组内按状态分组，状态组内按优先级降序
+
+## 实现方式 <!-- @sync -->
+- 日期键优先级：due > scheduled > 'no-date'
+- 两级分组
+
+## 核心函数 (@skill-sig) <!-- @sync -->
+- `groupByDueDate(tasks): Map<string, Task[]>`
+- `groupByStatusWithinDue(tasks): Map<string, Map<string, Task[]>>`
+
+## DOM 结构 <!-- @sync -->
+```html
+<div class="timeline-view">
+<div class="due-group" data-due="2026-05-10"><h3>截止 2026-05-10</h3>...</div>
+<div class="due-group no-date"><h3>无截止日期</h3>...</div>
+</div>
+```
+## 状态模型 <!-- @sync -->
 
 无内部状态
-事件流 (@skill-flow) <!-- @sync -->
+
+## 事件流 <!-- @sync -->
 
 加载 → 过滤 → 两级分组 → 渲染
-数据流伪代码 <!-- @sync -->
-text
 
-tasks = getAllTasks(dv, state)
-filtered = tasks.filter(!t.isRecurring && statusIsTODO)
-// 第一级分组：key = due 或 scheduled，缺失则 'no-date'
-dueGroups = new Map()
-for each task: 
-  dateKey = task.due || task.scheduled || 'no-date'
-  dueGroups.get(dateKey).push(task)
-对每个 dueGroup：
-  按状态分组（固定顺序）
-  每个状态组内按 priority 降序排序
-渲染：外层按日期排序（无日期最后），内层按状态顺序
+## 关键算法复杂度 <!-- @sync -->
 
-关键算法复杂度 (@skill-algorithm) <!-- @sync -->
+O(n) 分组，O(n log n) 排序
 
-O(n) 分组 + O(n log n) 排序
-公共调用 (@skill-api) <!-- @sync -->
+## 公共调用 <!-- @sync -->
 
-    readTasks.getAllTasks
+- `readTasks.getAllTasks`
+- `createTaskCard`
 
-    createTaskCard
+## 依赖 <!-- @sync -->
 
-关键条件 (@skill-condition) <!-- @sync -->
+- `BaseTaskView`
 
-    日期键优先级：due > scheduled > 无日期。
+## 错误处理 <!-- @sync -->
 
-    同一天内的状态顺序固定（未开始 → 计划中 → 进行中）。
+- 无任务显示占位符
 
-    无日期的组放在所有日期组之后。
+## 测试要点 <!-- @manual -->
 
-依赖 <!-- @sync -->
+- 验证无日期组在最后
 
-    readTasks.getAllTasks
+## 修改指南 <!-- @auto-record -->
 
-    createTaskCard
-
-    BaseTaskView
-
-错误处理 <!-- @sync -->
-
-    日期无效的任务归入无日期组。
-
-    无任务时显示占位符。
-
-测试要点 <!-- @manual -->
-
-    验证按截止日期升序排列，无日期在最后。
-
-    验证组内状态分组顺序正确。
-
-修改指南 <!-- @auto-record -->
-
-    2026-05-06: 初始版本（基于 v3.1 格式规范化）
+- 2026-05-07: v4.0 初始化

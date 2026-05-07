@@ -1,5 +1,7 @@
 {
   "prefer": "ask",
+  "remindFeatureCheck": true,
+  "enablePreSyncCheck": true,
   "autoSnapshot": true,
   "keepSnapshotsCount": 20,
   "syncCooldownMinutes": 5

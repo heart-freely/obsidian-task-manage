@@ -1,13 +1,12 @@
-
 ---
 
-## 2. `.cline/skills/code/views/base-task-view.md`（基类）
+## 示例 3：`base-task-view.md`
 
 ```markdown
 ---
 name: BaseTaskView 基类开发
-description: 开发或修改视图基类、任务卡片生成逻辑与数据标准化
-skill-version: 3.1
+description: 视图基类、任务卡片生成、数据标准化
+skill-version: 4.0
 triggers:
   - 修改任务卡片样式
   - 调整数据标准化
@@ -29,88 +28,63 @@ triggers:
 - Skill：`.cline/skills/code/views/base-task-view.md`
 
 ## 功能 <!-- @manual -->
-- 提供所有视图的基类 `BaseTaskView`，封装 `ItemView` 生命周期、Dataview 代理创建
-- 提供通用任务卡片生成函数 `createTaskCard`，接受标准化数据，输出 `<li class="task-item">`
-- 提供数据标准化函数 `normalizeTaskCardData`，将 Tasks API 或 Dataview 结果转换为统一格式
+- 视图基类封装生命周期和 Dataview 代理
+- 通用任务卡片生成，支持跳转
+- 任务数据标准化
 
 ## 实现方式 <!-- @sync -->
-- `BaseTaskView` 继承 `ItemView`，在 `onOpen` 中初始化 `dv` 并调用 `_startCore`
-- `createTaskCard` 构建两行 DOM：第一行状态图标 + 描述，第二行元信息（优先级、循环、日期、标签、ID、文件）
-- `normalizeTaskCardData` 提取并重命名字段，确保后续处理一致
+- `BaseTaskView extends ItemView`
+- `createTaskCard` 构建两行 DOM
+- `normalizeTaskCardData` 字段映射
 
 ## 核心函数 (@skill-sig) <!-- @sync -->
-- `createTaskCard(task: TaskCardData, app: App): HTMLLIElement` - 生成完整任务卡片 DOM
-- `normalizeTaskCardData(raw: any): TaskCardData` - 标准化任务数据格式
+- `createTaskCard(task: TaskCardData, app: App): HTMLLIElement`
+- `normalizeTaskCardData(raw: any): TaskCardData`
 
 ## DOM 结构 (@skill-dom) <!-- @sync -->
 ```html
 <li class="task-item" data-path="..." data-line="...">
-  <div class="task-main">
-    <span class="task-status-icon">🔲</span>
-    <span class="task-desc">任务描述</span>
-  </div>
-  <div class="task-meta">
-    <span class="task-priority">🔺</span>
-    <span class="task-recurrence">🔁 every day</span>
-    <span class="task-dates">➕2025-01-01 📅2025-02-01</span>
-    <span class="task-tags">🏁 keep</span>
-    <span class="task-id">🆔 abc123</span>
-    <span class="task-file">文件名</span>
-  </div>
+  <div class="task-main"><span class="task-status-icon"></span><span class="task-desc"></span></div>
+  <div class="task-meta">...</div>
 </li>
+```
 
-状态模型 (@skill-state) <!-- @sync -->
+## 状态模型 (@skill-state) <!-- @sync -->
 
-无内部状态（纯工具函数与基类）
-事件流 (@skill-flow) <!-- @sync -->
+无内部状态
 
-    createTaskCard 绑定点击跳转：使用 data-path 和 data-line 属性，通过事件委托或直接 addEventListener 触发 app.workspace.openLinkText
+## 事件流 (@skill-flow) <!-- @sync -->
 
-数据流伪代码 <!-- @sync -->
-text
+卡片点击 → `app.workspace.openLinkText` 跳转
 
-rawTask → normalizeTaskCardData → 统一结构 { symbol, desc, priority, ... }
-调用 createTaskCard(normalized, app) → 构建 DOM 元素
-为元素绑定点击事件（或通过父容器委托）
+## 数据流伪代码 <!-- @sync -->
 
-关键算法复杂度 (@skill-algorithm) <!-- @sync -->
+raw → normalize → 构建 DOM → 绑定事件
 
-    标准化：O(1) 字段映射
+## 关键算法复杂度 (@skill-algorithm) <!-- @sync -->
 
-    卡片生成：O(1) DOM 操作
+O(1) 标准化，O(1) 卡片生成
 
-公共调用 (@skill-api) <!-- @sync -->
+## 公共调用 <!-- @sync -->
 
-    被所有视图调用
+被所有视图调用
 
-    依赖 Obsidian API (ItemView, MarkdownView)
+## 关键条件 (@skill-condition) <!-- @sync -->
 
-关键条件 (@skill-condition) <!-- @sync -->
+卡片必须包含 `data-path` 和 `data-line`
 
-    卡片必须使用 data-path 和 data-line 属性以支持跳转。
+## 依赖 <!-- @sync -->
 
-    若无任务描述，显示“无标题”。
+无外部 Skill 依赖（仅 Obsidian API）
 
-依赖 <!-- @sync -->
+## 错误处理 <!-- @sync -->
 
-    Obsidian API (ItemView, MarkdownView, App)
+标准化失败返回默认空对象；文件跳转失败显示提示
 
-    CONFIG（图标映射）
+## 测试要点 <!-- @manual -->
 
-错误处理 <!-- @sync -->
+验证卡片元信息完整；跳转正确
 
-    标准化失败时返回默认空对象，控制台警告。
+## 修改指南 <!-- @auto-record -->
 
-    点击跳转时若文件不存在，显示提示。
-
-测试要点 <!-- @manual -->
-
-    验证卡片包含所有元信息，且跳转正确。
-
-    验证无字段时的降级显示。
-
-修改指南 <!-- @auto-record -->
-
-    2026-05-06: 初始版本（基于 v3.1 格式规范化）
-    
-    
+- 2026-05-07: 初始版本 (v4.0)
