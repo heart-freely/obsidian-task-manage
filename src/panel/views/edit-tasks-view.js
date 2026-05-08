@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/edit-tasks-view.js
  * 描述：任务编辑视图 - 提供批量编辑任务标记（优先级、日期、标签等）的界面
@@ -13,7 +14,71 @@
  * @see .cline/skills/code/views/edit-task-view.md
  */
 
-// src/panel/views/edit-task-view.js
+/* @skill-sig class EditTaskView extends BaseTaskView - 任务编辑视图，提供批量编辑任务标记（优先级/日期/标签等）的界面 */
+/* @skill-sig async startEditView(dv, app, container) : { cleanup, updateSort } - 渲染任务编辑视图入口 */
+/* @skill-sig Op.setPriority(line, emoji) : string - 设置优先级标记 */
+/* @skill-sig Op.delPriority(line) : string - 删除优先级标记 */
+/* @skill-sig Op.setRepeat(line, rule) : string - 设置循环周期标记 */
+/* @skill-sig Op.delRepeat(line) : string - 删除循环周期标记 */
+/* @skill-sig Op.setCreated(line, date) : string - 设置创建时间标记 */
+/* @skill-sig Op.setScheduled(line, date) : string - 设置计划时间标记 */
+/* @skill-sig Op.setStarts(line, date) : string - 设置开始时间标记 */
+/* @skill-sig Op.setDue(line, date) : string - 设置截止时间标记 */
+/* @skill-sig Op.setDone(line, date) : string - 设置完成时间标记 */
+/* @skill-sig Op.setCancel(line, date) : string - 设置取消时间标记 */
+/* @skill-sig Op.setTag(line, keyword) : string - 设置旗帜标签标记 */
+/* @skill-sig Op.delTag(line) : string - 删除旗帜标签标记 */
+/* @skill-sig Op.delId(line) : string - 删除唯一ID标记 */
+/* @skill-sig Op.delForbid(line) : string - 删除引用ID标记 */
+/* @skill-sig Op.autoComplete(line, days) : string - 根据完成时间自动补全开始/计划/创建时间 */
+/* @skill-sig Op.sortTags(line) : string - 按固定顺序重排任务行中的标记位置 */
+/* @skill-sig fetchTasks(dv) : void - 从 Dataview 获取原始任务数据并缓存到 S.allTasks */
+/* @skill-sig applyFilters() : void - 根据当前模式/状态/标记筛选条件过滤任务 */
+/* @skill-sig renderFullUI(dv, app) : void - 渲染完整的编辑视图 UI（模式切换/筛选/操作面板/任务列表/分页） */
+
+/* @skill-flow
+   startEditView → fetchTasks → applyFilters → renderFullUI（模式栏 → 状态筛选 → 标记筛选 → 操作面板 → 任务列表 → 分页）
+*/
+/* @skill-flow
+   Op.setPriority / Op.delPriority / ... → replaceMark(line, regex, newMark) → 返回修改后的行文本
+*/
+/* @skill-flow
+   用户编辑流程: 选择模式 → 选择状态/标记筛选 → 选中任务 → 选择操作(Op.*) → 预览 → 批量应用
+*/
+
+/* @skill-condition
+   若 S.allTasks 为空 → 仅显示模式切换栏，无任务列表
+   若 S.filteredTasks 为空 → 显示"无匹配任务"占位
+*/
+
+/* @skill-dom
+   div (模式切换栏)
+   div (状态筛选按钮组)
+   div (标记筛选按钮组)
+   div (操作面板，含 EDIT_GROUPS 按钮)
+   div.task-row (任务行，显示行片段)
+   div (分页导航)
+*/
+
+/* @skill-state
+   S.mode: 当前模式索引（0-3）
+   S.page: 当前页码
+   S.selectedIds: 选中任务 ID 集合
+   S.previewMap: 预览结果映射
+   S.opsState: 待执行操作队列
+   S.snapshots: 快照历史
+   S.filteredTasks: 筛选后任务列表
+   S.paginatedTasks: 分页后任务列表
+*/
+
+/* @skill-api
+  BaseTaskView (base-task-view)
+  readTasks.getAllTasks, readTasks.RX (read-tasks)
+  Op (内联操作函数集)
+  dv.el, dv.container (dataview)
+*/
+//  <!-- SYNC_COMMENTS_END -->
+
 import * as readTasks from "../../tasks/read/read-tasks";
 import { BaseTaskView } from "./base-task-view";
 

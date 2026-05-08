@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/kanban-task-view.js
  * 描述：看板任务视图，按状态（未开始/计划中/进行中）三列看板布局展示任务
@@ -10,14 +11,7 @@
  * @see .cline/skills/code/views/kanban-task-view.md
  */
 
-// src/panel/views/kanban-task-view.js
-import {
-	fetchKanbanTasks,
-	processKanbanTasks,
-} from "../../tasks/process/kanban-task-process";
-import { createTaskCard, normalizeTaskCardData } from "./base-task-view";
-
-/* @skill-func async startKanbanView(dv, app, container) : { cleanup, updateSort } - 渲染看板三列视图，首次动态注入 kanban 样式 */
+/* @skill-sig async startKanbanView(dv, app, container) : { cleanup, updateSort } - 渲染看板三列视图，首次动态注入 kanban 样式 */
 
 /* @skill-flow
    startKanbanView(dv, app, container) → 注入 .kanban 样式（仅首次） → renderKanban() → fetchKanbanTasks + processKanbanTasks → 三列看板渲染（未开始/计划中/进行中） → 返回 { cleanup, updateSort }
@@ -45,6 +39,14 @@ import { createTaskCard, normalizeTaskCardData } from "./base-task-view";
   processKanbanTasks (kanban-task-process)
   createTaskCard, normalizeTaskCardData (base-task-view)
 */
+//  <!-- SYNC_COMMENTS_END -->
+import {
+	fetchKanbanTasks,
+	processKanbanTasks,
+} from "../../tasks/process/kanban-task-process";
+import { createTaskCard, normalizeTaskCardData } from "./base-task-view";
+
+/* @skill-func async startKanbanView(dv, app, container) : { cleanup, updateSort } - 渲染看板三列视图，首次动态注入 kanban 样式 */
 
 export async function startKanbanView(dv, app, container) {
 	/* 首次渲染时注入看板布局样式 */

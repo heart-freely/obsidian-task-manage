@@ -10,14 +10,7 @@
  * @see .cline/skills/code/views/recurring-task-view.md
  */
 
-import { fetchRecurringTasksGrouped } from "../../tasks/process/recurring-task-process";
-import {
-	BaseTaskView,
-	createTaskCard,
-	normalizeTaskCardData,
-} from "./base-task-view";
-
-export const VIEW_TYPE_RECURRING = "recurring-task-view";
+//  <!-- SYNC_COMMENTS_START -->
 
 /* @skill-sig class RecurringTaskView extends BaseTaskView - 循环任务视图，三列网格按频率分组展示循环任务 */
 
@@ -27,23 +20,6 @@ export const VIEW_TYPE_RECURRING = "recurring-task-view";
   fetchRecurringTasksGrouped (recurring-task-process)
   BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
 */
-
-export class RecurringTaskView extends BaseTaskView {
-	getViewType() {
-		return VIEW_TYPE_RECURRING;
-	}
-	getDisplayText() {
-		return "循环任务";
-	}
-	getIcon() {
-		return "refresh-cw";
-	}
-
-	/* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startRecurringView 渲染循环任务视图 */
-	async _startCore(dv, app, storageAdapter, instanceId) {
-		return await startRecurringView(dv, app, dv.container);
-	}
-}
 
 /* @skill-func async startRecurringView(dv, app, container) : { cleanup, updateSort } - 渲染循环任务三列网格视图（每天/每周/每月） */
 
@@ -67,6 +43,34 @@ export class RecurringTaskView extends BaseTaskView {
           .task-desc
           .task-meta
 */
+
+//  <!-- SYNC_COMMENTS_END -->
+
+import { fetchRecurringTasksGrouped } from "../../tasks/process/recurring-task-process";
+import {
+	BaseTaskView,
+	createTaskCard,
+	normalizeTaskCardData,
+} from "./base-task-view";
+
+export const VIEW_TYPE_RECURRING = "recurring-task-view";
+
+export class RecurringTaskView extends BaseTaskView {
+	getViewType() {
+		return VIEW_TYPE_RECURRING;
+	}
+	getDisplayText() {
+		return "循环任务";
+	}
+	getIcon() {
+		return "refresh-cw";
+	}
+
+	/* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startRecurringView 渲染循环任务视图 */
+	async _startCore(dv, app, storageAdapter, instanceId) {
+		return await startRecurringView(dv, app, dv.container);
+	}
+}
 
 export async function startRecurringView(dv, app, container) {
 	async function renderRecurring() {

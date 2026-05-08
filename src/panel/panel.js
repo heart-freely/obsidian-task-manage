@@ -1,4 +1,49 @@
+//  <!-- SYNC_COMMENTS_START -->
+/**
+ * 文件：src/panel/panel.js
+ * 描述：导航中心视图（NavigatorView），提供任务管理的中心面板，包含侧边栏视图切换器、粘性头部（快捷日期/控制按钮/排序）、过滤区和主内容区
+ * 所属模块：panel
+ * 依赖：
+ *   - obsidian: Notice
+ *   - configs/plugin-configs: CONFIG
+ *   - storage/persist-storage: createInitialState, getEffectiveDateRange, getFilterFingerprint, PersistenceManager
+ *   - tasks/read/read-tasks: getAllTasks
+ *   - tasks/process/*: filterTasks, fetchFutureTasks, fetchOverdueTasks, fetchTasks 等
+ *   - panel/bars/*: 控制按钮栏、日期栏、隐藏按钮栏、标记过滤栏、快捷日期栏、视图切换器、排序栏
+ *   - panel/components/tree-view-components: TaskTreeRenderer
+ *   - panel/interacts/tooltip-interact: TooltipManager
+ *   - panel/views/*: base-list-view, base-task-view, data-tasks-view, kanban-task-view, matrix-task-view
+ * 对外导出：VIEW_TYPE_NAVIGATOR, NavigatorView, startNavigatorCore
+ * 注意事项：所有子视图（重要/循环/今天/未来/逾期/依赖/标签/收集箱/整理箱/时间线/表格/树/日历/甘特图/番茄钟/矩阵/看板）均通过 activateSubView 动态加载；树面板（treePanel）和内容面板（viewPanel）为双面板布局；状态通过 PersistenceManager 持久化, tools to extend
+ * @see .cline/skills/code/views/views.md
+ */
+
+/* @skill-state 运行时状态由 createInitialState() 创建并存储为局部变量 state（在 startNavigatorCore 内部），NavigatorView 实例则管理子视图类型 _lastViewType 的持久化 */
+/* @skill-global-state
+state = {
+  dateFilterState: { start, end, isAll },
+  markFilterState: { statuses, includeMarks, excludeMarks },
+  hideRepeatTasks: boolean,
+  hideCompletedTasks: boolean,
+  hideCancelledTasks: boolean,
+  hideFolders: boolean,
+  showTree: boolean,
+  showFilters: boolean,
+  filterRootPath: string|null,
+  leftSort: { type, order },
+  activeQuickBtn: DOMElement|null,
+  quickBtns: DOMElement[],
+  dateCascadeEls: Object,
+  chartInstances: Object[],
+  filterCache: { fingerprint, tasks },
+  collapsedNodes: Object,
+  dataViewStatuses: string[],
+}
+NavigatorView._lastViewType: string  // 持久化的子视图类型
+*/
+
 // src/panel/panel.js
+//  <!-- SYNC_COMMENTS_END -->
 import { Notice } from "obsidian";
 import { CONFIG } from "../configs/plugin-configs";
 import {
@@ -6,7 +51,7 @@ import {
 	getEffectiveDateRange,
 	getFilterFingerprint,
 	PersistenceManager,
-} from "../storage/persist-storage";
+} from "../storages/persist-storage";
 import { DateUtils } from "../tasks/process/common-process";
 import { filterTasks } from "../tasks/process/filter-task-process";
 import {

@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/view-list-tasks.js
  * 描述：通用列表视图，用于任何基于 Tasks 插件的列表展示，支持自定义获取函数和标题
@@ -8,9 +9,6 @@
  * 注意事项：作为函数式通用视图被其他视图复用；不直接继承 BaseTaskView，而是独立渲染 DOM
  * @see .cline/skills/code/views/view-list-tasks.md
  */
-
-// src/panel/views/view-list-tasks.js
-// 通用列表视图 - 用于任何基于 Tasks 插件的列表展示
 
 /* @skill-func async startTaskListView(app, container, fetchFn, title) : { cleanup, updateSort } - 启动通用列表视图，渲染任务列表 */
 
@@ -36,11 +34,8 @@
   app.workspace.getLeaf
   window.moment (日期格式化)
 */
+//  <!-- SYNC_COMMENTS_END -->
 
-/**
- * 启动通用列表视图
- * @param {Function} fetchFn - 接收 app，返回任务数组的异步函数
- */
 export async function startTaskListView(
 	app,
 	container,

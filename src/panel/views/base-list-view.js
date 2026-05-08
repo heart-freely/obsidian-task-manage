@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/base-list-view.js
  * 描述：列表基础视图工具函数，提供通用列表渲染函数 startListBaseView，被多个列表类视图复用
@@ -8,12 +9,6 @@
  * 注意事项：通用函数，通过参数注入 fetchFn 实现不同数据源的列表渲染；内部使用 adaptTasksApiTask 适配 Tasks API 格式
  * @see .cline/skills/code/views/base-list-view.md
  */
-
-import {
-	adaptTasksApiTask,
-	createTaskCard,
-	normalizeTaskCardData,
-} from "./base-task-view";
 
 /* @skill-func async startListBaseView(app, container, fetchFn, title, color?) : { cleanup, updateSort } - 通用列表视图渲染函数，由各列表视图传入自定义 fetchFn 和数据源使用 */
 
@@ -38,6 +33,13 @@ import {
 */
 
 /* @skill-tool mapSymbolToStatus(symbol) - 将 Tasks 插件的状态符号映射为内部状态键 (todo/planned/in-progress/completed/cancelled) */
+//  <!-- SYNC_COMMENTS_END -->
+
+import {
+	adaptTasksApiTask,
+	createTaskCard,
+	normalizeTaskCardData,
+} from "./base-task-view";
 
 export async function startListBaseView(
 	app,

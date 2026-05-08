@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/inbox-task-view.js
  * 描述：任务收集箱视图，按状态（未开始/计划中）分组展示未分配日期的任务，两列网格布局
@@ -10,6 +11,38 @@
  * @see .cline/skills/code/views/inbox-task-view.md
  */
 
+/* @skill-sig class InboxTaskView extends BaseTaskView - 收集箱视图，两列网格按状态分组展示待处理任务 */
+/* @skill-sig async startInboxView(dv, app, container) : { cleanup, updateSort } - 渲染收集箱两列网格视图 */
+
+/* @skill-dom
+  .view-grid.cols-2
+    .view-col (x2)
+      .col-header
+        span (分组名)
+        span (任务数)
+      ul.task-list
+        li.task-item[data-path][data-line]
+          .task-desc
+          .task-meta
+*/
+
+/* @skill-state 无（纯展示视图） */
+
+/* @skill-flow
+   startInboxView(dv, app, container) → fetchInboxTasks(app) → processInboxTasks(raw) → 网格容器 → 两列分组渲染（未开始/计划中） → 返回 { cleanup, updateSort }
+*/
+
+/* @skill-condition
+   若 fetchInboxTasks 抛出异常 → 显示错误提示 "❌ 未检测到 Tasks 插件，请安装并启用。"
+   若某分组任务数为 0 → 显示 "暂无任务"
+*/
+
+/* @skill-api
+  fetchInboxTasks, processInboxTasks (inbox-task-process)
+  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
+*/
+//  <!-- SYNC_COMMENTS_END -->
+
 import {
 	fetchInboxTasks,
 	processInboxTasks,
@@ -21,15 +54,6 @@ import {
 } from "./base-task-view";
 
 export const VIEW_TYPE_INBOX = "inbox-task-view";
-
-/* @skill-sig class InboxTaskView extends BaseTaskView - 收集箱视图，两列网格按状态分组展示待处理任务 */
-
-/* @skill-state 无（纯展示视图） */
-
-/* @skill-api
-  fetchInboxTasks, processInboxTasks (inbox-task-process)
-  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
-*/
 
 export class InboxTaskView extends BaseTaskView {
 	getViewType() {
@@ -47,29 +71,6 @@ export class InboxTaskView extends BaseTaskView {
 		return await startInboxView(dv, app, dv.container);
 	}
 }
-
-/* @skill-func async startInboxView(dv, app, container) : { cleanup, updateSort } - 渲染收集箱两列网格视图 */
-
-/* @skill-flow
-   startInboxView(dv, app, container) → fetchInboxTasks(app) → processInboxTasks(raw) → 网格容器 → 两列分组渲染（未开始/计划中） → 返回 { cleanup, updateSort }
-*/
-
-/* @skill-condition
-   若 fetchInboxTasks 抛出异常 → 显示错误提示 "❌ 未检测到 Tasks 插件，请安装并启用。"
-   若某分组任务数为 0 → 显示 "暂无任务"
-*/
-
-/* @skill-dom
-  .view-grid.cols-2
-    .view-col (x2)
-      .col-header
-        span (分组名)
-        span (任务数)
-      ul.task-list
-        li.task-item[data-path][data-line]
-          .task-desc
-          .task-meta
-*/
 
 export async function startInboxView(dv, app, container) {
 	async function renderInbox() {

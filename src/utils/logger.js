@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/utils/logger.js
  * 描述：简易日志工具，提供分级日志输出；生产模式下仅输出警告和错误
@@ -8,6 +9,7 @@
  *
  * @module logger
  */
+//  <!-- SYNC_COMMENTS_END -->
 
 /**
  * @typedef {Object} Logger

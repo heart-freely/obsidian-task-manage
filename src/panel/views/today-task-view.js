@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/today-task-view.js
  * 描述：今天任务视图，按状态（未开始/计划中/进行中）分组展示当天任务，三列网格布局
@@ -10,6 +11,39 @@
  * @see .cline/skills/code/views/today-task-view.md
  */
 
+/* @skill-sig class TodayTaskView extends BaseTaskView - 今天任务视图，三列网格按状态分组展示当天任务 */
+/* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startTodayView 渲染今日任务 */
+/* @skill-sig async startTodayView(dv, app, container) : { cleanup, updateSort } - 渲染今天任务三列网格视图 */
+
+/* @skill-dom
+  .view-grid.cols-3
+    .view-col (x3)
+      .col-header
+        span (分组名)
+        span (任务数)
+      ul.task-list
+        li.task-item[data-path][data-line]
+          .task-desc
+          .task-meta
+*/
+
+/* @skill-state 无（纯展示视图） */
+
+/* @skill-flow
+   startTodayView(dv, app, container) → fetchTodayTasksGrouped(app) → 网格容器 → 三列分组渲染（未开始/计划中/进行中） → 返回 { cleanup, updateSort }
+*/
+
+/* @skill-condition
+   若 fetchTodayTasksGrouped 抛出异常 → 显示错误提示 "❌ 未检测到 Tasks 插件"
+   若某分组任务数为 0 → 显示 "暂无任务"
+*/
+
+/* @skill-api
+  fetchTodayTasksGrouped (task-query-process)
+  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
+*/
+//  <!-- SYNC_COMMENTS_END -->
+
 import { fetchTodayTasksGrouped } from "../../tasks/process/task-query-process";
 import {
 	BaseTaskView,
@@ -18,15 +52,6 @@ import {
 } from "./base-task-view";
 
 export const VIEW_TYPE_TODAY = "today-task-view";
-
-/* @skill-sig class TodayTaskView extends BaseTaskView - 今天任务视图，三列网格按状态分组展示当天任务 */
-
-/* @skill-state 无（纯展示视图） */
-
-/* @skill-api
-  fetchTodayTasksGrouped (task-query-process)
-  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
-*/
 
 export class TodayTaskView extends BaseTaskView {
 	getViewType() {

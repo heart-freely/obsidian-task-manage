@@ -1,4 +1,4 @@
-// src/panel/views/calendar-task-view.js
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/calendar-task-view.js
  * 描述：日历视图，支持日/周/月/季/年五种视图模式，展示任务在时间轴上的分布，支持无任务时间段合并显示
@@ -12,6 +12,82 @@
  * 注意事项：该视图使用内部 calState 管理视图切换状态，包含五种渲染模式（日/周/月/季/年），大量 DOM 操作
  * @see .cline/skills/code/views/calendar-task-view.md
  */
+
+/* @skill-sig function safeState(globalState) : Object - 安全包装全局状态，提供默认值 */
+/* @skill-sig function getFilteredTasks(dv, globalState) : Array<Task> - 获取过滤后的任务列表（日期范围+标记筛选+重复/完成排除） */
+/* @skill-sig function getEffectiveDateRange(state, dv) : { start:Date, end:Date } | null - 获取有效日期范围（从过滤状态或全部任务推断） */
+/* @skill-sig function getTaskInterval(task, state) : { start:Date, end:Date } | null - 获取任务在时间轴上的区间（根据 intervalMode 选择时间字段对） */
+/* @skill-condition 仅当天是该任务区间的首日或末日时，才显示完整描述文本；其余天数仅显示颜色条 */
+/* @skill-sig function buildDateTaskMap(tasks, state) : Object<string, Task[]> - 构建日期→任务映射（含区间展开和平铺去重） */
+/* @skill-sig function buildGlobalTitle(state, groupCount, taskCount) : string - 构建全局标题（含日期范围、筛选条件和统计信息） */
+
+/* @skill-state
+  calState.currentView : string       // 当前视图模式（'day'|'week'|'month'|'quarter'|'year'）
+  calState.singleDateMode : boolean   // 是否为单日聚焦模式（从其他视图点击日期进入）
+  calState.focusedDate : Date|null    // 聚焦的日期
+  calState.focusedTaskId : string|null // 聚焦的任务ID（用于高亮和滚动定位）
+*/
+
+/* @skill-dom
+  .cal-root > .cal-view-area
+    .view-col
+      .col-header[data-date]
+      ul.task-list
+        li.task-item[data-id]                  // day view
+    .week-block
+      .week-title
+      .week-row
+        .cal-cell[data-date]                  // week view
+          .cal-cell-header
+          .cal-task-row
+            .cal-task-desc (首末日/今日显示全描述，其余显示颜色条)
+            .cal-task-line.status-tag
+    .calendar-grid
+      .cal-cell[data-date]                    // month/quarter view
+        .cal-cell-header (日期数字)
+        .cal-task-row
+          .cal-task-desc (今日和首末日显示)
+          .cal-task-line (其余显示颜色条)
+        .cal-more (+N剩余)
+    .quarter-block
+      .month-block
+        .calendar-grid
+          .cal-cell[data-date]                // nested in quarter
+    .year-block
+      .year-grid
+        .year-month-card
+          .year-month-title
+          .year-heat-grid
+            .year-heat-cell[data-date] (颜色深度表示任务密度)
+*/
+
+/* @skill-flow
+  初始化工具栏 → 构建标题栏 → 创建视图区域 → 添加悬浮按钮 → renderCurrentView()
+  点击视图切换按钮 → 更新 calState.currentView → renderCurrentView()
+  点击日期 → 切换到日视图 + 聚焦该日期
+  点击任务 → handleTaskClick(task, date) → 切换到日视图 + 高亮定位该任务
+  startCalendarView(dv, app, container, globalState) → 初始化UI → renderCurrentView() → 返回 {cleanup, updateSort}
+*/
+
+/* @skill-api
+  BaseTaskView (base-task-view)
+  readTasks.getAllTasks(false, dv, state)
+  DateUtils.formatDate(date)
+  DateUtils.setStart(date)
+  DateUtils.setEnd(date)
+  DateUtils.getWeekRange(date)
+  DateUtils.getISOWeekNumber(date)
+  DateUtils.getWeekOfMonth(date)
+  DateUtils.getWeekRangeByYearWeek(year, week)
+  DateUtils.getMonthRangeByYearMonth(year, month)
+  DateUtils.getQuarterRangeByYearQuarter(year, quarter)
+  DateUtils.getYearRangeByYear(year)
+  DateUtils.getWeekdayRange(start, end)
+  app.vault.getAbstractFileByPath
+  app.workspace.getLeaf
+*/
+//  <!-- SYNC_COMMENTS_END -->
+
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";
 import * as readTasks from "../../tasks/read/read-tasks";
@@ -39,12 +115,6 @@ export class CalendarTaskView extends BaseTaskView {
 }
 
 // ---------- 内部状态 ----------
-/* @skill-state
-  calState.currentView : string       // 当前视图模式（'day'|'week'|'month'|'quarter'|'year'）
-  calState.singleDateMode : boolean   // 是否为单日聚焦模式（从其他视图点击日期进入）
-  calState.focusedDate : Date|null    // 聚焦的日期
-  calState.focusedTaskId : string|null // 聚焦的任务ID（用于高亮和滚动定位）
-*/
 const calState = {
 	currentView: "month",
 	singleDateMode: false,
@@ -182,7 +252,6 @@ function injectStyle() {
 }
 
 // ---------- 辅助函数 ----------
-/* @skill-sig function safeState(globalState) : Object - 安全包装全局状态，提供默认值 */
 function safeState(globalState) {
 	return {
 		dateFilterState: {
@@ -205,7 +274,6 @@ function safeState(globalState) {
 	};
 }
 
-/* @skill-sig function getFilteredTasks(dv, globalState) : Array<Task> - 获取过滤后的任务列表（日期范围+标记筛选+重复/完成排除） */
 function getFilteredTasks(dv, globalState) {
 	const state = safeState(globalState);
 	const allTasks = readTasks.getAllTasks(false, dv, globalState || {});
@@ -264,7 +332,6 @@ function getFilteredTasks(dv, globalState) {
 	return tasks;
 }
 
-/* @skill-sig function getEffectiveDateRange(state, dv) : { start:Date, end:Date } | null - 获取有效日期范围（从过滤状态或全部任务推断） */
 function getEffectiveDateRange(state, dv) {
 	if (
 		state.dateFilterState.isAll ||
@@ -292,7 +359,6 @@ function getEffectiveDateRange(state, dv) {
 	};
 }
 
-/* @skill-sig function getTaskInterval(task, state) : { start:Date, end:Date } | null - 获取任务在时间轴上的区间（根据 intervalMode 选择时间字段对） */
 function getTaskInterval(task, state) {
 	const mode = state.intervalMode || "scheduled-due";
 	let start, end;
@@ -307,8 +373,6 @@ function getTaskInterval(task, state) {
 	return { start: new Date(start), end: new Date(end) };
 }
 
-/* @skill-condition
-  仅当天是该任务区间的首日或末日时，才显示完整描述文本；其余天数仅显示颜色条 */
 function isFirstLastForDate(task, date, state) {
 	const interval = getTaskInterval(task, state);
 	if (!interval) return false;
@@ -318,7 +382,6 @@ function isFirstLastForDate(task, date, state) {
 	return day === start || day === end;
 }
 
-/* @skill-sig function buildDateTaskMap(tasks, state) : Object<string, Task[]> - 构建日期→任务映射（含区间展开和平铺去重） */
 function buildDateTaskMap(tasks, state) {
 	const map = {};
 	tasks.forEach((task) => {
@@ -354,7 +417,6 @@ function buildDateTaskMap(tasks, state) {
 	return map;
 }
 
-/* @skill-sig function buildGlobalTitle(state, groupCount, taskCount) : string - 构建全局标题（含日期范围、筛选条件和统计信息） */
 function buildGlobalTitle(state, groupCount, taskCount) {
 	const parts = [];
 	if (
@@ -407,16 +469,6 @@ function buildGlobalTitle(state, groupCount, taskCount) {
 }
 
 // ---------- 日视图 ----------
-/* @skill-dom
-  .cal-root > .cal-view-area
-    .view-col
-      .col-header[data-date]
-      ul.task-list
-        li.task-item[data-id]
-          .task-check
-          .task-desc
-*/
-/* @skill-sig function renderDayView(container, tasks, globalState, app, dv, renderFn) - 日视图渲染：按天分组展示任务卡片 */
 function renderDayView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -564,18 +616,6 @@ function renderDayView(container, tasks, globalState, app, dv, renderFn) {
 }
 
 // ---------- 周视图（连续无任务合并为独立块）----------
-/* @skill-dom
-  .cal-root > .cal-view-area
-    .week-block
-      .week-title
-      .week-row
-        .cal-cell[data-date]
-          .cal-cell-header
-          .cal-task-row
-            .cal-task-desc (首末日/今日显示全描述，其余显示颜色条)
-            .cal-task-line.status-tag
-*/
-/* @skill-sig function renderWeekView(container, tasks, globalState, app, dv, renderFn) - 周视图渲染：每周7列网格，无任务周合并为无任务块 */
 function renderWeekView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -759,8 +799,6 @@ function renderWeekView(container, tasks, globalState, app, dv, renderFn) {
 	container.dataset.taskCount = tasks.length;
 }
 
-/* @skill-flow
-  点击任务 → handleTaskClick(task, date) → 切换到日视图 + 高亮定位该任务 */
 function handleTaskClick(task, date) {
 	calState.currentView = "day";
 	calState.singleDateMode = true;
@@ -769,18 +807,6 @@ function handleTaskClick(task, date) {
 }
 
 // ---------- 月视图 (连续无任务月合并为独立块) ----------
-/* @skill-dom
-  .cal-root > .cal-view-area
-    .month-block
-      .calendar-grid
-        .cal-cell[data-date]
-          .cal-cell-header (日期数字)
-          .cal-task-row
-            .cal-task-desc (今日和首末日显示)
-            .cal-task-line (其余显示颜色条)
-          .cal-more (+N剩余)
-*/
-/* @skill-sig function renderMonthView(container, tasks, globalState, app, dv, renderFn) - 月视图渲染：42格日历网格，无任务月合并为无任务块 */
 function renderMonthView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -969,15 +995,6 @@ function renderMonthView(container, tasks, globalState, app, dv, renderFn) {
 }
 
 // ---------- 季视图 (连续无任务季合并为独立块) ----------
-/* @skill-dom
-  .cal-root > .cal-view-area
-    .quarter-block
-      .month-block
-        .calendar-grid
-          .cal-cell[data-date]
-            ...（同月视图结构）
-*/
-/* @skill-sig function renderQuarterView(container, tasks, globalState, app, dv, renderFn) - 季视图渲染：每季度展示3个月历，无任务季度合并为无任务块 */
 function renderQuarterView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -1175,16 +1192,6 @@ function renderQuarterView(container, tasks, globalState, app, dv, renderFn) {
 }
 
 // ---------- 年视图 (热力图，已自适应多列) ----------
-/* @skill-dom
-  .cal-root > .cal-view-area
-    .year-block
-      .year-grid
-        .year-month-card
-          .year-month-title
-          .year-heat-grid
-            .year-heat-cell[data-date] (颜色深度表示任务密度)
-*/
-/* @skill-sig function renderYearView(container, tasks, globalState, app, dv, renderFn) - 年视图渲染：12个月热力图，颜色深度表示任务密度 */
 function renderYearView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -1279,7 +1286,6 @@ function renderYearView(container, tasks, globalState, app, dv, renderFn) {
 }
 
 // ---------- 主渲染调度 ----------
-/* @skill-sig function renderCurrentView(container, dv, app, globalState) - 根据 calState.currentView 分发到对应的视图渲染函数 */
 function renderCurrentView(container, dv, app, globalState) {
 	const viewArea = container.querySelector(".cal-view-area");
 	if (!viewArea) return;
@@ -1317,20 +1323,6 @@ function renderCurrentView(container, dv, app, globalState) {
 }
 
 // ---------- 导出入口 ----------
-/* @skill-sig function startCalendarView(dv, app, container, globalState) : Promise<{cleanup, updateSort}> - 日历视图入口，初始化 UI 并开始渲染 */
-/* @skill-flow
-  初始化工具栏 → 构建标题栏 → 创建视图区域 → 添加悬浮按钮 → renderCurrentView()
-  点击视图切换按钮 → 更新 calState.currentView → renderCurrentView()
-  点击日期 → 切换到日视图 + 聚焦该日期
-*/
-/* @skill-api
-  readTasks.getAllTasks(false, dv, state)
-  DateUtils.formatDate(date)
-  DateUtils.setStart(date)
-  DateUtils.setEnd(date)
-  DateUtils.getWeekRange(date)
-  DateUtils.getISOWeekNumber(date)
-*/
 export async function startCalendarView(dv, app, container, globalState) {
 	injectStyle();
 	container.innerHTML = "";

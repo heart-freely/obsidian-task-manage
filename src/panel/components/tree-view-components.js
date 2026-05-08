@@ -1,14 +1,54 @@
-// ============================================================================
-// 任务树组件 (Task Tree Renderer)
-// ============================================================================
-// 功能：将扁平的任务列表构建为文件目录树结构，支持折叠/展开、排序、
-//       状态统计、过滤根路径等。提供给 tree-task-view 进行渲染。
-// 依赖：
-//   - read-tasks: 任务读取
-//   - plugin-configs: 配置常量 (ROOT_PATH)
-//   - tree-task-view: 树面板渲染函数
-// 调用方：panel.js - 创建 TaskTreeRenderer 实例并管理渲染
-// ============================================================================
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file src/panel/components/tree-view-components.js - 任务树渲染器 TaskTreeRenderer 类，将扁平任务构建为文件目录树，支持折叠/展开/排序/过滤/统计 */
+/* @skill-api
+   panel.js (panel.js 创建 TaskTreeRenderer 实例并管理)
+   plugin-configs: CONFIG.ROOT_PATH (根路径前缀)
+   tree-task-view: renderTreePanel (树面板渲染函数)
+   state.leftSort (排序配置 {type, order})
+   state.hideFolders (是否隐藏文件夹节点)
+   collapsedNodes (折叠节点映射表)
+   tooltip (工具提示管理器)
+*/
+/* @skill-class TaskTreeRenderer
+   constructor(options) - 初始化渲染器，接收 container/dv/app/state/collapsedNodes/tooltip/回调
+   render(tasks) - 渲染树面板，构建树→排序→拍平→调用 renderTreePanel
+   renderFromCurrentFilter() - 从当前过滤数据源重新渲染
+   setFilteredTasksProvider(fn) - 注册过滤后任务数据提供者
+   _buildTree(tasks) - 将扁平任务列表构建为文件目录树结构
+   _calcNodeStats(node) - 递归计算节点及其子节点的任务状态统计
+   _sortTreeNodes(nodes) - 递归排序树节点（先文件夹后文件，同类型按名称排序）
+   _flattenTreeForDisplay(nodes, level, result) - 将树结构拍平为扁平数组用于渲染
+*/
+/* @skill-state
+   this.container : HTMLElement - 树面板 DOM 容器
+   this.dv : Object - Dataview 实例
+   this.app : Object - Obsidian App 实例
+   this.state : Object - 全局状态对象（含 leftSort, hideFolders）
+   this.collapsedNodes : Map<string, boolean> - 折叠节点映射表
+   this.tooltip : TooltipManager - 工具提示管理器
+   this._getFilteredTasks : Function|null - 当前过滤数据提供者
+   node.type : "folder"|"file"|"task" - 树节点类型
+   node.path / node.fullPath : string - 节点路径
+   node.tasks : Array - 文件节点的任务列表
+   node.children : Array - 子节点列表
+   node.parent : Object|null - 父节点引用
+   node.level : number - 渲染层级
+*/
+/* @skill-flow
+   render(tasks)
+   _buildTree(tasks) 按文件路径分组 → 创建 folder/file 节点树
+   → _sortTreeNodes(rootNodes) 先文件夹后文件，文件内按 leftSort 排序
+   → _flattenTreeForDisplay(rootNodes, 0, []) 考虑 hideFolders 和 collapsedNodes
+   → renderTreePanel(container, flat, options) 渲染 DOM
+*/
+/* @skill-condition
+   state.hideFolders=true → 跳过 folder 节点，直接展平其子节点
+   collapsedNodes[node.fullPath]=true → 该节点折叠，不展平子节点
+   _sortTreeNodes 排序: type 优先(folder<file)，同 type 按 name 字典序
+   文件内任务排序: 支持 status/priority/scheduled/start/due/filename 字段和 asc/desc
+   _calcNodeStats 五种状态计数: todo/planned/in-progress/completed/cancelled
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
 import { CONFIG } from "../../configs/plugin-configs";
 import { renderTreePanel } from "../views/tree-task-view"; // 相对路径正确

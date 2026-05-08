@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/data-tasks-view.js
  * 描述：数据统计图表视图，使用 ECharts 渲染任务的多维度统计饼图和堆叠柱状图
@@ -11,7 +12,22 @@
  * @see .cline/skills/code/views/data-tasks-view.md
  */
 
-// src/panel/views/data-tasks-view.js
+/* @skill-sig createChartItem(title, showZoom, spanCols) : { chartDiv, item } - 创建 chart-item 容器，添加标题 + 可选 zoom 按钮 */
+/* @skill-sig makePieOption(data) : Object - 返回 ECharts 饼图配置（背景色/主题色/图例/序列） */
+/* @skill-sig openChartModal(chartInst) : void - 创建全屏遮罩 → 渲染放大图表 → 点击遮罩/关闭按钮销毁 */
+
+/* @skill-sig Chart #1: 执行状态 - 饼图 */
+/* @skill-sig Chart #2: 优先级 - 饼图 */
+/* @skill-sig Chart #3: 循环周期 - 饼图 */
+/* @skill-sig Chart #4: 日期标记 - 饼图 */
+/* @skill-sig Chart #5: 依赖关系 - 饼图 */
+/* @skill-sig Chart #6: 标签 - 饼图 */
+/* @skill-sig Chart #7: 计划时长 - 饼图 */
+/* @skill-sig Chart #8: 执行时长 - 饼图 */
+/* @skill-sig Chart #9: 计划执行对比 - 饼图 */
+/* @skill-sig Chart #10: 状态详细（日） - 堆叠柱状图，支持时间范围筛选和 zoom 弹窗 */
+//  <!-- SYNC_COMMENTS_END -->
+
 import { CONFIG } from "../../configs/plugin-configs";
 import { echarts } from "../../echarts/echarts";
 import {

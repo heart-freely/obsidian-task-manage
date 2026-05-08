@@ -11,11 +11,7 @@
  * @see .cline/skills/code/views/future-task-all-view.md
  */
 
-import { fetchTasks } from "../../tasks/process/task-query-process";
-import { startListBaseView } from "./base-list-view";
-import { BaseTaskView } from "./base-task-view";
-
-export const VIEW_TYPE_FUTURE_ALL = "future-all-task-view";
+//  <!-- SYNC_COMMENTS_START -->
 
 /* @skill-sig class FutureAllTaskView extends BaseTaskView - 未来所有任务视图，展示截止日期/计划日期在当前时间之后的所有任务列表 */
 
@@ -25,6 +21,14 @@ export const VIEW_TYPE_FUTURE_ALL = "future-all-task-view";
   startListBaseView (base-list-view)
   fetchTasks (task-query-process)
 */
+
+//  <!-- SYNC_COMMENTS_END -->
+
+import { fetchTasks } from "../../tasks/process/task-query-process";
+import { startListBaseView } from "./base-list-view";
+import { BaseTaskView } from "./base-task-view";
+
+export const VIEW_TYPE_FUTURE_ALL = "future-all-task-view";
 
 export class FutureAllTaskView extends BaseTaskView {
 	getViewType() {

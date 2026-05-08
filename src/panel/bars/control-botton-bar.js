@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 // ============================================================================
 // 控制按钮栏 (Control Button Bar)
 // ============================================================================
@@ -6,6 +7,42 @@
 // 依赖：CONFIG (plugin-configs.js) - 间隔模式常量
 // 调用方：panel.js - 各视图初始化时调用 buildControlPanel
 // ============================================================================
+
+/* @skill-sig file src/panel/bars/control-botton-bar.js - 控制按钮栏，提供全局任务视图控制按钮（刷新、间隔模式、显隐切换、重置清除） */
+/* @skill-api
+   CONFIG (plugin-configs) - INTERVAL_MODES 间隔模式常量
+   panel.js (构建全局状态 state 和回调 callbacks)
+   state.intervalMode / state.hideRepeatTasks / state.hideCompletedTasks / state.hideCancelledTasks / state.hideFolders / state.filterCache.fingerprint
+   callbacks.onRenderAll / callbacks.onToggleFolders / callbacks.onResetAndClear
+*/
+/* @skill-state
+   state.intervalMode       : string  // 日期交集模式（计划-截止 / 开始-完成）
+   state.hideRepeatTasks    : boolean // 是否隐藏循环任务
+   state.hideCompletedTasks : boolean // 是否隐藏已完成任务
+   state.hideCancelledTasks : boolean // 是否隐藏已取消任务
+   state.hideFolders        : boolean // 是否隐藏文件夹分组
+   state.filterCache.fingerprint : string // 筛选缓存指纹，按钮操作后清空触发重渲染
+*/
+/* @skill-dom
+   .quick-bar > button.quick-btn / button.quick-btn-active
+     刷新按钮 "🔄 刷新"
+     间隔模式按钮 "⏱️ 计划-截止" | "⏱️ 开始-完成"
+     隐藏循环/已完成/已取消按钮
+     文件夹显隐按钮
+     重置清除按钮 "🗑️ 重置并清除"
+*/
+/* @skill-flow
+   buildControlPanel(container, dv, state, callbacks)
+   初始渲染 → 根据 state 显示各按钮初始文本和 active 类
+   点击按钮 → 切换对应 state 字段 → 更新按钮文本/类 → state.filterCache.fingerprint="" → 调对应回调
+   重置清除 → callbacks.onResetAndClear()
+*/
+/* @skill-condition
+   按钮文本动态切换：按钮显示当前功能（如"隐藏循环"），点击后变为反状态文本（如"显示循环"）
+   quick-btn-active 类标识当前激活/显示状态
+   所有筛选类按钮点击后立即清空 filterCache.fingerprint 强制重渲染
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
 import { CONFIG } from "../../configs/plugin-configs";
 

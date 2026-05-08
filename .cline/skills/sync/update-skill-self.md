@@ -3,6 +3,8 @@ name: 自举验证
 description: 验证 sync/ 下核心 Skill 自身是否符合规范，生成元文档。
 triggers:
   - 验证自身|自举|检查自身规范
+descriptions:
+  - 自举验证
 ---
 
 # 自举验证 Skill
@@ -46,10 +48,11 @@ triggers:
 
 3. **检查映射表**：
 
-- 读取 `.cline/skills/README.md`，确认每个核心 Skill 是否至少有一行映射（路径可指向自身或 `sync-meta.md`）。
-- 若缺失，输出建议添加的表格行。
+    - 读取 `.cline/skills/README.md`，确认每个核心 Skill 是否至少有一行映射（路径可指向自身或 `sync-meta.md`）。
 
-1. **输出验证报告**：
+    - 若缺失，输出建议添加的表格行。
+
+4. **输出验证报告**：
 
 ```markdown
 # 自举验证报告

@@ -1,19 +1,33 @@
-// ============================================================================
-// 侧边视图切换按钮栏 (Side View Switcher Bar)
-// ============================================================================
-// 功能：提供侧边视图的模式切换按钮，用于在不同视图模式（如列表、表格、
-//       卡片、树形等）之间快速切换。
-// 依赖：无
-// 调用方：panel.js - 与主视图配合使用
-// ============================================================================
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file src/panel/bars/side-botton-bar.js - 侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能 */
+/* @skill-api
+   panel.js (全局状态 state)
+   state.sideViewType : string   // 当前侧边视图类型: list|grid|table|tree|timeline
+   state.onViewChange : Function // 视图变更回调
+*/
+/* @skill-state
+   state.sideViewType : string   // 当前侧边视图: list|grid|table|tree|timeline
+*/
+/* @skill-func
+   buildSideButtonBar(container, dv, state) : HTMLElement - 构建侧边视图切换面板
+   buildViewSwitcher(container, dv, state) : HTMLElement - buildSideButtonBar 的别名导出
+*/
+/* @skill-dom
+   .side-btn / .side-btn-active (按钮样式)
+   📋 列表 | 🔲 卡片 | 📊 表格 | 🌳 树形 | 📅 时间线
+*/
+/* @skill-flow
+   buildSideButtonBar(container, dv, state)
+   定义 views 数组 → 遍历创建按钮 → 当前 view 加 side-btn-active 类
+   → 点击切换 state.sideViewType → 调用 state.onViewChange(type)
+*/
+/* @skill-condition
+   state.sideViewType===view.type → 该按钮 side-btn-active
+   点击切换后清除其他按钮 active 类
+   state.onViewChange 存在时触发回调
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
-/**
- * 构建侧边视图切换按钮栏 (别名：buildViewSwitcher)
- * @param {HTMLElement} container - 父容器
- * @param {Object} dv - Dataview 实例
- * @param {Object} state - 全局状态对象（需包含 sideViewType 等）
- * @returns {HTMLElement} 侧边按钮栏 DOM 元素
- */
 export function buildSideButtonBar(container, dv, state) {
 	const sideRow = dv.el("div", "");
 	sideRow.style.cssText =
@@ -55,5 +69,4 @@ export function buildSideButtonBar(container, dv, state) {
 	return sideRow;
 }
 
-/** 兼容别名 — panel.js 中使用 buildViewSwitcher 导入 */
 export { buildSideButtonBar as buildViewSwitcher };

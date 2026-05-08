@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 // ============================================================================
 // 日期级联筛选面板 (Date Cascade Filter Panel)
 // ============================================================================
@@ -8,6 +9,54 @@
 //       CONFIG.YEAR_LIST (plugin-configs.js) - 年份列表
 // 调用方：panel.js - 与 quick-botton-bar 互斥使用
 // ============================================================================
+
+/* @skill-sig file src/panel/bars/date-botton-bar.js - 年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询 */
+/* @skill-api
+   CONFIG.YEAR_LIST (plugin-configs.js) - 年份列表
+   DateUtils (common-process.js) - getISOWeekNumber / getWeekRangeByYearWeek / getWeekdayRange / getMonthRangeByYearMonth / getQuarterRangeByYearQuarter / getYearRangeByYear / setStart / setEnd
+   panel.js (state.dateState, state.filterCache, state.yearBtns / quarterBtns / monthBtns / weekBtns / weekdayBtns)
+*/
+/* @skill-state
+   state.dateState.selections : {
+     years:    { [year: string]: true },
+     quarters: { [key: string]: true },   // key = "YYYY-QN"
+     months:   { [key: string]: true },   // key = "YYYY-QN-MN"
+     weeks:    { [key: string]: true },   // key = "YYYY-QN-MN-WN"
+     weekdays: { [key: string]: true },   // key = "YYYY-QN-MN-WN-DN"
+   }
+   state.yearBtns / quarterBtns / monthBtns / weekBtns / weekdayBtns : HTMLElement[]
+   state.filterCache.fingerprint : string
+*/
+/* @skill-func
+   clearCascadeSelections(state) : void                          - 清空所有级联选择
+   resetCascadeDateUI(state) : void                              - 公开的级联重置接口
+   updateDateButtonStyles(state) : void                          - 刷新级联按钮样式和 disabled 状态
+   getQueryRangeFromDateSelection(state) : {start,end}|null      - 将级联选择转换为日期范围
+   buildDateCascadePanel(container, dv, state) : void            - 构建级联筛选面板 UI
+*/
+/* @skill-dom
+   .filter-section (容器)
+   .cascade-btn / .cascade-btn-active / .cascade-btn-disabled
+   label: 年份 | 季度 | 月份 | 周数 | 周几
+   年份: 2023-2033 | 季度: 第1-4季度 | 月份: 1-12月 | 周数: 第1-4周 | 周几: 周一至周日
+*/
+/* @skill-flow
+   buildDateCascadePanel(container, dv, state)
+   创建 5 行 label+按钮 → 年份行始终可点击 → 季度/月份/周数/周几初始 disabled
+   点击年份 → 切换选中 → 唯一选中时下级启用，否则下级清空/禁用
+   点击季度 → 类似级联 → 月份只显示该季度 3 个月
+   点击月份 → 周数列出 4 周 → 点击周 → 周几列出 7 天
+   各级选中多个时下级被清空并禁用
+   getQueryRangeFromDateSelection: 从最细粒度反向合成日期范围（周几>周>月>季度>年）
+*/
+/* @skill-condition
+   上级选中数量 !== 1 → 下级全部 disabled
+   上级选中数量 === 1 → 下级 enabled
+   月份行：选中季度后仅显示该季度的 3 个月
+   getQueryRangeFromDateSelection 优先级：周几 > 周 > 月 > 季度 > 年
+   任何选中变化 → 清空 filterCache.fingerprint
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";

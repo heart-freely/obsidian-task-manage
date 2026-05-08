@@ -1,4 +1,28 @@
-// src/panel/interacts/tooltip-interact.js
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file src/panel/interacts/tooltip-interact.js - TooltipManager 类，全局工具提示管理器，提供显隐/移动/内容更新能力 */
+/* @skill-class TooltipManager
+   constructor() - 初始化，div 初始为 null 首次显示时创建
+   ensureDiv() : HTMLElement - 确保 tooltip DOM 元素存在并返回
+   show(html, x, y) : void - 在指定位置显示 tooltip（设置 innerHTML + display:block + left/top）
+   move(x, y) : void - 移动 tooltip 到新位置（仅可见时生效）
+   hide() : void - 隐藏 tooltip（display:none，不移除 DOM）
+   remove() : void - 从 DOM 中移除 tooltip 元素并清空引用
+*/
+/* @skill-flow
+   new TooltipManager()
+   → show(html, x, y): 如果 div 不存在则 ensureDiv() 创建 → 设置 innerHTML/display/left/top
+   → move(x, y): 检测 display===block → 更新 left/top
+   → hide(): display = none
+   → remove(): 从 DOM 移除 div，置为 null
+*/
+/* @skill-condition
+   div 首次 show 时创建，复用至 remove 为止
+   show/move 坐标偏移 15px（相对于鼠标位置右下角）
+   move 仅在当前可见时生效
+   hide 保留 DOM 仅隐藏，remove 彻底清除
+   样式依赖 .dataview-tooltip 类名
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
 /**
  * 工具提示管理器

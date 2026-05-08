@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/configs/plugin-configs.js
  * 描述：插件核心常量和配置定义，包括任务文件夹、状态、优先级、循环、日期标记等配置
@@ -5,7 +6,21 @@
  * 依赖：无
  * 对外导出：所有命名导出常量 + CONFIG 和 DEFAULT_SETTINGS
  * 注意事项：所有常量应避免运行时修改，CONFIG 为运行时聚合配置，DEFAULT_SETTINGS 为用户自定义默认值
+ * @see .cline/skills/code/configs/plugin-configs.md
  */
+
+/* @skill-state 无（纯常量定义，无运行时状态） */
+
+/* @skill-global-state
+CONFIG = {
+  TASK_FOLDERS, STATUS_*, PRIORITY_*, REPEAT_*, DATE_MARK_*, ...
+}
+DEFAULT_SETTINGS = {
+  TASK_FOLDERS, STATUS_COLORS, PRIORITY_ORDER, ...
+}
+*/
+
+//  <!-- SYNC_COMMENTS_END -->
 
 /** 任务文件所在文件夹路径数组 */
 export const TASK_FOLDERS = ['"pages/A 系统/A 任务系统"'];

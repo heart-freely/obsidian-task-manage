@@ -11,15 +11,55 @@
  * @see .cline/skills/code/views/table-task-view.md
  */
 
-// src/panel/views/table-task-view.js
+//  <!-- SYNC_COMMENTS_START -->
+
+/* @skill-sig file src/panel/views/table-task-view.js - 表格视图，以可配置列的可滚动表格展示所有任务，支持列显示/隐藏切换、点击列排序、点击描述跳转到文件 */
+
+/* @skill-state
+   tasks   : Array<Object>          // 加载后的任务数据行
+   sortCol : string|null            // 当前排序列键名
+   sortAsc : boolean                // 排序方向
+   colVis  : Object<string,boolean> // 每列可见性
+   COLUMNS : Array<{key,label,visible,width}> // 列定义
+   formatDate cache : Map           // 日期格式化缓存
+*/
+
+/* @skill-api
+   BaseTaskView (base-task-view)
+   fetchTasks(app)                              // 获取所有任务 (task-query-process)
+   CONFIG.STATUS_SYMBOL_MAP / STATUS_ICONS / STATUS_NAMES  // 状态配置 (plugin-configs)
+   CONFIG.PRIORITY_ICONS / PRIORITY_LABELS       // 优先级配置 (plugin-configs)
+   app.vault.getAbstractFileByPath               // Obsidian 文件 API
+   app.workspace.getLeaf                         // Obsidian 编辑器 API
+*/
+
+/* @skill-dom
+   .table-root
+     .table-stats (任务总数)
+     .table-controls (列显示复选框)
+     .table-scroll > table.task-tbl > thead > th[data-sort] / tbody > tr > td > .task-link
+*/
+
+/* @skill-flow
+   首次渲染 → render() → loadData() → 默认排序 → 构建 stats/controls/scroll → renderTable() → setupEvents()
+   切换列可见 → checkbox change → renderTable()
+   点击表头排序 → th click → 切换 sortCol/sortAsc → applySort() → renderTable()
+   点击描述跳转 → .task-link click → app.vault.getAbstractFileByPath → 打开文件 → setCursor 跳转到行
+*/
+
+/* @skill-condition
+   若 fetchTasks 返回空或失败 → 显示 "❌ 未检测到 Tasks 插件" 或 "📑 暂无任务"
+   默认排序优先级：状态 → 计划日期 → 优先级
+   空值排序统一置底（包括 null/undefined/空字符串）
+*/
+
+//  <!-- SYNC_COMMENTS_END -->
 import { CONFIG } from "../../configs/plugin-configs";
 import { fetchTasks } from "../../tasks/process/task-query-process";
 import { BaseTaskView } from "./base-task-view";
 
-/* @skill-sig const VIEW_TYPE_TABLE : string - 表格视图类型标识 */
 export const VIEW_TYPE_TABLE = "table-task-view";
 
-/* @skill-sig class TableTaskView extends BaseTaskView - 表格视图类，注册为 Obsidian 视图 */
 export class TableTaskView extends BaseTaskView {
 	getViewType() {
 		return VIEW_TYPE_TABLE;
@@ -36,7 +76,6 @@ export class TableTaskView extends BaseTaskView {
 }
 
 // 表格列定义：列键、显示标签、默认可见性、宽度
-/* @skill-state COLUMNS : Array<{key,label,visible,width}> */
 const COLUMNS = [
 	{ key: "status", label: "状态", visible: true, width: 90 },
 	{ key: "description", label: "内容", visible: true, width: 220 },
@@ -53,7 +92,6 @@ const COLUMNS = [
 // 状态符号 → 排序权重：空格(未开始)最小，感叹号(已取消)最大
 const STATUS_ORDER = { " ": 1, "?": 2, "/": 3, "-": 4, x: 5, X: 5, "!": 6 };
 
-/* @skill-sig function formatDate(dateObj) : string - 将日期对象格式化为 YYYY-MM-DD（带缓存） */
 const formatDate = (() => {
 	const cache = new Map();
 	return (dateObj) => {
@@ -67,8 +105,6 @@ const formatDate = (() => {
 		return formatted;
 	};
 })();
-
-/* @skill-sig function startTableTaskView(dv, app, container) : ViewController - 启动表格视图 */
 
 /**
  * 启动表格视图
@@ -113,12 +149,6 @@ export async function startTableTaskView(dv, app, container) {
 		document.head.appendChild(styleEl);
 	}
 
-	/* @skill-state
-      tasks   : Array<Object>          // 加载后的任务数据行
-      sortCol : string|null            // 当前排序列键名
-      sortAsc : boolean                // 排序方向
-      colVis  : Object<string,boolean> // 每列可见性
-    */
 	let tasks = [];
 	let sortCol = null,
 		sortAsc = true;
@@ -254,22 +284,6 @@ export async function startTableTaskView(dv, app, container) {
 		});
 	}
 
-	/* @skill-dom
-      .table-root
-        .table-stats (任务总数)
-        .table-controls
-          label (每列复选框)
-            input[type=checkbox]
-        .table-scroll
-          table.task-tbl
-            thead
-              th[data-sort] (可点击排序)
-            tbody
-              tr
-                td (每列数据)
-                  span.task-link (描述列，可点击跳转)
-    */
-
 	/**
 	 * 渲染表格体（仅替换 .table-scroll 内容）
 	 */
@@ -359,28 +373,6 @@ export async function startTableTaskView(dv, app, container) {
 			}
 		});
 	}
-
-	/* @skill-flow
-      首次渲染 → render() → loadData() → 默认排序 → 构建 stats/controls/scroll → renderTable() → setupEvents()
-      切换列可见 → checkbox change → renderTable()
-      点击表头排序 → th click → 切换 sortCol/sortAsc → applySort() → renderTable()
-      点击描述跳转 → .task-link click → app.vault.getAbstractFileByPath → 打开文件 → setCursor 跳转到行
-    */
-
-	/* @skill-condition
-      若 fetchTasks 返回空或失败 → 显示 "❌ 未检测到 Tasks 插件" 或 "📑 暂无任务"
-      任务默认排序优先级：状态 → 计划日期 → 优先级
-      空值排序统一置底（包括 null/undefined/空字符串）
-    */
-
-	/* @skill-api
-      fetchTasks(app)                    // 获取所有任务
-      CONFIG.STATUS_SYMBOL_MAP           // 状态符号映射
-      CONFIG.STATUS_ICONS / STATUS_NAMES // 状态图标与名称
-      CONFIG.PRIORITY_ICONS / PRIORITY_LABELS  // 优先级图标与名称
-      app.vault.getAbstractFileByPath    // 获取文件对象
-      app.workspace.getLeaf              // 获取编辑器叶子节点
-    */
 
 	/**
 	 * 主渲染入口：构建完整表格视图容器

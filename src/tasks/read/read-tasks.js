@@ -1,20 +1,47 @@
-/**
- * 文件：src/tasks/read/read-tasks.js
- * 描述：任务读取和解析模块，提供正则标记集合（RX）、任务状态判断、属性提取等功能
- * 所属模块：tasks/read
- * 依赖：src/configs/plugin-configs（CONFIG），src/tasks/process/common-process（DateUtils），src/utils/logger
- * 对外导出：RX, getTaskStatus, getStatusIcon, isTaskToday, computeTaskTimeRange, ensureTaskProperties, getAllTasks
- * 注意事项：getAllTasks 依赖 Dataview 插件 API（dv）和全局状态上下文（state）
- */
+// src/tasks/read/read-tasks.js
 
+/* @skill-sig file src/tasks/read/read-tasks.js - 任务读取和解析模块，提供正则标记集合(RX)、任务状态判断、属性提取等功能 */
+/* @skill-func
+   RX : Object - 正则标记集合，用于匹配任务行中的各种图标标记(priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid)
+   getTaskStatus(line) : string - 从任务行文本中解析任务状态(completed/in-progress/planned/cancelled/todo)
+   getStatusIcon(task) : string - 根据任务状态返回对应的状态图标(✅/⏩/❔/❎/🔲)
+   isTaskToday(task) : boolean - 判断任务是否为今天的任务(基于计划/截止/开始/创建日期)
+   computeTaskTimeRange(task) : Object|null - 计算任务的时间范围({start,end})或null
+   ensureTaskProperties(task) : void - 确保任务对象包含_cleanText/_tooltip/_tooltipHtml属性(直接修改原对象)
+   getAllTasks(force, dv, state) : Array - 获取所有配置文件夹中的任务(从Dataview查询结果中解析并缓存)
+*/
+/* @skill-flow
+   getAllTasks → 遍历TASK_FOLDERS → dv.pages(folder) → FILE_NAME_PATTERN过滤 → 遍历page.file.tasks → 解析状态/日期/标记 → computeTaskTimeRange → ensureTaskProperties → 缓存tasks → 构建taskIdMap → 返回tasks列表
+   ensureTaskProperties → 清理标记图标生成_cleanText → 组合各部分生成_tooltip → 转HTML生成_tooltipHtml
+   computeTaskTimeRange → 收集scheduled/due/starts/done → DateUtils.setStart/setEnd → 返回时间戳范围
+   getTaskStatus → 匹配"- [x]/[X]/[-]/[/]/[?]" → 映射completed/cancelled/in-progress/planned/todo
+   getStatusIcon → 按_status/completed判定 → 返回对应图标
+   isTaskToday → 取今天0点~明天0点范围 → 检查_scheduled/_due/_starts/_created是否在此范围
+*/
+/* @skill-param
+   line: string - 任务行文本(如"- [x] 任务内容")
+   task: Object - 任务对象(可含_status/completed/text/_scheduled/_due/_starts/_created等属性)
+   force: boolean - 是否强制刷新缓存
+   dv: Object - Dataview 插件实例(需含dv.pages方法)
+   state: Object - 全局状态上下文(需含cachedAllTasks/taskIdMap属性)
+   RX: Object - 正则标记集合，包含priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid
+*/
+/* @skill-condition
+   依赖模块: src/configs/plugin-configs(CONFIG), src/utils/logger, src/tasks/process/common-process(DateUtils)
+   getAllTasks 依赖 Dataview 插件 API(dv) 和全局状态上下文(state)
+   CONFIG.TASK_FOLDERS 和 CONFIG.FILE_NAME_PATTERN 决定任务搜索范围和文件名过滤
+   ensureTaskProperties 直接修改传入的task对象(副作用)
+   状态映射表: {"/":"in-progress","?":"planned","-":"cancelled",x:"completed",X:"completed"}
+   正则标记集合RX的匹配优先级: priority → repeat → created → scheduled → starts → due → done → cancel → tag → id → forbid
+   _cleanText 按顺序移除所有标记图标后trim()，若为空则使用原始task.text
+   关联视图 sync: 各视图模块通过 getAllTasks 获取原始任务数据
+*/
 import { CONFIG } from "../../configs/plugin-configs";
 import logger from "../../utils/logger";
 import { DateUtils } from "../process/common-process";
 
 /**
- * 正则标记集合，用于匹配任务行中的各种图标标记
- *
- * @namespace RX
+ * 正则标记集合 @skill-sig
  * @property {RegExp} priority - 优先级图标（⏬ 🔽 🔼 ⏫ 🔺）
  * @property {RegExp} repeat - 重复规则（🔁 every day/week/month/year）
  * @property {RegExp} created - 创建日期（➕ YYYY-MM-DD）
@@ -26,6 +53,7 @@ import { DateUtils } from "../process/common-process";
  * @property {RegExp} tag - 标签标记（🏁 关键词）
  * @property {RegExp} id - ID 标记（🆔 标识符）
  * @property {RegExp} forbid - 禁止标记（⛔ 关键词列表）
+ * @sync src/tasks/process/filter-task-process.js → RX.*
  */
 export const RX = {
 	priority: /⏬|🔽|🔼|⏫|🔺/g,
@@ -42,15 +70,14 @@ export const RX = {
 };
 
 /**
- * 从任务行文本中解析任务状态
- *
+ * 从任务行文本中解析任务状态 @skill-sig
  * @param {string} line - 任务行文本（如 "- [x] 任务内容"）
  * @returns {string} 状态值：'completed' | 'in-progress' | 'planned' | 'cancelled' | 'todo'
- *
  * @example
  * getTaskStatus("- [x] 任务")     // "completed"
  * getTaskStatus("- [ ] 任务")     // "todo"
  * getTaskStatus("- [/] 任务")    // "in-progress"
+ * @sync src/tasks/process/filter-task-process.js → getTaskStatus
  */
 export function getTaskStatus(line) {
 	const m = line.match(/^\s*- \[(.)\]\s*/);
@@ -66,13 +93,11 @@ export function getTaskStatus(line) {
 }
 
 /**
- * 根据任务状态返回对应的状态图标
- *
+ * 根据任务状态返回对应的状态图标 @skill-sig
  * @param {Object} task - 任务对象
  * @param {string} [task._status] - 任务状态
  * @param {boolean} [task.completed] - 是否完成（兼容旧格式）
  * @returns {string} 状态图标（✅ ⏩ ❔ ❎ 🔲）
- *
  * @example
  * getStatusIcon({ _status: "completed" }) // "✅"
  * getStatusIcon({ _status: "todo" })      // "🔲"
@@ -86,17 +111,16 @@ export function getStatusIcon(task) {
 }
 
 /**
- * 判断任务是否为今天的任务（基于计划、截止、开始或创建日期）
- *
+ * 判断任务是否为今天的任务 @skill-sig
  * @param {Object} task - 任务对象
  * @param {string} [task._scheduled] - 计划日期
  * @param {string} [task._due] - 截止日期
  * @param {string} [task._starts] - 开始日期
  * @param {string} [task._created] - 创建日期
  * @returns {boolean} 如果有任一日期落在今天范围内则返回 true
- *
  * @example
  * isTaskToday({ _due: "2026-05-06" }) // 如果今天为 2026-05-06 则返回 true
+ * @sync src/panel/views/today-task-view.js → isTaskToday
  */
 export function isTaskToday(task) {
 	const today = new Date();
@@ -114,18 +138,17 @@ export function isTaskToday(task) {
 }
 
 /**
- * 计算任务的时间范围（最早日期 ~ 最晚日期）
- *
+ * 计算任务的时间范围 @skill-sig
  * @param {Object} task - 任务对象
  * @param {string} [task._scheduled] - 计划日期
  * @param {string} [task._due] - 截止日期
  * @param {string} [task._starts] - 开始日期
  * @param {string} [task._done] - 完成日期
  * @returns {{ start: number, end: number } | null} 时间戳范围，若无日期则返回 null
- *
  * @example
  * computeTaskTimeRange({ _scheduled: "2026-05-01", _due: "2026-05-06" })
  * // { start: 1748707200000, end: 1749139200000 }
+ * @sync src/tasks/process/calcul-chart-process.js → computeTaskTimeRange
  */
 export function computeTaskTimeRange(task) {
 	let min = Infinity,
@@ -150,17 +173,16 @@ export function computeTaskTimeRange(task) {
 }
 
 /**
- * 确保任务对象包含 _cleanText 和 _tooltip 属性
+ * 确保任务对象包含 _cleanText 和 _tooltip 属性 @skill-sig
  * _cleanText：去除所有标记图标后的纯净文本
  * _tooltip：用于显示的工具提示文本
  * _tooltipHtml：HTML 格式的工具提示文本
- *
  * @param {Object} task - 任务对象（会被直接修改）
  * @param {string} task.text - 原始任务文本
- *
  * @example
  * ensureTaskProperties(task);
  * console.log(task._cleanText);  // "任务描述（无标记）"
+ * @sync src/panel/interacts/tooltip-interact.js → ensureTaskProperties
  */
 export function ensureTaskProperties(task) {
 	if (!task.hasOwnProperty("_cleanText")) {
@@ -201,18 +223,18 @@ export function ensureTaskProperties(task) {
 }
 
 /**
- * 获取所有配置文件夹中的任务
+ * 获取所有配置文件夹中的任务 @skill-sig
  * 从 Dataview 查询结果中解析并缓存所有任务
- *
  * @param {boolean} force - 是否强制刷新缓存
  * @param {Object} dv - Dataview 插件实例
  * @param {Object} state - 全局状态上下文（必须包含 cachedAllTasks、taskIdMap）
  * @returns {Array} 解析后的任务对象列表
  * @throws {Error} 如果 state 未提供则抛出
- *
  * @example
  * const tasks = getAllTasks(false, dv, state);
  * // 返回所有配置文件夹中的任务列表
+ * @sync src/panel/panel.js → getAllTasks
+ * @sync .cline/skills/code/views/views.md → 数据获取流程
  */
 export function getAllTasks(force, dv, state) {
 	if (!state) throw new Error("Global state context is required");

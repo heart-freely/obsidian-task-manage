@@ -1,12 +1,24 @@
-/**
- * 文件：src/tasks/process/inbox-task-process.js
- * 描述：任务收件箱模块，提供收件箱任务的获取与分组处理能力
- * 所属模块：tasks/process
- * 依赖：plugin-configs（TASK_FOLDER_PATH, TASK_FILENAME_REGEX_TASKS）
- * 外部依赖：obsidian-tasks-plugin 中的 getTasks API
- * 对外导出：fetchInboxTasks, processInboxTasks
- * 注意事项：所有查询均依赖 Tasks 插件实例，调用前需确保插件已加载
- */
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file src/tasks/process/inbox-task-process.js - 任务收件箱模块，提供收件箱任务的获取与分组处理能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */
+/* @skill-func
+   fetchInboxTasks(app) : Array - 获取收件箱任务，筛选未完成、非重复、状态为待处理(空格)或计划中(?)
+   processInboxTasks(allTasks) : {groups, total} - 处理收件箱任务，按状态分组为"未开始"和"计划中"，每组按优先级排序
+*/
+/* @skill-flow
+   fetchInboxTasks → tasksPlugin.getTasks(not done + is not recurring) → 按 status.symbol 过滤空格/? → 返回数组
+   processInboxTasks → 遍历 allTasks → 按 symbol 分入 groups"未开始"/"计划中" → 每组按优先级排序 → 返回 {groups, total}
+*/
+/* @skill-param
+   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件
+   allTasks: Array - 收件箱任务对象数组，由 fetchInboxTasks 返回
+*/
+/* @skill-condition
+   依赖 obsidian-tasks-plugin 实例，插件未加载时抛出 Error
+   筛选条件："not done" + "is not recurring" + 状态 symbol 为空格(待处理)或 ?(计划中)
+   优先级排序权重：none→999, actual priority 值越小优先级越高
+   sync: .cline/skills/code/views/views.md → inbox-task-view 数据源
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
 import {
 	TASK_FILENAME_REGEX_TASKS,
@@ -16,6 +28,7 @@ import {
 /**
  * 获取收件箱任务
  * 筛选条件：未完成（not done）、非重复（is not recurring）、状态为待处理（空格）或计划中（?）
+ * @skill-rule 收件箱任务: 筛选条件为 "not done" + "is not recurring" + 状态待处理/计划中
  *
  * @param {App} app - Obsidian 应用实例
  * @returns {Promise<Array>} 收件箱任务对象数组
@@ -37,6 +50,8 @@ export async function fetchInboxTasks(app) {
 /**
  * 处理收件箱任务，按状态分组为"未开始"和"计划中"
  * 每个分组内按优先级（从高到低）排序
+ * @skill-rule 收件箱分组: 按执行状态(🔲→❔)分为"未开始"和"计划中"两组
+ * @skill-rule 收件箱分组: 优先级排序权重: 1(🔺)→2(⏫)→3(🔼)→4(🔽)→5(⏬)→999(无)
  *
  * @param {Array} allTasks - 收件箱任务对象数组
  * @returns {{groups: Object.<string, Array>, total: number}}

@@ -11,11 +11,7 @@
  * @see .cline/skills/code/views/overdue-task-view.md
  */
 
-import { fetchOverdueTasks } from "../../tasks/process/task-query-process";
-import { startListBaseView } from "./base-list-view";
-import { BaseTaskView } from "./base-task-view";
-
-export const VIEW_TYPE_OVERDUE = "overdue-task-view";
+//  <!-- SYNC_COMMENTS_START -->
 
 /* @skill-sig class OverdueTaskView extends BaseTaskView - 逾期任务视图，展示已过截止日期的任务列表 */
 
@@ -25,6 +21,22 @@ export const VIEW_TYPE_OVERDUE = "overdue-task-view";
   startListBaseView (base-list-view)
   fetchOverdueTasks (task-query-process)
 */
+
+/* @skill-flow
+   OverdueTaskView._startCore → startListBaseView(app, container, fetchOverdueTasks, "逾期任务", "rgba(255, 130, 130, 0.25)") → fetchOverdueTasks(app) → 通用列表渲染
+*/
+
+/* @skill-condition
+   fetchOverdueTasks 返回空数组 → startListBaseView 内部处理空状态显示
+*/
+
+//  <!-- SYNC_COMMENTS_END -->
+
+import { fetchOverdueTasks } from "../../tasks/process/task-query-process";
+import { startListBaseView } from "./base-list-view";
+import { BaseTaskView } from "./base-task-view";
+
+export const VIEW_TYPE_OVERDUE = "overdue-task-view";
 
 export class OverdueTaskView extends BaseTaskView {
 	getViewType() {

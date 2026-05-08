@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 /**
  * 文件：src/panel/views/tree-task-view.js
  * 描述：树状视图，以文件路径为树形结构展示任务，支持展开/折叠、层级缩进、点击任务跳转
@@ -9,10 +10,66 @@
  * @see .cline/skills/code/views/tree-task-view.md
  */
 
-// src/panel/views/tree-task-view.js
-import { fetchTasks } from "../../tasks/process/task-query-process";
-
 /* @skill-sig function startTreeView(app, container, leftSort, state) : ViewController - 启动树状视图 */
+
+/* @skill-state
+  tasks    : Array<Object>     // 加载后的任务列表
+  treeData : Object            // 树状结构数据 {path: {name, tasks[], children{}}}
+  expanded : Set<string>      // 已展开的路径集合
+  sortType : string           // 排序类型: "status"|"priority"|"due"|"created"
+  sortAsc  : boolean          // 排序方向
+*/
+
+/* @skill-constant MAX_DEPTH : number - 树最大深度，防止无限递归 */
+
+/* @skill-helpers
+  getDirParts(path) : string[]    // 拆分路径为目录片段
+  getFileName(path) : string      // 提取文件名（无扩展名）
+*/
+
+/* @skill-dom
+  .tree-root
+    .tree-header
+      button.collapse-all / button.expand-all (全局折叠/展开)
+      select.sort-select (排序选择器)
+    .tree-container
+      .tree-node (递归渲染)
+        .node-header (可点击的文件夹/文件行)
+          span.toggle-icon (▶/▼ 切换图标)
+          span.node-name (名称)
+          span.task-count (任务数)
+        .node-children (展开后的子节点列表)
+          .tree-node (递归)
+        .node-tasks (任务列表)
+          .task-item
+            span.status-icon
+            span.task-description
+*/
+
+/* @skill-flow
+  初始化 → loadData() → fetchTasks() → buildTree() → render() → expandAll()
+  折叠全部 → collapseAll() → expanded 清空 → render()
+  展开全部 → expandAll() → expanded 填入所有路径 → render()
+  节点点击 → toggleNode(path) → expanded toggle → render()
+  排序切换 → sort-select change → sortType/sortAsc 变更 → render()
+  任务点击 → 打开文件跳转到对应行
+*/
+
+/* @skill-condition
+  若 fetchTasks 返回空 → 显示 "暂无任务"
+  根节点始终展开，不计入 expanded 跟踪
+  最大深度 MAX_DEPTH = 10，超出深度的节点不再展开
+  空节点（无任务也无子节点）自动隐藏
+*/
+
+/* @skill-api
+  fetchTasks(app)                 // 获取所有任务
+  app.vault.getAbstractFileByPath // 获取文件对象
+  app.workspace.getLeaf           // 获取编辑器叶子节点
+*/
+//  <!-- SYNC_COMMENTS_END -->
+
+import { fetchTasks } from "../../tasks/process/task-query-process";
 
 /**
  * 启动树状视图
@@ -23,26 +80,13 @@ import { fetchTasks } from "../../tasks/process/task-query-process";
  * @returns {Promise<{cleanup, updateSort}>} 视图控制接口
  */
 export async function startTreeView(app, container, leftSort, state = {}) {
-	/* @skill-state
-	  tasks    : Array<Object>     // 加载后的任务列表
-	  treeData : Object            // 树状结构数据 {path: {name, tasks[], children{}}}
-	  expanded : Set<string>      // 已展开的路径集合
-	  sortType : string           // 排序类型: "status"|"priority"|"due"|"created"
-	  sortAsc  : boolean          // 排序方向
-	*/
 	let tasks = [];
 	let treeData = {};
 	let expanded = new Set();
 	let sortType = leftSort?.type || "status";
 	let sortAsc = leftSort?.order !== "desc";
 
-	/* @skill-constant MAX_DEPTH : number - 树最大深度，防止无限递归 */
 	const MAX_DEPTH = 10;
-
-	/* @skill-helpers
-	  getDirParts(path) : string[]    // 拆分路径为目录片段
-	  getFileName(path) : string      // 提取文件名（无扩展名）
-	*/
 
 	/**
 	 * 将任务列表按文件路径构建为树结构

@@ -3,6 +3,8 @@ name: 智能同步
 description: 统一入口，自动判断同步方向（正向/反向/全量/巡检）。支持参数。
 triggers:
   - 同步|全量同步|同步检查
+descriptions:
+  - 智能同步
 ---
 
 # 智能同步 Skill

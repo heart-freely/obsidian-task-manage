@@ -1,3 +1,4 @@
+//  <!-- SYNC_COMMENTS_START -->
 // ============================================================================
 // 隐藏按钮栏 (Hide/Filter Toggle Bar)
 // ============================================================================
@@ -6,6 +7,46 @@
 // 依赖：无
 // 调用方：panel.js - 各视图初始化时调用 buildHidePanel
 // ============================================================================
+
+/* @skill-sig file src/panel/bars/hide-botton-bar.js - 显隐控制面板，切换日历/图表/甘特图/文件树/过期/未到期任务的显示状态 */
+/* @skill-api
+   panel.js (全局状态 state)
+   state.hideCalendar / state.hideChart / state.hideGantt / state.hideFileTree
+   state.hideOverdueTasks / state.hideNotDueTasks
+   state.filterCache.fingerprint
+*/
+/* @skill-state
+   state.hideCalendar : boolean   // 是否隐藏日历视图
+   state.hideChart : boolean      // 是否隐藏图表视图
+   state.hideGantt : boolean      // 是否隐藏甘特图视图
+   state.hideFileTree : boolean   // 是否隐藏文件树视图
+   state.hideOverdueTasks : boolean  // 是否隐藏已过期任务
+   state.hideNotDueTasks : boolean   // 是否隐藏未到期任务
+   state.filterCache.fingerprint : string  // 显隐变化后需清空
+*/
+/* @skill-func
+   buildHidePanel(container, dv, state) : HTMLElement - 构建显隐控制面板，包含6个切换按钮
+   buildHideButtons : HTMLElement - buildHidePanel 的别名导出
+*/
+/* @skill-dom
+   .hide-row (容器 display:flex gap:12px)
+   button.quick-btn / button.quick-btn-active
+     📅 隐藏日历 | 📊 隐藏图表 | 📈 隐藏甘特图 | 📁 隐藏文件树 | ⏰ 隐藏过期 | 📆 隐藏未到期
+*/
+/* @skill-flow
+   buildHidePanel(container, dv, state)
+   创建 hideRow → 创建 6 个按钮，根据 state 初始化文本和激活样式
+   → 每个按钮绑定 onclick 切换对应 state 属性
+   → 同时切换按钮文本（显示/隐藏）和 active 样式
+   → 过期/未到期按钮额外清空 filterCache.fingerprint
+*/
+/* @skill-condition
+   按钮文本随 state 联动: state.hideXxx=true → "显示Xxx"，false → "隐藏Xxx"
+   quick-btn-active 类名: !state.hideXxx 时添加
+   过期和未到期 toggle 影响筛选结果 → 清空 filterCache.fingerprint
+   日历/图表/甘特图/文件树 toggle 仅影响显隐 → 不清空缓存
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
 /**
  * 构建隐藏/显隐控制面板

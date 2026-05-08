@@ -1,341 +1,794 @@
 {
-	"version": "4.0",
-	"generatedAt": "2026-05-08T01:54:00.000Z",
-	"generator": "update-index.md",
-	"skills": [
-		{
-			"id": "code/skill",
-			"name": "任务管理插件开发架构",
-			"path": ".cline/skills/code/skill.md",
-			"category": "code",
-			"description": "插件整体架构、数据流、开发规范、命名规则等全局信息",
-			"triggers": ["了解架构", "修改核心数据流", "添加新模块"]
-		},
-		{
-			"id": "code/tasks/tasks",
-			"name": "任务数据模型",
-			"path": ".cline/skills/code/tasks/tasks.md",
-			"category": "code",
-			"description": "Task 对象的完整字段定义、类型和说明",
-			"triggers": ["查看任务数据结构", "扩展任务字段"]
-		},
-		{
-			"id": "code/views/base-list-view",
-			"name": "通用列表工厂开发",
-			"path": ".cline/skills/code/views/base-list-view.md",
-			"category": "code",
-			"description": "快速构建带标题、排序、分页的基础任务列表",
-			"triggers": ["创建列表视图", "修改列表工厂"]
-		},
-		{
-			"id": "code/views/base-table-view",
-			"name": "通用表格工厂开发",
-			"path": ".cline/skills/code/views/base-table-view.md",
-			"category": "code",
-			"description": "快速构建带分组、可折叠的表格视图",
-			"triggers": ["创建表格视图", "修改表格工厂"]
-		},
-		{
-			"id": "code/views/base-task-view",
-			"name": "BaseTaskView 基类开发",
-			"path": ".cline/skills/code/views/base-task-view.md",
-			"category": "code",
-			"description": "视图基类、任务卡片生成、数据标准化",
-			"triggers": ["修改任务卡片样式", "调整数据标准化", "修改视图基类"]
-		},
-		{
-			"id": "code/views/calendar-task-view",
-			"name": "任务日历视图开发",
-			"path": ".cline/skills/code/views/calendar-task-view.md",
-			"category": "code",
-			"description": "日/周/月/季/年多级日历视图，任务与时间段交集判断",
-			"triggers": [
-				"修改日历视图渲染逻辑",
-				"调整时间交集算法",
-				"添加新视图层级"
-			]
-		},
-		{
-			"id": "code/views/data-tasks-view",
-			"name": "任务统计分析视图开发",
-			"path": ".cline/skills/code/views/data-tasks-view.md",
-			"category": "code",
-			"description": "左侧任务树与右侧 ECharts 图表联动，支持下钻、多维度统计",
-			"triggers": ["修改统计图表类型", "添加新统计维度", "实现下钻统计"]
-		},
-		{
-			"id": "code/views/depends-task-view",
-			"name": "任务依赖视图开发",
-			"path": ".cline/skills/code/views/depends-task-view.md",
-			"category": "code",
-			"description": "展示任务间的阻塞与被阻塞关系，支持循环依赖检测",
-			"triggers": ["修改依赖视图", "调整依赖解析规则"]
-		},
-		{
-			"id": "code/views/edit-tasks-view",
-			"name": "单任务编辑视图开发",
-			"path": ".cline/skills/code/views/edit-tasks-view.md",
-			"category": "code",
-			"description": "编辑单个任务的原始文本，保存写回源文件",
-			"triggers": ["修改单任务编辑", "调整保存机制"]
-		},
-		{
-			"id": "code/views/future-task-all-view",
-			"name": "全部未来任务视图开发",
-			"path": ".cline/skills/code/views/future-task-all-view.md",
-			"category": "code",
-			"description": "显示今天之后所有未完成、非循环任务",
-			"triggers": ["修改全部未来任务视图"]
-		},
-		{
-			"id": "code/views/future-task-n-view",
-			"name": "未来15天任务视图开发",
-			"path": ".cline/skills/code/views/future-task-n-view.md",
-			"category": "code",
-			"description": "显示今天之后指定天数内的任务",
-			"triggers": ["修改未来N天视图", "调整时间窗口大小"]
-		},
-		{
-			"id": "code/views/gantt-task-view",
-			"name": "甘特图视图开发",
-			"path": ".cline/skills/code/views/gantt-task-view.md",
-			"category": "code",
-			"description": "左侧任务树 + 右侧时间轴，支持虚拟滚动、依赖箭头",
-			"triggers": [
-				"修改甘特图交互逻辑",
-				"添加依赖箭头绘制",
-				"优化虚拟滚动性能"
-			]
-		},
-		{
-			"id": "code/views/important-task-view",
-			"name": "重要任务视图开发",
-			"path": ".cline/skills/code/views/important-task-view.md",
-			"category": "code",
-			"description": "筛选高优先级未完成任务",
-			"triggers": ["修改重要任务视图", "调整优先级阈值"]
-		},
-		{
-			"id": "code/views/inbox-task-view",
-			"name": "任务收集箱视图开发",
-			"path": ".cline/skills/code/views/inbox-task-view.md",
-			"category": "code",
-			"description": "汇聚未开始与计划中的非循环任务",
-			"triggers": ["修改收件箱视图", "调整任务收集逻辑", "添加过滤或排序"]
-		},
-		{
-			"id": "code/views/kanban-task-view",
-			"name": "看板视图开发",
-			"path": ".cline/skills/code/views/kanban-task-view.md",
-			"category": "code",
-			"description": "三列状态看板（未开始/计划中/进行中）",
-			"triggers": ["修改看板视图", "添加列或调整排序", "优化看板性能"]
-		},
-		{
-			"id": "code/views/matrix-task-view",
-			"name": "四象限矩阵视图开发",
-			"path": ".cline/skills/code/views/matrix-task-view.md",
-			"category": "code",
-			"description": "艾森豪威尔矩阵，按优先级划分四个象限",
-			"triggers": ["修改象限分配规则", "调整缓存或排序逻辑", "添加新交互"]
-		},
-		{
-			"id": "code/views/organize-task-view",
-			"name": "任务整理箱视图开发",
-			"path": ".cline/skills/code/views/organize-task-view.md",
-			"category": "code",
-			"description": "批量编辑、补全与预览任务标记",
-			"triggers": [
-				"修改整理箱多级筛选",
-				"调整编辑预览逻辑",
-				"实现撤回与快照"
-			]
-		},
-		{
-			"id": "code/views/overdue-task-view",
-			"name": "逾期任务视图开发",
-			"path": ".cline/skills/code/views/overdue-task-view.md",
-			"category": "code",
-			"description": "显示未完成且截止日期已过的任务",
-			"triggers": ["修改逾期任务视图", "调整逾期判定逻辑"]
-		},
-		{
-			"id": "code/views/pomodoro-task-view",
-			"name": "番茄钟视图开发",
-			"path": ".cline/skills/code/views/pomodoro-task-view.md",
-			"category": "code",
-			"description": "简单番茄钟计时器，关联任务 ID",
-			"triggers": ["修改番茄钟视图", "调整计时逻辑"]
-		},
-		{
-			"id": "code/views/recurring-task-view",
-			"name": "循环任务视图开发",
-			"path": ".cline/skills/code/views/recurring-task-view.md",
-			"category": "code",
-			"description": "按优先级、周期、文件名分组展示循环任务",
-			"triggers": ["修改循环任务视图", "调整周期分类规则"]
-		},
-		{
-			"id": "code/views/table-task-view",
-			"name": "所有任务表视图开发",
-			"path": ".cline/skills/code/views/table-task-view.md",
-			"category": "code",
-			"description": "表格化展示所有任务，支持三级分组和折叠",
-			"triggers": ["修改任务表视图", "添加新列或分组维度"]
-		},
-		{
-			"id": "code/views/tag-task-view",
-			"name": "标签聚合视图开发",
-			"path": ".cline/skills/code/views/tag-task-view.md",
-			"category": "code",
-			"description": "按旗帜标记聚合任务，支持多选 AND/OR 过滤",
-			"triggers": ["修改标签视图", "调整标签过滤"]
-		},
-		{
-			"id": "code/views/timeline-task-view",
-			"name": "任务时间轴视图开发",
-			"path": ".cline/skills/code/views/timeline-task-view.md",
-			"category": "code",
-			"description": "按截止日期分组，无日期单独置底，组内按状态再分组",
-			"triggers": ["修改时间轴视图", "调整分组或排序规则"]
-		},
-		{
-			"id": "code/views/today-task-view",
-			"name": "今天任务视图开发",
-			"path": ".cline/skills/code/views/today-task-view.md",
-			"category": "code",
-			"description": "显示所有与今天相关的任务（含循环任务）",
-			"triggers": ["修改今天任务视图", "调整日期过滤逻辑"]
-		},
-		{
-			"id": "code/views/tree-task-view",
-			"name": "任务树视图开发",
-			"path": ".cline/skills/code/views/tree-task-view.md",
-			"category": "code",
-			"description": "多级任务树，支持折叠/展开、导出大纲",
-			"triggers": ["修改任务树视图", "调整父子关系构建"]
-		},
-		{
-			"id": "code/views/view-list-tasks",
-			"name": "通用任务列表渲染组件开发",
-			"path": ".cline/skills/code/views/view-list-tasks.md",
-			"category": "code",
-			"description": "开发或修改通用视图列表组件，封装分页、排序 UI",
-			"triggers": ["修改视图列表风格", "调整列表渲染逻辑"]
-		},
-		{
-			"id": "code/views/views",
-			"name": "视图 Skill 目录索引",
-			"path": ".cline/skills/code/views/views.md",
-			"category": "code",
-			"description": "views/ 目录下所有视图 Skill 的聚合索引与快速导航",
-			"triggers": ["导航到视图 Skill"]
-		},
-		{
-			"id": "code/__tests__/test",
-			"name": "测试要点参考",
-			"path": ".cline/skills/code/__tests__/test.md",
-			"category": "code",
-			"description": "单元测试覆盖要求、视图级关键测试场景、测试工具配置",
-			"triggers": []
-		},
-		{
-			"id": "sync/update-skill",
-			"name": "更新技能",
-			"path": ".cline/skills/sync/update-skill.md",
-			"category": "sync",
-			"description": "正向同步（源码→Skill）与功能校验。支持单独校验；同步前可选提醒。全量同步后自动更新技能索引。",
-			"triggers": [
-				"更新技能",
-				"同步技能",
-				"全局同步技能",
-				"检查功能实现",
-				"功能校验"
-			]
-		},
-		{
-			"id": "sync/update-code",
-			"name": "更新代码",
-			"path": ".cline/skills/sync/update-code.md",
-			"category": "sync",
-			"description": "反向同步（Skill→源码）与功能校验。支持单独校验；同步前可选提醒。全局反向同步后自动更新技能索引。",
-			"triggers": [
-				"更新代码",
-				"反向同步",
-				"全局同步代码",
-				"检查功能实现",
-				"功能校验"
-			]
-		},
-		{
-			"id": "sync/update-comment",
-			"name": "更新注释",
-			"path": ".cline/skills/sync/update-comment.md",
-			"category": "sync",
-			"description": "管理源码中的 @skill-* 注释和头部规范，支持增量/全局更新、格式校验、锚点管理。",
-			"triggers": [
-				"更新注释",
-				"新增注释",
-				"全局更新注释",
-				"删除注释",
-				"校验注释",
-				"修正注释格式",
-				"注释规范",
-				"注释要求"
-			]
-		},
-		{
-			"id": "sync/update-readme",
-			"name": "更新README",
-			"path": ".cline/skills/sync/update-readme.md",
-			"category": "sync",
-			"description": "基于 skills-index.json 生成 README.md 中的视图表格、同步表格、触发词速览",
-			"triggers": [
-				"更新readme",
-				"刷新README",
-				"同步README",
-				"生成README表"
-			]
-		},
-		{
-			"id": "sync/update-skill-self",
-			"name": "自举验证",
-			"path": ".cline/skills/sync/update-skill-self.md",
-			"category": "sync",
-			"description": "验证 sync/ 下核心 Skill 自身是否符合注释规范，生成元文档。",
-			"triggers": ["验证自身", "自举", "检查自身规范"]
-		},
-		{
-			"id": "sync/update-skill-version",
-			"name": "版本迁移",
-			"path": ".cline/skills/sync/update-skill-version.md",
-			"category": "sync",
-			"description": "检查 Skill 文件的 skill-version，执行格式迁移到最新标准。",
-			"triggers": ["升级技能格式", "迁移版本", "检查版本"]
-		},
-		{
-			"id": "sync/update-smart-check",
-			"name": "检查一致性",
-			"path": ".cline/skills/sync/update-smart-check.md",
-			"category": "sync",
-			"description": "对比源码与 Skill 文档，输出差异报告，支持自动修复非冲突项。",
-			"triggers": ["检查一致性", "巡检", "检查依赖"]
-		},
-		{
-			"id": "sync/update-smart-sync",
-			"name": "统一同步",
-			"path": ".cline/skills/sync/update-smart-sync.md",
-			"category": "sync",
-			"description": "智能判断同步方向：源码变更→正向同步，Skill变更→反向同步",
-			"triggers": ["同步", "全量同步", "同步检查"]
-		}
-	],
-	"metadata": {
-		"total_skills": 35,
-		"categories": {
-			"code": 27,
-			"sync": 8
-		},
-		"last_full_update": "2026-05-08T01:54:00.000Z"
-	}
+  "version": "1.0",
+  "lastUpdated": "2026-05-08T07:50:09Z",
+  "skills": [
+    {
+      "path": ".cline/skills/code/configs/plugin-configs.md",
+      "category": "code",
+      "name": "插件全局配置",
+      "description": "全局常量、映射表、默认分页大小、颜色等",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:49:42Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改全局配置",
+          "description": ""
+        },
+        {
+          "triggers": "调整常量",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/references/obsidian-plugin-basics.md",
+      "category": "code",
+      "name": "obsidian-插件开发基础参考",
+      "description": "Obsidian 插件开发的通用基础指南，包括环境配置、编译流程、API 使用与发布流程。所有视图 Skill 的共享参考。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-05T06:10:02Z",
+      "triggerGroups": [
+        {
+          "triggers": "了解 Obsidian 插件开发环境",
+          "description": ""
+        },
+        {
+          "triggers": "查询如何注册视图或命令",
+          "description": ""
+        },
+        {
+          "triggers": "发布插件新版本",
+          "description": ""
+        },
+        {
+          "triggers": "配置 ESLint 与 GitHub Action",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/references/tasks-plugin-design.md",
+      "category": "code",
+      "name": "tasks-插件设计参考",
+      "description": "本插件中任务格式、自定义标记、emoji 映射、排序顺序等基础设计定义。所有视图 Skill 的共享数据模型参考。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-05T05:46:57Z",
+      "triggerGroups": [
+        {
+          "triggers": "查询任务标记的格式与顺序",
+          "description": ""
+        },
+        {
+          "triggers": "了解执行状态、优先级、日期的自定义映射",
+          "description": ""
+        },
+        {
+          "triggers": "添加或修改自定义标记",
+          "description": ""
+        },
+        {
+          "triggers": "调整任务标记的排序规则",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/skill.md",
+      "category": "code",
+      "name": "任务管理插件开发架构",
+      "description": "插件整体架构、数据流、开发规范、命名规则等全局信息。所有视图 Skill 的顶层参考。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T02:59:50Z",
+      "triggerGroups": [
+        {
+          "triggers": "了解架构",
+          "description": ""
+        },
+        {
+          "triggers": "修改核心数据流",
+          "description": ""
+        },
+        {
+          "triggers": "添加新模块",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/tasks/process/filter-task-process.md",
+      "category": "code",
+      "name": "任务筛选处理",
+      "description": "通用任务筛选函数，支持日期、状态、标记包含/排除等多条件组合",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:48:33Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改筛选逻辑",
+          "description": ""
+        },
+        {
+          "triggers": "添加筛选条件",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/tasks/tasks.md",
+      "category": "code",
+      "name": "任务数据模型",
+      "description": "Task 对象的完整字段定义、类型和说明。供所有模块引用。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:45:17Z",
+      "triggerGroups": [
+        {
+          "triggers": "查看任务数据结构",
+          "description": ""
+        },
+        {
+          "triggers": "扩展任务字段",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/tasks/write/write.tasks.md",
+      "category": "code",
+      "name": "任务写入与快照",
+      "description": "批量修改任务、生成快照、恢复快照",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:49:13Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改任务写入逻辑",
+          "description": ""
+        },
+        {
+          "triggers": "调整快照机制",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/base-card-view.md",
+      "category": "code",
+      "name": "通用卡片工厂开发",
+      "description": "统一的任务卡片生成基类，包含数据标准化和 DOM 渲染",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T02:02:04Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改任务卡片样式",
+          "description": ""
+        },
+        {
+          "triggers": "调整卡片字段",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/base-list-view.md",
+      "category": "code",
+      "name": "通用列表工厂开发",
+      "description": "快速构建带标题、排序、分页的基础任务列表",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T02:02:04Z",
+      "triggerGroups": [
+        {
+          "triggers": "创建列表视图",
+          "description": ""
+        },
+        {
+          "triggers": "修改列表工厂",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/base-table-view.md",
+      "category": "code",
+      "name": "通用表格工厂开发",
+      "description": "快速构建带分组、可折叠的表格视图",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:54:38Z",
+      "triggerGroups": [
+        {
+          "triggers": "创建表格视图",
+          "description": ""
+        },
+        {
+          "triggers": "修改表格工厂",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/calendar-task-view.md",
+      "category": "code",
+      "name": "任务日历视图开发",
+      "description": "日/周/月/季/年多级日历视图，任务与时间段交集判断",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:55:11Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改日历视图渲染逻辑",
+          "description": ""
+        },
+        {
+          "triggers": "调整时间交集算法",
+          "description": ""
+        },
+        {
+          "triggers": "添加新视图层级",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/data-tasks-view.md",
+      "category": "code",
+      "name": "任务统计分析视图开发",
+      "description": "左侧任务树与右侧 ECharts 图表联动，支持下钻、多维度统计",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:56:30Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改统计图表类型",
+          "description": ""
+        },
+        {
+          "triggers": "添加新统计维度",
+          "description": ""
+        },
+        {
+          "triggers": "实现下钻统计",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/depends-task-view.md",
+      "category": "code",
+      "name": "任务依赖视图开发",
+      "description": "展示任务间的阻塞与被阻塞关系，支持循环依赖检测",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:57:07Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改依赖视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整依赖解析规则",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/edit-tasks-view.md",
+      "category": "code",
+      "name": "单任务编辑视图开发",
+      "description": "编辑单个任务的原始文本，保存写回源文件",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:57:30Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改单任务编辑",
+          "description": ""
+        },
+        {
+          "triggers": "调整保存机制",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/future-task-n-view.md",
+      "category": "code",
+      "name": "未来15天任务视图开发",
+      "description": "显示今天之后指定天数内的任务",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:58:05Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改未来N天视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整时间窗口大小",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/gantt-task-view.md",
+      "category": "code",
+      "name": "甘特图视图开发",
+      "description": "左侧任务树 + 右侧时间轴，支持虚拟滚动、依赖箭头",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:58:29Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改甘特图交互逻辑",
+          "description": ""
+        },
+        {
+          "triggers": "添加依赖箭头绘制",
+          "description": ""
+        },
+        {
+          "triggers": "优化虚拟滚动性能",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/important-task-view.md",
+      "category": "code",
+      "name": "重要任务视图开发",
+      "description": "筛选高优先级未完成任务",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:59:20Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改重要任务视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整优先级阈值",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/inbox-task-view.md",
+      "category": "code",
+      "name": "任务收集箱视图开发",
+      "description": "汇聚未开始与计划中的非循环任务",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:59:51Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改收件箱视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整任务收集逻辑",
+          "description": ""
+        },
+        {
+          "triggers": "添加过滤或排序",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/kanban-task-view.md",
+      "category": "code",
+      "name": "看板视图开发",
+      "description": "三列状态看板（未开始/计划中/进行中）",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:00:51Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改看板视图",
+          "description": ""
+        },
+        {
+          "triggers": "添加列或调整排序",
+          "description": ""
+        },
+        {
+          "triggers": "优化看板性能",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/matrix-task-view.md",
+      "category": "code",
+      "name": "四象限矩阵视图开发",
+      "description": "开发艾森豪威尔矩阵，按优先级划分四个象限",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T02:02:04Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改象限分配规则",
+          "description": ""
+        },
+        {
+          "triggers": "调整缓存或排序逻辑",
+          "description": ""
+        },
+        {
+          "triggers": "添加新交互",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/organize-task-view.md",
+      "category": "code",
+      "name": "任务整理箱视图开发",
+      "description": "批量编辑、补全与预览任务标记",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:02:39Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改整理箱多级筛选",
+          "description": ""
+        },
+        {
+          "triggers": "调整编辑预览逻辑",
+          "description": ""
+        },
+        {
+          "triggers": "实现撤回与快照",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/overdue-task-view.md",
+      "category": "code",
+      "name": "逾期任务视图开发",
+      "description": "显示未完成且截止日期已过的任务",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:03:07Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改逾期任务视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整逾期判定逻辑",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/pomodoro-task-view.md",
+      "category": "code",
+      "name": "番茄钟视图开发",
+      "description": "简单番茄钟计时器，关联任务 ID",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:03:23Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改番茄钟视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整计时逻辑",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/recurring-task-view.md",
+      "category": "code",
+      "name": "循环任务视图开发",
+      "description": "按优先级、周期、文件名分组展示循环任务",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:03:51Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改循环任务视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整周期分类规则",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/tag-task-view.md",
+      "category": "code",
+      "name": "标签聚合视图开发",
+      "description": "按旗帜标记聚合任务，支持多选 AND/OR 过滤",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:05:28Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改标签视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整标签过滤",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/timeline-task-view.md",
+      "category": "code",
+      "name": "任务时间轴视图开发",
+      "description": "按截止日期分组，无日期单独置底，组内按状态再分组",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:06:25Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改时间轴视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整分组或排序规则",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/today-task-view.md",
+      "category": "code",
+      "name": "今天任务视图开发",
+      "description": "显示所有与今天相关的任务（含循环任务）",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T02:02:04Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改今天任务视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整日期过滤逻辑",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/tree-task-view.md",
+      "category": "code",
+      "name": "任务树视图开发",
+      "description": "多级任务树，支持折叠/展开、导出大纲",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:08:47Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改任务树视图",
+          "description": ""
+        },
+        {
+          "triggers": "调整父子关系构建",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/view-list-tasks.md",
+      "category": "code",
+      "name": "通用任务列表渲染组件开发",
+      "description": "开发或修改通用视图列表组件，封装分页、排序 UI",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T00:04:28Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改视图列表风格",
+          "description": ""
+        },
+        {
+          "triggers": "调整列表渲染逻辑",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/code/views/views.md",
+      "category": "code",
+      "name": "视图注册中心",
+      "description": "统一导出所有视图类型和注册逻辑",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-07T01:10:02Z",
+      "triggerGroups": [
+        {
+          "triggers": "修改视图注册",
+          "description": ""
+        },
+        {
+          "triggers": "添加新视图",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-code.md",
+      "category": "sync",
+      "name": "更新代码",
+      "description": "反向同步（Skill→源码）与功能校验。支持单独校验；同步前可选提醒；全量反向同步后自动更新索引。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:17:52Z",
+      "triggerGroups": [
+        {
+          "triggers": "更新代码|反向同步",
+          "description": "增量反向同步"
+        },
+        {
+          "triggers": "全局同步代码",
+          "description": "全量反向同步 + 索引刷新"
+        },
+        {
+          "triggers": "检查功能实现|功能校验",
+          "description": "功能校验"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-comment.md",
+      "category": "sync",
+      "name": "更新注释",
+      "description": "管理源码中的 `@skill-*` 注释和头部规范，支持增量/全局更新、格式校验、锚点管理。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:18:12Z",
+      "triggerGroups": [
+        {
+          "triggers": "更新注释",
+          "description": "增量更新注释"
+        },
+        {
+          "triggers": "新增注释",
+          "description": "新增注释"
+        },
+        {
+          "triggers": "全局更新注释",
+          "description": "全局更新注释"
+        },
+        {
+          "triggers": "删除注释",
+          "description": "删除注释"
+        },
+        {
+          "triggers": "校验注释|校验注释格式",
+          "description": "校验注释格式"
+        },
+        {
+          "triggers": "修正注释格式|修复注释格式",
+          "description": "修正注释格式"
+        },
+        {
+          "triggers": "注释规范|注释要求|如何写注释",
+          "description": "查阅规范"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-index.md",
+      "category": "sync",
+      "name": "更新技能索引",
+      "description": "扫描所有`.cline/skills`中的文件,生成索引缓存`.cline/skills/skills-index.json`。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T07:40:32Z",
+      "triggerGroups": [
+        {
+          "triggers": "更新技能索引|刷新技能索引|重建技能索引",
+          "description": "生成/更新技能索引"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-readme.md",
+      "category": "sync",
+      "name": "更新README",
+      "description": "基于 skills-index.json 生成 README.md 中的skills文件树、双向同步触发词列表以及生成配置与缓存文件表格。若 autoUpdateIndex 为 true 且索引缺失，自动调用 update-index.md。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T07:38:39Z",
+      "triggerGroups": [
+        {
+          "triggers": "更新readme|刷新README|同步README|生成README",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-skill-self.md",
+      "category": "sync",
+      "name": "自举验证",
+      "description": "验证 sync/ 下核心 Skill 自身是否符合规范，生成元文档。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:18:48Z",
+      "triggerGroups": [
+        {
+          "triggers": "验证自身|自举|检查自身规范",
+          "description": "自举验证"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-skill-version.md",
+      "category": "sync",
+      "name": "版本迁移",
+      "description": "检查所有 Skill 文件的 skill-version，自动迁移低于 4.0 的格式。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:18:45Z",
+      "triggerGroups": [
+        {
+          "triggers": "升级技能格式|迁移版本|检查版本",
+          "description": "版本迁移"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-skill.md",
+      "category": "sync",
+      "name": "更新技能",
+      "description": "正向同步（源码→Skill）与功能校验。支持单独校验；同步前可选提醒；全量同步后自动更新索引。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:17:49Z",
+      "triggerGroups": [
+        {
+          "triggers": "更新技能|同步技能",
+          "description": "增量正向同步"
+        },
+        {
+          "triggers": "全局同步技能",
+          "description": "全量正向同步 + 结构对齐 + 索引刷新"
+        },
+        {
+          "triggers": "检查功能实现|功能校验",
+          "description": "功能校验"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-smart-check.md",
+      "category": "sync",
+      "name": "检查一致性",
+      "description": "一致性巡检与依赖分析。支持自动修复非冲突项。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:18:03Z",
+      "triggerGroups": [
+        {
+          "triggers": "检查一致性|巡检",
+          "description": "一致性巡检"
+        },
+        {
+          "triggers": "检查依赖",
+          "description": "依赖分析"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-smart-sync.md",
+      "category": "sync",
+      "name": "智能同步",
+      "description": "统一入口，自动判断同步方向（正向/反向/全量/巡检）。支持参数。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:18:33Z",
+      "triggerGroups": [
+        {
+          "triggers": "同步|全量同步|同步检查",
+          "description": "智能同步"
+        }
+      ]
+    },
+    {
+      "path": ".cline/skills/sync/update-snapshot.md",
+      "category": "sync",
+      "name": "快照管理",
+      "description": "保存、清理、恢复对话快照，支持快照→Skill 联动。自动在同步前创建快照。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-08T04:18:21Z",
+      "triggerGroups": [
+        {
+          "triggers": "保存对话|生成快照|保存会话|创建快照",
+          "description": "保存快照"
+        },
+        {
+          "triggers": "清理快照|删除旧快照|清理旧快照",
+          "description": "清理快照"
+        },
+        {
+          "triggers": "恢复对话|加载快照|恢复快照|恢复上次状态",
+          "description": "恢复对话"
+        },
+        {
+          "triggers": "从快照更新技能|快照同步技能",
+          "description": "快照→Skill联动"
+        },
+        {
+          "triggers": "撤销同步|回滚快照",
+          "description": "回滚同步"
+        }
+      ]
+    }
+  ]
 }

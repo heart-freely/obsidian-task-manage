@@ -4,6 +4,9 @@ description: 一致性巡检与依赖分析。支持自动修复非冲突项。
 triggers:
   - 检查一致性|巡检
   - 检查依赖
+descriptions:
+  - 一致性巡检
+  - 依赖分析
 ---
 
 # 检查一致性 Skill
@@ -58,8 +61,6 @@ graph TD
   A[update-skill.md] --> B[update-comment.md]
   C[update-code.md] --> B
 ```
-
-
 
 1. **循环依赖检测**：使用 DFS 检测环，若有则输出警告，列出循环链。
 

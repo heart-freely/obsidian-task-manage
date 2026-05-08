@@ -1,4 +1,31 @@
-// src/panel/interacts/chart-interact.js
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file src/panel/interacts/chart-interact.js - 图表区交互模块，提供 Alt+滚轮缩放、分隔条拖拽、ResizeObserver 自适应 */
+/* @skill-api
+   common-process: throttleByFrame (节流函数)
+   state: chartScale, chartInstances, leftPanelWidth, resizeObserver
+   collapsedNodes: 折叠节点映射表
+   saveFilterState: 持久化保存回调
+*/
+/* @skill-func
+   initChartInteractions(chartDiv, resizer, leftDiv, state, collapsedNodes, saveFilterState) : Function
+   - 初始化图表交互（缩放、拖拽、resize 监听）
+   - 返回 cleanup 函数用于卸载
+*/
+/* @skill-flow
+   initChartInteractions()
+   → 注册 Alt+wheel 缩放(节流) → 显示缩放提示 5s 后消失
+   → 注册分隔条 mousedown → 全局 mousemove/mouseup 拖拽逻辑
+   → 创建 ResizeObserver 监听 chartDiv 变化
+   → 返回 cleanup 函数
+*/
+/* @skill-condition
+   Alt+wheel: e.altKey 检测 + deltaY 正负 / chartScale 范围 0.5~3
+   分隔条: startWidth 记录 + 限制 200~600px
+   ResizeObserver: 防抖 150ms 调用 chart.resize()
+   cleanup 清理: wheel / mousedown / mousemove / resizeObserver
+*/
+//  <!-- SYNC_COMMENTS_END -->
+
 import { throttleByFrame } from "../../tasks/process/common-process";
 
 /**

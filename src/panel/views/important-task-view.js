@@ -10,14 +10,7 @@
  * @see .cline/skills/code/views/important-task-view.md
  */
 
-import { fetchImportantTasksByStatus } from "../../tasks/process/task-query-process";
-import {
-	BaseTaskView,
-	createTaskCard,
-	normalizeTaskCardData,
-} from "./base-task-view";
-
-export const VIEW_TYPE_IMPORTANT = "important-task-view";
+//  <!-- SYNC_COMMENTS_START -->
 
 /* @skill-sig class ImportantTaskView extends BaseTaskView - 重要任务视图，三列网格按状态分组展示标记为重要的任务 */
 
@@ -27,23 +20,6 @@ export const VIEW_TYPE_IMPORTANT = "important-task-view";
   fetchImportantTasksByStatus (task-query-process)
   BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
 */
-
-export class ImportantTaskView extends BaseTaskView {
-	getViewType() {
-		return VIEW_TYPE_IMPORTANT;
-	}
-	getDisplayText() {
-		return "重要任务";
-	}
-	getIcon() {
-		return "star";
-	}
-
-	/* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startImportantView 渲染重要任务视图 */
-	async _startCore(dv, app, storageAdapter, instanceId) {
-		return await startImportantView(dv, app, dv.container);
-	}
-}
 
 /* @skill-func async startImportantView(dv, app, container) : { cleanup, updateSort } - 渲染重要任务三列网格视图 */
 
@@ -67,6 +43,34 @@ export class ImportantTaskView extends BaseTaskView {
           .task-desc
           .task-meta
 */
+
+//  <!-- SYNC_COMMENTS_END -->
+
+import { fetchImportantTasksByStatus } from "../../tasks/process/task-query-process";
+import {
+	BaseTaskView,
+	createTaskCard,
+	normalizeTaskCardData,
+} from "./base-task-view";
+
+export const VIEW_TYPE_IMPORTANT = "important-task-view";
+
+export class ImportantTaskView extends BaseTaskView {
+	getViewType() {
+		return VIEW_TYPE_IMPORTANT;
+	}
+	getDisplayText() {
+		return "重要任务";
+	}
+	getIcon() {
+		return "star";
+	}
+
+	/* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startImportantView 渲染重要任务视图 */
+	async _startCore(dv, app, storageAdapter, instanceId) {
+		return await startImportantView(dv, app, dv.container);
+	}
+}
 
 export async function startImportantView(dv, app, container) {
 	async function renderImportant() {

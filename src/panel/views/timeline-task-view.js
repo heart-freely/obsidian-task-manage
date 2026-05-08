@@ -10,15 +10,50 @@
  * @see .cline/skills/code/views/timeline-task-view.md
  */
 
+//  <!-- SYNC_COMMENTS_START -->
+
+/* @skill-sig class TimelineTaskView extends BaseTaskView - 时间线任务视图，按日期轴展示任务的时间分布 */
+
+/* @skill-state 无（纯展示视图） */
+
+/* @skill-api
+  fetchTasks (task-query-process)
+  BaseTaskView (base-task-view)
+*/
+
+/* @skill-func async startTimelineView(dv, app, container) : { cleanup, updateSort } - 渲染时间轴视图，按日期分组展示任务 */
+
+/* @skill-flow
+   startTimelineView(dv, app, container) → fetchTasks(app) → 按日期分组渲染时间轴 → 返回 { cleanup, updateSort }
+*/
+
+/* @skill-condition
+   若 fetchTasks 抛出异常或返回空 → 显示 "暂无时间线数据"
+*/
+
+/* @skill-dom
+  .timeline-container
+    .timeline-header
+    .timeline-axis (日期轴)
+      .axis-item (每个日期节点)
+        .date-label
+        .task-count
+    .timeline-body
+      .timeline-day-group
+        .day-header
+        ul.task-list
+          li.task-item
+            .task-desc
+            .task-meta
+*/
+
+//  <!-- SYNC_COMMENTS_END -->
+
 import { fetchTasks } from "../../tasks/process/task-query-process";
 import { BaseTaskView } from "./base-task-view";
 
 export const VIEW_TYPE_TIMELINE = "timeline-task-view";
 
-/**
- * TimelineTaskView - 时间线任务视图类，继承 BaseTaskView
- * 提供时间轴形式展示任务，按日期分布排列
- */
 export class TimelineTaskView extends BaseTaskView {
 	getViewType() {
 		return VIEW_TYPE_TIMELINE;
@@ -42,22 +77,6 @@ export class TimelineTaskView extends BaseTaskView {
  * @param {Object} app - Obsidian App 实例
  * @param {HTMLElement} container - 容器元素
  * @returns {Promise<{cleanup: Function, updateSort: Function}>}
- *
- * @skill-flow
- *   startTimelineView(dv, app, container) → fetchTasks(app) → 按日期分组渲染时间轴 → 返回 { cleanup, updateSort }
- *
- * @skill-condition
- *   若 fetchTasks 抛出异常或返回空 → 显示 "暂无时间线数据"
- *
- * @skill-dom
- *   .timeline-container
- *     .timeline-header
- *     .timeline-axis (日期轴)
- *       .axis-item (每个日期节点)
- *         .date-label
- *         .task-dot (任务圆点)
- *     .timeline-body
- *       .task-item (具体任务卡片)
  */
 export async function startTimelineView(dv, app, container) {
 	async function renderTimeline() {

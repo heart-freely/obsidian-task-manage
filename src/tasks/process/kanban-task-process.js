@@ -1,23 +1,40 @@
-/**
- * 文件：src/tasks/process/kanban-task-process.js
- * 描述：看板任务处理模块，提供看板视图所需的任务获取、分组与列定义
- * 所属模块：tasks/process
- * 依赖：plugin-configs（TASK_FOLDER_PATH, TASK_FILENAME_REGEX_TASKS, STATUS_SYMBOL_MAP）
- * 外部依赖：obsidian-tasks-plugin 中的 getTasks API
- * 对外导出：KANBAN_COLUMNS, fetchKanbanTasks, processKanbanTasks
- * 注意事项：颜色使用半透明配色，与矩阵视图风格统一
- */
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file src/tasks/process/kanban-task-process.js - 看板任务处理模块，提供看板视图所需的任务获取、分组与列定义，颜色使用半透明配色与矩阵视图风格统一 */
+/* @skill-func
+   KANBAN_COLUMNS : Array - 看板三列定义(🔲未开始/❔计划中/⏩进行中)，每列包含 symbol/label/color 属性
+   fetchKanbanTasks(app) : Array - 获取看板任务，筛选未完成 + 非循环任务
+   processKanbanTasks(allTasks) : {columns, tasksBySymbol, total} - 按状态符号分三列，每列按优先级排序
+*/
+/* @skill-flow
+   KANBAN_COLUMNS → 静态定义 → 供 processKanbanTasks 和视图渲染使用
+   fetchKanbanTasks → tasksPlugin.getTasks(not done + is not recurring) → 返回原始任务数组
+   processKanbanTasks → 遍历 allTasks → 按 status.symbol 分入 " "/"?/"/" 三组 → 每组按优先级排序 → 附加 status 字段
+*/
+/* @skill-param
+   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件
+   allTasks: Array - 看板任务对象数组，由 fetchKanbanTasks 返回
+*/
+/* @skill-condition
+   依赖 obsidian-tasks-plugin 实例，插件未加载时抛出 Error
+   筛选条件："not done" + "is not recurring"
+   状态符号映射：空格→todo, ?→in_progress, /→in_progress（通过 STATUS_SYMBOL_MAP）
+   优先级排序权重：none→999, actual priority 值越小优先级越高
+   颜色使用半透明配色(rgba)，与矩阵视图风格统一
+   sync: .cline/skills/code/views/views.md → kanban-task-view 数据源
+*/
+//  <!-- SYNC_COMMENTS_END -->
 
 import {
-	TASK_FOLDER_PATH,
-	TASK_FILENAME_REGEX_TASKS,
 	STATUS_SYMBOL_MAP,
+	TASK_FILENAME_REGEX_TASKS,
+	TASK_FOLDER_PATH,
 } from "../../configs/plugin-configs";
 
 /**
  * 看板列定义数组
  * 包含三列：未开始（空格）、计划中（?）、进行中（/）
  * 每列配有半透明背景色，与矩阵视图配色风格统一
+ * @skill-rule 看板列定义: 三列(🔲未开始/❔计划中/⏩进行中) + 半透明配色
  *
  * @type {Array<{symbol: string, label: string, color: string}>}
  *
@@ -34,6 +51,7 @@ export const KANBAN_COLUMNS = [
 /**
  * 获取看板任务
  * 筛选条件：未完成（not done）、非重复（is not recurring）
+ * @skill-rule 看板任务筛选: 条件为 "not done" + "is not recurring"
  *
  * @param {App} app - Obsidian 应用实例
  * @returns {Promise<Array>} 看板任务对象数组
@@ -53,6 +71,7 @@ export async function fetchKanbanTasks(app) {
  * 处理看板任务，按状态符号分组为三列
  * 每列内按优先级（从高到低）排序
  * 为每个任务附加 createTaskCard 所需的 status 字段
+ * @skill-rule 看板分组排序: 按状态符号分三列 + 列内优先级排序权重: 1(🔺)→2(⏫)→3(🔼)→4(🔽)→5(⏬)→999(无)
  *
  * @param {Array} allTasks - 看板任务对象数组
  * @returns {{columns: Array, tasksBySymbol: Object.<string, Array>, total: number}}

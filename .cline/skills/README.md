@@ -1,73 +1,157 @@
+<!-- README_AUTO_GENERATED_START -->
 
-# Skills 索引 — Obsidian 任务管理插件
+# 📚 Skill 文件索引
 
-本技能库为 AI 编程助手（Cline Chinese）提供插件开发所需的上下文信息。所有技能通过 YAML 头部的 `triggers` 字段自动匹配。
+生成于: 2026-05-08T07:50:09Z | 版本: 1.0 | 技能总数: 40
 
-## 目录用途
+---
 
-- `code/` – 包含与源代码直接相关的 Skill
-- `code/references/` – 只读参考文档
-- `code/views/` – 视图 Skill 文件（二级索引：[views.md](code/views/views.md)）
-- `sync/` – 自动同步、快照、恢复等维护 Skill
-- `snapshots/` – 存放由“保存对话”命令生成的快照文件
-- `archive/` – 存放已归档的旧 Skill（对应源码已删除）
-- `trash/` – 存放标记为删除的 Skill（待清理）
-- `test/` – 预留：测试相关 Skill 或指引
+<!-- SYNC_FILES_START -->
 
-<!-- CACHE_FILES_START -->
-## 缓存文件
+## 📁 skills 文件树
 
-| 文件 | 用途 | 维护方式 |
-|------|------|----------|
-| `sync_state.json` | 记录上次同步的 commit hash 和文件修改时间，用于变更检测 | AI 自动读写 |
-| `parsed_cache.json` | 缓存源码中解析出的 `@skill-*` 注释位置及校验和 | AI 自动更新 |
-| `anchor_cache.json` | 缓存源码中锚点（`@skill-anchor`）的位置 | AI 自动更新 |
+```text
+.cline/skills/
+├── archive/                          # 归档
+├── cache/
+│   ├── anchor_cache.json             # 锚点位置缓存
+│   ├── parsed_cache.json             # 注释解析缓存
+│   └── sync_state.json               # 同步状态记录
+├── code/
+│   ├── bars/                         # 按钮栏 Skill
+│   ├── configs/
+│   │   └── plugin-configs.md         # 插件全局配置
+│   ├── panel/components/
+│   │   └── tree-view-components.md   # 树视图组件
+│   ├── references/
+│   │   ├── develop-standard.md       # 开发规范参考
+│   │   ├── obsidian-plugin-basics.md # Obsidian 插件基础参考
+│   │   └── tasks-plugin-design.md    # tasks 插件设计参考
+│   ├── tasks/
+│   │   ├── process/
+│   │   │   └── filter-task-process.md # 任务筛选处理
+│   │   ├── read/
+│   │   │   └── read-tasks.md         # 任务读取
+│   │   ├── write/
+│   │   │   └── write.tasks.md        # 任务写入与快照
+│   │   └── tasks.md                  # 任务数据模型
+│   ├── views/
+│   │   ├── base-card-view.md         # 通用卡片工厂
+│   │   ├── base-list-view.md         # 通用列表工厂
+│   │   ├── base-table-view.md        # 通用表格工厂
+│   │   ├── base-task-view.md         # 任务视图基类
+│   │   ├── calendar-task-view.md     # 日历视图
+│   │   ├── data-tasks-view.md        # 统计分析视图
+│   │   ├── depends-task-view.md      # 依赖视图
+│   │   ├── edit-tasks-view.md        # 单任务编辑视图
+│   │   ├── future-task-all-view.md   # 全部未来任务视图
+│   │   ├── future-task-n-view.md     # 未来N天任务视图
+│   │   ├── gantt-task-view.md        # 甘特图视图
+│   │   ├── important-task-view.md    # 重要任务视图
+│   │   ├── inbox-task-view.md        # 收集箱视图
+│   │   ├── kanban-task-view.md       # 看板视图
+│   │   ├── matrix-task-view.md       # 四象限矩阵视图
+│   │   ├── organize-task-view.md     # 整理箱视图
+│   │   ├── overdue-task-view.md      # 逾期任务视图
+│   │   ├── pomodoro-task-view.md     # 番茄钟视图
+│   │   ├── recurring-task-view.md    # 循环任务视图
+│   │   ├── table-task-view.md        # 表格视图
+│   │   ├── tag-task-view.md          # 标签聚合视图
+│   │   ├── timeline-task-view.md     # 时间轴视图
+│   │   ├── today-task-view.md        # 今天任务视图
+│   │   ├── tree-task-view.md         # 任务树视图
+│   │   ├── view-list-tasks.md        # 通用任务列表渲染组件
+│   │   └── views.md                  # 视图注册中心
+│   └── __tests__/
+│       └── test.md                   # 测试
+├── snapshots/
+│   └── index.json                    # 快照索引
+├── sync/
+│   ├── sync_config.json              # 同步配置
+│   ├── update-code.md                # 更新代码（反向同步）
+│   ├── update-comment.md             # 更新注释
+│   ├── update-index.md               # 更新技能索引
+│   ├── update-readme.md              # 更新 README
+│   ├── update-skill.md               # 更新技能（正向同步）
+│   ├── update-skill-self.md          # 自举验证
+│   ├── update-skill-version.md       # 版本迁移
+│   ├── update-smart-check.md         # 检查一致性
+│   ├── update-smart-sync.md          # 智能同步
+│   └── update-snapshot.md            # 快照管理
+├── test/                             # 测试目录
+├── trash/                            # 回收站
+├── README.md                         # 本文件
+└── skills-index.json                 # 技能索引
+```
 
-> 此区域由 `sync/update-readme.md` 技能自动维护，请勿手动编辑。
-<!-- CACHE_FILES_END -->
+<!-- SYNC_FILES_END -->
 
-## 架构技能
+---
 
-| 技能                 | 文件路径                       |
-| -------------------- | ------------------------------ |
-| 任务管理插件开发架构 | [code/skill.md](code/skill.md) |
+## 🔄 双向同步触发词列表
 
-## 参考文档（只读）
+### update-skill.md
 
-| 文档                  | 文件路径                                                     |
-| --------------------- | ------------------------------------------------------------ |
-| Obsidian 插件开发基础 | [code/references/obsidian-plugin-basics.md](code/references/obsidian-plugin-basics.md) |
-| Tasks 插件自定义设计  | [code/references/tasks-plugin-design.md](code/references/tasks-plugin-design.md) |
+- 执行触发词操作：更新技能 或 同步技能（增量正向同步）（.cline/skills/sync/update-skill.md）
+- 执行触发词操作：全局同步技能（全量正向同步 + 结构对齐 + 索引刷新）（.cline/skills/sync/update-skill.md）
+- 执行触发词操作：检查功能实现 或 功能校验（功能校验）（.cline/skills/sync/update-skill.md）
 
-<!-- VIEWS_TABLE_START -->
-## 视图技能
+### update-code.md
 
-| 视图名称 | 技能文件 | 触发词（部分） | 功能简述 |
-|----------|----------|----------------|----------|
-| *示例* | *example-view.md* | `示例触发词` | *示例描述* |
+- 执行触发词操作：更新代码 或 反向同步（增量反向同步）（.cline/skills/sync/update-code.md）
+- 执行触发词操作：全局同步代码（全量反向同步 + 索引刷新）（.cline/skills/sync/update-code.md）
+- 执行触发词操作：检查功能实现 或 功能校验（功能校验）（.cline/skills/sync/update-code.md）
 
-> 此区域由 `sync/update-readme.md` 技能自动生成，请勿手动编辑。
-<!-- VIEWS_TABLE_END -->
+### update-comment.md
 
-<!-- SYNC_TABLE_START -->
-## 同步维护技能
+- 执行触发词操作：更新注释（增量更新注释）（.cline/skills/sync/update-comment.md）
+- 执行触发词操作：新增注释（新增注释）（.cline/skills/sync/update-comment.md）
+- 执行触发词操作：全局更新注释（全局更新注释）（.cline/skills/sync/update-comment.md）
+- 执行触发词操作：删除注释（删除注释）（.cline/skills/sync/update-comment.md）
+- 执行触发词操作：校验注释 或 校验注释格式（校验注释格式）（.cline/skills/sync/update-comment.md）
+- 执行触发词操作：修正注释格式 或 修复注释格式（修正注释格式）（.cline/skills/sync/update-comment.md）
+- 执行触发词操作：注释规范 或 注释要求 或 如何写注释（查阅规范）（.cline/skills/sync/update-comment.md）
 
-| 技能名称 | 文件路径 | 触发词示例（多组） |
-|----------|----------|-------------------|
-| *示例* | *sync/example.md* | `示例触发词` |
+### update-index.md
 
-> 此区域由 `sync/update-readme.md` 技能自动生成，请勿手动编辑。
-<!-- SYNC_TABLE_END -->
+- 执行触发词操作：更新技能索引 或 刷新技能索引 或 重建技能索引（生成/更新技能索引）（.cline/skills/sync/update-index.md）
 
-<!-- TRIGGERS_START -->
-## 常用触发词速览
+### update-skill-self.md
 
-| 触发词（或组） | 对应技能 |
-|----------------|----------|
-| `示例触发词` | 示例技能 |
+- 执行触发词操作：验证自身 或 自举 或 检查自身规范（自举验证）（.cline/skills/sync/update-skill-self.md）
 
-> 此区域由 `sync/update-readme.md` 技能自动生成，请勿手动编辑。
-<!-- TRIGGERS_END -->
+### update-skill-version.md
 
-> 所有带注释标记的区域（`<!-- XXX_START -->` 至 `<!-- XXX_END -->`）均可由 `sync/update-readme.md` 技能自动更新。静态章节（目录用途、架构技能、参考文档）请人工维护。
+- 执行触发词操作：升级技能格式 或 迁移版本 或 检查版本（版本迁移）（.cline/skills/sync/update-skill-version.md）
 
+### update-smart-check.md
+
+- 执行触发词操作：检查一致性 或 巡检（一致性巡检）（.cline/skills/sync/update-smart-check.md）
+- 执行触发词操作：检查依赖（依赖分析）（.cline/skills/sync/update-smart-check.md）
+
+### update-smart-sync.md
+
+- 执行触发词操作：同步 或 全量同步 或 同步检查（智能同步）（.cline/skills/sync/update-smart-sync.md）
+
+### update-snapshot.md
+
+- 执行触发词操作：保存对话 或 生成快照 或 保存会话 或 创建快照（保存快照）（.cline/skills/sync/update-snapshot.md）
+- 执行触发词操作：清理快照 或 删除旧快照 或 清理旧快照（清理快照）（.cline/skills/sync/update-snapshot.md）
+- 执行触发词操作：恢复对话 或 加载快照 或 恢复快照 或 恢复上次状态（恢复对话）（.cline/skills/sync/update-snapshot.md）
+- 执行触发词操作：从快照更新技能 或 快照同步技能（快照→Skill 联动）（.cline/skills/sync/update-snapshot.md）
+- 执行触发词操作：撤销同步 或 回滚快照（回滚同步）（.cline/skills/sync/update-snapshot.md）
+
+---
+
+## ⚙️ 配置与缓存文件
+
+| 文件                      | 用途                                                   | 维护方式         |
+| ------------------------- | ------------------------------------------------------ | ---------------- |
+| `skills-index.json`       | 所有技能的元数据（路径、名称、触发词、版本、修改时间） | AI 自动生成/更新 |
+| `sync/sync_config.json`   | 同步行为的配置（仲裁规则、自动快照、索引更新等）       | 人工手动编辑     |
+| `snapshots/index.json`    | 快照文件的索引（文件名、时间戳、主题、决策）           | AI 自动维护      |
+| `cache/sync_state.json`   | 上次同步状态的记录（commit hash、文件 mtime）          | AI 自动读写      |
+| `cache/parsed_cache.json` | 源码中 `@skill-*` 注释的解析结果缓存                   | AI 自动更新      |
+| `cache/anchor_cache.json` | 源码中锚点（`@skill-anchor`）的位置缓存                | AI 自动更新      |
+
+<!-- README_AUTO_GENERATED_END -->

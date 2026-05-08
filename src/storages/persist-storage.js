@@ -1,3 +1,39 @@
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file src/storages/persist-storage.js - 持久化管理与状态创建模块，提供初始状态创建、过滤指纹生成、日期范围获取以及 PersistenceManager 类 */
+/* @skill-func
+   createInitialState() : Object - 创建插件的初始状态对象（包含所有面板、过滤、排序、图表等功能的默认值）
+   getFilterFingerprint(state) : string - 从当前过滤状态生成唯一指纹字符串（用于判断过滤条件是否变化）
+   getEffectiveDateRange(state) : {start:Date,end:Date}|null - 获取生效的日期过滤范围（isAll=true或日期不完整时返回null）
+   PersistenceManager(storage, scope) : class - 持久化管理器类，负责将插件过滤状态、视图偏好等设置序列化到 Obsidian 存储
+   PersistenceManager.save(state, collapsedNodes) : Promise - 持久化当前状态到存储（仅保存用户可配置的视图偏好）
+   PersistenceManager.load(state, collapsedNodes, defaultDateRangeFn, noticeFn) : Promise - 从存储中恢复之前持久化的状态（合并到当前 state）
+*/
+/* @skill-flow
+   createInitialState → 返回包含所有默认值的 state 对象
+   getFilterFingerprint → 提取日期/状态/标记/隐藏/根路径 → 拼接为指纹字符串
+   getEffectiveDateRange → 检查 isAll 和日期完整性 → 返回范围对象或 null
+   PersistenceManager.save → 选取可持久化字段 → JSON.stringify → storage.setItem
+   PersistenceManager.load → storage.getItem → JSON.parse → 合并到 state 和 collapsedNodes
+*/
+/* @skill-param
+   state: Object - 全局状态对象(含 dateFilterState/markFilterState/hide* 等所有视图状态)
+   collapsedNodes: Object - 树面板折叠节点映射表
+   storage: Object - Obsidian 的 DataAdapter 或 storage 接口(提供 getItem/setItem)
+   scope: string - 存储作用域键名，用于区分不同面板或插件的存储数据
+   defaultDateRangeFn: Function - 默认日期范围回调(保留参数，暂未使用)
+   noticeFn: Function - 用户通知回调，接收字符串消息(加载失败时调用)
+*/
+/* @skill-condition
+   所属模块: storage - 持久化管理
+   依赖: ../configs/plugin-configs(CONFIG.ALLOWED_STATUSES)
+   运行环境: Obsidian 插件环境
+   状态结构: createInitialState 定义了完整的 state 默认结构
+   持久化策略: 仅保存用户可配置的视图偏好(过滤开关/排序/布局)，不保存运行时临时数据(缓存任务列表)
+   过滤指纹: getFilterFingerprint 用于快速判断是否需要重新执行过滤逻辑
+  关联模块: src/panel/panel.js(使用 PersistenceManager)、所有 view 模块(使用 state)
+  路径说明: 实际文件路径为 src/storages/persist-storage.js(vault 中以 storages 命名)
+*/
+//  <!-- SYNC_COMMENTS_END -->
 // src/storage/persist-storage.js
 import { CONFIG } from "../configs/plugin-configs";
 

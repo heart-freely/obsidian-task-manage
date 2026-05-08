@@ -1,8 +1,44 @@
+//  <!-- SYNC_COMMENTS_START -->
+/* @skill-sig file scripts/build-skill-index.js - Skill 索引构建脚本，扫描 .cline/skills/ 下所有 .md 文件的 YAML 头部，生成 skills-index.json */
+/* @skill-func
+   parseYamlFrontMatter(content) : Object|null - 解析 Markdown 文件的 YAML front matter，支持多行列表格式（key 在上一行，列表在下一行）
+   splitListItems(line, keyName) : Array|null - 尝试从 "key: - item1 - item2" 格式中拆分列表
+   getCategory(relativePath) : string - 根据相对路径返回技能分类(code/sync/references/archive/cache/test/trash/other)
+   buildTriggerGroups(triggers, descriptions) : Array - 构建触发词组对象数组，每组包含 triggers 和 description
+   main() : Promise - 主函数，递归扫描 skills 目录，解析 YAML，生成 skills-index.json
+   scanDir(dir) : void - 递归扫描目录，收集所有 .md 文件(排除 README.md)
+*/
+/* @skill-flow
+   main → scanDir(收集.md文件) → 逐个解析YAML → 过滤无效条目 → 排序 → 写入skills-index.json
+   parseYamlFrontMatter → 匹配---分隔符 → 分行解析key:value/列表格式 → 返回结构化对象
+   buildTriggerGroups → 遍历triggers数组 → 配对descriptions → 返回{triggers,description}对象数组
+*/
+/* @skill-param
+   content: string - Markdown 文件完整内容(含 YAML front matter)
+   relativePath: string - 相对于 skills 目录的路径(用于分类和索引路径)
+   line: string - 包含 "key: - item1 - item2" 格式的原始行
+   keyName: string - 需要拆分的键名
+   triggers: string[] - 触发词数组(每个元素可能是用|分隔的多触发词)
+   descriptions: string[] - 对应的描述数组(可选)
+   dir: string - 需要扫描的目录路径
+*/
+/* @skill-condition
+   所属模块: build - 构建工具脚本
+   依赖: Node.js fs 和 path 核心模块
+   运行环境: 仅 Node.js(非浏览器)，通过 npm run build-skill-index 调用
+   输出: .cline/skills/skills-index.json(索引缓存文件)
+   扫描范围: .cline/skills/ 下所有 .md 文件(排除 README.md)
+   YAML 规范: 仅支持简单 key:value 和 key 下缩进列表格式
+   注意事项: 非源文件 YAML 要求 name 和 triggers 字段必填，否则跳过
+   关联: .cline/skills/ 下的所有技能 .md 文件是数据源
+*/
 /**
  * Skill 索引构建脚本
  * 扫描 .cline/skills/ 下所有 .md 文件的 YAML 头部，生成 skills-index.json
  * 用法: node scripts/build-skill-index.js
  */
+//  <!-- SYNC_COMMENTS_END -->
+
 const fs = require("fs");
 const path = require("path");
 
