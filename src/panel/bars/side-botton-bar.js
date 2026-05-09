@@ -1,4 +1,14 @@
 //  <!-- SYNC_COMMENTS_START -->
+/**
+ * 文件：src/panel/bars/side-botton-bar.js
+ * 描述：侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能
+ * 所属模块：panel/bars
+ * 依赖：
+ *   - panel.js (全局状态 state)
+ * 对外导出：buildSideButtonBar, buildViewSwitcher
+ * 注意事项：无内部状态变更，纯 UI 交互
+ */
+
 /* @skill-sig file src/panel/bars/side-botton-bar.js - 侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能 */
 /* @skill-api
    panel.js (全局状态 state)
@@ -11,6 +21,10 @@
 /* @skill-func
    buildSideButtonBar(container, dv, state) : HTMLElement - 构建侧边视图切换面板
    buildViewSwitcher(container, dv, state) : HTMLElement - buildSideButtonBar 的别名导出
+*/
+/* @skill-anchor
+   buildSideButtonBar - 侧边视图切换面板主函数
+   buildViewSwitcher - buildSideButtonBar 的导出别名
 */
 /* @skill-dom
    .side-btn / .side-btn-active (按钮样式)

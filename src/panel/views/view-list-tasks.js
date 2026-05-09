@@ -34,6 +34,26 @@
   app.workspace.getLeaf
   window.moment (日期格式化)
 */
+/* @skill-sig file src/panel/views/view-list-tasks.js - 通用列表视图，基于 Tasks 插件获取数据并渲染任务列表，支持自定义获取函数和标题 */
+/* @skill-class
+   (无类，纯函数模块)
+   startTaskListView(app, container, fetchFn, title) : { cleanup, updateSort }
+   - 启动通用列表视图，渲染任务列表
+   内部闭包: stats, ul, li 均为局部 DOM 元素
+*/
+/* @skill-state
+   (无外部状态依赖)
+   局部变量: tasks - fetchFn(app) 返回的任务数组
+   事件绑定: li.addEventListener("click") - 每个列表项绑定跳转事件
+*/
+/* @skill-anchor
+   startTaskListView - 通用列表视图入口函数
+   stats - 统计栏（显示任务数量）
+   ul.task-list - 任务列表容器
+   li.task-list-item - 单个任务项（点击跳转）
+   cleanup - 清理函数（清空容器）
+   updateSort - 排序占位函数（空操作）
+*/
 //  <!-- SYNC_COMMENTS_END -->
 
 export async function startTaskListView(

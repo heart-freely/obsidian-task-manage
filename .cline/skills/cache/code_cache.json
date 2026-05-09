@@ -1,0 +1,513 @@
+{
+	"version": "1.0",
+	"code": "2026-05-09T11:51:00+08:00",
+	"comments": [
+		{
+			"path": "src/main.js",
+			"category": "views",
+			"name": "main",
+			"description": "插件入口",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/utils/logger.js",
+			"category": "utils",
+			"name": "logger",
+			"description": "日志工具",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/configs/plugin-configs.js",
+			"category": "configs",
+			"name": "plugin-configs",
+			"description": "插件配置",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/storage/persist-storage.js",
+			"category": "storage",
+			"name": "persist-storage",
+			"description": "持久化存储",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/echarts/echarts.js",
+			"category": "echarts",
+			"name": "echarts",
+			"description": "图表渲染",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/panel.js",
+			"category": "panel",
+			"name": "panel",
+			"description": "面板入口",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/bars/control-botton-bar.js",
+			"category": "bars",
+			"name": "control-botton-bar",
+			"description": "控制按钮栏",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/bars/date-botton-bar.js",
+			"category": "bars",
+			"name": "date-botton-bar",
+			"description": "日期按钮栏",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/bars/hide-botton-bar.js",
+			"category": "bars",
+			"name": "hide-botton-bar",
+			"description": "隐藏按钮栏",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/bars/mark-botton-bar.js",
+			"category": "bars",
+			"name": "mark-botton-bar",
+			"description": "标记按钮栏",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/bars/quick-botton-bar.js",
+			"category": "bars",
+			"name": "quick-botton-bar",
+			"description": "快捷按钮栏",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/bars/side-botton-bar.js",
+			"category": "bars",
+			"name": "side-botton-bar",
+			"description": "侧边按钮栏",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/bars/sort-botton-bar.js",
+			"category": "bars",
+			"name": "sort-botton-bar",
+			"description": "排序按钮栏",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/components/tree-view-components.js",
+			"category": "components",
+			"name": "tree-view-components",
+			"description": "树视图组件",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/interacts/chart-interact.js",
+			"category": "interacts",
+			"name": "chart-interact",
+			"description": "图表交互",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/interacts/tooltip-interact.js",
+			"category": "interacts",
+			"name": "tooltip-interact",
+			"description": "提示框交互",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/base-list-view.js",
+			"category": "views",
+			"name": "base-list-view",
+			"description": "基础列表视图",
+			"srcVersion": "",
+			"lastModified": "2026-05-09T14:10:00+08:00",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/base-table-view.js",
+			"category": "views",
+			"name": "base-table-view",
+			"description": "基础表格视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/base-task-view.js",
+			"category": "views",
+			"name": "base-task-view",
+			"description": "基础任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/calendar-task-view.js",
+			"category": "views",
+			"name": "calendar-task-view",
+			"description": "日历任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/data-tasks-view.js",
+			"category": "views",
+			"name": "data-tasks-view",
+			"description": "数据任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/depends-task-view.js",
+			"category": "views",
+			"name": "depends-task-view",
+			"description": "依赖任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/edit-tasks-view.js",
+			"category": "views",
+			"name": "edit-tasks-view",
+			"description": "编辑任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/future-task-all-view.js",
+			"category": "views",
+			"name": "future-task-all-view",
+			"description": "未来任务全部视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/future-task-n-view.js",
+			"category": "views",
+			"name": "future-task-n-view",
+			"description": "未来任务N天视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/gantt-task-view.js",
+			"category": "views",
+			"name": "gantt-task-view",
+			"description": "甘特图任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/important-task-view.js",
+			"category": "views",
+			"name": "important-task-view",
+			"description": "重要任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/inbox-task-view.js",
+			"category": "views",
+			"name": "inbox-task-view",
+			"description": "收件箱任务视图",
+			"srcVersion": "",
+			"lastModified": "2026-05-09T14:54:43+08:00",
+			"commentGroups": [
+				{
+					"groupType": "skill",
+					"sig": [
+						{
+							"name": "InboxTaskView",
+							"type": "class",
+							"extends": "BaseTaskView",
+							"description": "收集箱视图，两列网格按状态分组展示待处理任务"
+						},
+						{
+							"name": "startInboxView",
+							"type": "async function",
+							"returns": "{ cleanup, updateSort }",
+							"description": "渲染收集箱两列网格视图"
+						},
+						{
+							"name": "_startCore",
+							"type": "async method",
+							"returns": "function",
+							"description": "调用 startInboxView 渲染收集箱视图"
+						}
+					],
+					"dom": ".view-grid.cols-2 > .view-col (x2) > .col-header / ul.task-list > li.task-item[data-path][data-line]",
+					"state": "无（纯展示视图）",
+					"flow": "startInboxView → fetchInboxTasks → processInboxTasks → 网格容器 → 两列分组渲染（未开始/计划中） → 返回 { cleanup, updateSort }",
+					"condition": "若 fetchInboxTasks 抛出异常 → 显示错误提示；若某分组任务数为 0 → 显示 \"暂无任务\"",
+					"api": "fetchInboxTasks, processInboxTasks (inbox-task-process); BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)",
+					"skillFile": ".cline/skills/code/panel/views/inbox-task-view.md"
+				}
+			]
+		},
+		{
+			"path": "src/panel/views/kanban-task-view.js",
+			"category": "views",
+			"name": "kanban-task-view",
+			"description": "看板任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/matrix-task-view.js",
+			"category": "views",
+			"name": "matrix-task-view",
+			"description": "矩阵任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/organize-task-view.js",
+			"category": "views",
+			"name": "organize-task-view",
+			"description": "整理任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/overdue-task-view.js",
+			"category": "views",
+			"name": "overdue-task-view",
+			"description": "过期任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/pomodoro-task-view.js",
+			"category": "views",
+			"name": "pomodoro-task-view",
+			"description": "番茄钟任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/recurring-task-view.js",
+			"category": "views",
+			"name": "recurring-task-view",
+			"description": "循环任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/table-task-view.js",
+			"category": "views",
+			"name": "table-task-view",
+			"description": "表格任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/tag-task-view.js",
+			"category": "views",
+			"name": "tag-task-view",
+			"description": "标签任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/timeline-task-view.js",
+			"category": "views",
+			"name": "timeline-task-view",
+			"description": "时间线任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/today-task-view.js",
+			"category": "views",
+			"name": "today-task-view",
+			"description": "今日任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/tree-task-view.js",
+			"category": "views",
+			"name": "tree-task-view",
+			"description": "树形任务视图",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/panel/views/view-list-tasks.js",
+			"category": "views",
+			"name": "view-list-tasks",
+			"description": "视图列表任务",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/calcul-chart-process.js",
+			"category": "process",
+			"name": "calcul-chart-process",
+			"description": "计算图表处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/common-process.js",
+			"category": "process",
+			"name": "common-process",
+			"description": "通用任务处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/filter-task-process.js",
+			"category": "process",
+			"name": "filter-task-process",
+			"description": "任务过滤处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/inbox-task-process.js",
+			"category": "process",
+			"name": "inbox-task-process",
+			"description": "收件箱任务处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/kanban-task-process.js",
+			"category": "process",
+			"name": "kanban-task-process",
+			"description": "看板任务处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/matrix-task-process.js",
+			"category": "process",
+			"name": "matrix-task-process",
+			"description": "矩阵任务处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/organize-task-process.js",
+			"category": "process",
+			"name": "organize-task-process",
+			"description": "整理任务处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/recurring-task-process.js",
+			"category": "process",
+			"name": "recurring-task-process",
+			"description": "循环任务处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/task-query-process.js",
+			"category": "process",
+			"name": "task-query-process",
+			"description": "任务查询处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/process/tree-task-process.js",
+			"category": "process",
+			"name": "tree-task-process",
+			"description": "树形任务处理",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/read/read-tasks.js",
+			"category": "read",
+			"name": "read-tasks",
+			"description": "读取任务数据",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": "src/tasks/write/write-tasks.js",
+			"category": "write",
+			"name": "write-tasks",
+			"description": "写入任务数据",
+			"srcVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		},
+		{
+			"path": ".cline/skills/sync/update-code.md",
+			"category": "sync",
+			"name": "update-code",
+			"description": "反向同步中枢",
+			"skillVersion": "",
+			"lastModified": "",
+			"commentGroups": []
+		}
+	]
+}

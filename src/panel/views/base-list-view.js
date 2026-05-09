@@ -7,7 +7,7 @@
  *   - createTaskCard, normalizeTaskCardData, adaptTasksApiTask (base-task-view)
  * 对外导出：startListBaseView
  * 注意事项：通用函数，通过参数注入 fetchFn 实现不同数据源的列表渲染；内部使用 adaptTasksApiTask 适配 Tasks API 格式
- * @see .cline/skills/code/views/base-list-view.md
+ * @see .cline/skills/code/panel/views/base-list-view.md
  */
 
 /* @skill-func async startListBaseView(app, container, fetchFn, title, color?) : { cleanup, updateSort } - 通用列表视图渲染函数，由各列表视图传入自定义 fetchFn 和数据源使用 */

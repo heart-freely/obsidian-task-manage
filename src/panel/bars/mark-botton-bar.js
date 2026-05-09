@@ -1,12 +1,15 @@
 //  <!-- SYNC_COMMENTS_START -->
-// ============================================================================
-// 标记面板 (Mark/Tag Filter Panel)
-// ============================================================================
-// 功能：提供任务的标签筛选面板，支持多选标签进行任务过滤。
-//       用户可通过标签对任务进行快速分类筛选。
-// 依赖：无
-// 调用方：panel.js - 各视图初始化时调用 buildMarkPanel
-// ============================================================================
+/**
+ * 文件：src/panel/bars/mark-botton-bar.js
+ * 描述：标签筛选面板，支持全部/单标签模式切换，点击清空缓存触发重新筛选。
+ *       提供任务的标签筛选 UI，用户可通过标签对任务进行快速分类筛选。
+ * 所属模块：panel/bars
+ * 依赖：
+ *   - panel.js: 全局状态 state（selectedTag, allTags, filterCache）
+ * 对外导出：buildMarkPanel, buildMarkFilterPanel
+ * 注意事项：标签变化后需清空 filterCache.fingerprint 触发重新筛选
+ * @see .cline/skills/code/panel/bars/mark-botton-bar.md
+ */
 
 /* @skill-sig file src/panel/bars/mark-botton-bar.js - 标签筛选面板，支持全部/单标签模式切换，点击清空缓存触发重新筛选 */
 /* @skill-api
@@ -23,6 +26,10 @@
 /* @skill-func
    buildMarkPanel(container, dv, state) : HTMLElement - 构建标签筛选面板，含"全部"按钮和动态标签按钮
    buildMarkFilterPanel : HTMLElement - buildMarkPanel 的别名导出
+*/
+/* @skill-anchor
+   buildMarkPanel - 标签筛选面板主入口，构建"全部"+动态标签按钮
+   buildMarkFilterPanel - buildMarkPanel 的别名导出
 */
 /* @skill-dom
    .markRow (容器 display:flex gap:12px)
@@ -53,6 +60,7 @@
  * @param {Object} state - 全局状态对象（需包含 selectedTag, allTags）
  * @returns {HTMLElement} 标签面板 DOM 元素
  */
+/* @skill-anchor: buildMarkPanel */
 export function buildMarkPanel(container, dv, state) {
 	const markRow = dv.el("div", "");
 	markRow.style.cssText =
@@ -101,4 +109,5 @@ export function buildMarkPanel(container, dv, state) {
 	container.appendChild(markRow);
 	return markRow;
 }
+/* @skill-anchor: buildMarkFilterPanel */
 export const buildMarkFilterPanel = buildMarkPanel;

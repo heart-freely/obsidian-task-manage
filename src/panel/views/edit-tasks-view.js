@@ -77,6 +77,33 @@
   Op (内联操作函数集)
   dv.el, dv.container (dataview)
 */
+/* @skill-class
+   EditTaskView extends BaseTaskView - 任务编辑视图类（注册为 Obsidian ItemView），管理生命周期
+   S - 编辑视图全局状态对象，存储 allTasks/filteredTasks/paginatedTasks/selectedIds/previewMap/opsState/snapshots
+   Op - 操作函数集，封装所有标记的添加/删除/排序/自动补全逻辑
+   MODES - 四模式配置数组（未完成&缺失/未完成&完整/已完成&缺失/已完成&完整）
+   EDIT_GROUPS - 编辑操作按钮组定义（优先级/循环周期/日期/旗帜标签/唯一ID等）
+   STATUS_NAMES - 状态中文名称映射
+*/
+/* @skill-anchor
+   EditTaskView - 编辑视图类（跳转到整理箱视图）
+   startEditView - 编辑视图入口函数
+   fetchTasks - 从 Dataview 获取原始任务数据
+   applyFilters - 按模式/状态/标记筛选过滤
+   renderFullUI - 渲染完整编辑视图 UI（模式栏/状态筛选/标记筛选/操作面板/任务列表/分页）
+   injectStyle - 注入编辑视图内联样式
+   Op.setPriority / Op.delPriority - 优先级标记操作
+   Op.setRepeat / Op.delRepeat - 循环周期标记操作
+   Op.setCreated / Op.setScheduled / Op.setStarts - 日期标记操作
+   Op.setDue / Op.setDone / Op.setCancel - 日期标记操作
+   Op.setTag / Op.delTag - 旗帜标签标记操作
+   Op.delId / Op.delForbid - ID/引用标记操作
+   Op.autoComplete - 自动补全日期标记
+   Op.sortTags - 按固定顺序重排标记
+   S.mode - 当前模式索引
+   S.page - 当前页码
+   S.selectedIds - 选中任务 ID 集合
+*/
 //  <!-- SYNC_COMMENTS_END -->
 
 import * as readTasks from "../../tasks/read/read-tasks";

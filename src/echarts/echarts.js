@@ -33,6 +33,7 @@
 
 // src/echarts/echarts-utils.js
 // 直接导入打包的 ECharts，无需动态加载
+/* @skill-anchor: echarts */
 import * as echarts from "echarts";
 
 // 确保全局可用（兼容旧代码中 window.echarts 引用）
@@ -47,6 +48,7 @@ export { echarts };
  * @param {Function} callback - 接收 echarts 实例的回调函数
  * @returns {void}
  */
+/* @skill-anchor: ensureEcharts */
 export function ensureEcharts(callback) {
 	// 立即调用，因为 echarts 已同步可用
 	if (typeof callback === "function") {

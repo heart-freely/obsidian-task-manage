@@ -1,12 +1,16 @@
 //  <!-- SYNC_COMMENTS_START -->
-// ============================================================================
-// 快速日期筛选面板 (Quick Date Filter Panel)
-// ============================================================================
-// 功能：提供常用日期范围的快速筛选按钮（今天、昨天、本周、本月等），
-//       以及上周/下周、上月/下月的快捷切换。支持从缓存状态恢复按钮高亮。
-// 依赖：DateUtils (common-process.js) - 日期范围计算工具
-// 调用方：panel.js - 各视图初始化时调用 buildQuickDatePanel
-// ============================================================================
+/**
+ * 文件：src/panel/bars/quick-botton-bar.js
+ * 描述：快速日期筛选面板，提供常用日期范围的快速筛选按钮（今天、昨天、本周、本月等），
+ *       支持上周/下周、上月/下月快捷切换及缓存状态恢复
+ * 所属模块：panel/bars
+ * 依赖：
+ *   - DateUtils (common-process.js): 日期范围计算工具
+ *   - panel.js (全局状态 state 和回调 callbacks)
+ * 对外导出：clearQuickHighlights, resetQuickDateUI, restoreQuickButton, buildQuickDatePanel
+ * 注意事项：依赖 state.quickBtns 数组管理按钮引用
+ * @see .cline/skills/code/panel/bars/quick-botton-bar.md
+ */
 
 /* @skill-sig file src/panel/bars/quick-botton-bar.js - 快速日期筛选面板，提供常用日期范围的快速筛选按钮及缓存状态恢复 */
 /* @skill-api
@@ -27,6 +31,12 @@
    resetQuickDateUI(state)     : void                 - 重置快速日期 UI（调用 clearQuickHighlights）
    restoreQuickButton(state, label) : void            - 根据 label 恢复指定按钮的高亮样式
    buildQuickDatePanel(container, dv, state, callbacks) : void - 构建面板，渲染按钮并绑定事件
+*/
+/* @skill-anchor
+   clearQuickHighlights - 清除所有快速日期按钮的高亮样式
+   resetQuickDateUI - 重置快速日期 UI（clearQuickHighlights 的包装）
+   restoreQuickButton - 从缓存状态恢复指定按钮的高亮样式
+   buildQuickDatePanel - 构建快速日期筛选面板主入口
 */
 /* @skill-dom
    .quick-bar (容器 flex-wrap:wrap gap:8px)
@@ -52,6 +62,7 @@ import { DateUtils } from "../../tasks/process/common-process";
  * 清除所有快速日期按钮的高亮样式
  * @param {Object} state - 全局状态对象（需包含 quickBtns 数组）
  */
+/* @skill-anchor: clearQuickHighlights */
 export function clearQuickHighlights(state) {
 	state.quickBtns.forEach((b) => (b.className = "quick-btn"));
 }
@@ -60,6 +71,7 @@ export function clearQuickHighlights(state) {
  * 重置快速日期 UI（清除高亮状态）
  * @param {Object} state - 全局状态对象
  */
+/* @skill-anchor: resetQuickDateUI */
 export function resetQuickDateUI(state) {
 	clearQuickHighlights(state);
 }
@@ -69,6 +81,7 @@ export function resetQuickDateUI(state) {
  * @param {Object} state - 全局状态对象（需包含 quickBtns 数组）
  * @param {string} label - 要恢复高亮的按钮文本（如 "今天"、"本周"）
  */
+/* @skill-anchor: restoreQuickButton */
 export function restoreQuickButton(state, label) {
 	if (!label) return;
 	state.quickBtns.forEach((b) => {
@@ -88,7 +101,7 @@ export function restoreQuickButton(state, label) {
  * @param {Function} [callbacks.onQuery] - 执行查询回调
  * @returns {void} 直接修改 container 内容
  */
-
+/* @skill-anchor: buildQuickDatePanel */
 export function buildQuickDatePanel(container, dv, state, callbacks = {}) {
 	container.style.cssText =
 		"display:flex; align-items:center; flex-wrap:wrap; gap:8px;";

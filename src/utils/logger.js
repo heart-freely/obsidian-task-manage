@@ -22,6 +22,7 @@
 // src/utils/logger.js
 // 简易日志工具，生产模式下仅输出错误
 
+/* @skill-anchor: isProduction */
 /** @type {boolean} 是否为生产模式 */
 const isProduction = (() => {
 	try {
@@ -36,8 +37,10 @@ const isProduction = (() => {
 	return false;
 })();
 
+/* @skill-anchor: logger */
 /** @type {Logger} */
 const logger = {
+	/* @skill-anchor: logger.info */
 	/**
 	 * 输出信息日志（生产模式静默）
 	 * @param {...*} args - 日志参数
@@ -45,6 +48,7 @@ const logger = {
 	info(...args) {
 		if (!isProduction) console.log("[TASK-INFO]", ...args);
 	},
+	/* @skill-anchor: logger.warn */
 	/**
 	 * 输出警告日志（始终输出）
 	 * @param {...*} args - 日志参数
@@ -52,6 +56,7 @@ const logger = {
 	warn(...args) {
 		console.warn("[TASK-WARN]", ...args); // 警告总是输出
 	},
+	/* @skill-anchor: logger.error */
 	/**
 	 * 输出错误日志（始终输出）
 	 * @param {...*} args - 日志参数
@@ -59,6 +64,7 @@ const logger = {
 	error(...args) {
 		console.error("[TASK-ERROR]", ...args);
 	},
+	/* @skill-anchor: logger.debug */
 	/**
 	 * 输出调试日志（生产模式静默）
 	 * @param {...*} args - 日志参数

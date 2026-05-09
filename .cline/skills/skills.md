@@ -193,13 +193,14 @@ root/
 
 # 配置与缓存文件表
 
-| 文件                      | 用途                                                   | 维护方式         |
-| ------------------------- | ------------------------------------------------------ | ---------------- |
-| `skills-index.json`       | 所有技能的元数据（路径、名称、触发词、版本、修改时间） | AI 自动生成/更新 |
-| `sync/sync_config.json`   | 同步行为的配置（仲裁规则、自动快照、索引更新等）       | 人工手动编辑     |
-| `snapshots/index.json`    | 快照文件的索引（文件名、时间戳、主题、决策）           | AI 自动维护      |
-| `cache/sync_state.json`   | 上次同步状态的记录（commit hash、文件 mtime）          | AI 自动读写      |
-| `cache/parsed_cache.json` | 源码中 `@skill-*` 注释的解析结果缓存                   | AI 自动更新      |
-| `cache/anchor_cache.json` | 源码中锚点（`@skill-anchor`）的位置缓存                | AI 自动更新      |
+| 文件                    | 用途                                                         | 维护方式         |
+| ----------------------- | ------------------------------------------------------------ | ---------------- |
+| `skills-index.json`     | 所有技能的元数据（路径、名称、触发词、版本、修改时间）       | AI 自动生成/更新 |
+| `sync/sync_config.json` | 同步行为的配置（仲裁规则、自动快照、索引更新等）             | 人工手动编辑     |
+| `snapshots/index.json`  | 快照文件的索引（文件名、时间戳、主题、决策）                 | AI 自动维护      |
+| `cache/sync_state.json` | 上次同步状态的记录（commit hash、文件 mtime）                | AI 自动读写      |
+| `cache/code_cache.json` | 源码中锚点（`@skill-anchor`）的位置缓存,源码中 `@skill-*` 注释的解析结果缓存 | AI 自动更新      |
+|                         |                                                              |                  |
 
 <!-- SYNC_CONFIGS_END -->
+

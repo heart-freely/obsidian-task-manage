@@ -36,8 +36,8 @@ descriptions:
 			"description": "基础任务视图类 BaseTaskView（继承 ItemView），以及通用任务卡片创建、数据标准化工具函数",
 			"srcVersion": "4.0",
 			"lastModified": "2026-05-08T09:00:00Z",
-            "imports": "ItemView",
-            "exports": "VIEW_TYPE_INBOX, BaseTaskView, createTaskCard, normalizeTaskCardData, adaptTasksApiTask",
+            "imports": "obsidian, ../../configs/plugin-configs,../../tasks/read/read-tasks",
+            "exports": "class BaseTaskView extends ItemView,function createTaskCard(task, app),export function normalizeTaskCardData(raw),export function adaptTasksApiTask(task)",
 			"dependGroups": [
 				{
 					"depends": "xxx",
@@ -49,33 +49,11 @@ descriptions:
 				}
 			]
 		}
-	],
-    "skills": [
-		{
-			"path": ".cline/skills/sync/update-code.md",
-			"category": "sync",
-			"name": "更新技能",
-			"description": "正向同步（源码→Skill）与功能校验。",
-			"skillVersion": "4.0",
-			"lastModified": "2026-05-08T09:00:00Z",
-			"triggerGroups": [
-				{
-					"triggers": "更新技能|同步技能",
-					"description": "增量正向同步"
-				},
-				{
-					"triggers": "全局同步技能",
-					"description": "全量正向同步 + 结构对齐 + 索引刷新"
-				},
-				{
-					"triggers": "检查功能实现|功能校验",
-					"description": "功能校验"
-				}
-			]
-		}
 	]
 }
 ```
+
+
 
 ## 流程
 

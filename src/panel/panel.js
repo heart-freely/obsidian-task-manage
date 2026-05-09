@@ -41,8 +41,91 @@ state = {
 }
 NavigatorView._lastViewType: string  // 持久化的子视图类型
 */
-
-// src/panel/panel.js
+/* @skill-sig file src/panel/panel.js - 导航中心视图，任务管理面板入口，管理子视图切换/过滤/布局/持久化
+   NavigatorView - Obsidian ItemView 子类，注册视图类型 + 生命周期
+   startNavigatorCore - 核心启动函数，创建布局/状态/持久化/头部/侧边栏，激活子视图
+*/
+/* @skill-class
+   NavigatorView (extends BaseTaskView) - Obsidian 自定义视图，管理子视图类型持久化
+   startNavigatorCore() - 导航核心，创建布局、初始化状态、构建头部、激活子视图
+   buildHeader() - 构建粘性头部（快捷日期/控制按钮/排序/过滤区）
+   refreshCurrentView() - 刷新当前子视图（过滤→树面板→内容面板→持久化）
+   applyNavFilters() : Task[] - 应用导航层过滤（带指纹缓存）
+   renderContent(filteredTasks) - 渲染非自渲染视图的内容面板
+   activateSubView(viewType, force) - 激活指定子视图
+   TaskTreeRenderer - 树面板渲染器
+   tooltipManager - 工具提示管理器单例
+   persistence - 持久化管理器
+*/
+/* @skill-api
+   导入方:
+     main.js 或其他入口: import { VIEW_TYPE_NAVIGATOR, NavigatorView, startNavigatorCore } from "./panel/panel"
+   导入:
+     obsidian: Notice
+     configs/plugin-configs: CONFIG
+     storages/persist-storages: createInitialState, getEffectiveDateRange, getFilterFingerprint, PersistenceManager
+     tasks/read/read-tasks: getAllTasks
+     tasks/process/*: filterTasks, fetchFutureTasks, fetchOverdueTasks, fetchTasks
+     panel/bars/*: buildControlPanel, buildDateCascadePanel, buildHideButtons, buildMarkFilterPanel, buildQuickDatePanel, buildViewSwitcher, buildSortRow
+     panel/components/tree-view-components: TaskTreeRenderer
+     panel/interacts/tooltip-interact: TooltipManager
+     panel/views/*: startListBaseView, BaseTaskView, drawCharts, startKanbanView, startMatrixView (等所有子视图)
+*/
+/* @skill-func
+   VIEW_TYPE_NAVIGATOR : string - 视图类型标识符
+   NavigatorView.getViewType() : string - 返回视图类型
+   NavigatorView.getDisplayText() : string - 返回显示名称
+   NavigatorView.getIcon() : string - 返回图标名
+   NavigatorView.onOpen() : Promise - 恢复上次子视图类型
+   NavigatorView._startCore(dv, app, storageAdapter, instanceId) : Promise<Function> - 启动导航核心
+   NavigatorView.getState() : { subViewType } - 获取状态
+   NavigatorView.setState(state) : void - 设置状态
+   startNavigatorCore(dv, app, storageAdapter, instanceId, initialSubView, navigatorView?) : Promise<Function> - 核心启动函数
+   buildHeader() : void - 构建粘性头部
+   refreshCurrentView() : Promise - 刷新当前子视图
+   applyNavFilters() : Task[] - 应用导航层过滤
+   renderContent(filteredTasks) : Promise - 渲染内容面板
+   activateSubView(viewType, force?) : Promise - 激活子视图
+*/
+/* @skill-flow
+   NavigatorView.onOpen() → 从 getState() 恢复 _lastViewType
+   → _startCore() → startNavigatorCore()
+   → 创建布局 outerWithSidebar + sidebar + mainArea
+   → 创建 state + persistence + tooltipManager + treeRenderer
+   → buildViewSwitcher() 构建侧边栏
+   → buildHeader() 构建粘性头部
+   → persistence.load() 恢复持久化状态
+   → 激活初始子视图 (activateSubView)
+   → applyNavFilters() 过滤任务
+   → treeRenderer.render() + renderContent()
+   → 返回 cleanup 函数
+*/
+/* @skill-condition
+   子视图切换时: dataViewStatuses 在进出 task-dataview-view 时保存/恢复
+   matrix/kanban/inbox 视图强制 statuses = ["todo","planned","in-progress"]
+   过滤指纹缓存: fingerprint 匹配时跳过重复过滤
+   自渲染视图列表: selfRenderedViews 中的视图自行管理 viewPanel
+   树面板显隐: state.showTree 控制 display
+   过滤区显隐: state.showFilters 控制 display
+   cleanup: 销毁 echarts 实例 + 清理子视图 + 清空容器
+*/
+/* @skill-dom
+   .navigator-outer-with-sidebar - 最外层容器（flex 行）
+   .navigator-sidebar - 侧边栏视图切换区
+   .navigator-main - 主内容区（flex 列）
+   .navigator-scroll-area - 可滚动内容区
+   .header-sticky - 粘性头部（快捷日期/控制按钮/排序/过滤）
+   .filter-area - 过滤区
+   .navigator-content-layout - 双面板布局（树面板 + 视图面板）
+   .navigator-tree-panel - 左侧树面板
+   .navigator-view-panel - 右侧视图内容面板
+   .quick-row - 快捷日期行
+   .filter-label - 过滤标签
+   .section-divider - 节分隔线
+   .sort-row-wrapper - 排序行容器
+   .empty-message - 空状态提示
+   .dataview-tooltip - 工具提示元素（全局唯一）
+*/
 //  <!-- SYNC_COMMENTS_END -->
 import { Notice } from "obsidian";
 import { CONFIG } from "../configs/plugin-configs";
@@ -80,6 +163,7 @@ import { startKanbanView } from "./views/kanban-task-view";
 import { startMatrixView } from "./views/matrix-task-view";
 
 /** 导航视图的注册标识符 */
+// @skill-anchor VIEW_TYPE_NAVIGATOR - 导航视图的注册标识符
 export const VIEW_TYPE_NAVIGATOR = "navigator-view";
 
 /**
@@ -88,6 +172,7 @@ export const VIEW_TYPE_NAVIGATOR = "navigator-view";
  * 提供任务导航的中心面板，包含侧边栏（视图切换器）、
  * 粘性头部（快捷日期、控制按钮、排序）、过滤区和主内容区。
  */
+// @skill-anchor NavigatorView - 导航视图类，继承自 BaseTaskView，Obsidian ItemView 实现
 export class NavigatorView extends BaseTaskView {
 	/** @returns {string} 视图类型标识符 */
 	getViewType() {
@@ -166,6 +251,7 @@ export class NavigatorView extends BaseTaskView {
  * @param {NavigatorView} [navigatorView] - 可选的 NavigatorView 实例
  * @returns {Promise<Function>} cleanup 函数，调用时清理所有资源
  */
+// @skill-anchor startNavigatorCore - 启动导航核心逻辑
 export async function startNavigatorCore(
 	dv,
 	app,
@@ -238,6 +324,7 @@ export async function startNavigatorCore(
 	 * 包含快捷日期按钮行、控制按钮（含隐藏按钮）、过滤区。
 	 * 每次重新渲染全局 UI 时调用此函数重建头部。
 	 */
+	// @skill-anchor startNavigatorCore.buildHeader - 构建粘性头部区域
 	function buildHeader() {
 		stickyHeader.innerHTML = "";
 		const quickRow = dv.el("div", "", { cls: "quick-row" });
@@ -331,6 +418,7 @@ export async function startNavigatorCore(
 	 * 刷新当前子视图
 	 * 应用过滤 → 渲染树面板 → 渲染内容面板 → 持久化状态
 	 */
+	// @skill-anchor startNavigatorCore.refreshCurrentView - 刷新当前子视图
 	async function refreshCurrentView() {
 		const filtered = applyNavFilters();
 		treeRenderer.render(filtered);
@@ -356,6 +444,7 @@ export async function startNavigatorCore(
 	 *
 	 * @returns {Array} 过滤后的任务列表
 	 */
+	// @skill-anchor startNavigatorCore.applyNavFilters - 应用导航层过滤
 	function applyNavFilters() {
 		const fp = getFilterFingerprint(state);
 		if (state.filterCache.fingerprint === fp && state.filterCache.tasks)
@@ -380,6 +469,7 @@ export async function startNavigatorCore(
 	 *
 	 * @param {Array} filteredTasks - 过滤后的任务列表
 	 */
+	// @skill-anchor startNavigatorCore.renderContent - 渲染内容面板
 	async function renderContent(filteredTasks) {
 		const selfRenderedViews = [
 			"inbox-task-view",
@@ -432,6 +522,7 @@ export async function startNavigatorCore(
 	 * @param {string} viewType - 目标子视图类型
 	 * @param {boolean} [force=false] - 是否强制切换（即使类型相同）
 	 */
+	// @skill-anchor startNavigatorCore.activateSubView - 激活指定子视图
 	async function activateSubView(viewType, force = false) {
 		if (!force && currentSubViewType === viewType) return;
 		if (currentSubViewType === "task-dataview-view")

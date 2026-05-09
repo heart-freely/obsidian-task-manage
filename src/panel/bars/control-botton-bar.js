@@ -1,12 +1,16 @@
 //  <!-- SYNC_COMMENTS_START -->
-// ============================================================================
-// 控制按钮栏 (Control Button Bar)
-// ============================================================================
-// 功能：提供任务视图的全局控制按钮，包括刷新、间隔模式切换、循环/已完成/
-//       已取消任务的显隐控制、文件夹显隐控制、以及重置清除操作。
-// 依赖：CONFIG (plugin-configs.js) - 间隔模式常量
-// 调用方：panel.js - 各视图初始化时调用 buildControlPanel
-// ============================================================================
+/**
+ * 文件：src/panel/bars/control-botton-bar.js
+ * 描述：控制按钮栏，提供全局任务视图控制按钮（刷新、间隔模式切换、循环/已完成/已取消任务的显隐控制、
+ *       文件夹显隐控制、重置清除操作）
+ * 所属模块：panel/bars
+ * 依赖：
+ *   - CONFIG (plugin-configs.js): 间隔模式常量
+ *   - panel.js: 全局状态 state 和回调 callbacks
+ * 对外导出：buildControlPanel
+ * 注意事项：所有筛选类按钮点击后立即清空 filterCache.fingerprint 强制重渲染
+ * @see .cline/skills/code/panel/bars/control-botton-bar.md
+ */
 
 /* @skill-sig file src/panel/bars/control-botton-bar.js - 控制按钮栏，提供全局任务视图控制按钮（刷新、间隔模式、显隐切换、重置清除） */
 /* @skill-api
@@ -42,6 +46,12 @@
    quick-btn-active 类标识当前激活/显示状态
    所有筛选类按钮点击后立即清空 filterCache.fingerprint 强制重渲染
 */
+/* @skill-func
+   buildControlPanel(container, dv, state, callbacks) : HTMLElement - 构建全局任务视图控制按钮栏
+*/
+/* @skill-anchor
+   buildControlPanel - 控制按钮栏主入口，刷新/间隔模式/显隐切换/重置清除
+*/
 //  <!-- SYNC_COMMENTS_END -->
 
 import { CONFIG } from "../../configs/plugin-configs";
@@ -57,6 +67,7 @@ import { CONFIG } from "../../configs/plugin-configs";
  * @param {Function} callbacks.onResetAndClear - 重置并清除
  * @returns {HTMLElement} 控制栏 DOM 元素
  */
+/* @skill-anchor: buildControlPanel */
 export function buildControlPanel(container, dv, state, callbacks = {}) {
 	const ctrlRow = dv.el("div", "");
 	ctrlRow.style.cssText =

@@ -1,4 +1,14 @@
 //  <!-- SYNC_COMMENTS_START -->
+/**
+ * 文件：src/panel/bars/sort-botton-bar.js
+ * 描述：排序控制面板，提供按多种字段排序及升降序切换功能
+ * 所属模块：panel/bars
+ * 依赖：
+ *   - panel.js: 全局状态 state（sortField, sortOrder, filterCache, onSortChange）
+ * 对外导出：buildSortPanel, buildSortRow
+ * 注意事项：排序切换后会清空 filterCache.fingerprint 触发重新筛选
+ * @see .cline/skills/code/panel/bars/sort-botton-bar.md
+ */
 
 /* @skill-sig file src/panel/bars/sort-botton-bar.js - 排序控制面板，提供按多种字段排序及升降序切换功能 */
 /* @skill-api
@@ -31,13 +41,7 @@
 */
 //  <!-- SYNC_COMMENTS_END -->
 
-/**
- * 构建排序控制面板 (别名：buildSortRow)
- * @param {HTMLElement} container - 父容器
- * @param {Object} dv - Dataview 实例
- * @param {Object} state - 全局状态对象（需包含 sortField, sortOrder 等）
- * @returns {HTMLElement} 排序面板 DOM 元素
- */
+// @skill-anchor buildSortPanel - 排序控制面板主入口，创建排序按钮行并绑定交互
 export function buildSortPanel(container, dv, state) {
 	const sortRow = dv.el("div", "");
 	sortRow.style.cssText =
@@ -103,5 +107,5 @@ export function buildSortPanel(container, dv, state) {
 	return sortRow;
 }
 
-/** 兼容别名 — panel.js 中使用 buildSortRow 导入 */
+// @skill-anchor buildSortRow - buildSortPanel 的别名导出（兼容旧引用）
 export { buildSortPanel as buildSortRow };

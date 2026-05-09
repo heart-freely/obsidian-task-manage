@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_END --> */
 /**
  * 文件：src/panel/views/inbox-task-view.js
  * 描述：任务收集箱视图，按状态（未开始/计划中）分组展示未分配日期的任务，两列网格布局
@@ -8,10 +8,11 @@
  *   - inbox-task-process.fetchInboxTasks, processInboxTasks: 获取和处理收件箱任务
  * 对外导出：VIEW_TYPE_INBOX, InboxTaskView, startInboxView
  * 注意事项：仅展示未分配日期的待处理任务，无日期限制
- * @see .cline/skills/code/views/inbox-task-view.md
+ * @see .cline/skills/code/panel/views/inbox-task-view.md
  */
 
 /* @skill-sig class InboxTaskView extends BaseTaskView - 收集箱视图，两列网格按状态分组展示待处理任务 */
+
 /* @skill-sig async startInboxView(dv, app, container) : { cleanup, updateSort } - 渲染收集箱两列网格视图 */
 
 /* @skill-dom
@@ -41,7 +42,7 @@
   fetchInboxTasks, processInboxTasks (inbox-task-process)
   BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 import {
 	fetchInboxTasks,

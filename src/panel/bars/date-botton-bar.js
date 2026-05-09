@@ -1,14 +1,18 @@
 //  <!-- SYNC_COMMENTS_START -->
-// ============================================================================
-// 日期级联筛选面板 (Date Cascade Filter Panel)
-// ============================================================================
-// 功能：提供年/季/月/周/周几的五级级联日期筛选 UI。用户选中上级后，下级
-//       按钮才可点击（disabled 状态切换），支持多选。最后通过 getQueryRangeFromDateSelection
-//       将选中项合并为一个日期范围用于查询。
-// 依赖：DateUtils (common-process.js) - 日期范围计算工具
-//       CONFIG.YEAR_LIST (plugin-configs.js) - 年份列表
-// 调用方：panel.js - 与 quick-botton-bar 互斥使用
-// ============================================================================
+/**
+ * 文件：src/panel/bars/date-botton-bar.js
+ * 描述：年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询。
+ *       用户选中上级后下级才可点击（disabled 状态切换），支持多选。
+ *       通过 getQueryRangeFromDateSelection 将选中项合并为一个日期范围用于查询。
+ * 所属模块：panel/bars
+ * 依赖：
+ *   - DateUtils (common-process.js): 日期范围计算工具
+ *   - CONFIG.YEAR_LIST (plugin-configs.js): 年份列表
+ *   - panel.js: 全局状态 state（dateState, filterCache 等）
+ * 对外导出：resetCascadeDateUI, getQueryRangeFromDateSelection, buildDateCascadePanel
+ * 注意事项：与 quick-botton-bar 互斥使用；任何选中变化立即清空 filterCache.fingerprint
+ * @see .cline/skills/code/panel/bars/date-botton-bar.md
+ */
 
 /* @skill-sig file src/panel/bars/date-botton-bar.js - 年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询 */
 /* @skill-api
@@ -33,6 +37,13 @@
    updateDateButtonStyles(state) : void                          - 刷新级联按钮样式和 disabled 状态
    getQueryRangeFromDateSelection(state) : {start,end}|null      - 将级联选择转换为日期范围
    buildDateCascadePanel(container, dv, state) : void            - 构建级联筛选面板 UI
+*/
+/* @skill-anchor
+   clearCascadeSelections - 清空所有级联选择（内部函数）
+   resetCascadeDateUI - 公开的级联重置接口
+   updateDateButtonStyles - 刷新级联按钮样式和 disabled 状态
+   getQueryRangeFromDateSelection - 将级联选择转换为日期范围查询对象
+   buildDateCascadePanel - 构建年/季/月/周/周几五级级联日期筛选面板
 */
 /* @skill-dom
    .filter-section (容器)
@@ -65,6 +76,7 @@ import { DateUtils } from "../../tasks/process/common-process";
  * 清除所有级联选择（重置为空白状态）
  * @param {Object} state - 全局状态对象
  */
+/* @skill-anchor: clearCascadeSelections */
 function clearCascadeSelections(state) {
 	state.dateState.selections = {
 		years: {},
@@ -77,6 +89,7 @@ function clearCascadeSelections(state) {
 }
 
 /** 公开的级联清除接口，供外部重置时调用 */
+/* @skill-anchor: resetCascadeDateUI */
 export function resetCascadeDateUI(state) {
 	clearCascadeSelections(state);
 }
@@ -86,6 +99,7 @@ export function resetCascadeDateUI(state) {
  * 核心逻辑：只有上层选了且仅选 1 个时，下层才可点击
  * @param {Object} state - 全局状态对象
  */
+/* @skill-anchor: updateDateButtonStyles */
 function updateDateButtonStyles(state) {
 	const s = state.dateState.selections;
 
@@ -186,6 +200,7 @@ function updateDateButtonStyles(state) {
  * @param {Object} state - 全局状态对象
  * @returns {{ start: Date, end: Date } | null} 日期范围，无选择时返回 null
  */
+/* @skill-anchor: getQueryRangeFromDateSelection */
 export function getQueryRangeFromDateSelection(state) {
 	const s = state.dateState.selections;
 	const years = Object.keys(s.years);
@@ -291,6 +306,7 @@ export function getQueryRangeFromDateSelection(state) {
  * @param {Object} dv - Dataview 实例
  * @param {Object} state - 全局状态对象（需包含 dateState, filterCache）
  */
+/* @skill-anchor: buildDateCascadePanel */
 export function buildDateCascadePanel(container, dv, state) {
 	const dateSection = dv.el("div", "", { cls: "filter-section" });
 

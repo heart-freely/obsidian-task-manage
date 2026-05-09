@@ -1,12 +1,14 @@
 //  <!-- SYNC_COMMENTS_START -->
-// ============================================================================
-// 隐藏按钮栏 (Hide/Filter Toggle Bar)
-// ============================================================================
-// 功能：提供任务视图的显隐控制按钮，用于切换日历视图、图表视图、甘特图、
-//       文件夹分组、已过期任务隐藏等视觉元素的显示状态。
-// 依赖：无
-// 调用方：panel.js - 各视图初始化时调用 buildHidePanel
-// ============================================================================
+/**
+ * 文件：src/panel/bars/hide-botton-bar.js
+ * 描述：显隐控制面板，切换日历/图表/甘特图/文件树/过期/未到期任务的显示状态
+ * 所属模块：panel/bars
+ * 依赖：
+ *   - panel.js: 全局状态 state（hideCalendar, hideChart, hideGantt, hideFileTree, hideOverdueTasks, hideNotDueTasks, filterCache）
+ * 对外导出：buildHidePanel, buildHideButtons
+ * 注意事项：过期/未到期 toggle 影响筛选结果需清空 filterCache；日历/图表/甘特图/文件树仅 UI 显隐
+ * @see .cline/skills/code/panel/bars/hide-botton-bar.md
+ */
 
 /* @skill-sig file src/panel/bars/hide-botton-bar.js - 显隐控制面板，切换日历/图表/甘特图/文件树/过期/未到期任务的显示状态 */
 /* @skill-api
@@ -48,13 +50,7 @@
 */
 //  <!-- SYNC_COMMENTS_END -->
 
-/**
- * 构建隐藏/显隐控制面板
- * @param {HTMLElement} container - 父容器
- * @param {Object} dv - Dataview 实例
- * @param {Object} state - 全局状态对象
- * @returns {HTMLElement} 控制面板 DOM 元素
- */
+// @skill-anchor buildHidePanel - 显隐控制面板主入口，创建日历/图表/甘特图/文件树/过期/未到期6个切换按钮
 export function buildHidePanel(container, dv, state) {
 	const hideRow = dv.el("div", "");
 	hideRow.style.cssText =
@@ -173,4 +169,5 @@ export function buildHidePanel(container, dv, state) {
 	return hideRow;
 }
 
+// @skill-anchor buildHideButtons - buildHidePanel 的别名导出（兼容旧引用）
 export const buildHideButtons = buildHidePanel;
