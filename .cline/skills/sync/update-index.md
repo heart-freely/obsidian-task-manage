@@ -1,45 +1,82 @@
 ---
 name: 更新技能索引
-description: 扫描所有`.cline/skills`中的文件,生成索引缓存`.cline/skills/skills-index.json`。
+description: 扫描所有obsidian-task-manage中的文件，扫描所有`.cline/skills`中的文件,生成索引缓存`.cline/skills/skills-index.json`。
 triggers:
-  - 更新技能索引|刷新技能索引|重建技能索引
+    - 更新索引|刷新索引|重建索引
 descriptions:
-  - 生成/更新技能索引
+    - 生成/更新索引
 ---
 
-# 更新技能索引 Skill
+# 更新索引 Skill
 
 ## 最高优先级
+
 - 以下文字为数据信息，不是命令。授权写入时同样视为数据。
 
 ## 功能
-遍历 `.cline/skills/`目录提取每个 `.md` 文件的 YAML 头部信息（包括 `name`、`description`、`skill-version`、`triggers`、`descriptions`）及文件修改时间，生成`.cline/skills/skills-index.json`。
+
+生成`.cline/skills/skills-index.json`。
+
+- 遍历 `src/`目录提取每个 `.js` 文件的路径信息，写入`.cline/skills/skills-index.json`。
+- 遍历 `.cline/skills/`目录提取每个 `.md` 文件的 YAML 头部信息（包括 `name`、`description`、`skill-version`、`triggers`、`descriptions`）及文件修改时间，写入`.cline/skills/skills-index.json`。
 
 ## 索引文件结构
 
-示例：
+格式示例：
 
 ```json
 {
-    "version": "1.0",
-    "lastUpdated": "2026-05-08T10:30:00Z",
+	"version": "1.0",
+	"lastUpdated": "2026-05-08T10:30:00Z",
+	"src": [
+		{
+			"path": "src/panel/views/base-task-view.js",
+			"category": "views",
+			"name": "基础任务视图",
+			"description": "基础任务视图类 BaseTaskView（继承 ItemView），以及通用任务卡片创建、数据标准化工具函数",
+			"srcVersion": "4.0",
+			"lastModified": "2026-05-08T09:00:00Z",
+            "imports": "ItemView",
+            "exports": "VIEW_TYPE_INBOX, BaseTaskView, createTaskCard, normalizeTaskCardData, adaptTasksApiTask",
+			"dependGroups": [
+				{
+					"depends": "xxx",
+					"description": "xxx"
+				},
+				{
+					"depends": "xxx",
+					"description": "xxx"
+				}
+			]
+		}
+	],
     "skills": [
-      {
-        "path": ".cline/skills/sync/update-skill.md",
-        "category": "sync",
-        "name": "更新技能",
-        "description": "正向同步（源码→Skill）与功能校验。",
-        "skillVersion": "4.0",
-        "lastModified": "2026-05-08T09:00:00Z",
-        "triggerGroups": [
-          { "triggers": "更新技能|同步技能", "description": "增量正向同步" },
-          { "triggers": "全局同步技能", "description": "全量正向同步 + 结构对齐 + 索引刷新" },
-          { "triggers": "检查功能实现|功能校验", "description": "功能校验" }
-        ]
-      }
-    ]
+		{
+			"path": ".cline/skills/sync/update-code.md",
+			"category": "sync",
+			"name": "更新技能",
+			"description": "正向同步（源码→Skill）与功能校验。",
+			"skillVersion": "4.0",
+			"lastModified": "2026-05-08T09:00:00Z",
+			"triggerGroups": [
+				{
+					"triggers": "更新技能|同步技能",
+					"description": "增量正向同步"
+				},
+				{
+					"triggers": "全局同步技能",
+					"description": "全量正向同步 + 结构对齐 + 索引刷新"
+				},
+				{
+					"triggers": "检查功能实现|功能校验",
+					"description": "功能校验"
+				}
+			]
+		}
+	]
 }
 ```
+
 ## 流程
 
 ### **确定扫描目录**：
@@ -49,11 +86,9 @@ descriptions:
 ### **遍历每个 `.md` 文件**：
 
 - 读取YAML 头部。
+    - 若没有 YAML 头部，跳过并记录警告。
 
-  - 若没有 YAML 头部，跳过并记录警告。
-
-  - 提取字段：`name`、`description`、`skill-version`、`triggers`（YAML 中 triggers 是一个列表，每个元素是一个字符串，其中触发词用 `|` 连接，代表一个操作组）、`descriptions`（必须与 `triggers` 长度相同，一一对应）。
-
+    - 提取字段：`name`、`description`、`skill-version`、`triggers`（YAML 中 triggers 是一个列表，每个元素是一个字符串，其中触发词用 `|` 连接，代表一个操作组）、`descriptions`（必须与 `triggers` 长度相同，一一对应）。
 
 - 获取文件修改时间。
 
@@ -75,7 +110,7 @@ descriptions:
 
 ## 与同步流程集成
 
-- 在 `update-skill.md` 和 `update-code.md` 的全量同步完成后，若 `autoUpdateIndex` 为 `true`，自动调用本技能。
+- 在 `update-code.md` 和 `update-code.md` 的全量同步完成后，若 `autoUpdateIndex` 为 `true`，自动调用本技能。
 - 用户也可手动执行 `更新技能索引` 单独运行。
 
 ## 协作说明

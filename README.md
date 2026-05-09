@@ -106,8 +106,8 @@ root/
 │   │   │   └── tree-task-process.js
 │   │   └── write/
 │   │       └── write-tasks.js         # 任务写入：文件修改、快照生成与恢复
-│   ├── storage/
-│   │   └── persist-storage.js         # 导航中心状态持久化（createInitialState / PersistenceManager）
+│   ├── storages/
+│   │   └── persist-storages.js         # 导航中心状态持久化（createInitialState / PersistenceManager）
 │   ├── echarts/
 │   │   └── echarts.js                 # ECharts 本地封装
 │   └── utils/

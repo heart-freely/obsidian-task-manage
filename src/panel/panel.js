@@ -51,7 +51,7 @@ import {
 	getEffectiveDateRange,
 	getFilterFingerprint,
 	PersistenceManager,
-} from "../storages/persist-storage";
+} from "../storages/persist-storages";
 import { DateUtils } from "../tasks/process/common-process";
 import { filterTasks } from "../tasks/process/filter-task-process";
 import {

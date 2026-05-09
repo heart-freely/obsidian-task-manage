@@ -273,8 +273,22 @@ export const ALL_MARKS = Object.keys(MARK_NAMES);
  * @property {Object} SORT_TYPES - 排序类型常量
  * @property {Object} INTERVAL_MODES - 时间区间模式常量
  * @property {Object} DEFAULT_FILTER_STATE - 默认过滤状态
+ * @property {Object} SKILL_FILES - 源码文件到 Skill 文档的路径映射
  */
 export const CONFIG = {
+	SKILL_FILES: {
+		"src/configs/plugin-configs.js":
+			".cline/skills/code/configs/plugin-configs.md",
+		"src/panel/bars/control-botton-bar.js":
+			".cline/skills/code/bars/control-botton-bar.md",
+		"src/panel/bars/date-botton-bar.js":
+			".cline/skills/code/bars/date-botton-bar.md",
+		"src/panel/bars/hide-botton-bar.js":
+			".cline/skills/code/bars/hide-botton-bar.md",
+		"src/panel/bars/mark-botton-bar.js":
+			".cline/skills/code/bars/mark-botton-bar.md",
+		"src/echarts/echarts.js": ".cline/skills/code/echarts/echarts.md",
+	},
 	TASK_FOLDERS,
 	FILE_NAME_PATTERN,
 	ROOT_PATH,

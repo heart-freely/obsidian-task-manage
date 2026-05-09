@@ -51,7 +51,7 @@ descriptions:
  *   - createTaskCard: 标准任务卡片生成器
  * 对外导出：VIEW_TYPE_INBOX, InboxTaskView
  * 注意事项：该视图无内部状态，纯展示
- * @see .cline/skills/code/views/inbox-task-view.md
+ * @see .cline/skills/code/panel/views/inbox-task-view.md
  */
 ```
 
@@ -189,15 +189,13 @@ function functionName() { ... }
 对指定文件或所有缺失头部的 `src/` 文件，生成符合注释规范的注释。
 
 1. **自动添加注释**
-    
     1. 为所有核心函数/DOM/状态等添加标准化标签。
     2. 已有注释仅补全缺失字段。缺失头部字段的补全
-    
+
 1. **更新缓存注释**：
-    
     1. 将本次处理文件的 `@skill-*` 标签位置写入 `.cline/skills/cache/parsed_cache.json`，每个条目包含 `mtime` 和 `hash`。
     2. 每次更新 annotations 全部清空后重写，而非增量追加。
-    
+
     完成后**不自动校验**，但会更新缓存。
 
 ### 三、全局更新注释（`全局更新注释`）
@@ -261,6 +259,7 @@ function functionName() { ... }
 
     - 注释位置
         - 是否在源文件头部
+
 4. 重新添加符合规范的注释
     1. 不符合规范的注释，被完全删除的注释，重新添加符合规范的注释。
 5. 预览后用户确认写入，并更新缓存。
@@ -274,7 +273,7 @@ function functionName() { ... }
 ## 协作与安全
 
 - 本 Skill 只负责源码注释的增删改查及格式校验，**不负责读取 Skill 文档**。
-- 正向同步（源码→Skill）应由 `update-skill.md` 读取缓存进行更新。
+- 正向同步（源码→Skill）应由 `update-code.md` 读取缓存进行更新。
 - 反向同步（Skill→源码）应由 `update-code.md` 调用本 Skill 的注释更新能力。
 - **关键操作需用户确认**：删除、全局更新、全局修正、修改 `sync/` 目录下的文件。
 - 自动填充不确定内容时标记 `[待补充]`。

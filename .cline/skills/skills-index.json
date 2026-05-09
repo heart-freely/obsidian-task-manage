@@ -1,592 +1,923 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-08T07:50:09Z",
+  "lastUpdated": "2026-05-09T00:55:03Z",
+  "src": [
+    {
+      "path": "src/configs/plugin-configs.js",
+      "category": "configs",
+      "name": "Plugin Configs",
+      "description": "文件：src/configs/plugin-configs.js",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T21:32:59Z",
+      "imports": [],
+      "exports": [
+        "TASK_FOLDERS",
+        "FILE_NAME_PATTERN",
+        "ROOT_PATH",
+        "TASK_FOLDER_PATH",
+        "TASK_FILENAME_REGEX_TASKS",
+        "TASK_FILENAME_REGEXP",
+        "ALLOWED_STATUSES",
+        "STATUS_NAMES",
+        "STATUS_ICONS",
+        "STATUS_SORT_ORDER",
+        "STATUS_SYMBOL_MAP",
+        "PRIORITY_ORDER",
+        "PRIORITY_COLORS",
+        "PRIORITY_ICONS",
+        "PRIORITY_LABELS",
+        "PRIORITY_NAME_MAP",
+        "REPEAT_ORDER",
+        "REPEAT_COLORS",
+        "REPEAT_ICON",
+        "REPEAT_LABELS",
+        "DATE_MARK_ORDER",
+        "DATE_MARK_ICONS",
+        "DATE_MARK_NAMES",
+        "DATE_FIELD_SORT_ORDER",
+        "ID_ICON",
+        "DEPENDS_ICON",
+        "TAG_ICON",
+        "TASK_MARK_SEQUENCE",
+        "MARK_NAMES",
+        "ALL_MARKS",
+        "CONFIG",
+        "DEFAULT_SETTINGS"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/echarts/echarts.js",
+      "category": "echarts",
+      "name": "ensureEcharts",
+      "description": "ECharts 封装模块，导入 ECharts 库并确保全局可用，兼容旧代码中 window.echarts 引用 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:46:01Z",
+      "imports": [
+        "echarts"
+      ],
+      "exports": [
+        "ensureEcharts",
+        "echarts"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/main.js",
+      "category": "main.js",
+      "name": "TaskDataViewPlugin",
+      "description": "插件主类，继承 Obsidian Plugin，管理生命周期 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:31:56Z",
+      "imports": [
+        "obsidian",
+        "./configs/plugin-configs",
+        "./panel/panel",
+        "./panel/views/calendar-task-view",
+        "./panel/views/depends-task-view",
+        "./panel/views/future-task-all-view",
+        "./panel/views/future-task-n-view",
+        "./panel/views/gantt-task-view",
+        "./panel/views/important-task-view",
+        "./panel/views/inbox-task-view",
+        "./panel/views/organize-task-view",
+        "./panel/views/overdue-task-view",
+        "./panel/views/pomodoro-task-view",
+        "./panel/views/recurring-task-view",
+        "./panel/views/table-task-view",
+        "./panel/views/tag-task-view",
+        "./panel/views/timeline-task-view",
+        "./panel/views/today-task-view",
+        "./panel/views/tree-task-view",
+        "./utils/logger"
+      ],
+      "exports": [
+        "TaskDataViewPlugin"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/bars/control-botton-bar.js",
+      "category": "panel",
+      "name": "buildControlPanel",
+      "description": "控制按钮栏，提供全局任务视图控制按钮（刷新、间隔模式、显隐切换、重置清除） */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:37:44Z",
+      "imports": [
+        "../../configs/plugin-configs"
+      ],
+      "exports": [
+        "buildControlPanel"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/bars/date-botton-bar.js",
+      "category": "panel",
+      "name": "clearCascadeSelections",
+      "description": "年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:38:21Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../tasks/process/common-process"
+      ],
+      "exports": [
+        "resetCascadeDateUI",
+        "getQueryRangeFromDateSelection",
+        "buildDateCascadePanel"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/bars/hide-botton-bar.js",
+      "category": "panel",
+      "name": "buildHidePanel",
+      "description": "显隐控制面板，切换日历/图表/甘特图/文件树/过期/未到期任务的显示状态 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:34:44Z",
+      "imports": [],
+      "exports": [
+        "buildHidePanel",
+        "buildHideButtons"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/bars/mark-botton-bar.js",
+      "category": "panel",
+      "name": "buildMarkPanel",
+      "description": "标签筛选面板，支持全部/单标签模式切换，点击清空缓存触发重新筛选 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:40:05Z",
+      "imports": [],
+      "exports": [
+        "buildMarkPanel",
+        "buildMarkFilterPanel"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/bars/quick-botton-bar.js",
+      "category": "panel",
+      "name": "clearQuickHighlights",
+      "description": "快速日期筛选面板，提供常用日期范围的快速筛选按钮及缓存状态恢复 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:37:02Z",
+      "imports": [
+        "../../tasks/process/common-process"
+      ],
+      "exports": [
+        "clearQuickHighlights",
+        "resetQuickDateUI",
+        "restoreQuickButton",
+        "buildQuickDatePanel"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/bars/side-botton-bar.js",
+      "category": "panel",
+      "name": "buildSideButtonBar",
+      "description": "侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:49:09Z",
+      "imports": [],
+      "exports": [
+        "buildSideButtonBar",
+        "buildViewSwitcher"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/bars/sort-botton-bar.js",
+      "category": "panel",
+      "name": "buildSortPanel",
+      "description": "排序控制面板，提供按多种字段排序及升降序切换功能 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:47:19Z",
+      "imports": [],
+      "exports": [
+        "buildSortPanel",
+        "buildSortRow"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/components/tree-view-components.js",
+      "category": "panel",
+      "name": "TaskTreeRenderer",
+      "description": "任务树渲染器 TaskTreeRenderer 类，将扁平任务构建为文件目录树，支持折叠/展开/排序/过滤/统计 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:57:37Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../views/tree-task-view"
+      ],
+      "exports": [
+        "TaskTreeRenderer"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/interacts/chart-interact.js",
+      "category": "panel",
+      "name": "initChartInteractions",
+      "description": "图表区交互模块，提供 Alt+滚轮缩放、分隔条拖拽、ResizeObserver 自适应 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:47:44Z",
+      "imports": [
+        "../../tasks/process/common-process"
+      ],
+      "exports": [
+        "initChartInteractions"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/interacts/tooltip-interact.js",
+      "category": "panel",
+      "name": "TooltipManager",
+      "description": "TooltipManager 类，全局工具提示管理器，提供显隐/移动/内容更新能力 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:48:00Z",
+      "imports": [],
+      "exports": [
+        "TooltipManager"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/panel.js",
+      "category": "panel",
+      "name": "NavigatorView",
+      "description": "文件：src/panel/panel.js",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T21:56:41Z",
+      "imports": [
+        "obsidian",
+        "../configs/plugin-configs",
+        "../storages/persist-storages",
+        "../tasks/process/common-process",
+        "../tasks/process/filter-task-process",
+        "../tasks/process/task-query-process",
+        "../tasks/read/read-tasks",
+        "./bars/control-botton-bar",
+        "./bars/date-botton-bar",
+        "./bars/hide-botton-bar",
+        "./bars/mark-botton-bar",
+        "./bars/quick-botton-bar",
+        "./bars/side-botton-bar",
+        "./bars/sort-botton-bar",
+        "./components/tree-view-components",
+        "./interacts/tooltip-interact",
+        "./views/base-list-view",
+        "./views/base-task-view",
+        "./views/data-tasks-view",
+        "./views/kanban-task-view",
+        "./views/matrix-task-view"
+      ],
+      "exports": [
+        "NavigatorView",
+        "VIEW_TYPE_NAVIGATOR"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/base-list-view.js",
+      "category": "panel",
+      "name": "mapSymbolToStatus",
+      "description": "文件：src/panel/views/base-list-view.js",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:01:29Z",
+      "imports": [
+        "./base-task-view"
+      ],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/base-table-view.js",
+      "category": "panel",
+      "name": "Base Table View",
+      "description": "",
+      "srcVersion": "1.0",
+      "lastModified": "2026-04-27T12:10:22Z",
+      "imports": [],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/base-task-view.js",
+      "category": "panel",
+      "name": "BaseTaskView",
+      "description": "任务视图基类，所有具体任务视图均继承此类 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:35:27Z",
+      "imports": [
+        "obsidian",
+        "../../configs/plugin-configs",
+        "../../tasks/read/read-tasks"
+      ],
+      "exports": [
+        "BaseTaskView",
+        "createTaskCard",
+        "normalizeTaskCardData",
+        "adaptTasksApiTask"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/calendar-task-view.js",
+      "category": "panel",
+      "name": "CalendarTaskView",
+      "description": "安全包装全局状态，提供默认值 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:45:36Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../tasks/process/common-process",
+        "../../tasks/read/read-tasks",
+        "./base-task-view"
+      ],
+      "exports": [
+        "CalendarTaskView",
+        "VIEW_TYPE_CALENDAR"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/data-tasks-view.js",
+      "category": "panel",
+      "name": "drawCharts",
+      "description": "item 容器，添加标题 + 可选 zoom 按钮 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:47:37Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../echarts/echarts",
+        "../../tasks/process/calcul-chart-process"
+      ],
+      "exports": [
+        "drawCharts"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/depends-task-view.js",
+      "category": "panel",
+      "name": "DependsTaskView",
+      "description": "依赖任务视图，展示所有设置了 forbid（引用/依赖）标记的任务 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:52:07Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../tasks/read/read-tasks",
+        "./base-task-view"
+      ],
+      "exports": [
+        "DependsTaskView",
+        "VIEW_TYPE_DEPENDS"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/edit-tasks-view.js",
+      "category": "panel",
+      "name": "EditTaskView",
+      "description": "任务编辑视图，提供批量编辑任务标记（优先级/日期/标签等）的界面 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:49:21Z",
+      "imports": [
+        "../../tasks/read/read-tasks",
+        "./base-task-view"
+      ],
+      "exports": [
+        "EditTaskView",
+        "VIEW_TYPE_EDIT"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/future-task-all-view.js",
+      "category": "panel",
+      "name": "FutureAllTaskView",
+      "description": "未来所有任务视图，展示截止日期/计划日期在当前时间之后的所有任务列表 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:53:43Z",
+      "imports": [
+        "../../tasks/process/task-query-process",
+        "./base-list-view",
+        "./base-task-view"
+      ],
+      "exports": [
+        "FutureAllTaskView",
+        "VIEW_TYPE_FUTURE_ALL"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/future-task-n-view.js",
+      "category": "panel",
+      "name": "FutureNTaskView",
+      "description": "未来N天任务视图，展示未来15天内的任务列表 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:52:55Z",
+      "imports": [
+        "../../tasks/process/task-query-process",
+        "./base-list-view",
+        "./base-task-view"
+      ],
+      "exports": [
+        "FutureNTaskView",
+        "VIEW_TYPE_FUTURE_N"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/gantt-task-view.js",
+      "category": "panel",
+      "name": "GanttTaskView",
+      "description": "启动甘特图视图 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:41:09Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../tasks/process/common-process",
+        "../../tasks/read/read-tasks",
+        "./base-task-view"
+      ],
+      "exports": [
+        "GanttTaskView",
+        "VIEW_TYPE_GANTT"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/important-task-view.js",
+      "category": "panel",
+      "name": "ImportantTaskView",
+      "description": "重要任务视图，三列网格按状态分组展示标记为重要的任务 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:55:13Z",
+      "imports": [
+        "../../tasks/process/task-query-process",
+        "./base-task-view"
+      ],
+      "exports": [
+        "ImportantTaskView",
+        "VIEW_TYPE_IMPORTANT"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/inbox-task-view.js",
+      "category": "panel",
+      "name": "InboxTaskView",
+      "description": "收集箱视图，两列网格按状态分组展示待处理任务 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:34:45Z",
+      "imports": [
+        "../../tasks/process/inbox-task-process",
+        "./base-task-view"
+      ],
+      "exports": [
+        "InboxTaskView",
+        "VIEW_TYPE_INBOX"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/kanban-task-view.js",
+      "category": "panel",
+      "name": "Kanban Task View",
+      "description": "渲染看板三列视图，首次动态注入 kanban 样式 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:50:55Z",
+      "imports": [
+        "../../tasks/process/kanban-task-process",
+        "./base-task-view"
+      ],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/matrix-task-view.js",
+      "category": "panel",
+      "name": "Matrix Task View",
+      "description": "启动艾森豪威尔矩阵视图 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:42:13Z",
+      "imports": [
+        "../../tasks/process/matrix-task-process",
+        "./base-task-view"
+      ],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/organize-task-view.js",
+      "category": "panel",
+      "name": "OrganizeTaskView",
+      "description": "任务整理箱视图，提供四级模式过滤任务、批量编辑标记/日期/优先级/标签、预览修改并批量写入文件 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T12:05:02Z",
+      "imports": [
+        "../../tasks/process/organize-task-process",
+        "../../tasks/read/read-tasks",
+        "./base-task-view"
+      ],
+      "exports": [
+        "OrganizeTaskView",
+        "VIEW_TYPE_ORGANIZE"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/overdue-task-view.js",
+      "category": "panel",
+      "name": "OverdueTaskView",
+      "description": "逾期任务视图，展示已过截止日期的任务列表 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:55:53Z",
+      "imports": [
+        "../../tasks/process/task-query-process",
+        "./base-list-view",
+        "./base-task-view"
+      ],
+      "exports": [
+        "OverdueTaskView",
+        "VIEW_TYPE_OVERDUE"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/pomodoro-task-view.js",
+      "category": "panel",
+      "name": "PomodoroTaskView",
+      "description": "番茄钟统计视图（占位），展示即将上线提示 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:43:13Z",
+      "imports": [
+        "./base-task-view"
+      ],
+      "exports": [
+        "PomodoroTaskView",
+        "VIEW_TYPE_POMODORO"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/recurring-task-view.js",
+      "category": "panel",
+      "name": "RecurringTaskView",
+      "description": "循环任务视图，三列网格按频率分组展示循环任务 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:56:54Z",
+      "imports": [
+        "../../tasks/process/recurring-task-process",
+        "./base-task-view"
+      ],
+      "exports": [
+        "RecurringTaskView",
+        "VIEW_TYPE_RECURRING"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/table-task-view.js",
+      "category": "panel",
+      "name": "TableTaskView",
+      "description": "表格视图，以可配置列的可滚动表格展示所有任务，支持列显示/隐藏切换、点击列排序、点击描述跳转到文件 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:59:13Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../tasks/process/task-query-process",
+        "./base-task-view"
+      ],
+      "exports": [
+        "TableTaskView",
+        "VIEW_TYPE_TABLE"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/tag-task-view.js",
+      "category": "panel",
+      "name": "TagTaskView",
+      "description": "启动标签任务视图 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:38:18Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../tasks/read/read-tasks",
+        "./base-task-view"
+      ],
+      "exports": [
+        "TagTaskView",
+        "VIEW_TYPE_TAG"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/timeline-task-view.js",
+      "category": "panel",
+      "name": "TimelineTaskView",
+      "description": "时间线任务视图，按日期轴展示任务的时间分布 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:57:53Z",
+      "imports": [
+        "../../tasks/process/task-query-process",
+        "./base-task-view"
+      ],
+      "exports": [
+        "TimelineTaskView",
+        "VIEW_TYPE_TIMELINE"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/today-task-view.js",
+      "category": "panel",
+      "name": "TodayTaskView",
+      "description": "今天任务视图，三列网格按状态分组展示当天任务 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:36:17Z",
+      "imports": [
+        "../../tasks/process/task-query-process",
+        "./base-task-view"
+      ],
+      "exports": [
+        "TodayTaskView",
+        "VIEW_TYPE_TODAY"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/tree-task-view.js",
+      "category": "panel",
+      "name": "Tree Task View",
+      "description": "启动树状视图 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:37:06Z",
+      "imports": [
+        "../../tasks/process/task-query-process"
+      ],
+      "exports": [
+        "renderTreePanel",
+        "TreeTaskView",
+        "VIEW_TYPE_TREE"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/panel/views/view-list-tasks.js",
+      "category": "panel",
+      "name": "View List Tasks",
+      "description": "文件：src/panel/views/view-list-tasks.js",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T11:44:05Z",
+      "imports": [],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/storages/persist-storages.js",
+      "category": "storages",
+      "name": "PersistenceManager",
+      "description": "持久化管理与状态创建模块，提供初始状态创建、过滤指纹生成、日期范围获取以及 PersistenceManager 类 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:06:15Z",
+      "imports": [
+        "../configs/plugin-configs"
+      ],
+      "exports": [
+        "PersistenceManager",
+        "createInitialState",
+        "getFilterFingerprint",
+        "getEffectiveDateRange"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/calcul-chart-process.js",
+      "category": "tasks",
+      "name": "computeTotalSpanDays",
+      "description": "图表数据纯计算模块，提供甘特图跨度/任务时长/每日状态堆叠等统计计算，不修改入参，不涉及 Obsidian API */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:10:50Z",
+      "imports": [
+        "../../configs/plugin-configs"
+      ],
+      "exports": [
+        "computeTotalSpanDays",
+        "calcPlannedDuration",
+        "calcActualDuration",
+        "calcTotalSpanHours",
+        "prepareDailyStatusStack"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/common-process.js",
+      "category": "tasks",
+      "name": "throttleByFrame",
+      "description": "纯工具函数集，提供日期操作(DateUtils)、帧节流(throttleByFrame)和简易 DOM 创建(createEl)，无外部依赖 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:12:43Z",
+      "imports": [],
+      "exports": [
+        "throttleByFrame",
+        "createEl",
+        "DateUtils"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/filter-task-process.js",
+      "category": "tasks",
+      "name": "filterTasks",
+      "description": "多条件任务过滤核心，基于日期范围/状态/标记/路径/重复/完成/取消等维度过滤，被所有视图复用 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:08:47Z",
+      "imports": [
+        "../../configs/plugin-configs"
+      ],
+      "exports": [
+        "filterTasks"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/inbox-task-process.js",
+      "category": "tasks",
+      "name": "processInboxTasks",
+      "description": "任务收件箱模块，提供收件箱任务的获取与分组处理能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:13:17Z",
+      "imports": [
+        "../../configs/plugin-configs"
+      ],
+      "exports": [
+        "processInboxTasks"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/kanban-task-process.js",
+      "category": "tasks",
+      "name": "processKanbanTasks",
+      "description": "看板任务处理模块，提供看板视图所需的任务获取、分组与列定义，颜色使用半透明配色与矩阵视图风格统一 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:14:12Z",
+      "imports": [
+        "../../configs/plugin-configs"
+      ],
+      "exports": [
+        "processKanbanTasks",
+        "KANBAN_COLUMNS"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/matrix-task-process.js",
+      "category": "tasks",
+      "name": "formatDate",
+      "description": "艾森豪威尔矩阵任务处理模块，提供四象限任务获取、分组与排序能力，优先级映射采用局部常量不含全局配置，使用 Map 缓存日期格式化结果 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:14:49Z",
+      "imports": [
+        "../../configs/plugin-configs"
+      ],
+      "exports": [
+        "fetchRawTasks",
+        "processTasks",
+        "sortTasks"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/organize-task-process.js",
+      "category": "tasks",
+      "name": "isIncomplete",
+      "description": "DD，快照存储在 localStorage */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:15:29Z",
+      "imports": [
+        "../read/read-tasks"
+      ],
+      "exports": [
+        "isIncomplete",
+        "isCompleted",
+        "hasEssentialTags",
+        "loadSnapshots",
+        "saveSnapshots",
+        "addSnapshot",
+        "Op"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/recurring-task-process.js",
+      "category": "tasks",
+      "name": "classifyRecurrence",
+      "description": "循环任务处理模块，从 Obsidian Tasks 插件查询并分组(每天/每周/每月)循环任务 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:19:25Z",
+      "imports": [
+        "../../configs/plugin-configs"
+      ],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/task-query-process.js",
+      "category": "tasks",
+      "name": "baseQuery",
+      "description": "任务查询入口模块，基于 Obsidian Tasks 插件 API，提供按标签/日期/状态/优先级等维度的任务查询能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:11:43Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../tasks/read/read-tasks"
+      ],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/process/tree-task-process.js",
+      "category": "tasks",
+      "name": "Tree Task Process",
+      "description": "",
+      "srcVersion": "1.0",
+      "lastModified": "2026-04-26T22:40:13Z",
+      "imports": [],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/read/read-tasks.js",
+      "category": "tasks",
+      "name": "getTaskStatus",
+      "description": "任务读取和解析模块，提供正则标记集合(RX)、任务状态判断、属性提取等功能 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T10:40:50Z",
+      "imports": [
+        "../../configs/plugin-configs",
+        "../../utils/logger",
+        "../process/common-process"
+      ],
+      "exports": [
+        "getTaskStatus",
+        "getStatusIcon",
+        "isTaskToday",
+        "computeTaskTimeRange",
+        "ensureTaskProperties",
+        "getAllTasks",
+        "RX"
+      ],
+      "dependGroups": []
+    },
+    {
+      "path": "src/tasks/write/write-tasks.js",
+      "category": "tasks",
+      "name": "Write Tasks",
+      "description": "任务写入工具模块（预留占位），提供将任务数据写入/更新到 Obsidian 文件的功能 */",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T10:41:25Z",
+      "imports": [],
+      "exports": [],
+      "dependGroups": []
+    },
+    {
+      "path": "src/utils/logger.js",
+      "category": "utils",
+      "name": "isProduction",
+      "description": "文件：src/utils/logger.js",
+      "srcVersion": "1.0",
+      "lastModified": "2026-05-08T13:04:49Z",
+      "imports": [],
+      "exports": [],
+      "dependGroups": []
+    }
+  ],
   "skills": [
     {
-      "path": ".cline/skills/code/configs/plugin-configs.md",
+      "path": ".cline/skills/code/tasks/process/inbox-task-process.md",
       "category": "code",
-      "name": "插件全局配置",
-      "description": "全局常量、映射表、默认分页大小、颜色等",
+      "name": "收件箱任务处理",
+      "description": "收件箱任务获取与分组处理，依赖 obsidian-tasks-plugin 查询未完成、非重复、待处理/计划中的任务",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:49:42Z",
+      "lastModified": "2026-05-08T22:33:22Z",
       "triggerGroups": [
         {
-          "triggers": "修改全局配置",
-          "description": ""
+          "triggers": "收件箱任务查询",
+          "description": "获取收件箱任务"
         },
         {
-          "triggers": "调整常量",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/references/obsidian-plugin-basics.md",
-      "category": "code",
-      "name": "obsidian-插件开发基础参考",
-      "description": "Obsidian 插件开发的通用基础指南，包括环境配置、编译流程、API 使用与发布流程。所有视图 Skill 的共享参考。",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-05T06:10:02Z",
-      "triggerGroups": [
-        {
-          "triggers": "了解 Obsidian 插件开发环境",
-          "description": ""
-        },
-        {
-          "triggers": "查询如何注册视图或命令",
-          "description": ""
-        },
-        {
-          "triggers": "发布插件新版本",
-          "description": ""
-        },
-        {
-          "triggers": "配置 ESLint 与 GitHub Action",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/references/tasks-plugin-design.md",
-      "category": "code",
-      "name": "tasks-插件设计参考",
-      "description": "本插件中任务格式、自定义标记、emoji 映射、排序顺序等基础设计定义。所有视图 Skill 的共享数据模型参考。",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-05T05:46:57Z",
-      "triggerGroups": [
-        {
-          "triggers": "查询任务标记的格式与顺序",
-          "description": ""
-        },
-        {
-          "triggers": "了解执行状态、优先级、日期的自定义映射",
-          "description": ""
-        },
-        {
-          "triggers": "添加或修改自定义标记",
-          "description": ""
-        },
-        {
-          "triggers": "调整任务标记的排序规则",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/skill.md",
-      "category": "code",
-      "name": "任务管理插件开发架构",
-      "description": "插件整体架构、数据流、开发规范、命名规则等全局信息。所有视图 Skill 的顶层参考。",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T02:59:50Z",
-      "triggerGroups": [
-        {
-          "triggers": "了解架构",
-          "description": ""
-        },
-        {
-          "triggers": "修改核心数据流",
-          "description": ""
-        },
-        {
-          "triggers": "添加新模块",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/tasks/process/filter-task-process.md",
-      "category": "code",
-      "name": "任务筛选处理",
-      "description": "通用任务筛选函数，支持日期、状态、标记包含/排除等多条件组合",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:48:33Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改筛选逻辑",
-          "description": ""
-        },
-        {
-          "triggers": "添加筛选条件",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/tasks/tasks.md",
-      "category": "code",
-      "name": "任务数据模型",
-      "description": "Task 对象的完整字段定义、类型和说明。供所有模块引用。",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:45:17Z",
-      "triggerGroups": [
-        {
-          "triggers": "查看任务数据结构",
-          "description": ""
-        },
-        {
-          "triggers": "扩展任务字段",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/tasks/write/write.tasks.md",
-      "category": "code",
-      "name": "任务写入与快照",
-      "description": "批量修改任务、生成快照、恢复快照",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:49:13Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改任务写入逻辑",
-          "description": ""
-        },
-        {
-          "triggers": "调整快照机制",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/base-card-view.md",
-      "category": "code",
-      "name": "通用卡片工厂开发",
-      "description": "统一的任务卡片生成基类，包含数据标准化和 DOM 渲染",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T02:02:04Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改任务卡片样式",
-          "description": ""
-        },
-        {
-          "triggers": "调整卡片字段",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/base-list-view.md",
-      "category": "code",
-      "name": "通用列表工厂开发",
-      "description": "快速构建带标题、排序、分页的基础任务列表",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T02:02:04Z",
-      "triggerGroups": [
-        {
-          "triggers": "创建列表视图",
-          "description": ""
-        },
-        {
-          "triggers": "修改列表工厂",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/base-table-view.md",
-      "category": "code",
-      "name": "通用表格工厂开发",
-      "description": "快速构建带分组、可折叠的表格视图",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:54:38Z",
-      "triggerGroups": [
-        {
-          "triggers": "创建表格视图",
-          "description": ""
-        },
-        {
-          "triggers": "修改表格工厂",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/calendar-task-view.md",
-      "category": "code",
-      "name": "任务日历视图开发",
-      "description": "日/周/月/季/年多级日历视图，任务与时间段交集判断",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:55:11Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改日历视图渲染逻辑",
-          "description": ""
-        },
-        {
-          "triggers": "调整时间交集算法",
-          "description": ""
-        },
-        {
-          "triggers": "添加新视图层级",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/data-tasks-view.md",
-      "category": "code",
-      "name": "任务统计分析视图开发",
-      "description": "左侧任务树与右侧 ECharts 图表联动，支持下钻、多维度统计",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:56:30Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改统计图表类型",
-          "description": ""
-        },
-        {
-          "triggers": "添加新统计维度",
-          "description": ""
-        },
-        {
-          "triggers": "实现下钻统计",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/depends-task-view.md",
-      "category": "code",
-      "name": "任务依赖视图开发",
-      "description": "展示任务间的阻塞与被阻塞关系，支持循环依赖检测",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:57:07Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改依赖视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整依赖解析规则",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/edit-tasks-view.md",
-      "category": "code",
-      "name": "单任务编辑视图开发",
-      "description": "编辑单个任务的原始文本，保存写回源文件",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:57:30Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改单任务编辑",
-          "description": ""
-        },
-        {
-          "triggers": "调整保存机制",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/future-task-n-view.md",
-      "category": "code",
-      "name": "未来15天任务视图开发",
-      "description": "显示今天之后指定天数内的任务",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:58:05Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改未来N天视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整时间窗口大小",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/gantt-task-view.md",
-      "category": "code",
-      "name": "甘特图视图开发",
-      "description": "左侧任务树 + 右侧时间轴，支持虚拟滚动、依赖箭头",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:58:29Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改甘特图交互逻辑",
-          "description": ""
-        },
-        {
-          "triggers": "添加依赖箭头绘制",
-          "description": ""
-        },
-        {
-          "triggers": "优化虚拟滚动性能",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/important-task-view.md",
-      "category": "code",
-      "name": "重要任务视图开发",
-      "description": "筛选高优先级未完成任务",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:59:20Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改重要任务视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整优先级阈值",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/inbox-task-view.md",
-      "category": "code",
-      "name": "任务收集箱视图开发",
-      "description": "汇聚未开始与计划中的非循环任务",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:59:51Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改收件箱视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整任务收集逻辑",
-          "description": ""
-        },
-        {
-          "triggers": "添加过滤或排序",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/kanban-task-view.md",
-      "category": "code",
-      "name": "看板视图开发",
-      "description": "三列状态看板（未开始/计划中/进行中）",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:00:51Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改看板视图",
-          "description": ""
-        },
-        {
-          "triggers": "添加列或调整排序",
-          "description": ""
-        },
-        {
-          "triggers": "优化看板性能",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/matrix-task-view.md",
-      "category": "code",
-      "name": "四象限矩阵视图开发",
-      "description": "开发艾森豪威尔矩阵，按优先级划分四个象限",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T02:02:04Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改象限分配规则",
-          "description": ""
-        },
-        {
-          "triggers": "调整缓存或排序逻辑",
-          "description": ""
-        },
-        {
-          "triggers": "添加新交互",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/organize-task-view.md",
-      "category": "code",
-      "name": "任务整理箱视图开发",
-      "description": "批量编辑、补全与预览任务标记",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:02:39Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改整理箱多级筛选",
-          "description": ""
-        },
-        {
-          "triggers": "调整编辑预览逻辑",
-          "description": ""
-        },
-        {
-          "triggers": "实现撤回与快照",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/overdue-task-view.md",
-      "category": "code",
-      "name": "逾期任务视图开发",
-      "description": "显示未完成且截止日期已过的任务",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:03:07Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改逾期任务视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整逾期判定逻辑",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/pomodoro-task-view.md",
-      "category": "code",
-      "name": "番茄钟视图开发",
-      "description": "简单番茄钟计时器，关联任务 ID",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:03:23Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改番茄钟视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整计时逻辑",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/recurring-task-view.md",
-      "category": "code",
-      "name": "循环任务视图开发",
-      "description": "按优先级、周期、文件名分组展示循环任务",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:03:51Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改循环任务视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整周期分类规则",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/tag-task-view.md",
-      "category": "code",
-      "name": "标签聚合视图开发",
-      "description": "按旗帜标记聚合任务，支持多选 AND/OR 过滤",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:05:28Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改标签视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整标签过滤",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/timeline-task-view.md",
-      "category": "code",
-      "name": "任务时间轴视图开发",
-      "description": "按截止日期分组，无日期单独置底，组内按状态再分组",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:06:25Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改时间轴视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整分组或排序规则",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/today-task-view.md",
-      "category": "code",
-      "name": "今天任务视图开发",
-      "description": "显示所有与今天相关的任务（含循环任务）",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T02:02:04Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改今天任务视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整日期过滤逻辑",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/tree-task-view.md",
-      "category": "code",
-      "name": "任务树视图开发",
-      "description": "多级任务树，支持折叠/展开、导出大纲",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:08:47Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改任务树视图",
-          "description": ""
-        },
-        {
-          "triggers": "调整父子关系构建",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/view-list-tasks.md",
-      "category": "code",
-      "name": "通用任务列表渲染组件开发",
-      "description": "开发或修改通用视图列表组件，封装分页、排序 UI",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T00:04:28Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改视图列表风格",
-          "description": ""
-        },
-        {
-          "triggers": "调整列表渲染逻辑",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/code/views/views.md",
-      "category": "code",
-      "name": "视图注册中心",
-      "description": "统一导出所有视图类型和注册逻辑",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-07T01:10:02Z",
-      "triggerGroups": [
-        {
-          "triggers": "修改视图注册",
-          "description": ""
-        },
-        {
-          "triggers": "添加新视图",
-          "description": ""
+          "triggers": "收件箱任务分组",
+          "description": "按状态分组处理"
         }
       ]
     },
@@ -596,7 +927,7 @@
       "name": "更新代码",
       "description": "反向同步（Skill→源码）与功能校验。支持单独校验；同步前可选提醒；全量反向同步后自动更新索引。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:17:52Z",
+      "lastModified": "2026-05-08T23:03:22Z",
       "triggerGroups": [
         {
           "triggers": "更新代码|反向同步",
@@ -618,7 +949,7 @@
       "name": "更新注释",
       "description": "管理源码中的 `@skill-*` 注释和头部规范，支持增量/全局更新、格式校验、锚点管理。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:18:12Z",
+      "lastModified": "2026-05-08T23:03:22Z",
       "triggerGroups": [
         {
           "triggers": "更新注释",
@@ -654,27 +985,13 @@
       "path": ".cline/skills/sync/update-index.md",
       "category": "sync",
       "name": "更新技能索引",
-      "description": "扫描所有`.cline/skills`中的文件,生成索引缓存`.cline/skills/skills-index.json`。",
+      "description": "扫描所有obsidian-task-manage中的文件，扫描所有`.cline/skills`中的文件,生成索引缓存`.cline/skills/skills-index.json`。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T07:40:32Z",
+      "lastModified": "2026-05-09T00:14:42Z",
       "triggerGroups": [
         {
-          "triggers": "更新技能索引|刷新技能索引|重建技能索引",
-          "description": "生成/更新技能索引"
-        }
-      ]
-    },
-    {
-      "path": ".cline/skills/sync/update-readme.md",
-      "category": "sync",
-      "name": "更新README",
-      "description": "基于 skills-index.json 生成 README.md 中的skills文件树、双向同步触发词列表以及生成配置与缓存文件表格。若 autoUpdateIndex 为 true 且索引缺失，自动调用 update-index.md。",
-      "skillVersion": "1.0",
-      "lastModified": "2026-05-08T07:38:39Z",
-      "triggerGroups": [
-        {
-          "triggers": "更新readme|刷新README|同步README|生成README",
-          "description": ""
+          "triggers": "更新索引|刷新索引|重建索引",
+          "description": "生成/更新索引"
         }
       ]
     },
@@ -684,7 +1001,7 @@
       "name": "自举验证",
       "description": "验证 sync/ 下核心 Skill 自身是否符合规范，生成元文档。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:18:48Z",
+      "lastModified": "2026-05-08T23:03:22Z",
       "triggerGroups": [
         {
           "triggers": "验证自身|自举|检查自身规范",
@@ -698,7 +1015,7 @@
       "name": "版本迁移",
       "description": "检查所有 Skill 文件的 skill-version，自动迁移低于 4.0 的格式。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:18:45Z",
+      "lastModified": "2026-05-08T10:45:34Z",
       "triggerGroups": [
         {
           "triggers": "升级技能格式|迁移版本|检查版本",
@@ -712,7 +1029,7 @@
       "name": "更新技能",
       "description": "正向同步（源码→Skill）与功能校验。支持单独校验；同步前可选提醒；全量同步后自动更新索引。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:17:49Z",
+      "lastModified": "2026-05-08T23:03:22Z",
       "triggerGroups": [
         {
           "triggers": "更新技能|同步技能",
@@ -729,12 +1046,26 @@
       ]
     },
     {
+      "path": ".cline/skills/sync/update-skills.md",
+      "category": "sync",
+      "name": "更新skills",
+      "description": "基于 skills-index.json 生成 skills.md 中的project文件树、skills文件树、双向同步触发词列表以及生成配置与缓存文件表。若 autoUpdateIndex 为 true 且索引缺失，自动调用 update-index.md。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-09T00:51:58Z",
+      "triggerGroups": [
+        {
+          "triggers": "更新skills|刷新skills|同步skills|生成skills",
+          "description": "更新项目文件索引和skills文件索引"
+        }
+      ]
+    },
+    {
       "path": ".cline/skills/sync/update-smart-check.md",
       "category": "sync",
       "name": "检查一致性",
       "description": "一致性巡检与依赖分析。支持自动修复非冲突项。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:18:03Z",
+      "lastModified": "2026-05-08T23:03:22Z",
       "triggerGroups": [
         {
           "triggers": "检查一致性|巡检",
@@ -752,7 +1083,7 @@
       "name": "智能同步",
       "description": "统一入口，自动判断同步方向（正向/反向/全量/巡检）。支持参数。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:18:33Z",
+      "lastModified": "2026-05-08T23:03:22Z",
       "triggerGroups": [
         {
           "triggers": "同步|全量同步|同步检查",
@@ -766,7 +1097,7 @@
       "name": "快照管理",
       "description": "保存、清理、恢复对话快照，支持快照→Skill 联动。自动在同步前创建快照。",
       "skillVersion": "1.0",
-      "lastModified": "2026-05-08T04:18:21Z",
+      "lastModified": "2026-05-08T09:07:14Z",
       "triggerGroups": [
         {
           "triggers": "保存对话|生成快照|保存会话|创建快照",

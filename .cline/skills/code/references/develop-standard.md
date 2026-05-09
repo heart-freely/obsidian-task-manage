@@ -26,21 +26,6 @@ description: 命名规则、样式约定、注释规范等。只读，不参与�
   - 已完成 `#47852f`
   - 已取消 `#c3393e`
 
-## 源文件头部注释（必须）
-
-```javascript
-/**
- * 文件：src/panel/views/xxx-view.js
- * 描述：一句话说明文件作用
- * 所属模块：panel/views
- * 依赖：
- *   - BaseTaskView: 视图基类
- *   - ECharts: 图表库
- * 对外导出：VIEW_TYPE_XXX, XxxView
- * 注意事项：如有性能敏感或特殊逻辑需注明
- * @see .cline/skills/code/views/xxx-view.md
- */
- ```
  
 ## 性能与编码约束
 
