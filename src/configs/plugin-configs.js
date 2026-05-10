@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/configs/plugin-configs.js
  * 描述：插件核心常量和配置定义，包括任务文件夹、状态、优先级、循环、日期标记等配置
@@ -20,7 +20,7 @@ DEFAULT_SETTINGS = {
 }
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 /** 任务文件所在文件夹路径数组 */
 export const TASK_FOLDERS = ['"pages/A 系统/A 任务系统"'];

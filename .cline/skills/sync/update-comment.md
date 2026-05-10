@@ -40,7 +40,7 @@ descriptions:
     - 注释开始标记，头部注释第一行，代码源文件第一行，
     -  文件头部注释
     - @skill-global-*格式注释。
-    - @skill-\*标签格式注释，除@skill-anchor。
+    - @skill-*标签格式注释，除@skill-anchor。
     - JSDoc注释，在锚点标签注释@skill-anchor上一行。
     - @skill-anchor格式注释在函数名上一行。
     -  注释结束标记，头部注释结束后的下一行
@@ -215,11 +215,11 @@ function functionName() { ... }
   规范格式如下：
   
   ```
-  /* <!-- SYNC_COMMENTS_END --> */
+  /* <!-- SYNC_COMMENTS_START --> */
   /* 文件头部注释 */
   /* @skill-global-*格式注释。 */
   /* @skill-\*标签格式注释，除@skill-anchor */
-  /* <!-- SYNC_COMMENTS_START --> */
+  /* <!-- SYNC_COMMENTS_END --> */
   ```
   
   

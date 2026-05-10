@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/interacts/tooltip-interact.js
  * 描述：TooltipManager 类，全局工具提示管理器，提供显隐/移动/内容更新能力
@@ -48,7 +48,7 @@
    hide 保留 DOM 仅隐藏，remove 彻底清除
    样式依赖 .dataview-tooltip 类名
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 /**
  * 工具提示管理器
@@ -59,7 +59,7 @@ export class TooltipManager {
 	/**
 	 * 初始化时 div 为 null，首次显示时创建
 	 */
-	// @skill-anchor constructor - 初始化，div 置 null
+	/* @skill-anchor: constructor - 初始化，div 置 null */
 	constructor() {
 		this.div = null;
 	}
@@ -69,7 +69,7 @@ export class TooltipManager {
 	 * 如果 div 尚未创建，则创建并追加到 document.body
 	 * @returns {HTMLElement} tooltip 的 div 元素
 	 */
-	// @skill-anchor ensureDiv - 首次创建或复用 tooltip DOM
+	/* @skill-anchor: ensureDiv - 首次创建或复用 tooltip DOM */
 	ensureDiv() {
 		if (!this.div) {
 			this.div = document.createElement("div");
@@ -85,7 +85,7 @@ export class TooltipManager {
 	 * @param {number} x - 鼠标 X 坐标（px）
 	 * @param {number} y - 鼠标 Y 坐标（px）
 	 */
-	// @skill-anchor show - 显示带 HTML 内容的 tooltip
+	/* @skill-anchor: show - 显示带 HTML 内容的 tooltip */
 	show(html, x, y) {
 		const div = this.ensureDiv();
 		div.innerHTML = html;
@@ -99,7 +99,7 @@ export class TooltipManager {
 	 * @param {number} x - 鼠标 X 坐标（px）
 	 * @param {number} y - 鼠标 Y 坐标（px）
 	 */
-	// @skill-anchor move - 移动 tooltip 跟随鼠标
+	/* @skill-anchor: move - 移动 tooltip 跟随鼠标 */
 	move(x, y) {
 		if (this.div && this.div.style.display === "block") {
 			this.div.style.left = x + 15 + "px";
@@ -108,13 +108,13 @@ export class TooltipManager {
 	}
 
 	/** 隐藏 tooltip（仅隐藏，不移除 DOM） */
-	// @skill-anchor hide - 隐藏 tooltip（保留 DOM）
+	/* @skill-anchor: hide - 隐藏 tooltip（保留 DOM） */
 	hide() {
 		if (this.div) this.div.style.display = "none";
 	}
 
 	/** 从 DOM 中移除 tooltip 元素并清空引用 */
-	// @skill-anchor remove - 销毁 tooltip（移除 DOM）
+	/* @skill-anchor: remove - 销毁 tooltip（移除 DOM） */
 	remove() {
 		if (this.div) {
 			this.div.remove();

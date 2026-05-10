@@ -1,513 +1,2548 @@
 {
 	"version": "1.0",
-	"code": "2026-05-09T11:51:00+08:00",
+	"code": "2026-05-10T02:20:23.397Z",
 	"comments": [
-		{
-			"path": "src/main.js",
-			"category": "views",
-			"name": "main",
-			"description": "插件入口",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/utils/logger.js",
-			"category": "utils",
-			"name": "logger",
-			"description": "日志工具",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
 		{
 			"path": "src/configs/plugin-configs.js",
 			"category": "configs",
-			"name": "plugin-configs",
-			"description": "插件配置",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/storage/persist-storage.js",
-			"category": "storage",
-			"name": "persist-storage",
-			"description": "持久化存储",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"name": "Plugin Configs",
+			"description": "文件：src/configs/plugin-configs.js",
+			"srcVersion": "1.0",
+			"hash": "6e20aeaa",
+			"lastModified": "2026-05-10T01:39:28.505Z",
+			"commentGroups": [
+				{
+					"line": 12,
+					"comment": "@skill-state 无（纯常量定义，无运行时状态） */"
+				},
+				{
+					"line": 14,
+					"comment": "@skill-global-state\r\nCONFIG = {\r\n  TASK_FOLDERS, STATUS_*, PRIORITY_*, REPEAT_*, DATE_MARK_*, ...\r\n}\r\nDEFAULT_SETTINGS = {\r\n  TASK_FOLDERS, STATUS_COLORS, PRIORITY_ORDER, ...\r\n}\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/echarts/echarts.js",
 			"category": "echarts",
-			"name": "echarts",
-			"description": "图表渲染",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"name": "ensureEcharts",
+			"description": "ECharts 封装模块，导入 ECharts 库并确保全局可用，兼容旧代码中 window.echarts 引用 */",
+			"srcVersion": "1.0",
+			"hash": "2467fbc4",
+			"lastModified": "2026-05-10T01:39:28.246Z",
+			"commentGroups": [
+				{
+					"line": 3,
+					"comment": "@skill-sig file src/echarts/echarts.js - ECharts 封装模块，导入 ECharts 库并确保全局可用，兼容旧代码中 window.echarts 引用 */"
+				},
+				{
+					"line": 4,
+					"comment": "@skill-func\r\n   echarts : Object - 从 echarts npm 包导入的 ECharts 核心库(命名导出)\r\n   ensureEcharts(callback) : void - 工具函数，立即同步调用回调函数并传入 echarts 实例(兼容旧代码)\r\n*/"
+				},
+				{
+					"line": 8,
+					"comment": "@skill-flow\r\n   模块加载 → import echarts → window.echarts赋值(全局兼容) → 导出echarts和ensureEcharts\r\n   ensureEcharts → 检查callback类型 → 立即执行callback(echarts)，无需等待\r\n*/"
+				},
+				{
+					"line": 12,
+					"comment": "@skill-param\r\n   callback: Function - 接收 echarts 实例的回调函数(旧代码接口，直接同步调用)\r\n*/"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-condition\r\n   所属模块: echarts - 图表库包装\r\n   依赖: echarts npm 包(已通过 esbuild 打包到 main.js 中)\r\n   兼容性: 设置 window.echarts 以支持旧代码中的 window.echarts 引用\r\n   同步接口: ensureEcharts 是同步函数(非异步)，因为 echarts 已通过 import 同步可用\r\n   关联模块: src/panel/interacts/chart-interact.js(图表交互)、src/tasks/process/calcul-chart-process.js(图表数据处理)\r\n*/"
+				},
+				{
+					"line": 36,
+					"comment": "@skill-anchor: echarts */"
+				},
+				{
+					"line": 51,
+					"comment": "@skill-anchor: ensureEcharts */"
+				}
+			]
+		},
+		{
+			"path": "src/main.js",
+			"category": "main.js",
+			"name": "TaskDataViewPlugin",
+			"description": "插件主类，继承 Obsidian Plugin，管理生命周期 */",
+			"srcVersion": "1.0",
+			"hash": "872b1ae",
+			"lastModified": "2026-05-10T01:39:27.998Z",
+			"commentGroups": [
+				{
+					"line": 17,
+					"comment": "@skill-sig class TaskDataViewPlugin extends Plugin - 插件主类，继承 Obsidian Plugin，管理生命周期 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-sig async onload() : void - 插件加载入口：加载配置 → 注册 17 个视图 → 注册 15 个命令 → 注册设置标签页 */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-sig async activateView(viewType: string) : void - 激活指定类型的视图：查找已打开叶节点或新建叶节点 */"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-sig async saveSettings(settings: object) : void - 合并保存配置到 Plugin 持久化存储，同时更新全局 CONFIG */"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-sig class TaskDataViewSettingTab extends PluginSettingTab - 插件设置标签页 */"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-dom\r\n.plugin-main\r\n  .setting-tab\r\n    .setting-item[data-name=\"任务文件夹\"]  // 多行文本输入\r\n    .setting-item[data-name=\"根路径\"]      // 单行文本输入\r\n    .setting-item[data-name=\"每日工时\"]     // 数字文本输入\r\n*/"
+				},
+				{
+					"line": 31,
+					"comment": "@skill-state\r\nstorageAdapter : { getItem, setItem }  // 基于 Plugin.loadData/saveData 的轻量键值存储适配器\r\n*/"
+				},
+				{
+					"line": 35,
+					"comment": "@skill-flow\r\nonload() → loadData() → 合并设置到 CONFIG → 创建 storageAdapter → registerView(17x) → addCommand(15x) → addRibbonIcon() → addSettingTab()\r\n*/"
+				},
+				{
+					"line": 39,
+					"comment": "@skill-condition\r\n若视图已存在对应叶节点 → 直接复用并聚焦\r\n若不存在 → 创建新叶节点并设置视图状态\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-global-state\r\nCONFIG : {\r\n  TASK_FOLDERS: string[],         // 任务文件夹路径列表\r\n  ROOT_PATH: string,               // 仓库中任务文件的根目录\r\n  WORK_HOURS_PER_DAY: number,      // 每日工时\r\n  ALLOWED_STATUSES: string[],      // 允许的状态列表\r\n  TASK_SECTION: string,            // 任务区标题\r\n  CLOSED_SECTION: string,          // 已完成任务区标题\r\n  TAG_SEPARATOR: string,           // 标签分隔符\r\n  ...\r\n}\r\nthis.settings : object              // 合并到 CONFIG 的用户设置\r\n*/"
+				},
+				{
+					"line": 110,
+					"comment": "@skill-anchor: TaskDataViewPlugin */"
+				},
+				{
+					"line": 125,
+					"comment": "@skill-anchor: storageAdapter */"
+				},
+				{
+					"line": 307,
+					"comment": "@skill-anchor: TaskDataViewPlugin.activateView */"
+				},
+				{
+					"line": 318,
+					"comment": "@skill-anchor: TaskDataViewPlugin.saveSettings */"
+				},
+				{
+					"line": 326,
+					"comment": "@skill-anchor: TaskDataViewPlugin.onunload */"
+				},
+				{
+					"line": 332,
+					"comment": "@skill-anchor: TaskDataViewSettingTab */"
+				}
+			]
+		},
+		{
+			"path": "src/panel/bars/control-botton-bar.js",
+			"category": "panel",
+			"name": "buildControlPanel",
+			"description": "控制按钮栏，提供全局任务视图控制按钮（刷新、间隔模式、显隐切换、重置清除） */",
+			"srcVersion": "1.0",
+			"hash": "7435c55a",
+			"lastModified": "2026-05-10T01:39:29.580Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig file src/panel/bars/control-botton-bar.js - 控制按钮栏，提供全局任务视图控制按钮（刷新、间隔模式、显隐切换、重置清除） */"
+				},
+				{
+					"line": 16,
+					"comment": "@skill-api\r\n   CONFIG (plugin-configs) - INTERVAL_MODES 间隔模式常量\r\n   panel.js (构建全局状态 state 和回调 callbacks)\r\n   state.intervalMode / state.hideRepeatTasks / state.hideCompletedTasks / state.hideCancelledTasks / state.hideFolders / state.filterCache.fingerprint\r\n   callbacks.onRenderAll / callbacks.onToggleFolders / callbacks.onResetAndClear\r\n*/"
+				},
+				{
+					"line": 22,
+					"comment": "@skill-state\r\n   state.intervalMode       : string  // 日期交集模式（计划-截止 / 开始-完成）\r\n   state.hideRepeatTasks    : boolean // 是否隐藏循环任务\r\n   state.hideCompletedTasks : boolean // 是否隐藏已完成任务\r\n   state.hideCancelledTasks : boolean // 是否隐藏已取消任务\r\n   state.hideFolders        : boolean // 是否隐藏文件夹分组\r\n   state.filterCache.fingerprint : string // 筛选缓存指纹，按钮操作后清空触发重渲染\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-dom\r\n   .quick-bar > button.quick-btn / button.quick-btn-active\r\n     刷新按钮 \"🔄 刷新\"\r\n     间隔模式按钮 \"⏱️ 计划-截止\" | \"⏱️ 开始-完成\"\r\n     隐藏循环/已完成/已取消按钮\r\n     文件夹显隐按钮\r\n     重置清除按钮 \"🗑️ 重置并清除\"\r\n*/"
+				},
+				{
+					"line": 38,
+					"comment": "@skill-flow\r\n   buildControlPanel(container, dv, state, callbacks)\r\n   初始渲染 → 根据 state 显示各按钮初始文本和 active 类\r\n   点击按钮 → 切换对应 state 字段 → 更新按钮文本/类 → state.filterCache.fingerprint=\"\" → 调对应回调\r\n   重置清除 → callbacks.onResetAndClear()\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-condition\r\n   按钮文本动态切换：按钮显示当前功能（如\"隐藏循环\"），点击后变为反状态文本（如\"显示循环\"）\r\n   quick-btn-active 类标识当前激活/显示状态\r\n   所有筛选类按钮点击后立即清空 filterCache.fingerprint 强制重渲染\r\n*/"
+				},
+				{
+					"line": 49,
+					"comment": "@skill-func\r\n   buildControlPanel(container, dv, state, callbacks) : HTMLElement - 构建全局任务视图控制按钮栏\r\n*/"
+				},
+				{
+					"line": 52,
+					"comment": "@skill-anchor\r\n   buildControlPanel - 控制按钮栏主入口，刷新/间隔模式/显隐切换/重置清除\r\n*/"
+				},
+				{
+					"line": 70,
+					"comment": "@skill-anchor: buildControlPanel */"
+				}
+			]
+		},
+		{
+			"path": "src/panel/bars/date-botton-bar.js",
+			"category": "panel",
+			"name": "clearCascadeSelections",
+			"description": "年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询 */",
+			"srcVersion": "1.0",
+			"hash": "62f47af8",
+			"lastModified": "2026-05-10T01:39:29.347Z",
+			"commentGroups": [
+				{
+					"line": 17,
+					"comment": "@skill-sig file src/panel/bars/date-botton-bar.js - 年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-api\r\n   CONFIG.YEAR_LIST (plugin-configs.js) - 年份列表\r\n   DateUtils (common-process.js) - getISOWeekNumber / getWeekRangeByYearWeek / getWeekdayRange / getMonthRangeByYearMonth / getQuarterRangeByYearQuarter / getYearRangeByYear / setStart / setEnd\r\n   panel.js (state.dateState, state.filterCache, state.yearBtns / quarterBtns / monthBtns / weekBtns / weekdayBtns)\r\n*/"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-state\r\n   state.dateState.selections : {\r\n     years:    { [year: string]: true },\r\n     quarters: { [key: string]: true },   // key = \"YYYY-QN\"\r\n     months:   { [key: string]: true },   // key = \"YYYY-QN-MN\"\r\n     weeks:    { [key: string]: true },   // key = \"YYYY-QN-MN-WN\"\r\n     weekdays: { [key: string]: true },   // key = \"YYYY-QN-MN-WN-DN\"\r\n   }\r\n   state.yearBtns / quarterBtns / monthBtns / weekBtns / weekdayBtns : HTMLElement[]\r\n   state.filterCache.fingerprint : string\r\n*/"
+				},
+				{
+					"line": 34,
+					"comment": "@skill-func\r\n   clearCascadeSelections(state) : void                          - 清空所有级联选择\r\n   resetCascadeDateUI(state) : void                              - 公开的级联重置接口\r\n   updateDateButtonStyles(state) : void                          - 刷新级联按钮样式和 disabled 状态\r\n   getQueryRangeFromDateSelection(state) : {start,end}|null      - 将级联选择转换为日期范围\r\n   buildDateCascadePanel(container, dv, state) : void            - 构建级联筛选面板 UI\r\n*/"
+				},
+				{
+					"line": 41,
+					"comment": "@skill-anchor\r\n   clearCascadeSelections - 清空所有级联选择（内部函数）\r\n   resetCascadeDateUI - 公开的级联重置接口\r\n   updateDateButtonStyles - 刷新级联按钮样式和 disabled 状态\r\n   getQueryRangeFromDateSelection - 将级联选择转换为日期范围查询对象\r\n   buildDateCascadePanel - 构建年/季/月/周/周几五级级联日期筛选面板\r\n*/"
+				},
+				{
+					"line": 48,
+					"comment": "@skill-dom\r\n   .filter-section (容器)\r\n   .cascade-btn / .cascade-btn-active / .cascade-btn-disabled\r\n   label: 年份 | 季度 | 月份 | 周数 | 周几\r\n   年份: 2023-2033 | 季度: 第1-4季度 | 月份: 1-12月 | 周数: 第1-4周 | 周几: 周一至周日\r\n*/"
+				},
+				{
+					"line": 54,
+					"comment": "@skill-flow\r\n   buildDateCascadePanel(container, dv, state)\r\n   创建 5 行 label+按钮 → 年份行始终可点击 → 季度/月份/周数/周几初始 disabled\r\n   点击年份 → 切换选中 → 唯一选中时下级启用，否则下级清空/禁用\r\n   点击季度 → 类似级联 → 月份只显示该季度 3 个月\r\n   点击月份 → 周数列出 4 周 → 点击周 → 周几列出 7 天\r\n   各级选中多个时下级被清空并禁用\r\n   getQueryRangeFromDateSelection: 从最细粒度反向合成日期范围（周几>周>月>季度>年）\r\n*/"
+				},
+				{
+					"line": 63,
+					"comment": "@skill-condition\r\n   上级选中数量 !== 1 → 下级全部 disabled\r\n   上级选中数量 === 1 → 下级 enabled\r\n   月份行：选中季度后仅显示该季度的 3 个月\r\n   getQueryRangeFromDateSelection 优先级：周几 > 周 > 月 > 季度 > 年\r\n   任何选中变化 → 清空 filterCache.fingerprint\r\n*/"
+				},
+				{
+					"line": 79,
+					"comment": "@skill-anchor: clearCascadeSelections */"
+				},
+				{
+					"line": 92,
+					"comment": "@skill-anchor: resetCascadeDateUI */"
+				},
+				{
+					"line": 102,
+					"comment": "@skill-anchor: updateDateButtonStyles */"
+				},
+				{
+					"line": 203,
+					"comment": "@skill-anchor: getQueryRangeFromDateSelection */"
+				},
+				{
+					"line": 309,
+					"comment": "@skill-anchor: buildDateCascadePanel */"
+				}
+			]
+		},
+		{
+			"path": "src/panel/bars/hide-botton-bar.js",
+			"category": "panel",
+			"name": "buildHidePanel",
+			"description": "显隐控制面板，切换日历/图表/甘特图/文件树/过期/未到期任务的显示状态 */",
+			"srcVersion": "1.0",
+			"hash": "2a0c202",
+			"lastModified": "2026-05-10T01:39:29.212Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-sig file src/panel/bars/hide-botton-bar.js - 显隐控制面板，切换日历/图表/甘特图/文件树/过期/未到期任务的显示状态 */"
+				},
+				{
+					"line": 14,
+					"comment": "@skill-api\r\n   panel.js (全局状态 state)\r\n   state.hideCalendar / state.hideChart / state.hideGantt / state.hideFileTree\r\n   state.hideOverdueTasks / state.hideNotDueTasks\r\n   state.filterCache.fingerprint\r\n*/"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-state\r\n   state.hideCalendar : boolean   // 是否隐藏日历视图\r\n   state.hideChart : boolean      // 是否隐藏图表视图\r\n   state.hideGantt : boolean      // 是否隐藏甘特图视图\r\n   state.hideFileTree : boolean   // 是否隐藏文件树视图\r\n   state.hideOverdueTasks : boolean  // 是否隐藏已过期任务\r\n   state.hideNotDueTasks : boolean   // 是否隐藏未到期任务\r\n   state.filterCache.fingerprint : string  // 显隐变化后需清空\r\n*/"
+				},
+				{
+					"line": 29,
+					"comment": "@skill-func\r\n   buildHidePanel(container, dv, state) : HTMLElement - 构建显隐控制面板，包含6个切换按钮\r\n   buildHideButtons : HTMLElement - buildHidePanel 的别名导出\r\n*/"
+				},
+				{
+					"line": 33,
+					"comment": "@skill-dom\r\n   .hide-row (容器 display:flex gap:12px)\r\n   button.quick-btn / button.quick-btn-active\r\n     📅 隐藏日历 | 📊 隐藏图表 | 📈 隐藏甘特图 | 📁 隐藏文件树 | ⏰ 隐藏过期 | 📆 隐藏未到期\r\n*/"
+				},
+				{
+					"line": 38,
+					"comment": "@skill-flow\r\n   buildHidePanel(container, dv, state)\r\n   创建 hideRow → 创建 6 个按钮，根据 state 初始化文本和激活样式\r\n   → 每个按钮绑定 onclick 切换对应 state 属性\r\n   → 同时切换按钮文本（显示/隐藏）和 active 样式\r\n   → 过期/未到期按钮额外清空 filterCache.fingerprint\r\n*/"
+				},
+				{
+					"line": 45,
+					"comment": "@skill-condition\r\n   按钮文本随 state 联动: state.hideXxx=true → \"显示Xxx\"，false → \"隐藏Xxx\"\r\n   quick-btn-active 类名: !state.hideXxx 时添加\r\n   过期和未到期 toggle 影响筛选结果 → 清空 filterCache.fingerprint\r\n   日历/图表/甘特图/文件树 toggle 仅影响显隐 → 不清空缓存\r\n*/"
+				},
+				{
+					"line": 53,
+					"comment": "@skill-anchor: buildHidePanel - 显隐控制面板主入口，创建日历/图表/甘特图/文件树/过期/未到期6个切换按钮 */"
+				},
+				{
+					"line": 172,
+					"comment": "@skill-anchor: buildHideButtons - buildHidePanel 的别名导出（兼容旧引用） */"
+				}
+			]
+		},
+		{
+			"path": "src/panel/bars/mark-botton-bar.js",
+			"category": "panel",
+			"name": "buildMarkPanel",
+			"description": "标签筛选面板，支持全部/单标签模式切换，点击清空缓存触发重新筛选 */",
+			"srcVersion": "1.0",
+			"hash": "2ae5b847",
+			"lastModified": "2026-05-10T01:39:29.584Z",
+			"commentGroups": [
+				{
+					"line": 14,
+					"comment": "@skill-sig file src/panel/bars/mark-botton-bar.js - 标签筛选面板，支持全部/单标签模式切换，点击清空缓存触发重新筛选 */"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-api\r\n   panel.js (全局状态 state)\r\n   state.selectedTag : string     // 当前选中的标签（空字符串=全部）\r\n   state.allTags : string[]       // 所有可用标签列表\r\n   state.filterCache.fingerprint  // 标签变化后需清空\r\n*/"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-state\r\n   state.selectedTag : string     // 当前筛选标签，\"全部\"时为 \"\"\r\n   state.allTags : string[]       // 从任务数据中提取的所有标签集合\r\n   state.filterCache.fingerprint : string  // 标签筛选变化后清空\r\n*/"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-func\r\n   buildMarkPanel(container, dv, state) : HTMLElement - 构建标签筛选面板，含\"全部\"按钮和动态标签按钮\r\n   buildMarkFilterPanel : HTMLElement - buildMarkPanel 的别名导出\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-anchor\r\n   buildMarkPanel - 标签筛选面板主入口，构建\"全部\"+动态标签按钮\r\n   buildMarkFilterPanel - buildMarkPanel 的别名导出\r\n*/"
+				},
+				{
+					"line": 34,
+					"comment": "@skill-dom\r\n   .markRow (容器 display:flex gap:12px)\r\n   button.tag-btn / button.tag-btn-active\r\n   \"全部\" 按钮 | #tag1 #tag2 #tag3 ...\r\n*/"
+				},
+				{
+					"line": 39,
+					"comment": "@skill-flow\r\n   buildMarkPanel(container, dv, state)\r\n   创建 markRow → 创建\"全部\"按钮(初始 active 如果 !selectedTag)\r\n   → 遍历 state.allTags 创建标签按钮(加 # 前缀)\r\n   → 每个按钮 onclick: 切换选中标签 → 清除所有按钮 active → 更新选中按钮\r\n   → state.selectedTag 和选中按钮联动\r\n   → 始终清空 filterCache.fingerprint 触发重新筛选\r\n*/"
+				},
+				{
+					"line": 47,
+					"comment": "@skill-condition\r\n   selectedTag=\"\" (全部) → \"全部\"按钮 active\r\n   selectedTag===tag → 该标签按钮 active\r\n   点击已选中的标签 → 清空 selectedTag (回到全部)\r\n   所有标签变化均清空 filterCache.fingerprint\r\n   按钮通过 .tag-btn-active 类名控制激活样式\r\n*/"
+				},
+				{
+					"line": 63,
+					"comment": "@skill-anchor: buildMarkPanel */"
+				},
+				{
+					"line": 112,
+					"comment": "@skill-anchor: buildMarkFilterPanel */"
+				}
+			]
+		},
+		{
+			"path": "src/panel/bars/quick-botton-bar.js",
+			"category": "panel",
+			"name": "clearQuickHighlights",
+			"description": "快速日期筛选面板，提供常用日期范围的快速筛选按钮及缓存状态恢复 */",
+			"srcVersion": "1.0",
+			"hash": "199b10ee",
+			"lastModified": "2026-05-10T01:27:52.416Z",
+			"commentGroups": [
+				{
+					"line": 64,
+					"comment": "@skill-* /"
+				},
+				{
+					"line": 64,
+					"comment": "@skill-anchor 拆分\r\n\t */"
+				},
+				{
+					"line": 70,
+					"comment": "@skill- 标签的行索引（相对于块起始）"
+				}
+			]
+		},
+		{
+			"path": "src/panel/bars/side-botton-bar.js",
+			"category": "panel",
+			"name": "buildSideButtonBar",
+			"description": "侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能 */",
+			"srcVersion": "1.0",
+			"hash": "5b470da",
+			"lastModified": "2026-05-10T01:39:29.762Z",
+			"commentGroups": [
+				{
+					"line": 12,
+					"comment": "@skill-sig file src/panel/bars/side-botton-bar.js - 侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能 */"
+				},
+				{
+					"line": 13,
+					"comment": "@skill-api\r\n   panel.js (全局状态 state)\r\n   state.sideViewType : string   // 当前侧边视图类型: list|grid|table|tree|timeline\r\n   state.onViewChange : Function // 视图变更回调\r\n*/"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-state\r\n   state.sideViewType : string   // 当前侧边视图: list|grid|table|tree|timeline\r\n*/"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-func\r\n   buildSideButtonBar(container, dv, state) : HTMLElement - 构建侧边视图切换面板\r\n   buildViewSwitcher(container, dv, state) : HTMLElement - buildSideButtonBar 的别名导出\r\n*/"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-anchor\r\n   buildSideButtonBar - 侧边视图切换面板主函数\r\n   buildViewSwitcher - buildSideButtonBar 的导出别名\r\n*/"
+				},
+				{
+					"line": 29,
+					"comment": "@skill-dom\r\n   .side-btn / .side-btn-active (按钮样式)\r\n   📋 列表 | 🔲 卡片 | 📊 表格 | 🌳 树形 | 📅 时间线\r\n*/"
+				},
+				{
+					"line": 33,
+					"comment": "@skill-flow\r\n   buildSideButtonBar(container, dv, state)\r\n   定义 views 数组 → 遍历创建按钮 → 当前 view 加 side-btn-active 类\r\n   → 点击切换 state.sideViewType → 调用 state.onViewChange(type)\r\n*/"
+				},
+				{
+					"line": 38,
+					"comment": "@skill-condition\r\n   state.sideViewType===view.type → 该按钮 side-btn-active\r\n   点击切换后清除其他按钮 active 类\r\n   state.onViewChange 存在时触发回调\r\n*/"
+				}
+			]
+		},
+		{
+			"path": "src/panel/bars/sort-botton-bar.js",
+			"category": "panel",
+			"name": "buildSortPanel",
+			"description": "排序控制面板，提供按多种字段排序及升降序切换功能 */",
+			"srcVersion": "1.0",
+			"hash": "4bf6a44b",
+			"lastModified": "2026-05-10T01:39:28.935Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-sig file src/panel/bars/sort-botton-bar.js - 排序控制面板，提供按多种字段排序及升降序切换功能 */"
+				},
+				{
+					"line": 14,
+					"comment": "@skill-api\r\n   panel.js (全局状态 state)\r\n   state.sortField / state.sortOrder / state.filterCache.fingerprint\r\n   state.onSortChange - 排序变更回调\r\n*/"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-state\r\n   state.sortField : string    // 当前排序字段: priority|due|created|completed|status|alphabetical\r\n   state.sortOrder : \"asc\"|\"desc\"  // 排序方向\r\n   state.filterCache.fingerprint : string  // 筛选缓存指纹，排序切换后清空\r\n*/"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-func\r\n   buildSortPanel(container, dv, state) : HTMLElement - 构建排序控制面板，渲染按钮并绑定点击事件\r\n   buildSortRow(container, dv, state) : HTMLElement - buildSortPanel 的别名导出\r\n*/"
+				},
+				{
+					"line": 28,
+					"comment": "@skill-dom\r\n   .sort-row (容器 display:flex gap:8px)\r\n   button.sort-btn / button.sort-btn-active\r\n     🔥 优先级 ↓ | 📅 截止日期 ↓ | 📝 创建时间 | ✅ 完成时间 | 📌 状态 | 🔤 字母序\r\n*/"
+				},
+				{
+					"line": 33,
+					"comment": "@skill-flow\r\n   buildSortPanel(container, dv, state)\r\n   初始化 sortField=priority sortOrder=desc → 定义 sortFields 数组 → 遍历创建按钮，当前活跃字段显示 ↑/↓ → 点击切换字段/方向 → 更新按钮样式和文本 → 清空 filterCache.fingerprint → 调用 state.onSortChange\r\n*/"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-condition\r\n   点击同一字段 → 切换 sortOrder (asc↔desc)\r\n   点击不同字段 → 设为新字段，sortOrder=desc\r\n   state.sortField 未设置时 → 默认 priority/desc\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-anchor: buildSortPanel - 排序控制面板主入口，创建排序按钮行并绑定交互 */"
+				},
+				{
+					"line": 110,
+					"comment": "@skill-anchor: buildSortRow - buildSortPanel 的别名导出（兼容旧引用） */"
+				}
+			]
+		},
+		{
+			"path": "src/panel/components/tree-view-components.js",
+			"category": "panel",
+			"name": "TaskTreeRenderer",
+			"description": "任务树渲染器 TaskTreeRenderer 类，将扁平任务构建为文件目录树，支持折叠/展开/排序/过滤/统计 */",
+			"srcVersion": "1.0",
+			"hash": "6eed6b73",
+			"lastModified": "2026-05-10T01:39:30.096Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/panel/components/tree-view-components.js - 任务树渲染器 TaskTreeRenderer 类，将扁平任务构建为文件目录树，支持折叠/展开/排序/过滤/统计 */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-api\r\n   panel.js (panel.js 创建 TaskTreeRenderer 实例并管理)\r\n   plugin-configs: CONFIG.ROOT_PATH (根路径前缀)\r\n   tree-task-view: renderTreePanel (树面板渲染函数)\r\n   state.leftSort (排序配置 {type, order})\r\n   state.hideFolders (是否隐藏文件夹节点)\r\n   collapsedNodes (折叠节点映射表)\r\n   tooltip (工具提示管理器)\r\n*/"
+				},
+				{
+					"line": 12,
+					"comment": "@skill-class TaskTreeRenderer\r\n   constructor(options) - 初始化渲染器，接收 container/dv/app/state/collapsedNodes/tooltip/回调\r\n   render(tasks) - 渲染树面板，构建树→排序→拍平→调用 renderTreePanel\r\n   renderFromCurrentFilter() - 从当前过滤数据源重新渲染\r\n   setFilteredTasksProvider(fn) - 注册过滤后任务数据提供者\r\n   _buildTree(tasks) - 将扁平任务列表构建为文件目录树结构\r\n   _calcNodeStats(node) - 递归计算节点及其子节点的任务状态统计\r\n   _sortTreeNodes(nodes) - 递归排序树节点（先文件夹后文件，同类型按名称排序）\r\n   _flattenTreeForDisplay(nodes, level, result) - 将树结构拍平为扁平数组用于渲染\r\n*/"
+				},
+				{
+					"line": 22,
+					"comment": "@skill-state\r\n   this.container : HTMLElement - 树面板 DOM 容器\r\n   this.dv : Object - Dataview 实例\r\n   this.app : Object - Obsidian App 实例\r\n   this.state : Object - 全局状态对象（含 leftSort, hideFolders）\r\n   this.collapsedNodes : Map<string, boolean> - 折叠节点映射表\r\n   this.tooltip : TooltipManager - 工具提示管理器\r\n   this._getFilteredTasks : Function|null - 当前过滤数据提供者\r\n   node.type : \"folder\"|\"file\"|\"task\" - 树节点类型\r\n   node.path / node.fullPath : string - 节点路径\r\n   node.tasks : Array - 文件节点的任务列表\r\n   node.children : Array - 子节点列表\r\n   node.parent : Object|null - 父节点引用\r\n   node.level : number - 渲染层级\r\n*/"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-flow\r\n   render(tasks)\r\n   _buildTree(tasks) 按文件路径分组 → 创建 folder/file 节点树\r\n   → _sortTreeNodes(rootNodes) 先文件夹后文件，文件内按 leftSort 排序\r\n   → _flattenTreeForDisplay(rootNodes, 0, []) 考虑 hideFolders 和 collapsedNodes\r\n   → renderTreePanel(container, flat, options) 渲染 DOM\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-condition\r\n   state.hideFolders=true → 跳过 folder 节点，直接展平其子节点\r\n   collapsedNodes[node.fullPath]=true → 该节点折叠，不展平子节点\r\n   _sortTreeNodes 排序: type 优先(folder<file)，同 type 按 name 字典序\r\n   文件内任务排序: 支持 status/priority/scheduled/start/due/filename 字段和 asc/desc\r\n   _calcNodeStats 五种状态计数: todo/planned/in-progress/completed/cancelled\r\n*/"
+				}
+			]
+		},
+		{
+			"path": "src/panel/interacts/chart-interact.js",
+			"category": "panel",
+			"name": "initChartInteractions",
+			"description": "图表区交互模块，提供 Alt+滚轮缩放、分隔条拖拽、ResizeObserver 自适应 */",
+			"srcVersion": "1.0",
+			"hash": "1c14b9b1",
+			"lastModified": "2026-05-10T01:39:30.143Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-sig file src/panel/interacts/chart-interact.js - 图表区交互模块，提供 Alt+滚轮缩放、分隔条拖拽、ResizeObserver 自适应 */"
+				},
+				{
+					"line": 14,
+					"comment": "@skill-api\r\n   common-process: throttleByFrame (节流函数)\r\n   state: chartScale, chartInstances, leftPanelWidth, resizeObserver\r\n   collapsedNodes: 折叠节点映射表\r\n   saveFilterState: 持久化保存回调\r\n*/"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-func\r\n   initChartInteractions(chartDiv, resizer, leftDiv, state, collapsedNodes, saveFilterState) : Function\r\n   - 初始化图表交互（缩放、拖拽、resize 监听）\r\n   - 返回 cleanup 函数用于卸载\r\n*/"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-flow\r\n   initChartInteractions()\r\n   → 注册 Alt+wheel 缩放(节流) → 显示缩放提示 5s 后消失\r\n   → 注册分隔条 mousedown → 全局 mousemove/mouseup 拖拽逻辑\r\n   → 创建 ResizeObserver 监听 chartDiv 变化\r\n   → 返回 cleanup 函数\r\n*/"
+				},
+				{
+					"line": 32,
+					"comment": "@skill-condition\r\n   Alt+wheel: e.altKey 检测 + deltaY 正负 / chartScale 范围 0.5~3\r\n   分隔条: startWidth 记录 + 限制 200~600px\r\n   ResizeObserver: 防抖 150ms 调用 chart.resize()\r\n   cleanup 清理: wheel / mousedown / mousemove / resizeObserver\r\n*/"
+				},
+				{
+					"line": 38,
+					"comment": "@skill-class\r\n   (无类，纯函数模块)\r\n   initChartInteractions(chartDiv, resizer, leftDiv, state, collapsedNodes, saveFilterState) : Function\r\n   - 初始化图表交互（缩放、拖拽、resize 监听）\r\n   - 返回 cleanup 函数用于卸载\r\n   updateChartScale() : void - 更新所有 .chart-body 的 CSS transform scale\r\n   debouncedResize() : void - 防抖 150ms 调用所有 echart 实例 resize\r\n   内部闭包变量: chartResizeTimer, startX, startWidth, onWheel, hint, onMouseDown, onMouseMove, onMouseUp\r\n*/"
+				},
+				{
+					"line": 47,
+					"comment": "@skill-state\r\n   state: Object - 外部传入的全局状态对象\r\n     state.chartScale : number - 当前缩放比例（0.5~3）\r\n     state.chartInstances : eChartsInstance[] - 所有 echarts 实例\r\n     state.leftPanelWidth : number - 左侧面板宽度（px）\r\n     state.resizeObserver : ResizeObserver|null - ResizeObserver 实例\r\n   collapsedNodes: Object - 折叠节点映射表\r\n   saveFilterState: Function - 持久化保存回调\r\n   onWheel._throttleHandle : Function|null - 滚轮节流句柄（挂载在函数上）\r\n*/"
+				},
+				{
+					"line": 57,
+					"comment": "@skill-dom\r\n   .chart-body - 所有图表的缩放容器，CSS transform scale 控制缩放\r\n   .scale-hint - 临时提示元素，5s 后淡出移除\r\n   resizer - 分隔条，mousedown 触发拖拽\r\n   leftDiv - 左侧面板，宽度通过拖拽动态变化\r\n   chartDiv - 图表容器，ResizeObserver 监听尺寸变化\r\n*/"
+				},
+				{
+					"line": 79,
+					"comment": "@skill-anchor: initChartInteractions - 图表交互初始化，入口函数 */"
+				},
+				{
+					"line": 90,
+					"comment": "@skill-anchor: updateChartScale - 更新图表缩放 */"
+				},
+				{
+					"line": 103,
+					"comment": "@skill-anchor: debouncedResize - 防抖 resize */"
+				},
+				{
+					"line": 120,
+					"comment": "@skill-anchor: onWheel - Alt+滚轮缩放处理 */"
+				},
+				{
+					"line": 154,
+					"comment": "@skill-anchor: onMouseDown - 分隔条拖拽开始 */"
+				},
+				{
+					"line": 164,
+					"comment": "@skill-anchor: onMouseMove - 分隔条拖拽移动 */"
+				},
+				{
+					"line": 173,
+					"comment": "@skill-anchor: onMouseUp - 分隔条拖拽结束 */"
+				},
+				{
+					"line": 194,
+					"comment": "@skill-anchor: cleanup - 清理函数（返回值） */"
+				}
+			]
+		},
+		{
+			"path": "src/panel/interacts/tooltip-interact.js",
+			"category": "panel",
+			"name": "TooltipManager",
+			"description": "TooltipManager 类，全局工具提示管理器，提供显隐/移动/内容更新能力 */",
+			"srcVersion": "1.0",
+			"hash": "ea04f28",
+			"lastModified": "2026-05-10T01:39:30.136Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-sig file src/panel/interacts/tooltip-interact.js - TooltipManager 类，全局工具提示管理器，提供显隐/移动/内容更新能力 */"
+				},
+				{
+					"line": 14,
+					"comment": "@skill-class TooltipManager\r\n   constructor() - 初始化，div 置 null\r\n   ensureDiv() : HTMLElement - 创建或复用 tooltip DOM\r\n   show(html, x, y) : void - 显示带 HTML 内容的 tooltip\r\n   move(x, y) : void - 移动 tooltip 跟随鼠标\r\n   hide() : void - 隐藏 tooltip（保留 DOM）\r\n   remove() : void - 销毁 tooltip（移除 DOM）\r\n*/"
+				},
+				{
+					"line": 22,
+					"comment": "@skill-api\r\n   chart-interact.js, base-task-view.js, calendar-task-view.js 等视图\r\n   各视图通过 import { tooltipManager } 共享同一个 TooltipManager 实例\r\n   tooltipManager 单例在 panel.js 或 chart-interact.js 中初始化\r\n*/"
+				},
+				{
+					"line": 27,
+					"comment": "@skill-state\r\n   无内部状态（实例化后仅维护 div 引用）\r\n   div : HTMLElement|null - 当前 tooltip DOM 元素，null 表示未创建\r\n   所有状态由调用方传入（html 内容、x/y 坐标）\r\n*/"
+				},
+				{
+					"line": 32,
+					"comment": "@skill-dom\r\n   div.dataview-tooltip - 全局唯一的 tooltip DOM 元素，挂载在 document.body 下\r\n   display:block|none - 控制显隐\r\n   left/top - 定位（相对于鼠标位置右下偏移 15px）\r\n*/"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-flow\r\n   new TooltipManager()\r\n   → show(html, x, y): 如果 div 不存在则 ensureDiv() 创建 → 设置 innerHTML/display/left/top\r\n   → move(x, y): 检测 display===block → 更新 left/top\r\n   → hide(): display = none\r\n   → remove(): 从 DOM 移除 div，置为 null\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-condition\r\n   div 首次 show 时创建，复用至 remove 为止\r\n   show/move 坐标偏移 15px（相对于鼠标位置右下角）\r\n   move 仅在当前可见时生效\r\n   hide 保留 DOM 仅隐藏，remove 彻底清除\r\n   样式依赖 .dataview-tooltip 类名\r\n*/"
+				},
+				{
+					"line": 62,
+					"comment": "@skill-anchor: constructor - 初始化，div 置 null */"
+				},
+				{
+					"line": 72,
+					"comment": "@skill-anchor: ensureDiv - 首次创建或复用 tooltip DOM */"
+				},
+				{
+					"line": 88,
+					"comment": "@skill-anchor: show - 显示带 HTML 内容的 tooltip */"
+				},
+				{
+					"line": 102,
+					"comment": "@skill-anchor: move - 移动 tooltip 跟随鼠标 */"
+				},
+				{
+					"line": 111,
+					"comment": "@skill-anchor: hide - 隐藏 tooltip（保留 DOM） */"
+				},
+				{
+					"line": 117,
+					"comment": "@skill-anchor: remove - 销毁 tooltip（移除 DOM） */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/panel.js",
 			"category": "panel",
-			"name": "panel",
-			"description": "面板入口",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/bars/control-botton-bar.js",
-			"category": "bars",
-			"name": "control-botton-bar",
-			"description": "控制按钮栏",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/bars/date-botton-bar.js",
-			"category": "bars",
-			"name": "date-botton-bar",
-			"description": "日期按钮栏",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/bars/hide-botton-bar.js",
-			"category": "bars",
-			"name": "hide-botton-bar",
-			"description": "隐藏按钮栏",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/bars/mark-botton-bar.js",
-			"category": "bars",
-			"name": "mark-botton-bar",
-			"description": "标记按钮栏",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/bars/quick-botton-bar.js",
-			"category": "bars",
-			"name": "quick-botton-bar",
-			"description": "快捷按钮栏",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/bars/side-botton-bar.js",
-			"category": "bars",
-			"name": "side-botton-bar",
-			"description": "侧边按钮栏",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/bars/sort-botton-bar.js",
-			"category": "bars",
-			"name": "sort-botton-bar",
-			"description": "排序按钮栏",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/components/tree-view-components.js",
-			"category": "components",
-			"name": "tree-view-components",
-			"description": "树视图组件",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/interacts/chart-interact.js",
-			"category": "interacts",
-			"name": "chart-interact",
-			"description": "图表交互",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/interacts/tooltip-interact.js",
-			"category": "interacts",
-			"name": "tooltip-interact",
-			"description": "提示框交互",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"name": "NavigatorView",
+			"description": "导航中心视图，任务管理面板入口，管理子视图切换/过滤/布局/持久化",
+			"srcVersion": "1.0",
+			"hash": "3fb1c92e",
+			"lastModified": "2026-05-10T01:39:28.497Z",
+			"commentGroups": [
+				{
+					"line": 21,
+					"comment": "@skill-state 运行时状态由 createInitialState() 创建并存储为局部变量 state（在 startNavigatorCore 内部），NavigatorView 实例则管理子视图类型 _lastViewType 的持久化 */"
+				},
+				{
+					"line": 22,
+					"comment": "@skill-global-state\r\nstate = {\r\n  dateFilterState: { start, end, isAll },\r\n  markFilterState: { statuses, includeMarks, excludeMarks },\r\n  hideRepeatTasks: boolean,\r\n  hideCompletedTasks: boolean,\r\n  hideCancelledTasks: boolean,\r\n  hideFolders: boolean,\r\n  showTree: boolean,\r\n  showFilters: boolean,\r\n  filterRootPath: string|null,\r\n  leftSort: { type, order },\r\n  activeQuickBtn: DOMElement|null,\r\n  quickBtns: DOMElement[],\r\n  dateCascadeEls: Object,\r\n  chartInstances: Object[],\r\n  filterCache: { fingerprint, tasks },\r\n  collapsedNodes: Object,\r\n  dataViewStatuses: string[],\r\n}\r\nNavigatorView._lastViewType: string  // 持久化的子视图类型\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-sig file src/panel/panel.js - 导航中心视图，任务管理面板入口，管理子视图切换/过滤/布局/持久化\r\n   NavigatorView - Obsidian ItemView 子类，注册视图类型 + 生命周期\r\n   startNavigatorCore - 核心启动函数，创建布局/状态/持久化/头部/侧边栏，激活子视图\r\n*/"
+				},
+				{
+					"line": 48,
+					"comment": "@skill-class\r\n   NavigatorView (extends BaseTaskView) - Obsidian 自定义视图，管理子视图类型持久化\r\n   startNavigatorCore() - 导航核心，创建布局、初始化状态、构建头部、激活子视图\r\n   buildHeader() - 构建粘性头部（快捷日期/控制按钮/排序/过滤区）\r\n   refreshCurrentView() - 刷新当前子视图（过滤→树面板→内容面板→持久化）\r\n   applyNavFilters() : Task[] - 应用导航层过滤（带指纹缓存）\r\n   renderContent(filteredTasks) - 渲染非自渲染视图的内容面板\r\n   activateSubView(viewType, force) - 激活指定子视图\r\n   TaskTreeRenderer - 树面板渲染器\r\n   tooltipManager - 工具提示管理器单例\r\n   persistence - 持久化管理器\r\n*/"
+				},
+				{
+					"line": 60,
+					"comment": "@skill-api\r\n   导入方:\r\n     main.js 或其他入口: import { VIEW_TYPE_NAVIGATOR, NavigatorView, startNavigatorCore } from \"./panel/panel\"\r\n   导入:\r\n     obsidian: Notice\r\n     configs/plugin-configs: CONFIG\r\n     storages/persist-storages: createInitialState, getEffectiveDateRange, getFilterFingerprint, PersistenceManager\r\n     tasks/read/read-tasks: getAllTasks\r\n     tasks/process/*: filterTasks, fetchFutureTasks, fetchOverdueTasks, fetchTasks\r\n     panel/bars/*: buildControlPanel, buildDateCascadePanel, buildHideButtons, buildMarkFilterPanel, buildQuickDatePanel, buildViewSwitcher, buildSortRow\r\n     panel/components/tree-view-components: TaskTreeRenderer\r\n     panel/interacts/tooltip-interact: TooltipManager\r\n     panel/views/*: startListBaseView, BaseTaskView, drawCharts, startKanbanView, startMatrixView (等所有子视图)\r\n*/"
+				},
+				{
+					"line": 74,
+					"comment": "@skill-func\r\n   VIEW_TYPE_NAVIGATOR : string - 视图类型标识符\r\n   NavigatorView.getViewType() : string - 返回视图类型\r\n   NavigatorView.getDisplayText() : string - 返回显示名称\r\n   NavigatorView.getIcon() : string - 返回图标名\r\n   NavigatorView.onOpen() : Promise - 恢复上次子视图类型\r\n   NavigatorView._startCore(dv, app, storageAdapter, instanceId) : Promise<Function> - 启动导航核心\r\n   NavigatorView.getState() : { subViewType } - 获取状态\r\n   NavigatorView.setState(state) : void - 设置状态\r\n   startNavigatorCore(dv, app, storageAdapter, instanceId, initialSubView, navigatorView?) : Promise<Function> - 核心启动函数\r\n   buildHeader() : void - 构建粘性头部\r\n   refreshCurrentView() : Promise - 刷新当前子视图\r\n   applyNavFilters() : Task[] - 应用导航层过滤\r\n   renderContent(filteredTasks) : Promise - 渲染内容面板\r\n   activateSubView(viewType, force?) : Promise - 激活子视图\r\n*/"
+				},
+				{
+					"line": 90,
+					"comment": "@skill-flow\r\n   NavigatorView.onOpen() → 从 getState() 恢复 _lastViewType\r\n   → _startCore() → startNavigatorCore()\r\n   → 创建布局 outerWithSidebar + sidebar + mainArea\r\n   → 创建 state + persistence + tooltipManager + treeRenderer\r\n   → buildViewSwitcher() 构建侧边栏\r\n   → buildHeader() 构建粘性头部\r\n   → persistence.load() 恢复持久化状态\r\n   → 激活初始子视图 (activateSubView)\r\n   → applyNavFilters() 过滤任务\r\n   → treeRenderer.render() + renderContent()\r\n   → 返回 cleanup 函数\r\n*/"
+				},
+				{
+					"line": 103,
+					"comment": "@skill-condition\r\n   子视图切换时: dataViewStatuses 在进出 task-dataview-view 时保存/恢复\r\n   matrix/kanban/inbox 视图强制 statuses = [\"todo\",\"planned\",\"in-progress\"]\r\n   过滤指纹缓存: fingerprint 匹配时跳过重复过滤\r\n   自渲染视图列表: selfRenderedViews 中的视图自行管理 viewPanel\r\n   树面板显隐: state.showTree 控制 display\r\n   过滤区显隐: state.showFilters 控制 display\r\n   cleanup: 销毁 echarts 实例 + 清理子视图 + 清空容器\r\n*/"
+				},
+				{
+					"line": 112,
+					"comment": "@skill-dom\r\n   .navigator-outer-with-sidebar - 最外层容器（flex 行）\r\n   .navigator-sidebar - 侧边栏视图切换区\r\n   .navigator-main - 主内容区（flex 列）\r\n   .navigator-scroll-area - 可滚动内容区\r\n   .header-sticky - 粘性头部（快捷日期/控制按钮/排序/过滤）\r\n   .filter-area - 过滤区\r\n   .navigator-content-layout - 双面板布局（树面板 + 视图面板）\r\n   .navigator-tree-panel - 左侧树面板\r\n   .navigator-view-panel - 右侧视图内容面板\r\n   .quick-row - 快捷日期行\r\n   .filter-label - 过滤标签\r\n   .section-divider - 节分隔线\r\n   .sort-row-wrapper - 排序行容器\r\n   .empty-message - 空状态提示\r\n   .dataview-tooltip - 工具提示元素（全局唯一）\r\n*/"
+				},
+				{
+					"line": 166,
+					"comment": "@skill-anchor: VIEW_TYPE_NAVIGATOR - 导航视图的注册标识符 */"
+				},
+				{
+					"line": 175,
+					"comment": "@skill-anchor: NavigatorView - 导航视图类，继承自 BaseTaskView，Obsidian ItemView 实现 */"
+				},
+				{
+					"line": 254,
+					"comment": "@skill-anchor: startNavigatorCore - 启动导航核心逻辑 */"
+				},
+				{
+					"line": 327,
+					"comment": "@skill-anchor: startNavigatorCore.buildHeader - 构建粘性头部区域 */"
+				},
+				{
+					"line": 421,
+					"comment": "@skill-anchor: startNavigatorCore.refreshCurrentView - 刷新当前子视图 */"
+				},
+				{
+					"line": 447,
+					"comment": "@skill-anchor: startNavigatorCore.applyNavFilters - 应用导航层过滤 */"
+				},
+				{
+					"line": 472,
+					"comment": "@skill-anchor: startNavigatorCore.renderContent - 渲染内容面板 */"
+				},
+				{
+					"line": 525,
+					"comment": "@skill-anchor: startNavigatorCore.activateSubView - 激活指定子视图 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/base-list-view.js",
-			"category": "views",
-			"name": "base-list-view",
-			"description": "基础列表视图",
-			"srcVersion": "",
-			"lastModified": "2026-05-09T14:10:00+08:00",
-			"commentGroups": []
-		},
-		{
-			"path": "src/panel/views/base-table-view.js",
-			"category": "views",
-			"name": "base-table-view",
-			"description": "基础表格视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "mapSymbolToStatus",
+			"description": "文件：src/panel/views/base-list-view.js",
+			"srcVersion": "1.0",
+			"hash": "766b9662",
+			"lastModified": "2026-05-10T01:39:31.396Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-func async startListBaseView(app, container, fetchFn, title, color?) : { cleanup, updateSort } - 通用列表视图渲染函数，由各列表视图传入自定义 fetchFn 和数据源使用 */"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-flow\r\n   startListBaseView(app, container, fetchFn, title, color) → container.innerHTML='' → fetchFn(app) → adaptTasksApiTask 适配 → normalizeTaskCardData 标准化 → createTaskCard 创建卡片 → 渲染列表 → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-condition\r\n   若 fetchFn 抛出异常 → 显示错误提示 \"⚠️ 获取${title}失败，请确认 Tasks 插件已启用\" 并返回空操作对象\r\n   若 rawTasks 为空数组 → 显示 \"📭 暂无${title}\" 并返回空操作对象\r\n*/"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-dom\r\n  .view-col\r\n    .col-header\r\n      span (📋 {title})\r\n      span ({count} 项)\r\n    ul.task-list\r\n      li.task-item[data-path][data-line]\r\n        .task-desc\r\n        .task-meta\r\n*/"
+				},
+				{
+					"line": 35,
+					"comment": "@skill-tool mapSymbolToStatus(symbol) - 将 Tasks 插件的状态符号映射为内部状态键 (todo/planned/in-progress/completed/cancelled) */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/base-task-view.js",
-			"category": "views",
-			"name": "base-task-view",
-			"description": "基础任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "BaseTaskView",
+			"description": "任务视图基类，所有具体任务视图均继承此类 */",
+			"srcVersion": "1.0",
+			"hash": "d154cfd",
+			"lastModified": "2026-05-10T01:39:29.950Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig class BaseTaskView extends ItemView - 任务视图基类，所有具体任务视图均继承此类 */"
+				},
+				{
+					"line": 16,
+					"comment": "@skill-sig createTaskCard(task, app) → HTMLLIElement - 创建统一的任务卡片 DOM 元素，含 meta 信息行和点击跳转事件 */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-sig normalizeTaskCardData(raw) → object - 将原始任务数据标准化为 createTaskCard 所需的格式 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-sig adaptTasksApiTask(task) → task - 适配 Tasks 插件 API 返回的任务对象，解析自定义字段（id/forbid/tag/repeat/priority） */"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-dom\r\n   li.task-item[data-path][data-line]\r\n     div.task-desc   // 任务描述（加粗）\r\n     div.task-meta   // meta 信息行（状态、优先级、循环、日期、ID、引用、标签、文件名）\r\n*/"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-state\r\n  _cleanupFn : function|null        // 视图清理函数（在 onClose 或重新渲染时调用）\r\n  _storageAdapter : StorageAdapter   // 持久化存储适配器\r\n  _instanceId : string               // 视图实例唯一 ID\r\n  无 UI 级内部状态（纯展示视图）\r\n*/"
+				},
+				{
+					"line": 33,
+					"comment": "@skill-flow\r\n       onOpen() → 检查 Dataview 插件 → 创建 dv 适配器对象 → this.contentEl.empty() → await this._startCore(dv, this.app, ...)\r\n       createTaskCard(task, app) → 解析优先级/状态 → 拼接 meta 行 → 创建 li 元素 → 绑定 click 事件（跳转到任务行） → 返回 li\r\n       normalizeTaskCardData(raw) → 映射 description/priority/status/recurrenceLabel/scheduled/start/due/tags/id/forbid/fileName/path/lineNumber → 返回标准化对象\r\n       adaptTasksApiTask(task) → 构造 _fullLine → 正则解析 _id / _forbid / _tag / _repeat / _priorityIcon → 合并 tags → 返回 task\r\n*/"
+				},
+				{
+					"line": 40,
+					"comment": "@skill-condition\r\n       若 Dataview 插件未加载 → 显示提示信息并直接返回\r\n       若已加载 → 创建 dv 适配器（包含 pages / page / el 方法），执行子类 _startCore\r\n*/"
+				},
+				{
+					"line": 45,
+					"comment": "@skill-api\r\n  ItemView (obsidian)\r\n  this.app.plugins.plugins.dataview\r\n  this.app.workspace.getLeaf()\r\n  this.app.vault.getAbstractFileByPath()\r\n  this.contentEl.createEl / empty\r\n  PRIORITY_ICONS, PRIORITY_LABELS, STATUS_ICONS, STATUS_NAMES (plugin-configs)\r\n  RX (read-tasks)\r\n*/"
+				},
+				{
+					"line": 65,
+					"comment": "@skill-sig constructor(leaf, storageAdapter, instanceId) - 初始化基类视图，保存存储适配器和实例 ID */"
+				},
+				{
+					"line": 83,
+					"comment": "@skill-sig async onOpen() : void - 视图打开时自动调用：初始化 Dataview API 适配器 dv，清空容器，调用 _startCore */"
+				},
+				{
+					"line": 85,
+					"comment": "@skill-flow\r\n       onOpen() → 检查 Dataview 插件 → 创建 dv 适配器对象 → this.contentEl.empty() → await this._startCore(dv, this.app, ...)\r\n    */"
+				},
+				{
+					"line": 89,
+					"comment": "@skill-condition\r\n       若 Dataview 插件未加载 → 显示提示信息并直接返回\r\n       若已加载 → 创建 dv 适配器（包含 pages / page / el 方法），执行子类 _startCore\r\n    */"
+				},
+				{
+					"line": 146,
+					"comment": "@skill-func createTaskCard(task, app) → HTMLLIElement - 创建统一的任务卡片 DOM 元素，含 meta 信息行和点击跳转事件 */"
+				},
+				{
+					"line": 148,
+					"comment": "@skill-flow\r\n   createTaskCard(task, app) → 解析优先级/状态 → 拼接 meta 行 → 创建 li 元素 → 绑定 click 事件（跳转到任务行） → 返回 li\r\n*/"
+				},
+				{
+					"line": 152,
+					"comment": "@skill-dom\r\n   li.task-item[data-path][data-line]\r\n     div.task-desc   // 任务描述（加粗）\r\n     div.task-meta   // meta 信息行（状态、优先级、循环、日期、ID、引用、标签、文件名）\r\n*/"
+				},
+				{
+					"line": 225,
+					"comment": "@skill-func normalizeTaskCardData(raw) → object - 将原始任务数据标准化为 createTaskCard 所需的格式 */"
+				},
+				{
+					"line": 227,
+					"comment": "@skill-flow\r\n   normalizeTaskCardData(raw) → 映射 description/priority/status/recurrenceLabel/scheduled/start/due/tags/id/forbid/fileName/path/lineNumber → 返回标准化对象\r\n*/"
+				},
+				{
+					"line": 257,
+					"comment": "@skill-func adaptTasksApiTask(task) → task - 适配 Tasks 插件 API 返回的任务对象，解析自定义字段（id/forbid/tag/repeat/priority） */"
+				},
+				{
+					"line": 259,
+					"comment": "@skill-flow\r\n   adaptTasksApiTask(task) → 构造 _fullLine → 正则解析 _id / _forbid / _tag / _repeat / _priorityIcon → 合并 tags → 返回 task\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/calendar-task-view.js",
-			"category": "views",
-			"name": "calendar-task-view",
-			"description": "日历任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "CalendarTaskView",
+			"description": "安全包装全局状态，提供默认值 */",
+			"srcVersion": "1.0",
+			"hash": "e76a05d",
+			"lastModified": "2026-05-10T01:39:29.814Z",
+			"commentGroups": [
+				{
+					"line": 16,
+					"comment": "@skill-sig function safeState(globalState) : Object - 安全包装全局状态，提供默认值 */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-sig function getFilteredTasks(dv, globalState) : Array<Task> - 获取过滤后的任务列表（日期范围+标记筛选+重复/完成排除） */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-sig function getEffectiveDateRange(state, dv) : { start:Date, end:Date } | null - 获取有效日期范围（从过滤状态或全部任务推断） */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-sig function getTaskInterval(task, state) : { start:Date, end:Date } | null - 获取任务在时间轴上的区间（根据 intervalMode 选择时间字段对） */"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-condition 仅当天是该任务区间的首日或末日时，才显示完整描述文本；其余天数仅显示颜色条 */"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-sig function buildDateTaskMap(tasks, state) : Object<string, Task[]> - 构建日期→任务映射（含区间展开和平铺去重） */"
+				},
+				{
+					"line": 22,
+					"comment": "@skill-sig function buildGlobalTitle(state, groupCount, taskCount) : string - 构建全局标题（含日期范围、筛选条件和统计信息） */"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-state\r\n  calState.currentView : string       // 当前视图模式（'day'|'week'|'month'|'quarter'|'year'）\r\n  calState.singleDateMode : boolean   // 是否为单日聚焦模式（从其他视图点击日期进入）\r\n  calState.focusedDate : Date|null    // 聚焦的日期\r\n  calState.focusedTaskId : string|null // 聚焦的任务ID（用于高亮和滚动定位）\r\n*/"
+				},
+				{
+					"line": 31,
+					"comment": "@skill-dom\r\n  .cal-root > .cal-view-area\r\n    .view-col\r\n      .col-header[data-date]\r\n      ul.task-list\r\n        li.task-item[data-id]                  // day view\r\n    .week-block\r\n      .week-title\r\n      .week-row\r\n        .cal-cell[data-date]                  // week view\r\n          .cal-cell-header\r\n          .cal-task-row\r\n            .cal-task-desc (首末日/今日显示全描述，其余显示颜色条)\r\n            .cal-task-line.status-tag\r\n    .calendar-grid\r\n      .cal-cell[data-date]                    // month/quarter view\r\n        .cal-cell-header (日期数字)\r\n        .cal-task-row\r\n          .cal-task-desc (今日和首末日显示)\r\n          .cal-task-line (其余显示颜色条)\r\n        .cal-more (+N剩余)\r\n    .quarter-block\r\n      .month-block\r\n        .calendar-grid\r\n          .cal-cell[data-date]                // nested in quarter\r\n    .year-block\r\n      .year-grid\r\n        .year-month-card\r\n          .year-month-title\r\n          .year-heat-grid\r\n            .year-heat-cell[data-date] (颜色深度表示任务密度)\r\n*/"
+				},
+				{
+					"line": 64,
+					"comment": "@skill-flow\r\n  初始化工具栏 → 构建标题栏 → 创建视图区域 → 添加悬浮按钮 → renderCurrentView()\r\n  点击视图切换按钮 → 更新 calState.currentView → renderCurrentView()\r\n  点击日期 → 切换到日视图 + 聚焦该日期\r\n  点击任务 → handleTaskClick(task, date) → 切换到日视图 + 高亮定位该任务\r\n  startCalendarView(dv, app, container, globalState) → 初始化UI → renderCurrentView() → 返回 {cleanup, updateSort}\r\n*/"
+				},
+				{
+					"line": 72,
+					"comment": "@skill-api\r\n  BaseTaskView (base-task-view)\r\n  readTasks.getAllTasks(false, dv, state)\r\n  DateUtils.formatDate(date)\r\n  DateUtils.setStart(date)\r\n  DateUtils.setEnd(date)\r\n  DateUtils.getWeekRange(date)\r\n  DateUtils.getISOWeekNumber(date)\r\n  DateUtils.getWeekOfMonth(date)\r\n  DateUtils.getWeekRangeByYearWeek(year, week)\r\n  DateUtils.getMonthRangeByYearMonth(year, month)\r\n  DateUtils.getQuarterRangeByYearQuarter(year, quarter)\r\n  DateUtils.getYearRangeByYear(year)\r\n  DateUtils.getWeekdayRange(start, end)\r\n  app.vault.getAbstractFileByPath\r\n  app.workspace.getLeaf\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/data-tasks-view.js",
-			"category": "views",
-			"name": "data-tasks-view",
-			"description": "数据任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "drawCharts",
+			"description": "item 容器，添加标题 + 可选 zoom 按钮 */",
+			"srcVersion": "1.0",
+			"hash": "6961574f",
+			"lastModified": "2026-05-10T01:39:29.855Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig createChartItem(title, showZoom, spanCols) : { chartDiv, item } - 创建 chart-item 容器，添加标题 + 可选 zoom 按钮 */"
+				},
+				{
+					"line": 16,
+					"comment": "@skill-sig makePieOption(data) : Object - 返回 ECharts 饼图配置（背景色/主题色/图例/序列） */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-sig openChartModal(chartInst) : void - 创建全屏遮罩 → 渲染放大图表 → 点击遮罩/关闭按钮销毁 */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-sig Chart #1: 执行状态 - 饼图 */"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-sig Chart #2: 优先级 - 饼图 */"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-sig Chart #3: 循环周期 - 饼图 */"
+				},
+				{
+					"line": 22,
+					"comment": "@skill-sig Chart #4: 日期标记 - 饼图 */"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-sig Chart #5: 依赖关系 - 饼图 */"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-sig Chart #6: 标签 - 饼图 */"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-sig Chart #7: 计划时长 - 饼图 */"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-sig Chart #8: 执行时长 - 饼图 */"
+				},
+				{
+					"line": 27,
+					"comment": "@skill-sig Chart #9: 计划执行对比 - 饼图 */"
+				},
+				{
+					"line": 28,
+					"comment": "@skill-sig Chart #10: 状态详细（日） - 堆叠柱状图，支持时间范围筛选和 zoom 弹窗 */"
+				},
+				{
+					"line": 40,
+					"comment": "@skill-func drawCharts(container, tasks, context) : void - 渲染任务统计图表面板，包括状态/优先级/循环/日期/依赖/标签/时长等 10 个图表 */"
+				},
+				{
+					"line": 42,
+					"comment": "@skill-flow\r\n   drawCharts(container, tasks, context) → 清空容器（空则显示占位） → 清理旧 chartInstances → 创建 grid 容器 → 创建 10 个图表项（状态/优先级/循环/日期/依赖/标签/计划时长/执行时长/执行对比/状态堆叠柱状图） → 绑定 zoom 按钮弹窗事件 → 延迟 resize → 结束\r\n*/"
+				},
+				{
+					"line": 46,
+					"comment": "@skill-condition\r\n   若 tasks 为空数组 → 显示 \"📭 无任务数据\"\r\n   若某统计维度数据全部为 0 → 该图表渲染 \"无数据\" 占位扇形\r\n*/"
+				},
+				{
+					"line": 51,
+					"comment": "@skill-dom\r\n  div.chart-grid (CSS Grid 布局)\r\n    div.chart-item[style*=\"gridColumn: span N\"]\r\n      div.chart-header\r\n        span (图表标题)\r\n        button.zoom-btn (放大按钮，仅状态堆叠图有)\r\n      div.chart-body (ECharts 挂载点)\r\n*/"
+				},
+				{
+					"line": 60,
+					"comment": "@skill-api\r\n  echarts.init, setOption, dispose, resize (echarts)\r\n  CONFIG.ALLOWED_STATUSES, PRIORITY_ORDER, REPEAT_ORDER, DATE_MARK_ORDER, STATUS_ICONS etc. (plugin-configs)\r\n  calcPlannedDuration, calcActualDuration, calcTotalSpanHours, prepareDailyStatusStack (calcul-chart-process)\r\n  context.dv, state, formatDate, setStart, setEnd, getEffectiveDateRange\r\n*/"
+				},
+				{
+					"line": 94,
+					"comment": "@skill-flow createChartItem(title, showZoom, spanCols) → 创建 chart-item 容器 → 添加标题 + 可选 zoom 按钮 → 返回 { chartDiv, item } */"
+				},
+				{
+					"line": 118,
+					"comment": "@skill-flow makePieOption(data) → 返回 ECharts 饼图配置（背景色/主题色/图例/序列） */"
+				},
+				{
+					"line": 154,
+					"comment": "@skill-flow openChartModal(chartInst) → 创建全屏遮罩 → 渲染放大图表 → 点击遮罩/关闭按钮销毁 */"
+				},
+				{
+					"line": 220,
+					"comment": "@skill-sig Chart #1: 执行状态 - 饼图 */"
+				},
+				{
+					"line": 234,
+					"comment": "@skill-sig Chart #2: 优先级 - 饼图 */"
+				},
+				{
+					"line": 248,
+					"comment": "@skill-sig Chart #3: 循环周期 - 饼图 */"
+				},
+				{
+					"line": 262,
+					"comment": "@skill-sig Chart #4: 日期标记 - 饼图 */"
+				},
+				{
+					"line": 276,
+					"comment": "@skill-sig Chart #5: 依赖关系 - 饼图 */"
+				},
+				{
+					"line": 290,
+					"comment": "@skill-sig Chart #6: 标签 - 饼图 */"
+				},
+				{
+					"line": 308,
+					"comment": "@skill-sig Chart #7: 计划时长 - 饼图 */"
+				},
+				{
+					"line": 319,
+					"comment": "@skill-sig Chart #8: 执行时长 - 饼图 */"
+				},
+				{
+					"line": 330,
+					"comment": "@skill-sig Chart #9: 计划执行对比 - 饼图 */"
+				},
+				{
+					"line": 341,
+					"comment": "@skill-sig Chart #10: 状态详细（日） - 堆叠柱状图，支持时间范围筛选和 zoom 弹窗 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/depends-task-view.js",
-			"category": "views",
-			"name": "depends-task-view",
-			"description": "依赖任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "DependsTaskView",
+			"description": "依赖任务视图，展示所有设置了 forbid（引用/依赖）标记的任务 */",
+			"srcVersion": "1.0",
+			"hash": "28dac8f4",
+			"lastModified": "2026-05-10T01:39:29.950Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig class DependsTaskView extends BaseTaskView - 依赖任务视图，展示所有设置了 forbid（引用/依赖）标记的任务 */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-sig async startDependsView(dv, app, container) : { cleanup, updateSort } - 渲染依赖任务列表视图 */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-flow\r\n   startDependsView(dv, app, container) → render() → 清空容器 → getAllTasks(false, dv, state) → 过滤 forbid 非空任务 → 升序排序 → 卡片列表渲染 → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-condition\r\n   若 getAllTasks 抛出异常 → 显示 \"⚠️ 获取依赖任务失败：{e.message}\"\r\n   若 dependsTasks 为空 → 显示 \"🔗 暂无依赖任务\"\r\n*/"
+				},
+				{
+					"line": 28,
+					"comment": "@skill-dom\r\n  .view-col\r\n    .col-header\r\n      span \"📋 依赖任务\"\r\n      span \"{n} 项\"\r\n    ul.task-list\r\n      li.task-item[data-path][data-line]\r\n        .task-desc\r\n        .task-meta\r\n*/"
+				},
+				{
+					"line": 39,
+					"comment": "@skill-state 无（纯展示视图，使用临时 state 对象调用 getAllTasks） */"
+				},
+				{
+					"line": 41,
+					"comment": "@skill-api\r\n  CONFIG (plugin-configs)\r\n  getAllTasks (read-tasks)\r\n  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/edit-tasks-view.js",
-			"category": "views",
-			"name": "edit-tasks-view",
-			"description": "编辑任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "EditTaskView",
+			"description": "任务编辑视图，提供批量编辑任务标记（优先级/日期/标签等）的界面 */",
+			"srcVersion": "1.0",
+			"hash": "eeb73e6",
+			"lastModified": "2026-05-10T01:39:30.010Z",
+			"commentGroups": [
+				{
+					"line": 17,
+					"comment": "@skill-sig class EditTaskView extends BaseTaskView - 任务编辑视图，提供批量编辑任务标记（优先级/日期/标签等）的界面 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-sig async startEditView(dv, app, container) : { cleanup, updateSort } - 渲染任务编辑视图入口 */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-sig Op.setPriority(line, emoji) : string - 设置优先级标记 */"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-sig Op.delPriority(line) : string - 删除优先级标记 */"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-sig Op.setRepeat(line, rule) : string - 设置循环周期标记 */"
+				},
+				{
+					"line": 22,
+					"comment": "@skill-sig Op.delRepeat(line) : string - 删除循环周期标记 */"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-sig Op.setCreated(line, date) : string - 设置创建时间标记 */"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-sig Op.setScheduled(line, date) : string - 设置计划时间标记 */"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-sig Op.setStarts(line, date) : string - 设置开始时间标记 */"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-sig Op.setDue(line, date) : string - 设置截止时间标记 */"
+				},
+				{
+					"line": 27,
+					"comment": "@skill-sig Op.setDone(line, date) : string - 设置完成时间标记 */"
+				},
+				{
+					"line": 28,
+					"comment": "@skill-sig Op.setCancel(line, date) : string - 设置取消时间标记 */"
+				},
+				{
+					"line": 29,
+					"comment": "@skill-sig Op.setTag(line, keyword) : string - 设置旗帜标签标记 */"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-sig Op.delTag(line) : string - 删除旗帜标签标记 */"
+				},
+				{
+					"line": 31,
+					"comment": "@skill-sig Op.delId(line) : string - 删除唯一ID标记 */"
+				},
+				{
+					"line": 32,
+					"comment": "@skill-sig Op.delForbid(line) : string - 删除引用ID标记 */"
+				},
+				{
+					"line": 33,
+					"comment": "@skill-sig Op.autoComplete(line, days) : string - 根据完成时间自动补全开始/计划/创建时间 */"
+				},
+				{
+					"line": 34,
+					"comment": "@skill-sig Op.sortTags(line) : string - 按固定顺序重排任务行中的标记位置 */"
+				},
+				{
+					"line": 35,
+					"comment": "@skill-sig fetchTasks(dv) : void - 从 Dataview 获取原始任务数据并缓存到 S.allTasks */"
+				},
+				{
+					"line": 36,
+					"comment": "@skill-sig applyFilters() : void - 根据当前模式/状态/标记筛选条件过滤任务 */"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-sig renderFullUI(dv, app) : void - 渲染完整的编辑视图 UI（模式切换/筛选/操作面板/任务列表/分页） */"
+				},
+				{
+					"line": 39,
+					"comment": "@skill-flow\r\n   startEditView → fetchTasks → applyFilters → renderFullUI（模式栏 → 状态筛选 → 标记筛选 → 操作面板 → 任务列表 → 分页）\r\n*/"
+				},
+				{
+					"line": 42,
+					"comment": "@skill-flow\r\n   Op.setPriority / Op.delPriority / ... → replaceMark(line, regex, newMark) → 返回修改后的行文本\r\n*/"
+				},
+				{
+					"line": 45,
+					"comment": "@skill-flow\r\n   用户编辑流程: 选择模式 → 选择状态/标记筛选 → 选中任务 → 选择操作(Op.*) → 预览 → 批量应用\r\n*/"
+				},
+				{
+					"line": 49,
+					"comment": "@skill-condition\r\n   若 S.allTasks 为空 → 仅显示模式切换栏，无任务列表\r\n   若 S.filteredTasks 为空 → 显示\"无匹配任务\"占位\r\n*/"
+				},
+				{
+					"line": 54,
+					"comment": "@skill-dom\r\n   div (模式切换栏)\r\n   div (状态筛选按钮组)\r\n   div (标记筛选按钮组)\r\n   div (操作面板，含 EDIT_GROUPS 按钮)\r\n   div.task-row (任务行，显示行片段)\r\n   div (分页导航)\r\n*/"
+				},
+				{
+					"line": 63,
+					"comment": "@skill-state\r\n   S.mode: 当前模式索引（0-3）\r\n   S.page: 当前页码\r\n   S.selectedIds: 选中任务 ID 集合\r\n   S.previewMap: 预览结果映射\r\n   S.opsState: 待执行操作队列\r\n   S.snapshots: 快照历史\r\n   S.filteredTasks: 筛选后任务列表\r\n   S.paginatedTasks: 分页后任务列表\r\n*/"
+				},
+				{
+					"line": 74,
+					"comment": "@skill-api\r\n  BaseTaskView (base-task-view)\r\n  readTasks.getAllTasks, readTasks.RX (read-tasks)\r\n  Op (内联操作函数集)\r\n  dv.el, dv.container (dataview)\r\n*/"
+				},
+				{
+					"line": 80,
+					"comment": "@skill-class\r\n   EditTaskView extends BaseTaskView - 任务编辑视图类（注册为 Obsidian ItemView），管理生命周期\r\n   S - 编辑视图全局状态对象，存储 allTasks/filteredTasks/paginatedTasks/selectedIds/previewMap/opsState/snapshots\r\n   Op - 操作函数集，封装所有标记的添加/删除/排序/自动补全逻辑\r\n   MODES - 四模式配置数组（未完成&缺失/未完成&完整/已完成&缺失/已完成&完整）\r\n   EDIT_GROUPS - 编辑操作按钮组定义（优先级/循环周期/日期/旗帜标签/唯一ID等）\r\n   STATUS_NAMES - 状态中文名称映射\r\n*/"
+				},
+				{
+					"line": 88,
+					"comment": "@skill-anchor\r\n   EditTaskView - 编辑视图类（跳转到整理箱视图）\r\n   startEditView - 编辑视图入口函数\r\n   fetchTasks - 从 Dataview 获取原始任务数据\r\n   applyFilters - 按模式/状态/标记筛选过滤\r\n   renderFullUI - 渲染完整编辑视图 UI（模式栏/状态筛选/标记筛选/操作面板/任务列表/分页）\r\n   injectStyle - 注入编辑视图内联样式\r\n   Op.setPriority / Op.delPriority - 优先级标记操作\r\n   Op.setRepeat / Op.delRepeat - 循环周期标记操作\r\n   Op.setCreated / Op.setScheduled / Op.setStarts - 日期标记操作\r\n   Op.setDue / Op.setDone / Op.setCancel - 日期标记操作\r\n   Op.setTag / Op.delTag - 旗帜标签标记操作\r\n   Op.delId / Op.delForbid - ID/引用标记操作\r\n   Op.autoComplete - 自动补全日期标记\r\n   Op.sortTags - 按固定顺序重排标记\r\n   S.mode - 当前模式索引\r\n   S.page - 当前页码\r\n   S.selectedIds - 选中任务 ID 集合\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/future-task-all-view.js",
-			"category": "views",
-			"name": "future-task-all-view",
-			"description": "未来任务全部视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "FutureAllTaskView",
+			"description": "未来所有任务视图，展示截止日期/计划日期在当前时间之后的所有任务列表 */",
+			"srcVersion": "1.0",
+			"hash": "6b195f46",
+			"lastModified": "2026-05-10T01:39:29.515Z",
+			"commentGroups": [
+				{
+					"line": 16,
+					"comment": "@skill-sig class FutureAllTaskView extends BaseTaskView - 未来所有任务视图，展示截止日期/计划日期在当前时间之后的所有任务列表 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-api\r\n  startListBaseView (base-list-view)\r\n  fetchTasks (task-query-process)\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 委托 startListBaseView 渲染未来所有任务列表（内部 fetch + filter） */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/future-task-n-view.js",
-			"category": "views",
-			"name": "future-task-n-view",
-			"description": "未来任务N天视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "FutureNTaskView",
+			"description": "未来N天任务视图，展示未来15天内的任务列表 */",
+			"srcVersion": "1.0",
+			"hash": "2c62f04e",
+			"lastModified": "2026-05-10T01:39:30.010Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig class FutureNTaskView extends BaseTaskView - 未来N天任务视图，展示未来15天内的任务列表 */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 委托 startListBaseView 渲染未来15天任务列表 */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-api\r\n  startListBaseView (base-list-view)\r\n  fetchFutureTasks (task-query-process)\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 委托 startListBaseView 渲染未来15天任务列表 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/gantt-task-view.js",
-			"category": "views",
-			"name": "gantt-task-view",
-			"description": "甘特图任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "GanttTaskView",
+			"description": "启动甘特图视图 */",
+			"srcVersion": "1.0",
+			"hash": "26764b0a",
+			"lastModified": "2026-05-10T01:39:30.010Z",
+			"commentGroups": [
+				{
+					"line": 19,
+					"comment": "@skill-sig function startGanttView(dv, app, container, globalState) : ViewController - 启动甘特图视图 */"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-segment class GanttTaskView - 甘特图视图类，继承 BaseTaskView */"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-route _startCore -> startGanttView - 核心启动路由 */"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-state\r\n  gs 全局状态对象（模块级单例）:\r\n    wrapper       : HTMLElement   // 甘特图外层容器\r\n    canvas        : HTMLCanvas    // 绘图画布\r\n    ctx           : CanvasRenderingContext2D\r\n    rowH          : number (26)   // 行高\r\n    headerH       : number (24)   // 顶部日期标签高度\r\n    leftW         : number (300)  // 左侧树面板宽度\r\n    scale         : number (1)    // 时间轴缩放比例\r\n    offsetX       : number (0)    // 时间轴水平偏移\r\n    scrollTop     : number (0)    // 虚拟滚动偏移\r\n    flatNodes     : Array         // 展平后的树节点列表\r\n    ganttTasks    : Array         // 甘特图任务条数据\r\n    minTime       : number        // 时间轴起始时间戳\r\n    maxTime       : number        // 时间轴结束时间戳\r\n    timeToX       : Function      // 时间 → x 坐标映射函数\r\n    tooltip       : HTMLElement   // 悬浮提示元素\r\n    collapsed     : Set           // 已折叠的文件夹路径集合\r\n    theme         : Object|null   // 缓存的主题样式\r\n    barPath       : Path2D|null   // 缓存的圆角条路径\r\n    resizeObs     : ResizeObserver|null\r\n    isResizing    : boolean       // 是否正在拖拽调整左栏宽度\r\n    isDragging    : boolean       // 是否正在拖拽平移时间轴\r\n    lastDragX     : number        // 上次拖拽鼠标 X 坐标\r\n*/"
+				},
+				{
+					"line": 51,
+					"comment": "@skill-constant STATUS_COLORS - 不同状态对应的十六进制颜色值 */"
+				},
+				{
+					"line": 53,
+					"comment": "@skill-flow gantt 视图完整流程\r\n  入口 → startGanttView()\r\n    → injectStyle() 注入动态样式\r\n    → 构建工具栏 + wrapper + canvas + tooltip DOM\r\n    → 注册各种事件监听器\r\n    → render() 循环：\r\n      → readTasks.getAllTasks() 获取全量任务\r\n      → 应用过滤器（日期/状态/标记/重复/已完成/已取消）\r\n      → buildTree() 构建文件路径树\r\n      → sortNodes() 排序\r\n      → flatten() 展平并应用折叠状态\r\n      → prepareTasks() 提取有时间区间的任务条\r\n      → 计算 minTime/maxTime\r\n      → resize() 调整画布尺寸 + draw() 绘制\r\n*/"
+				},
+				{
+					"line": 69,
+					"comment": "@skill-flow render 主渲染循环\r\n  1. 获取排序和区间模式配置\r\n  2. getAllTasks 获取全量任务 → 应用过滤器\r\n  3. buildTree → sortNodes → flatten → prepareTasks\r\n  4. 计算时间轴范围（minTime/maxTime）\r\n  5. resize → draw\r\n*/"
+				},
+				{
+					"line": 77,
+					"comment": "@skill-flow 入口流程\r\n  1. injectStyle → 注入全局样式\r\n  2. 构建工具栏（折叠/展开文件夹按钮）\r\n  3. 构建滚动容器 + Canvas\r\n  4. 构建 tooltip DOM（fixed 绝对定位）\r\n  5. 注册事件：\r\n    - canvas click → onCanvasClick\r\n    - canvas mousemove → onMouseMove\r\n    - canvas mousedown → 开始拖拽（左栏宽度 或 时间轴平移）\r\n    - window mousemove → 拖拽中\r\n    - window mouseup → 结束拖拽\r\n    - canvas wheel（Alt）→ 缩放\r\n    - wrapper scroll → 虚拟滚动更新\r\n    - ResizeObserver → 自适应\r\n  6. 默认设为本周 → 首次 render\r\n*/"
+				},
+				{
+					"line": 94,
+					"comment": "@skill-dom gantt 视图 DOM 结构\r\n  .gantt-root\r\n    .gantt-toolbar\r\n      button (折叠/展开文件夹按钮)\r\n    .gantt-wrapper (滚动容器)\r\n      canvas.gantt-canvas (直接绘制)\r\n    .gantt-tooltip (fixed 定位的悬浮提示)\r\n*/"
+				},
+				{
+					"line": 103,
+					"comment": "@skill-dom draw - Canvas 绘制流程\r\n  1. 清空画布\r\n  2. 分区背景（左侧灰、右侧白）、分割线\r\n  3. 左侧树节点文字（虚拟滚动优化）\r\n  4. 周网格线\r\n  5. 今日竖线（黄色虚线）\r\n  6. 任务条（圆角矩形 + 时长标签）\r\n  7. 依赖箭头（折线 + 箭头三角形）\r\n  8. 顶部日期标签\r\n*/"
+				},
+				{
+					"line": 114,
+					"comment": "@skill-helpers\r\n  getInterval(task, mode)       // 提取任务时间区间 {start, end}\r\n  buildTree(tasks, dv)          // 按文件路径构建树\r\n  sortNodes(nodes, sort)        // 递归排序节点\r\n  flatten(nodes, level, out, collapsed) // 展平树，应用折叠\r\n  prepareTasks(flat, mode)      // 从展平节点中提取甘特条\r\n  ensureTheme()                 // 缓存 CSS 变量主题\r\n  updateTimeScale()             // 更新 time→x 映射\r\n  formatDur(ms)                 // 毫秒 → 人类可读时长\r\n  isToday(task)                 // 任务是否在今天\r\n  resize()                      // 调整画布尺寸\r\n  draw()                        // 主绘制函数\r\n  onCanvasClick(e, app, refresh)// 画布点击处理\r\n  onMouseMove(e)                // 鼠标移动 → 悬浮提示\r\n  render(dv, app, globalState)  // 主渲染循环\r\n*/"
+				},
+				{
+					"line": 131,
+					"comment": "@skill-event onCanvasClick - 画布点击事件\r\n  - 左侧树区域：文件夹/文件行 → 展开/折叠；任务行 → 打开文件\r\n  - 其他区域：忽略\r\n*/"
+				},
+				{
+					"line": 136,
+					"comment": "@skill-event onMouseMove - 鼠标移动 → 悬浮提示\r\n  - 时间轴区域 → 检测鼠标是否悬停在任务条上\r\n  - 左侧树区域 → 计算对应行号 → 获取 task 类型节点\r\n  - 找到目标 → 调用 ensureTaskProperties 填充 _tooltip → 显示提示\r\n*/"
+				},
+				{
+					"line": 142,
+					"comment": "@skill-query - 从展平节点中提取有时间区间标记的任务条数据 */"
+				},
+				{
+					"line": 144,
+					"comment": "@skill-condition series - 甘特图条件描述合集:\r\n\r\n  getInterval:\r\n    mode=\"starts-done\" → 使用 _starts 和 _done||_due 构建区间\r\n    mode=\"scheduled-due\" → 使用 _scheduled 和 _due 构建区间\r\n    缺少日期 → 返回 null（该任务不显示条）\r\n\r\n  buildTree:\r\n    1. 按 path 分组任务 (Map<path, tasks[]>)\r\n    2. 使用 dv.page(path) 获取文件元信息\r\n    3. 去掉 ROOT_PATH 前缀，按 / 分割路径片段\r\n    4. 逐层构建树：非末级创建 folder 节点，末级创建 file 节点\r\n    5. 返回根节点数组\r\n\r\n  sortNodes:\r\n    同级排序：文件夹 > 文件，名称字典序\r\n    文件内任务排序：\r\n      sort.type=\"status\" → 自定义状态顺序映射\r\n      sort.type=\"priority\" → 优先级图标映射数值\r\n      sort.type=\"date\" → 按 _scheduled/_due/_starts/_created 中最早日期排序\r\n    sort.order=\"asc\"/\"desc\" 控制方向\r\n\r\n  flatten - 深度优先展平树:\r\n    文件夹节点 → 自身入列；未折叠时递归子节点\r\n    文件节点 → 自身入列；未折叠时子任务入列（类型为 task）\r\n    每个节点记录 level 缩进层级\r\n\r\n  ensureTheme:\r\n    theme 已缓存 → 直接返回\r\n    首次调用 → 读取 CSS 变量，缓存到 gs.theme\r\n    barPath 未创建 → 用 Path2D 构建圆角矩形路径\r\n\r\n  updateTimeScale:\r\n    时间 → X 坐标映射：\r\n    chartW = canvas宽度 - leftW - 边距\r\n    startX = leftW + 边距 + offsetX（拖拽偏移）\r\n    t → x = startX + ((t - minTime) / range) * chartW * scale\r\n\r\n  draw - 虚拟滚动：只绘制可视区域内的行 ±2 行缓冲\r\n\r\n  draw - 依赖箭头绘制:\r\n    遍历每个任务 → 解析 _forbid 字段 → 按逗号拆分依赖 ID\r\n    对每个依赖 ID → 在 flatNodes 中查找对应 task → 获取其行列\r\n    起点：依赖任务的 _done 或 _due 时间\r\n    终点：当前任务的 _starts 或 _scheduled 时间\r\n    绘制折线（上→右→下）→ 终点箭头三角形\r\n\r\n  isToday - 检查任务的任意日期字段是否落在今天范围内\r\n\r\n  resize - 根据 flatNodes 数量计算画布高度，dp 适配高清屏\r\n\r\n  render - 过滤器链（按顺序应用）:\r\n    1. 日期范围过滤器 (dateFilterState)\r\n    2. 状态过滤器 (markFilterState.statuses)\r\n    3. 包含标记过滤器 (markFilterState.includeMarks)\r\n    4. 排除标记过滤器 (markFilterState.excludeMarks)\r\n    5. 隐藏重复任务 (hideRepeatTasks)\r\n    6. 隐藏已完成任务 (hideCompletedTasks)\r\n    7. 隐藏已取消任务 (hideCancelledTasks)\r\n*/"
+				},
+				{
+					"line": 205,
+					"comment": "@skill-algorithm series - 甘特图算法描述合集:\r\n\r\n  buildTree:\r\n    1. 按 path 分组任务 (Map<path, tasks[]>)\r\n    2. 使用 dv.page(path) 获取文件元信息\r\n    3. 去掉 ROOT_PATH 前缀，按 / 分割路径片段\r\n    4. 逐层构建树：非末级创建 folder 节点，末级创建 file 节点\r\n    5. 返回根节点数组\r\n\r\n  sortNodes:\r\n    同级排序：文件夹 > 文件，名称字典序\r\n    文件内任务排序：\r\n      sort.type=\"status\" → 自定义状态顺序映射\r\n      sort.type=\"priority\" → 优先级图标映射数值\r\n      sort.type=\"date\" → 按 _scheduled/_due/_starts/_created 中最早日期排序\r\n    sort.order=\"asc\"/\"desc\" 控制方向\r\n\r\n  flatten:\r\n    文件夹节点 → 自身入列；未折叠时递归子节点\r\n    文件节点 → 自身入列；未折叠时子任务入列（类型为 task）\r\n    每个节点记录 level 缩进层级\r\n\r\n  updateTimeScale:\r\n    时间 → X 坐标映射：\r\n    chartW = canvas宽度 - leftW - 边距\r\n    startX = leftW + 边距 + offsetX（拖拽偏移）\r\n    t → x = startX + ((t - minTime) / range) * chartW * scale\r\n*/"
+				},
+				{
+					"line": 234,
+					"comment": "@skill-api\r\n  readTasks.getAllTasks(false, dv, globalState)  // 获取全量任务\r\n  readTasks.ensureTaskProperties(tip)              // 填充任务 tooltip 属性\r\n  dv.page(path)                                    // 获取文件元信息\r\n  app.workspace.openLinkText(path, \"\", {active})  // 打开文件\r\n  app.vault.getAbstractFileByPath(path)            // 获取文件对象\r\n  app.workspace.getLeaf(false)                     // 获取编辑器叶子\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/important-task-view.js",
-			"category": "views",
-			"name": "important-task-view",
-			"description": "重要任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "ImportantTaskView",
+			"description": "重要任务视图，三列网格按状态分组展示标记为重要的任务 */",
+			"srcVersion": "1.0",
+			"hash": "7c039c1f",
+			"lastModified": "2026-05-10T01:39:29.818Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig class ImportantTaskView extends BaseTaskView - 重要任务视图，三列网格按状态分组展示标记为重要的任务 */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-api\r\n  fetchImportantTasksByStatus (task-query-process)\r\n  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)\r\n*/"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-func async startImportantView(dv, app, container) : { cleanup, updateSort } - 渲染重要任务三列网格视图 */"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-flow\r\n   startImportantView(dv, app, container) → fetchImportantTasksByStatus(app) → 网格容器 → 三列分组渲染（未开始/计划中/进行中） → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-condition\r\n   若 fetchImportantTasksByStatus 抛出异常 → 显示错误提示 \"❌ 未检测到 Tasks 插件\"\r\n   若某分组任务数为 0 → 显示 \"暂无任务\"\r\n*/"
+				},
+				{
+					"line": 35,
+					"comment": "@skill-dom\r\n  .view-grid.cols-3\r\n    .view-col (x3)\r\n      .col-header\r\n        span (分组名)\r\n        span (任务数)\r\n      ul.task-list\r\n        li.task-item[data-path][data-line]\r\n          .task-desc\r\n          .task-meta\r\n*/"
+				},
+				{
+					"line": 69,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startImportantView 渲染重要任务视图 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/inbox-task-view.js",
-			"category": "views",
-			"name": "inbox-task-view",
-			"description": "收件箱任务视图",
-			"srcVersion": "",
-			"lastModified": "2026-05-09T14:54:43+08:00",
+			"category": "panel",
+			"name": "InboxTaskView",
+			"description": "收集箱视图，两列网格按状态分组展示待处理任务 */",
+			"srcVersion": "1.0",
+			"hash": "35f54be3",
+			"lastModified": "2026-05-09T06:54:38.412Z",
 			"commentGroups": [
 				{
-					"groupType": "skill",
-					"sig": [
-						{
-							"name": "InboxTaskView",
-							"type": "class",
-							"extends": "BaseTaskView",
-							"description": "收集箱视图，两列网格按状态分组展示待处理任务"
-						},
-						{
-							"name": "startInboxView",
-							"type": "async function",
-							"returns": "{ cleanup, updateSort }",
-							"description": "渲染收集箱两列网格视图"
-						},
-						{
-							"name": "_startCore",
-							"type": "async method",
-							"returns": "function",
-							"description": "调用 startInboxView 渲染收集箱视图"
-						}
-					],
-					"dom": ".view-grid.cols-2 > .view-col (x2) > .col-header / ul.task-list > li.task-item[data-path][data-line]",
-					"state": "无（纯展示视图）",
-					"flow": "startInboxView → fetchInboxTasks → processInboxTasks → 网格容器 → 两列分组渲染（未开始/计划中） → 返回 { cleanup, updateSort }",
-					"condition": "若 fetchInboxTasks 抛出异常 → 显示错误提示；若某分组任务数为 0 → 显示 \"暂无任务\"",
-					"api": "fetchInboxTasks, processInboxTasks (inbox-task-process); BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)",
-					"skillFile": ".cline/skills/code/panel/views/inbox-task-view.md"
+					"line": 14,
+					"comment": "@skill-sig class InboxTaskView extends BaseTaskView - 收集箱视图，两列网格按状态分组展示待处理任务 */"
+				},
+				{
+					"line": 16,
+					"comment": "@skill-sig async startInboxView(dv, app, container) : { cleanup, updateSort } - 渲染收集箱两列网格视图 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-dom\r\n  .view-grid.cols-2\r\n    .view-col (x2)\r\n      .col-header\r\n        span (分组名)\r\n        span (任务数)\r\n      ul.task-list\r\n        li.task-item[data-path][data-line]\r\n          .task-desc\r\n          .task-meta\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 32,
+					"comment": "@skill-flow\r\n   startInboxView(dv, app, container) → fetchInboxTasks(app) → processInboxTasks(raw) → 网格容器 → 两列分组渲染（未开始/计划中） → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 36,
+					"comment": "@skill-condition\r\n   若 fetchInboxTasks 抛出异常 → 显示错误提示 \"❌ 未检测到 Tasks 插件，请安装并启用。\"\r\n   若某分组任务数为 0 → 显示 \"暂无任务\"\r\n*/"
+				},
+				{
+					"line": 41,
+					"comment": "@skill-api\r\n  fetchInboxTasks, processInboxTasks (inbox-task-process)\r\n  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)\r\n*/"
+				},
+				{
+					"line": 70,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startInboxView 渲染收集箱视图 */"
 				}
 			]
 		},
 		{
 			"path": "src/panel/views/kanban-task-view.js",
-			"category": "views",
-			"name": "kanban-task-view",
-			"description": "看板任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "Kanban Task View",
+			"description": "渲染看板三列视图，首次动态注入 kanban 样式 */",
+			"srcVersion": "1.0",
+			"hash": "3dc5ceb",
+			"lastModified": "2026-05-10T01:39:30.003Z",
+			"commentGroups": [
+				{
+					"line": 14,
+					"comment": "@skill-sig async startKanbanView(dv, app, container) : { cleanup, updateSort } - 渲染看板三列视图，首次动态注入 kanban 样式 */"
+				},
+				{
+					"line": 16,
+					"comment": "@skill-flow\r\n   startKanbanView(dv, app, container) → 注入 .kanban 样式（仅首次） → renderKanban() → fetchKanbanTasks + processKanbanTasks → 三列看板渲染（未开始/计划中/进行中） → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-condition\r\n   若 fetchKanbanTasks/processKanbanTasks 抛出异常 → 显示 \"❌ 未检测到 Tasks 插件\"\r\n   若某分组任务数为 0 → 显示 \"暂无任务\"\r\n*/"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-dom\r\n  .kanban (display:flex, overflow-x:auto)\r\n    .view-col[style*=\"--quad-color\"] (x3)\r\n      .col-header\r\n        span (分组名)\r\n        span (任务数)\r\n      ul.task-list\r\n        li.task-item[data-path][data-line]\r\n          .task-desc\r\n          .task-meta\r\n*/"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-api\r\n  fetchKanbanTasks (kanban-task-process)\r\n  processKanbanTasks (kanban-task-process)\r\n  createTaskCard, normalizeTaskCardData (base-task-view)\r\n*/"
+				},
+				{
+					"line": 49,
+					"comment": "@skill-func async startKanbanView(dv, app, container) : { cleanup, updateSort } - 渲染看板三列视图，首次动态注入 kanban 样式 */"
+				},
+				{
+					"line": 77,
+					"comment": "@skill-flow renderKanban() → 清空容器 → 获取分组数据 → 统计栏 → 看板容器 → 三列渲染（按 symbol 分组） → 追加到容器 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/matrix-task-view.js",
-			"category": "views",
-			"name": "matrix-task-view",
-			"description": "矩阵任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "Matrix Task View",
+			"description": "启动艾森豪威尔矩阵视图 */",
+			"srcVersion": "1.0",
+			"hash": "64860751",
+			"lastModified": "2026-05-10T01:39:30.143Z",
+			"commentGroups": [
+				{
+					"line": 14,
+					"comment": "@skill-sig function startMatrixView(app, container, leftSort, state) : ViewController - 启动艾森豪威尔矩阵视图 */"
+				},
+				{
+					"line": 16,
+					"comment": "@skill-state\r\n  hideRecurring          : boolean              // 是否隐藏重复任务\r\n  cachedRawTasks         : Array|null            // 缓存原始任务数据\r\n  cachedQuadrantsData    : Array<Array<Task>>    // 四象限分类后的数据缓存\r\n  currentSort            : {type, order}         // 当前排序规则\r\n  currentState           : Object|null           // 当前全局状态快照\r\n  currentFilterRootPath  : string|null           // 路径过滤条件\r\n*/"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-dom matrix 视图 DOM 结构\r\n  .matrix-view (container)\r\n    .control-bar\r\n    .view-grid.cols-2\r\n      .view-col (x4)\r\n        .col-header\r\n          span (象限名称)\r\n          span.task-count\r\n        ul.task-list\r\n          li.empty-placeholder (或无任务提示)\r\n          li.task-item (对每个任务)\r\n            .task-check\r\n            .task-desc\r\n*/"
+				},
+				{
+					"line": 40,
+					"comment": "@skill-flow\r\n  数据加载 → fetchRawTasks(app) → processTasks() → cachedQuadrantsData → renderMatrix()\r\n  排序变更 → updateSort(newSort) → renderMatrix()\r\n  状态变更 → update({state}) → 更新过滤条件 → renderMatrix()\r\n  路径过滤 → 检查 currentFilterRootPath → 过滤 quadrantsData → renderMatrix()\r\n*/"
+				},
+				{
+					"line": 47,
+					"comment": "@skill-condition\r\n  若无缓存数据(cachedQuadrantsData为空) → 不渲染\r\n  若设置了 currentFilterRootPath → 过滤任务路径前缀匹配\r\n  若 quadrant 中无任务 → 显示空状态提示\r\n*/"
+				},
+				{
+					"line": 53,
+					"comment": "@skill-api\r\n  fetchRawTasks(app)                 // 从 Obsidian Tasks 插件获取原始任务\r\n  processTasks(rawTasks, hideRecurring)  // 将任务分类到四个象限\r\n  sortTasks(tasks, currentSort)      // 按规则排序\r\n  normalizeTaskCardData(taskData)    // 标准化任务数据为卡片格式\r\n  createTaskCard(cardData, app)      // 生成任务卡片 DOM\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/organize-task-view.js",
-			"category": "views",
-			"name": "organize-task-view",
-			"description": "整理任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "OrganizeTaskView",
+			"description": "任务整理箱视图，提供四级模式过滤任务、批量编辑标记/日期/优先级/标签、预览修改并批量写入文件 */",
+			"srcVersion": "1.0",
+			"hash": "314baf",
+			"lastModified": "2026-05-10T01:39:30.136Z",
+			"commentGroups": [
+				{
+					"line": 16,
+					"comment": "@skill-sig file src/panel/views/organize-task-view.js - 任务整理箱视图，提供四级模式过滤任务、批量编辑标记/日期/优先级/标签、预览修改并批量写入文件 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-state\r\n   State.mode: 当前模式索引（0-3）\r\n   State.statuses: 已选状态数组\r\n   State.includeMarks: 包含标记列表\r\n   State.excludeMarks: 排除标记列表\r\n   State.tagOrderInvalidOnly: 是否仅显示标记顺序异常\r\n   State.sort: { type: string, order: 'asc'|'desc' }\r\n   State.page: 当前页码\r\n   State.selectedIds: 选中任务 ID 集合\r\n   State.previewMap: 预览结果映射\r\n   State.opsState: 待执行操作队列\r\n   State.snapshots: 历史快照\r\n   State.modifiedMap: 已确定修改映射\r\n   globalState: 外部全局缓存（需传入）\r\n*/"
+				},
+				{
+					"line": 34,
+					"comment": "@skill-api\r\n   BaseTaskView (base-task-view)\r\n   readTasks (read-tasks)\r\n   isIncomplete, isCompleted, hasEssentialTags, Op, loadSnapshots, saveSnapshots, addSnapshot, writeToFiles (organize-task-process)\r\n*/"
+				},
+				{
+					"line": 40,
+					"comment": "@skill-dom\r\n   .organize-wrap\r\n     .organize-toolbar\r\n       .toolbar-left (模式切换按钮)\r\n       .toolbar-right (页首/页尾按钮)\r\n     .organize-row (状态筛选)\r\n     .organize-row (包含/排除标记筛选)\r\n     .organize-edit (编辑面板: 优先级/循环/日期/标签等)\r\n     .organize-row (操作栏: 清空预览/保存/快照撤回/刷新/重置)\r\n     .organize-row (排序面板 + 仅显示无序)\r\n     .task-list\r\n       li.task-item (复选框 + 原始行 + 预览/已修改标记)\r\n     .organize-row (分页导航)\r\n*/"
+				},
+				{
+					"line": 55,
+					"comment": "@skill-flow\r\n   getFilteredTasks() → globalState.filterCache.tasks → MODE 过滤 → statuses 过滤 → includeMarks 过滤 → excludeMarks 过滤 → tagOrderInvalidOnly 过滤 → 排序 → 返回\r\n   整页渲染 → render() → buildStatusFilter() → buildMarkFilter() → buildEditPanel() → buildActionBar() → buildSortAndFilter() → paginate() → buildTaskTable()\r\n   toggleOp() → 切换 opsState → paginate() → generatePreviews() → render()\r\n   确定按钮 → 写入 modifiedMap → render()\r\n   保存按钮 → addSnapshot() → writeToFiles() → 清空 modifiedMap → 刷新数据 → render()\r\n   快照撤回 → 从 snapshots 恢复文件行 → 刷新数据 → render()\r\n*/"
+				},
+				{
+					"line": 64,
+					"comment": "@skill-condition\r\n   若 globalState?.filterCache?.tasks 不存在 → 返回 []\r\n   排序类型: time(默认按日期), missing(缺失标记数), priority(优先级权重), tagOrder(标记顺序正确性)\r\n   空值排序统一置底（包括 null/undefined/空字符串）\r\n*/"
+				},
+				{
+					"line": 70,
+					"comment": "@skill-const MODES - 四级过滤模式配置：\r\n   [0] 未完成 & 缺失必需标记 → 可编辑 priority/repeat/created/scheduled/starts/due/tag/id/forbid/sort/autoComplete\r\n   [1] 未完成 & 格式完整 → 可编辑 repeat/due/tag/id/forbid/sort\r\n   [2] 已完成 & 缺失必需标记 → 可编辑 priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid/sort/autoComplete\r\n   [3] 已完成 & 格式完整 → 可编辑 repeat/done/cancel/tag/id/forbid/sort\r\n*/"
+				},
+				{
+					"line": 77,
+					"comment": "@skill-const EDIT_GROUPS - 编辑分组定义，包含键名/标签/子选项类型 */"
+				},
+				{
+					"line": 79,
+					"comment": "@skill-object State - 全局状态对象，管理视图层的所有可持久化状态 */"
+				},
+				{
+					"line": 81,
+					"comment": "@skill-func getApp() : app - 获取 app 引用 */"
+				},
+				{
+					"line": 82,
+					"comment": "@skill-func loadViewState() : void - 从 localStorage 恢复视图状态 */"
+				},
+				{
+					"line": 83,
+					"comment": "@skill-func saveViewState() : void - 将视图状态持久化到 localStorage */"
+				},
+				{
+					"line": 84,
+					"comment": "@skill-func getFilteredTasks() : Task[] - 根据当前 State 筛选和排序任务列表 */"
+				},
+				{
+					"line": 85,
+					"comment": "@skill-func paginate() : { tasks, paginated } - 对筛选结果分页，重置选中和预览 */"
+				},
+				{
+					"line": 86,
+					"comment": "@skill-func generatePreviews(paginated) : void - 基于当前 opsState 生成选中任务的预览文本 */"
+				},
+				{
+					"line": 87,
+					"comment": "@skill-func render() : void - 渲染完整的整理箱 UI */"
+				},
+				{
+					"line": 88,
+					"comment": "@skill-func buildStatusFilter(root) : void - 构建状态筛选按钮行 */"
+				},
+				{
+					"line": 89,
+					"comment": "@skill-func buildMarkFilter(root) : void - 构建包含/排除标记筛选行 */"
+				},
+				{
+					"line": 90,
+					"comment": "@skill-func buildEditPanel(root) : void - 构建编辑操作面板（优先级/循环/日期/标签等） */"
+				},
+				{
+					"line": 91,
+					"comment": "@skill-func buildActionBar(root) : void - 构建操作栏（清空/保存/快照撤回/刷新/重置） */"
+				},
+				{
+					"line": 92,
+					"comment": "@skill-func buildSortAndFilter(root) : void - 构建排序面板（时间/缺失标记/优先级/标记顺序 + 仅显示无序） */"
+				},
+				{
+					"line": 93,
+					"comment": "@skill-func buildTaskTable(root, allTasks, paginated) : void - 构建任务表格（全选/任务行/分页） */"
+				},
+				{
+					"line": 94,
+					"comment": "@skill-func toggleOp(key, op, val) : void - 切换编辑操作（添加/移除操作到 opsState） */"
+				},
+				{
+					"line": 95,
+					"comment": "@skill-func async startOrganizeView(dvParam, appParam, panelContainer, gState) : { cleanup, updateSort } - 启动任务整理箱视图，返回控制器 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/overdue-task-view.js",
-			"category": "views",
-			"name": "overdue-task-view",
-			"description": "过期任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "OverdueTaskView",
+			"description": "逾期任务视图，展示已过截止日期的任务列表 */",
+			"srcVersion": "1.0",
+			"hash": "423b9fac",
+			"lastModified": "2026-05-10T01:39:30.002Z",
+			"commentGroups": [
+				{
+					"line": 16,
+					"comment": "@skill-sig class OverdueTaskView extends BaseTaskView - 逾期任务视图，展示已过截止日期的任务列表 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-api\r\n  startListBaseView (base-list-view)\r\n  fetchOverdueTasks (task-query-process)\r\n*/"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-flow\r\n   OverdueTaskView._startCore → startListBaseView(app, container, fetchOverdueTasks, \"逾期任务\", \"rgba(255, 130, 130, 0.25)\") → fetchOverdueTasks(app) → 通用列表渲染\r\n*/"
+				},
+				{
+					"line": 29,
+					"comment": "@skill-condition\r\n   fetchOverdueTasks 返回空数组 → startListBaseView 内部处理空状态显示\r\n*/"
+				},
+				{
+					"line": 52,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 委托 startListBaseView 渲染逾期任务列表 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/pomodoro-task-view.js",
-			"category": "views",
-			"name": "pomodoro-task-view",
-			"description": "番茄钟任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "PomodoroTaskView",
+			"description": "番茄钟统计视图（占位），展示即将上线提示 */",
+			"srcVersion": "1.0",
+			"hash": "2fab357d",
+			"lastModified": "2026-05-10T01:39:30.232Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-sig class PomodoroTaskView extends BaseTaskView - 番茄钟统计视图（占位），展示即将上线提示 */"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-state 无（纯占位视图） */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-api\r\n  BaseTaskView (base-task-view)\r\n*/"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-condition\r\n   始终显示 \"🍅 番茄钟统计即将上线\" 占位信息\r\n*/"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : { cleanup, updateSort } - 渲染占位内容，返回空操作接口 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/recurring-task-view.js",
-			"category": "views",
-			"name": "recurring-task-view",
-			"description": "循环任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "RecurringTaskView",
+			"description": "循环任务视图，三列网格按频率分组展示循环任务 */",
+			"srcVersion": "1.0",
+			"hash": "542c4639",
+			"lastModified": "2026-05-10T01:39:30.003Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig class RecurringTaskView extends BaseTaskView - 循环任务视图，三列网格按频率分组展示循环任务 */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-api\r\n  fetchRecurringTasksGrouped (recurring-task-process)\r\n  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)\r\n*/"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-func async startRecurringView(dv, app, container) : { cleanup, updateSort } - 渲染循环任务三列网格视图（每天/每周/每月） */"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-flow\r\n   startRecurringView(dv, app, container) → fetchRecurringTasksGrouped(app) → 网格容器 → 三列分组渲染（每天/每周/每月） → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-condition\r\n   若 fetchRecurringTasksGrouped 抛出异常 → 显示错误提示 \"❌ 未检测到 Tasks 插件\"\r\n   若某分组任务数为 0 → 显示 \"暂无任务\"\r\n*/"
+				},
+				{
+					"line": 35,
+					"comment": "@skill-dom\r\n  .view-grid.cols-3\r\n    .view-col (x3)\r\n      .col-header\r\n        span (分组名)\r\n        span (任务数)\r\n      ul.task-list\r\n        li.task-item\r\n          .task-desc\r\n          .task-meta\r\n*/"
+				},
+				{
+					"line": 69,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startRecurringView 渲染循环任务视图 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/table-task-view.js",
-			"category": "views",
-			"name": "table-task-view",
-			"description": "表格任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "TableTaskView",
+			"description": "表格视图，以可配置列的可滚动表格展示所有任务，支持列显示/隐藏切换、点击列排序、点击描述跳转到文件 */",
+			"srcVersion": "1.0",
+			"hash": "174b320",
+			"lastModified": "2026-05-10T01:39:30.135Z",
+			"commentGroups": [
+				{
+					"line": 16,
+					"comment": "@skill-sig file src/panel/views/table-task-view.js - 表格视图，以可配置列的可滚动表格展示所有任务，支持列显示/隐藏切换、点击列排序、点击描述跳转到文件 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-state\r\n   tasks   : Array<Object>          // 加载后的任务数据行\r\n   sortCol : string|null            // 当前排序列键名\r\n   sortAsc : boolean                // 排序方向\r\n   colVis  : Object<string,boolean> // 每列可见性\r\n   COLUMNS : Array<{key,label,visible,width}> // 列定义\r\n   formatDate cache : Map           // 日期格式化缓存\r\n*/"
+				},
+				{
+					"line": 27,
+					"comment": "@skill-api\r\n   BaseTaskView (base-task-view)\r\n   fetchTasks(app)                              // 获取所有任务 (task-query-process)\r\n   CONFIG.STATUS_SYMBOL_MAP / STATUS_ICONS / STATUS_NAMES  // 状态配置 (plugin-configs)\r\n   CONFIG.PRIORITY_ICONS / PRIORITY_LABELS       // 优先级配置 (plugin-configs)\r\n   app.vault.getAbstractFileByPath               // Obsidian 文件 API\r\n   app.workspace.getLeaf                         // Obsidian 编辑器 API\r\n*/"
+				},
+				{
+					"line": 36,
+					"comment": "@skill-dom\r\n   .table-root\r\n     .table-stats (任务总数)\r\n     .table-controls (列显示复选框)\r\n     .table-scroll > table.task-tbl > thead > th[data-sort] / tbody > tr > td > .task-link\r\n*/"
+				},
+				{
+					"line": 43,
+					"comment": "@skill-flow\r\n   首次渲染 → render() → loadData() → 默认排序 → 构建 stats/controls/scroll → renderTable() → setupEvents()\r\n   切换列可见 → checkbox change → renderTable()\r\n   点击表头排序 → th click → 切换 sortCol/sortAsc → applySort() → renderTable()\r\n   点击描述跳转 → .task-link click → app.vault.getAbstractFileByPath → 打开文件 → setCursor 跳转到行\r\n*/"
+				},
+				{
+					"line": 50,
+					"comment": "@skill-condition\r\n   若 fetchTasks 返回空或失败 → 显示 \"❌ 未检测到 Tasks 插件\" 或 \"📑 暂无任务\"\r\n   默认排序优先级：状态 → 计划日期 → 优先级\r\n   空值排序统一置底（包括 null/undefined/空字符串）\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/tag-task-view.js",
-			"category": "views",
-			"name": "tag-task-view",
-			"description": "标签任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "TagTaskView",
+			"description": "启动标签任务视图 */",
+			"srcVersion": "1.0",
+			"hash": "296fa60f",
+			"lastModified": "2026-05-10T01:39:30.143Z",
+			"commentGroups": [
+				{
+					"line": 17,
+					"comment": "@skill-sig function startTagView(dv, app, container) : ViewController - 启动标签任务视图 */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-segment class TagTaskView - 标签任务视图类，继承 BaseTaskView */"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-flow\r\n  初始化 → render()\r\n  获取任务 → getAllTasks() → filter(_tag)\r\n  渲染卡片 → createTaskCard(normalizeTaskCardData)\r\n  任务点击 → 打开文件并跳转到对应行\r\n*/"
+				},
+				{
+					"line": 28,
+					"comment": "@skill-condition\r\n  getAllTasks 返回空数组 → 显示 \"暂无标签任务\"\r\n  _tag 字段为空或纯空白 → 筛除\r\n  优先级匹配失败 → 回退为 \"none\"\r\n  优先级来源优先级：_priorityIcon > priority\r\n  未知 _priorityIcon → 反向查找 CONFIG.PRIORITY_ICONS\r\n  均无法匹配 → 回退为 \"none\"\r\n*/"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-api\r\n  readTasks.getAllTasks(false, dv, state) // 获取所有任务\r\n  createTaskCard(cardData, app)            // 创建可点击的任务卡片\r\n  normalizeTaskCardData(data)              // 标准化任务卡片数据\r\n*/"
+				},
+				{
+					"line": 43,
+					"comment": "@skill-query getAllTasks(false, dv, state) - 获取所有任务数据 */"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-query normalizeTaskCardData - 标准化卡片数据结构 */"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/timeline-task-view.js",
-			"category": "views",
-			"name": "timeline-task-view",
-			"description": "时间线任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "TimelineTaskView",
+			"description": "时间线任务视图，按日期轴展示任务的时间分布 */",
+			"srcVersion": "1.0",
+			"hash": "32ed3fed",
+			"lastModified": "2026-05-10T01:39:30.114Z",
+			"commentGroups": [
+				{
+					"line": 15,
+					"comment": "@skill-sig class TimelineTaskView extends BaseTaskView - 时间线任务视图，按日期轴展示任务的时间分布 */"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-api\r\n  fetchTasks (task-query-process)\r\n  BaseTaskView (base-task-view)\r\n*/"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-func async startTimelineView(dv, app, container) : { cleanup, updateSort } - 渲染时间轴视图，按日期分组展示任务 */"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-flow\r\n   startTimelineView(dv, app, container) → fetchTasks(app) → 按日期分组渲染时间轴 → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-condition\r\n   若 fetchTasks 抛出异常或返回空 → 显示 \"暂无时间线数据\"\r\n*/"
+				},
+				{
+					"line": 34,
+					"comment": "@skill-dom\r\n  .timeline-container\r\n    .timeline-header\r\n    .timeline-axis (日期轴)\r\n      .axis-item (每个日期节点)\r\n        .date-label\r\n        .task-count\r\n    .timeline-body\r\n      .timeline-day-group\r\n        .day-header\r\n        ul.task-list\r\n          li.task-item\r\n            .task-desc\r\n            .task-meta\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/today-task-view.js",
-			"category": "views",
-			"name": "today-task-view",
-			"description": "今日任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "TodayTaskView",
+			"description": "今天任务视图，三列网格按状态分组展示当天任务 */",
+			"srcVersion": "1.0",
+			"hash": "4b10b1f1",
+			"lastModified": "2026-05-10T01:39:30.107Z",
+			"commentGroups": [
+				{
+					"line": 14,
+					"comment": "@skill-sig class TodayTaskView extends BaseTaskView - 今天任务视图，三列网格按状态分组展示当天任务 */"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startTodayView 渲染今日任务 */"
+				},
+				{
+					"line": 16,
+					"comment": "@skill-sig async startTodayView(dv, app, container) : { cleanup, updateSort } - 渲染今天任务三列网格视图 */"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-dom\r\n  .view-grid.cols-3\r\n    .view-col (x3)\r\n      .col-header\r\n        span (分组名)\r\n        span (任务数)\r\n      ul.task-list\r\n        li.task-item[data-path][data-line]\r\n          .task-desc\r\n          .task-meta\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-state 无（纯展示视图） */"
+				},
+				{
+					"line": 32,
+					"comment": "@skill-flow\r\n   startTodayView(dv, app, container) → fetchTodayTasksGrouped(app) → 网格容器 → 三列分组渲染（未开始/计划中/进行中） → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 36,
+					"comment": "@skill-condition\r\n   若 fetchTodayTasksGrouped 抛出异常 → 显示错误提示 \"❌ 未检测到 Tasks 插件\"\r\n   若某分组任务数为 0 → 显示 \"暂无任务\"\r\n*/"
+				},
+				{
+					"line": 41,
+					"comment": "@skill-api\r\n  fetchTodayTasksGrouped (task-query-process)\r\n  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)\r\n*/"
+				},
+				{
+					"line": 67,
+					"comment": "@skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startTodayView 渲染今日任务 */"
+				},
+				{
+					"line": 73,
+					"comment": "@skill-func async startTodayView(dv, app, container) : { cleanup, updateSort } - 渲染今天任务三列网格视图 */"
+				},
+				{
+					"line": 75,
+					"comment": "@skill-flow\r\n   startTodayView(dv, app, container) → fetchTodayTasksGrouped(app) → 网格容器 → 三列分组渲染（未开始/计划中/进行中） → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 79,
+					"comment": "@skill-condition\r\n   若 fetchTodayTasksGrouped 抛出异常 → 显示错误提示 \"❌ 未检测到 Tasks 插件\"\r\n   若某分组任务数为 0 → 显示 \"暂无任务\"\r\n*/"
+				},
+				{
+					"line": 84,
+					"comment": "@skill-dom\r\n  .view-grid.cols-3\r\n    .view-col (x3)\r\n      .col-header\r\n        span (分组名)\r\n        span (任务数)\r\n      ul.task-list\r\n        li.task-item[data-path][data-line]\r\n          .task-desc\r\n          .task-meta\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/tree-task-view.js",
-			"category": "views",
-			"name": "tree-task-view",
-			"description": "树形任务视图",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "Tree Task View",
+			"description": "启动树状视图 */",
+			"srcVersion": "1.0",
+			"hash": "551df631",
+			"lastModified": "2026-05-10T01:39:30.190Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-sig function startTreeView(app, container, leftSort, state) : ViewController - 启动树状视图 */"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-state\r\n  tasks    : Array<Object>     // 加载后的任务列表\r\n  treeData : Object            // 树状结构数据 {path: {name, tasks[], children{}}}\r\n  expanded : Set<string>      // 已展开的路径集合\r\n  sortType : string           // 排序类型: \"status\"|\"priority\"|\"due\"|\"created\"\r\n  sortAsc  : boolean          // 排序方向\r\n*/"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-constant MAX_DEPTH : number - 树最大深度，防止无限递归 */"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-helpers\r\n  getDirParts(path) : string[]    // 拆分路径为目录片段\r\n  getFileName(path) : string      // 提取文件名（无扩展名）\r\n*/"
+				},
+				{
+					"line": 30,
+					"comment": "@skill-dom\r\n  .tree-root\r\n    .tree-header\r\n      button.collapse-all / button.expand-all (全局折叠/展开)\r\n      select.sort-select (排序选择器)\r\n    .tree-container\r\n      .tree-node (递归渲染)\r\n        .node-header (可点击的文件夹/文件行)\r\n          span.toggle-icon (▶/▼ 切换图标)\r\n          span.node-name (名称)\r\n          span.task-count (任务数)\r\n        .node-children (展开后的子节点列表)\r\n          .tree-node (递归)\r\n        .node-tasks (任务列表)\r\n          .task-item\r\n            span.status-icon\r\n            span.task-description\r\n*/"
+				},
+				{
+					"line": 49,
+					"comment": "@skill-flow\r\n  初始化 → loadData() → fetchTasks() → buildTree() → render() → expandAll()\r\n  折叠全部 → collapseAll() → expanded 清空 → render()\r\n  展开全部 → expandAll() → expanded 填入所有路径 → render()\r\n  节点点击 → toggleNode(path) → expanded toggle → render()\r\n  排序切换 → sort-select change → sortType/sortAsc 变更 → render()\r\n  任务点击 → 打开文件跳转到对应行\r\n*/"
+				},
+				{
+					"line": 58,
+					"comment": "@skill-condition\r\n  若 fetchTasks 返回空 → 显示 \"暂无任务\"\r\n  根节点始终展开，不计入 expanded 跟踪\r\n  最大深度 MAX_DEPTH = 10，超出深度的节点不再展开\r\n  空节点（无任务也无子节点）自动隐藏\r\n*/"
+				},
+				{
+					"line": 65,
+					"comment": "@skill-api\r\n  fetchTasks(app)                 // 获取所有任务\r\n  app.vault.getAbstractFileByPath // 获取文件对象\r\n  app.workspace.getLeaf           // 获取编辑器叶子节点\r\n*/"
+				},
+				{
+					"line": 174,
+					"comment": "@skill-dom\r\n\t  .tree-root\r\n\t    .tree-header\r\n\t      button.collapse-all / button.expand-all (全局折叠/展开)\r\n\t      select.sort-select (排序选择器)\r\n\t    .tree-container\r\n\t      .tree-node (递归渲染)\r\n\t        .node-header (可点击的文件夹/文件行)\r\n\t          span.toggle-icon (▶/▼ 切换图标)\r\n\t          span.node-name (名称)\r\n\t          span.task-count (任务数)\r\n\t        .node-children (展开后的子节点列表)\r\n\t          .tree-node (递归)\r\n\t        .node-tasks (任务列表)\r\n\t          .task-item\r\n\t            span.status-icon\r\n\t            span.task-description\r\n\t*/"
+				},
+				{
+					"line": 193,
+					"comment": "@skill-flow\r\n\t  初始化 → loadData() → fetchTasks() → buildTree() → render() → expandAll()\r\n\t  折叠全部 → collapseAll() → expanded 清空 → render()\r\n\t  展开全部 → expandAll() → expanded 填入所有路径 → render()\r\n\t  节点点击 → toggleNode(path) → expanded toggle → render()\r\n\t  排序切换 → sort-select change → sortType/sortAsc 变更 → render()\r\n\t  任务点击 → 打开文件跳转到对应行\r\n\t*/"
+				},
+				{
+					"line": 202,
+					"comment": "@skill-condition\r\n\t  若 fetchTasks 返回空 → 显示 \"暂无任务\"\r\n\t  根节点始终展开，不计入 expanded 跟踪\r\n\t  最大深度 MAX_DEPTH = 10，超出深度的节点不再展开\r\n\t  空节点（无任务也无子节点）自动隐藏\r\n\t*/"
+				},
+				{
+					"line": 209,
+					"comment": "@skill-api\r\n\t  fetchTasks(app)                 // 获取所有任务\r\n\t  app.vault.getAbstractFileByPath // 获取文件对象\r\n\t  app.workspace.getLeaf           // 获取编辑器叶子节点\r\n\t*/"
+				}
+			]
 		},
 		{
 			"path": "src/panel/views/view-list-tasks.js",
-			"category": "views",
-			"name": "view-list-tasks",
-			"description": "视图列表任务",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "panel",
+			"name": "View List Tasks",
+			"description": "通用列表视图，基于 Tasks 插件获取数据并渲染任务列表，支持自定义获取函数和标题 */",
+			"srcVersion": "1.0",
+			"hash": "7c622315",
+			"lastModified": "2026-05-10T01:39:30.215Z",
+			"commentGroups": [
+				{
+					"line": 13,
+					"comment": "@skill-func async startTaskListView(app, container, fetchFn, title) : { cleanup, updateSort } - 启动通用列表视图，渲染任务列表 */"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-flow\r\n   startTaskListView(app, container, fetchFn, title) → 清空容器 → fetchFn(app) 获取任务数组 → 统计栏 → 列表渲染（优先级图标 + 描述 + 到期日期） → 绑定点击跳转事件 → 返回 { cleanup, updateSort }\r\n*/"
+				},
+				{
+					"line": 19,
+					"comment": "@skill-condition\r\n   若 fetchFn 抛出异常 → 显示 \"⚠️ 获取任务失败，请确认 Tasks 插件已启用\"\r\n   若 tasks 数组为空 → 显示 \"📭 暂无{title}\"\r\n*/"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-dom\r\n  ul.task-list\r\n    li.task-list-item (点击跳转到任务行)\r\n      span: 优先级图标 + 描述\r\n      span: 到期日期（muted 样式）\r\n*/"
+				},
+				{
+					"line": 31,
+					"comment": "@skill-api\r\n  BaseTaskView (base-task-view)\r\n  app.vault.getAbstractFileByPath\r\n  app.workspace.getLeaf\r\n  window.moment (日期格式化)\r\n*/"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-sig file src/panel/views/view-list-tasks.js - 通用列表视图，基于 Tasks 插件获取数据并渲染任务列表，支持自定义获取函数和标题 */"
+				},
+				{
+					"line": 38,
+					"comment": "@skill-class\r\n   (无类，纯函数模块)\r\n   startTaskListView(app, container, fetchFn, title) : { cleanup, updateSort }\r\n   - 启动通用列表视图，渲染任务列表\r\n   内部闭包: stats, ul, li 均为局部 DOM 元素\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-state\r\n   (无外部状态依赖)\r\n   局部变量: tasks - fetchFn(app) 返回的任务数组\r\n   事件绑定: li.addEventListener(\"click\") - 每个列表项绑定跳转事件\r\n*/"
+				},
+				{
+					"line": 49,
+					"comment": "@skill-anchor\r\n   startTaskListView - 通用列表视图入口函数\r\n   stats - 统计栏（显示任务数量）\r\n   ul.task-list - 任务列表容器\r\n   li.task-list-item - 单个任务项（点击跳转）\r\n   cleanup - 清理函数（清空容器）\r\n   updateSort - 排序占位函数（空操作）\r\n*/"
+				}
+			]
+		},
+		{
+			"path": "src/storages/persist-storages.js",
+			"category": "storages",
+			"name": "PersistenceManager",
+			"description": "持久化管理与状态创建模块，提供初始状态创建、过滤指纹生成、日期范围获取以及 PersistenceManager 类 */",
+			"srcVersion": "1.0",
+			"hash": "6436f7c5",
+			"lastModified": "2026-05-10T01:39:28.463Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/storages/persist-storage.js - 持久化管理与状态创建模块，提供初始状态创建、过滤指纹生成、日期范围获取以及 PersistenceManager 类 */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-func\r\n   createInitialState() : Object - 创建插件的初始状态对象（包含所有面板、过滤、排序、图表等功能的默认值）\r\n   getFilterFingerprint(state) : string - 从当前过滤状态生成唯一指纹字符串（用于判断过滤条件是否变化）\r\n   getEffectiveDateRange(state) : {start:Date,end:Date}|null - 获取生效的日期过滤范围（isAll=true或日期不完整时返回null）\r\n   PersistenceManager(storage, scope) : class - 持久化管理器类，负责将插件过滤状态、视图偏好等设置序列化到 Obsidian 存储\r\n   PersistenceManager.save(state, collapsedNodes) : Promise - 持久化当前状态到存储（仅保存用户可配置的视图偏好）\r\n   PersistenceManager.load(state, collapsedNodes, defaultDateRangeFn, noticeFn) : Promise - 从存储中恢复之前持久化的状态（合并到当前 state）\r\n*/"
+				},
+				{
+					"line": 11,
+					"comment": "@skill-flow\r\n   createInitialState → 返回包含所有默认值的 state 对象\r\n   getFilterFingerprint → 提取日期/状态/标记/隐藏/根路径 → 拼接为指纹字符串\r\n   getEffectiveDateRange → 检查 isAll 和日期完整性 → 返回范围对象或 null\r\n   PersistenceManager.save → 选取可持久化字段 → JSON.stringify → storage.setItem\r\n   PersistenceManager.load → storage.getItem → JSON.parse → 合并到 state 和 collapsedNodes\r\n*/"
+				},
+				{
+					"line": 18,
+					"comment": "@skill-param\r\n   state: Object - 全局状态对象(含 dateFilterState/markFilterState/hide* 等所有视图状态)\r\n   collapsedNodes: Object - 树面板折叠节点映射表\r\n   storage: Object - Obsidian 的 DataAdapter 或 storage 接口(提供 getItem/setItem)\r\n   scope: string - 存储作用域键名，用于区分不同面板或插件的存储数据\r\n   defaultDateRangeFn: Function - 默认日期范围回调(保留参数，暂未使用)\r\n   noticeFn: Function - 用户通知回调，接收字符串消息(加载失败时调用)\r\n*/"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-condition\r\n   所属模块: storage - 持久化管理\r\n   依赖: ../configs/plugin-configs(CONFIG.ALLOWED_STATUSES)\r\n   运行环境: Obsidian 插件环境\r\n   状态结构: createInitialState 定义了完整的 state 默认结构\r\n   持久化策略: 仅保存用户可配置的视图偏好(过滤开关/排序/布局)，不保存运行时临时数据(缓存任务列表)\r\n   过滤指纹: getFilterFingerprint 用于快速判断是否需要重新执行过滤逻辑\r\n  关联模块: src/panel/panel.js(使用 PersistenceManager)、所有 view 模块(使用 state)\r\n  路径说明: 实际文件路径为 src/storages/persist-storage.js(vault 中以 storages 命名)\r\n*/"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/calcul-chart-process.js",
-			"category": "process",
-			"name": "calcul-chart-process",
-			"description": "计算图表处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "computeTotalSpanDays",
+			"description": "图表数据纯计算模块，提供甘特图跨度/任务时长/每日状态堆叠等统计计算，不修改入参，不涉及 Obsidian API */",
+			"srcVersion": "1.0",
+			"hash": "49322451",
+			"lastModified": "2026-05-10T01:39:30.295Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/tasks/process/calcul-chart-process.js - 图表数据纯计算模块，提供甘特图跨度/任务时长/每日状态堆叠等统计计算，不修改入参，不涉及 Obsidian API */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-func\r\n   computeTotalSpanDays(tasks, fieldStart, fieldEnd) : number - 计算任务集合的时间跨度总天数，找出最早 start 和最晚 end 的差值\r\n   calcPlannedDuration(tasks) : number - 计算计划总时长（天），基于 _scheduled → _due\r\n   calcActualDuration(tasks) : number - 计算实际总时长（天），基于 _starts → _done\r\n   calcTotalSpanHours(tasks, fieldStart, fieldEnd) : number - 计算总工时 = 跨度天数 × WORK_HOURS_PER_DAY\r\n   prepareDailyStatusStack(tasks, dateRange, formatDate, setStart, setEnd) : {dates, seriesData, statusOrder} - 准备每日状态堆叠数据，遍历日期范围内每一天统计各状态任务数\r\n*/"
+				},
+				{
+					"line": 10,
+					"comment": "@skill-flow\r\n   computeTotalSpanDays → 遍历 tasks 取 fieldStart/fieldEnd → 计算 min->max 毫秒差 → 转天数 ceil\r\n   calcPlannedDuration → 遍历 tasks 取 _scheduled/_due → 累加 duration → Math.round\r\n   calcActualDuration → 遍历 tasks 取 _starts/_done → 累加 duration → Math.round\r\n   calcTotalSpanHours → 调用 computeTotalSpanDays → 乘以 WORK_HOURS_PER_DAY\r\n   prepareDailyStatusStack → 若 dateRange 则预填 dayMap 每一天的初始计数 → 遍历 tasks 按 _cachedTimeRange 逐日填充各 _status 计数 → 排序 keys → 构建 seriesData\r\n*/"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-param\r\n   tasks: Array - 任务对象数组，不修改\r\n   fieldStart/fieldEnd: string - 日期字段名（_scheduled/_due/_starts/_done）\r\n   dateRange: {start: Date, end:Date}|null - 限定统计日期范围\r\n   formatDate: Function - 日期格式化函数，接收 Date 返回字符串键\r\n   setStart/setEnd: Function - 日期边界设置函数（来自 DateUtils）\r\n*/"
+				},
+				{
+					"line": 24,
+					"comment": "@skill-condition\r\n   所有函数均为纯函数，不修改入参\r\n   依赖 CONFIG.ALLOWED_STATUSES / CONFIG.WORK_HOURS_PER_DAY（来自 plugin-configs）\r\n   任务对象必须具有 _cachedTimeRange / _status\r\n   prepareDailyStatusStack 在 dateRange 为 null 时自动扩展 dayMap\r\n   sync: .cline/skills/code/views/views.md → ECharts 堆叠图数据 & 甘特图跨度计算\r\n*/"
+				},
+				{
+					"line": 38,
+					"comment": "@skill-sig\r\n * 根据指定的起始和截止字段，找出所有任务中的最早开始和最晚结束日期，计算总天数\r\n *\r\n * @param {Array} tasks - 任务对象数组\r\n * @param {string} fieldStart - 起始日期字段名（如 '_scheduled'）\r\n * @param {string} fieldEnd - 截止日期字段名（如 '_due'）\r\n * @returns {number} 跨越的总天数（不足一天按一天计算），无有效数据时返回 0\r\n *\r\n * @example\r\n * const days = computeTotalSpanDays(tasks, '_scheduled', '_due');\r\n * @sync .cline/skills/code/views/views.md → 甘特图跨度计算\r\n */"
+				},
+				{
+					"line": 128,
+					"comment": "@skill-sig\r\n * 遍历指定日期范围内的每一天，统计每个状态下包含的任务数量\r\n * 用于生成每日状态堆叠图（如 ECharts 堆叠面积图）\r\n *\r\n * @param {Array} tasks - 任务对象数组\r\n * @param {{start: Date, end: Date}|null} dateRange - 日期范围对象，如果提供则限定统计范围\r\n * @param {Function} formatDate - 日期格式化函数，接收 Date 返回字符串键\r\n * @param {Function} setStart - 将日期设置为当天起始时刻的函数\r\n * @param {Function} setEnd - 将日期设置为当天结束时刻的函数\r\n * @returns {{dates: string[], seriesData: Object.<string, number[]>, statusOrder: string[]}}\r\n *          - dates: 有序的日期键列表\r\n *          - seriesData: 每个状态对应的数值数组（与 dates 一一对应）\r\n *          - statusOrder: 状态顺序（取自 CONFIG.ALLOWED_STATUSES）\r\n *\r\n * @example\r\n * const { dates, seriesData, statusOrder } = prepareDailyStatusStack(\r\n *     tasks,\r\n *     { start: new Date('2024-01-01'), end: new Date('2024-01-31') },\r\n *     DateUtils.formatDate,\r\n *     DateUtils.setStart,\r\n *     DateUtils.setEnd\r\n * );\r\n * @sync .cline/skills/code/views/views.md → ECharts 堆叠图数据\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/common-process.js",
-			"category": "process",
-			"name": "common-process",
-			"description": "通用任务处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "throttleByFrame",
+			"description": "纯工具函数集，提供日期操作(DateUtils)、帧节流(throttleByFrame)和简易 DOM 创建(createEl)，无外部依赖 */",
+			"srcVersion": "1.0",
+			"hash": "43620836",
+			"lastModified": "2026-05-10T01:39:30.293Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/tasks/process/common-process.js - 纯工具函数集，提供日期操作(DateUtils)、帧节流(throttleByFrame)和简易 DOM 创建(createEl)，无外部依赖 */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-ns DateUtils\r\n   formatDate(d: Date) : string - 格式化日期为 yyyy-MM-dd\r\n   setStart(d: Date) : Date - 设置当天起始时刻 00:00:00.000\r\n   setEnd(d: Date) : Date - 设置当天结束时刻 23:59:59.999\r\n   getDayRange(d) : {start,end} - 获取全天范围\r\n   getISOWeekNumber(date) : number - 获取 ISO 周数\r\n   getWeekRangeByYearWeek(year, week) : {start,end} - 根据年月获取周范围\r\n   getWeekRange(d) : {start,end} - 获取日期所在周范围\r\n   getMonthRange(d) : {start,end} - 获取日期所在月范围\r\n   getMonthRangeByYearMonth(y, m) : {start,end} - 根据年月获取月范围\r\n   getQuarterRangeByYearQuarter(y, q) : {start,end} - 根据年份季度获取季度范围\r\n   getYearRangeByYear(y) : {start,end} - 获取全年范围\r\n   getWeekdayRange(date, wd) : {start,end} - 获取下个星期几的范围\r\n*/"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-func\r\n   throttleByFrame(fn: Function) : Function - 帧节流函数，用 requestAnimationFrame 节流\r\n   createEl(tag, textOrOpts?, opts?) : HTMLElement - 简易 DOM 元素创建\r\n*/"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-flow\r\n   DateUtils.get/Day/Week/Month/Quarter/Year Range() → 调用 setStart/setEnd 统一边界\r\n   throttleByFrame(fn) → 返回节流包装函数 → 内部用 requestAnimationFrame 调度\r\n   createEl(tag, textOrOpts, opts) → 创建元素 → 设置 textContent 或 Object.assign → 处理 cls/style/attr\r\n*/"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-condition\r\n   DateUtils 所有方法均返回新 Date 对象，不修改入参\r\n   throttleByFrame: 使用 boolean `scheduled` 标志防止重复调度\r\n   createEl: textOrOpts 为字符串时设 textContent，为对象时 Object.assign；opts 可选\r\n*/"
+				},
+				{
+					"line": 235,
+					"comment": "@skill-sig\r\n * 提供轻量级的元素创建方式，不依赖 Obsidian API\r\n * 若需复杂功能（如事件绑定、子元素管理），建议使用 dv.el 或 Obsidian 的 createEl\r\n *\r\n * @param {string} tag - HTML 标签名，如 'div'、'span'、'input'\r\n * @param {string|Object} [textOrOpts] - 如果是字符串，则作为元素的 textContent；\r\n *                                        如果是对象，则通过 Object.assign 直接设置到元素上\r\n * @param {Object} [opts] - 附加选项\r\n * @param {string} [opts.cls] - 元素的 CSS 类名\r\n * @param {string} [opts.style] - 元素的内联样式字符串\r\n * @param {Object} [opts.attr] - 元素的 HTML 属性键值对\r\n * @returns {HTMLElement} 创建并配置好的 DOM 元素\r\n *\r\n * @example\r\n * // 创建带文本的 div\r\n * const el1 = createEl('div', 'Hello World');\r\n *\r\n * // 创建带属性的 input\r\n * const input = createEl('input', '', {\r\n *     cls: 'my-input',\r\n *     attr: { type: 'text', placeholder: 'Enter name' }\r\n * });\r\n * @sync .cline/skills/code/views/views.md → common-process 基础 DOM 工具\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/filter-task-process.js",
-			"category": "process",
-			"name": "filter-task-process",
-			"description": "任务过滤处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "filterTasks",
+			"description": "多条件任务过滤核心，基于日期范围/状态/标记/路径/重复/完成/取消等维度过滤，被所有视图复用 */",
+			"srcVersion": "1.0",
+			"hash": "462d788d",
+			"lastModified": "2026-05-10T01:39:30.283Z",
+			"commentGroups": [
+				{
+					"line": 3,
+					"comment": "@skill-sig file src/tasks/process/filter-task-process.js - 多条件任务过滤核心，基于日期范围/状态/标记/路径/重复/完成/取消等维度过滤，被所有视图复用 */"
+				},
+				{
+					"line": 4,
+					"comment": "@skill-func\r\n   filterTasks(tasks: Array, options: Object) : Array - 多条件过滤函数，过滤顺序：日期范围 → 文件路径 → 状态 → 重复/完成/取消 → 包含标记 → 排除标记\r\n*/"
+				},
+				{
+					"line": 7,
+					"comment": "@skill-flow\r\n   filterTasks(tasks, options) → 提取 dateFilterState / markFilterState / hideRepeatTasks / hideCompletedTasks / hideCancelledTasks / filterRootPath\r\n   → 步骤1: 日期范围过滤（!isAll 且 start/end 存在时，按 _cachedTimeRange 区间重叠判断）\r\n   → 步骤2: 文件路径前缀过滤（filterRootPath 按 t.path.startsWith）\r\n   → 步骤3: 状态过滤（按 CONFIG.ALLOWED_STATUSES 子集筛选）\r\n   → 步骤4: 过滤重复/已完成/已取消（按 _repeat / _status）\r\n   → 步骤5: 包含标记过滤（includeMarks 必须全部存在）\r\n   → 步骤6: 排除标记过滤（excludeMarks 任一存在则排除）\r\n   → 返回过滤后数组\r\n*/"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-param\r\n   options.dateFilterState: {start, end, isAll} - 日期范围，isAll=true 时跳过日期过滤\r\n   options.markFilterState: {statuses, includeMarks, excludeMarks} - 标记与状态条件\r\n   options.hideRepeatTasks: boolean 默认 true - 隐藏重复任务\r\n   options.hideCompletedTasks: boolean 默认 true - 隐藏已完成任务\r\n   options.hideCancelledTasks: boolean 默认 true - 隐藏已取消任务\r\n   options.filterRootPath: string|null 默认 null - 按文件路径前缀过滤\r\n*/"
+				},
+				{
+					"line": 25,
+					"comment": "@skill-condition\r\n   依赖 CONFIG.ALLOWED_STATUSES（来自 plugin-configs）\r\n   任务对象必须具有 _cachedTimeRange / _status / _repeat / _marks 属性\r\n   过滤顺序固定，不可调换\r\n   includeMarks 为 \"与\" 条件（必须全部满足）\r\n   excludeMarks 为 \"或\" 条件（任一满足即排除）\r\n   sync: .cline/skills/code/views/views.md → 所有视图共用过滤逻辑\r\n*/"
+				},
+				{
+					"line": 38,
+					"comment": "@skill-sig\r\n * 根据传入的 options 对象，对任务数组进行逐级过滤\r\n * 过滤顺序：日期范围 → 文件路径 → 状态 → 重复/完成/取消 → 包含标记 → 排除标记\r\n *\r\n * @param {Array} tasks - 待过滤的任务对象数组\r\n * @param {Object} options - 过滤配置选项\r\n * @param {Object} [options.dateFilterState] - 日期范围过滤状态\r\n * @param {Date|null} [options.dateFilterState.start] - 日期范围起始\r\n * @param {Date|null} [options.dateFilterState.end] - 日期范围结束\r\n * @param {boolean} [options.dateFilterState.isAll] - 是否忽略日期过滤\r\n * @param {Object} [options.markFilterState] - 标记过滤状态\r\n * @param {string[]} [options.markFilterState.statuses] - 允许的状态列表（默认 CONFIG.ALLOWED_STATUSES）\r\n * @param {string[]} [options.markFilterState.includeMarks] - 必须包含的标记名列表\r\n * @param {string[]} [options.markFilterState.excludeMarks] - 必须排除的标记名列表\r\n * @param {boolean} [options.hideRepeatTasks=true] - 是否隐藏重复任务\r\n * @param {boolean} [options.hideCompletedTasks=true] - 是否隐藏已完成任务\r\n * @param {boolean} [options.hideCancelledTasks=true] - 是否隐藏已取消任务\r\n * @param {string|null} [options.filterRootPath=null] - 按文件路径前缀过滤\r\n * @returns {Array} 过滤后的任务数组\r\n *\r\n * @example\r\n * // 过滤出本月未完成且带重要标记的任务\r\n * const filtered = filterTasks(allTasks, {\r\n *     dateFilterState: { start: monthStart, end: monthEnd, isAll: false },\r\n *     markFilterState: {\r\n *         includeMarks: ['important'],\r\n *         excludeMarks: [],\r\n *         statuses: ['todo', 'in_progress']\r\n *     },\r\n *     hideCompletedTasks: true,\r\n *     hideCancelledTasks: true\r\n * });\r\n * @sync .cline/skills/code/views/views.md → 所有视图共用过滤逻辑\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/inbox-task-process.js",
-			"category": "process",
-			"name": "inbox-task-process",
-			"description": "收件箱任务处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "processInboxTasks",
+			"description": "任务收件箱模块，提供收件箱任务的获取与分组处理能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */",
+			"srcVersion": "1.0",
+			"hash": "72b81c76",
+			"lastModified": "2026-05-10T01:39:30.314Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/tasks/process/inbox-task-process.js - 任务收件箱模块，提供收件箱任务的获取与分组处理能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-func\r\n   fetchInboxTasks(app) : Array - 获取收件箱任务，筛选未完成、非重复、状态为待处理(空格)或计划中(?)\r\n   processInboxTasks(allTasks) : {groups, total} - 处理收件箱任务，按状态分组为\"未开始\"和\"计划中\"，每组按优先级排序\r\n*/"
+				},
+				{
+					"line": 7,
+					"comment": "@skill-flow\r\n   fetchInboxTasks → tasksPlugin.getTasks(not done + is not recurring) → 按 status.symbol 过滤空格/? → 返回数组\r\n   processInboxTasks → 遍历 allTasks → 按 symbol 分入 groups\"未开始\"/\"计划中\" → 每组按优先级排序 → 返回 {groups, total}\r\n*/"
+				},
+				{
+					"line": 11,
+					"comment": "@skill-param\r\n   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件\r\n   allTasks: Array - 收件箱任务对象数组，由 fetchInboxTasks 返回\r\n*/"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-condition\r\n   依赖 obsidian-tasks-plugin 实例，插件未加载时抛出 Error\r\n   筛选条件：\"not done\" + \"is not recurring\" + 状态 symbol 为空格(待处理)或 ?(计划中)\r\n   优先级排序权重：none→999, actual priority 值越小优先级越高\r\n   sync: .cline/skills/code/views/views.md → inbox-task-view 数据源\r\n*/"
+				},
+				{
+					"line": 31,
+					"comment": "@skill-rule 收件箱任务: 筛选条件为 \"not done\" + \"is not recurring\" + 状态待处理/计划中\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<Array>} 收件箱任务对象数组\r\n * @throws {Error} 当 Tasks 插件未加载时抛出\r\n *\r\n * @example\r\n * const inboxTasks = await fetchInboxTasks(app);\r\n */"
+				},
+				{
+					"line": 53,
+					"comment": "@skill-rule 收件箱分组: 按执行状态(🔲→❔)分为\"未开始\"和\"计划中\"两组\r\n *"
+				},
+				{
+					"line": 54,
+					"comment": "@skill-rule 收件箱分组: 优先级排序权重: 1(🔺)→2(⏫)→3(🔼)→4(🔽)→5(⏬)→999(无)\r\n *\r\n * @param {Array} allTasks - 收件箱任务对象数组\r\n * @returns {{groups: Object.<string, Array>, total: number}}\r\n *          - groups: 包含 \"未开始\"、\"计划中\" 两个分组的任务数组\r\n *          - total: 任务总数\r\n *\r\n * @example\r\n * const { groups, total } = processInboxTasks(allTasks);\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/kanban-task-process.js",
-			"category": "process",
-			"name": "kanban-task-process",
-			"description": "看板任务处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "processKanbanTasks",
+			"description": "看板任务处理模块，提供看板视图所需的任务获取、分组与列定义，颜色使用半透明配色与矩阵视图风格统一 */",
+			"srcVersion": "1.0",
+			"hash": "37bda1bc",
+			"lastModified": "2026-05-10T01:39:30.136Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/tasks/process/kanban-task-process.js - 看板任务处理模块，提供看板视图所需的任务获取、分组与列定义，颜色使用半透明配色与矩阵视图风格统一 */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-func\r\n   KANBAN_COLUMNS : Array - 看板三列定义(🔲未开始/❔计划中/⏩进行中)，每列包含 symbol/label/color 属性\r\n   fetchKanbanTasks(app) : Array - 获取看板任务，筛选未完成 + 非循环任务\r\n   processKanbanTasks(allTasks) : {columns, tasksBySymbol, total} - 按状态符号分三列，每列按优先级排序\r\n*/"
+				},
+				{
+					"line": 8,
+					"comment": "@skill-flow\r\n   KANBAN_COLUMNS → 静态定义 → 供 processKanbanTasks 和视图渲染使用\r\n   fetchKanbanTasks → tasksPlugin.getTasks(not done + is not recurring) → 返回原始任务数组\r\n   processKanbanTasks → 遍历 allTasks → 按 status.symbol 分入 \" \"/\"?/\"/\" 三组 → 每组按优先级排序 → 附加 status 字段\r\n*/"
+				},
+				{
+					"line": 13,
+					"comment": "@skill-param\r\n   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件\r\n   allTasks: Array - 看板任务对象数组，由 fetchKanbanTasks 返回\r\n*/"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-condition\r\n   依赖 obsidian-tasks-plugin 实例，插件未加载时抛出 Error\r\n   筛选条件：\"not done\" + \"is not recurring\"\r\n   状态符号映射：空格→todo, ?→in_progress, /→in_progress（通过 STATUS_SYMBOL_MAP）\r\n   优先级排序权重：none→999, actual priority 值越小优先级越高\r\n   颜色使用半透明配色(rgba)，与矩阵视图风格统一\r\n   sync: .cline/skills/code/views/views.md → kanban-task-view 数据源\r\n*/"
+				},
+				{
+					"line": 37,
+					"comment": "@skill-rule 看板列定义: 三列(🔲未开始/❔计划中/⏩进行中) + 半透明配色\r\n *\r\n * @type {Array<{symbol: string, label: string, color: string}>}\r\n *\r\n * @example\r\n * // 遍历列定义渲染看板\r\n * KANBAN_COLUMNS.forEach(col => renderColumn(col));\r\n */"
+				},
+				{
+					"line": 54,
+					"comment": "@skill-rule 看板任务筛选: 条件为 \"not done\" + \"is not recurring\"\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<Array>} 看板任务对象数组\r\n * @throws {Error} 当 Tasks 插件未加载时抛出\r\n *\r\n * @example\r\n * const allTasks = await fetchKanbanTasks(app);\r\n */"
+				},
+				{
+					"line": 74,
+					"comment": "@skill-rule 看板分组排序: 按状态符号分三列 + 列内优先级排序权重: 1(🔺)→2(⏫)→3(🔼)→4(🔽)→5(⏬)→999(无)\r\n *\r\n * @param {Array} allTasks - 看板任务对象数组\r\n * @returns {{columns: Array, tasksBySymbol: Object.<string, Array>, total: number}}\r\n *          - columns: KANBAN_COLUMNS 列定义\r\n *          - tasksBySymbol: 按状态符号分组的任务字典（键为空格/?//）\r\n *          - total: 任务总数\r\n *\r\n * @example\r\n * const { columns, tasksBySymbol, total } = processKanbanTasks(allTasks);\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/matrix-task-process.js",
-			"category": "process",
-			"name": "matrix-task-process",
-			"description": "矩阵任务处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "formatDate",
+			"description": "艾森豪威尔矩阵任务处理模块，提供四象限任务获取、分组与排序能力，优先级映射采用局部常量不含全局配置，使用 Map 缓存日期格式化结果 */",
+			"srcVersion": "1.0",
+			"hash": "3ac618e7",
+			"lastModified": "2026-05-10T01:39:30.260Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/tasks/process/matrix-task-process.js - 艾森豪威尔矩阵任务处理模块，提供四象限任务获取、分组与排序能力，优先级映射采用局部常量不含全局配置，使用 Map 缓存日期格式化结果 */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-func\r\n   fetchRawTasks(app) : Promise.Array - 获取原始任务列表(不限状态)，查询条件为路径+文件名正则\r\n   processTasks(allTasks, hideRecurring) : Array.Array - 按优先级映射到四象限 Q0(紧急重要)/Q1(重要不紧急)/Q2(紧急不重要)/Q3(不紧急不重要)\r\n   sortTasks(tasks, sortConfig) : Array - 按配置排序任务，支持 status/priority/filename/日期字段\r\n*/"
+				},
+				{
+					"line": 8,
+					"comment": "@skill-flow\r\n   fetchRawTasks → tasksPlugin.getTasks(path + filename regex) → 返回原始任务数组\r\n   processTasks → 遍历 allTasks → 过滤文件名正则/状态符号/循环任务 → 按优先级映射分入四象限 → 返回四象限数据\r\n   sortTasks → 按 type(order) → 对排序后副本返回\r\n*/"
+				},
+				{
+					"line": 13,
+					"comment": "@skill-param\r\n   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件\r\n   allTasks: Array - 原始任务对象数组，由 fetchRawTasks 返回\r\n   hideRecurring: boolean - 是否排除周期性任务(默认 false)\r\n   tasks: Array - 待排序的任务对象数组(不会被修改)\r\n   sortConfig: {type: string, order: \"asc\"|\"desc\"} - 排序配置\r\n*/"
+				},
+				{
+					"line": 20,
+					"comment": "@skill-condition\r\n   依赖 obsidian-tasks-plugin 实例，插件未加载时返回 Promise.reject\r\n   符号过滤：仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态\r\n   优先级映射：1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none(→5)→Q3\r\n   排序规则：status 时按 进行中→计划中→未开始 排序\r\n   日期格式化使用 Map 缓存避免重复 moment 转换\r\n   sync: .cline/skills/code/views/views.md → matrix-task-view 数据源\r\n*/"
+				},
+				{
+					"line": 39,
+					"comment": "@skill-rule 矩阵状态过滤: 仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态\r\n */"
+				},
+				{
+					"line": 51,
+					"comment": "@skill-rule 矩阵优先级映射: 1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none→Q3\r\n *\r\n * @type {Object.<number, number>}\r\n */"
+				},
+				{
+					"line": 111,
+					"comment": "@skill-rule 矩阵状态过滤: 仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态\r\n *"
+				},
+				{
+					"line": 112,
+					"comment": "@skill-rule 矩阵优先级映射: 1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none→Q3\r\n *\r\n * @param {Array} allTasks - 原始任务对象数组\r\n * @param {boolean} [hideRecurring=false] - 是否排除周期性任务\r\n * @returns {Array<Array>} 四象限任务数组，每个元素为一个象限的任务列表\r\n *                         - 索引0：紧急且重要\r\n *                         - 索引1：不紧急但重要\r\n *                         - 索引2：紧急但不重要\r\n *                         - 索引3：不紧急不重要\r\n *\r\n * @example\r\n * const quadrants = processTasks(allTasks, true);\r\n * quadrants[0] // 紧急且重要的任务列表\r\n */"
+				},
+				{
+					"line": 180,
+					"comment": "@skill-rule 矩阵排序规则: 按状态(进行中→计划中→未开始)→优先级(小→大)→排序日期(早→晚)\r\n *\r\n * @param {Array} tasks - 待排序的任务对象数组（不会被修改）\r\n * @param {{type: string, order: string}} sortConfig - 排序配置\r\n *        - type: 排序字段（\"status\"/\"priority\"/\"filename\"/任意日期字段名）\r\n *        - order: 排序方向（\"asc\" 升序 / \"desc\" 降序）\r\n * @returns {Array} 排序后的新任务数组（浅拷贝）\r\n *\r\n * @example\r\n * const sorted = sortTasks(tasks, { type: 'status', order: 'asc' });\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/organize-task-process.js",
-			"category": "process",
-			"name": "organize-task-process",
-			"description": "整理任务处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "isIncomplete",
+			"description": "DD，快照存储在 localStorage */",
+			"srcVersion": "1.0",
+			"hash": "7a88d02d",
+			"lastModified": "2026-05-10T01:39:30.293Z",
+			"commentGroups": [
+				{
+					"line": 4,
+					"comment": "@skill-sig file src/tasks/process/organize-task-process.js - 任务组织整理模块，提供编辑操作库(Op)、快照管理与批量写入功能，所有编辑操作基于正则替换且日期格式使用 YYYY-MM-DD，快照存储在 localStorage */"
+				},
+				{
+					"line": 5,
+					"comment": "@skill-func\r\n   isIncomplete(s) : boolean - 判断任务状态是否为\"未完成\"(todo/planned/in-progress)\r\n   isCompleted(s) : boolean - 判断任务状态是否为\"已完成\"(completed/cancelled)\r\n   hasEssentialTags(t) : boolean - 检查任务是否具备完整的必要标签(优先级/创建/计划/开始/截止)\r\n   Op : Object - 编辑操作库，提供 setPriority/setRepeat/setCreated/setScheduled/setStarts/setDue/setDone/setCancel/setTag 及对应 del* 方法，以及 autoComplete/sortTags\r\n   loadSnapshots() : Array - 从 localStorage 加载快照列表\r\n   saveSnapshots(snapshots) : void - 将快照列表持久化到 localStorage\r\n   addSnapshot(snapshots, map) : void - 添加新快照到列表头部，超 5 条自动裁剪\r\n   writeToFiles(app, tasks, taskIds, linesMap) : Promise.number - 按文件路径分组后原地替换行内容\r\n*/"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-flow\r\n   isIncomplete/isCompleted → 检查任务状态字符串 → 返回 boolean\r\n   hasEssentialTags → 检查 t._priorityIcon/_created/_scheduled/_starts/_due → 全部存在返回 true\r\n   Op.set* /del* -> replaceMark(line, RX.xxx, newMark) -> 返回新行\r\n   Op.autoComplete → 从 RX.done 提取完成日期 → 向前推算 N 天 → 填充 📅/🛫/⏳/➕ → sortTags → 返回新行\r\n   Op.sortTags → 按固定顺序(priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid)重新排列标记 → 返回排序后行\r\n   loadSnapshots → localStorage.getItem → JSON.parse → 返回快照数组\r\n   saveSnapshots → JSON.stringify → localStorage.setItem\r\n   addSnapshot → unshift {time, snapshot} → 超 5 条 pop → saveSnapshots\r\n   writeToFiles → 按 path 分组 → app.vault.process 逐文件替换 → 返回 count\r\n*/"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-param\r\n   s: string - 任务状态标识\r\n   t: Object - 任务对象(含 _priorityIcon/_created/_scheduled/_starts/_due 属性)\r\n   line: string - 任务行文本\r\n   emoji: string - 优先级图标(如 🔼/🔽)\r\n   rule/date: string - 重复规则字符串(如 \"every day\") 或日期 YYYY-MM-DD\r\n   keyword: string - 标签关键词\r\n   days: number - 自动补全向前推算天数(默认 3)\r\n   app: Obsidian.App - Obsidian 应用实例\r\n   tasks: Array - 任务对象列表(需含 path/line/_fullLine)\r\n   taskIds: Array.string - 待修改的任务 ID 数组(格式 \"path|line\")\r\n   linesMap: Object.string - 任务 ID → 新行内容映射\r\n   snapshots: Array - 快照数组\r\n   map: Object - 快照数据(任务 ID → 原始行内容映射)\r\n*/"
+				},
+				{
+					"line": 41,
+					"comment": "@skill-condition\r\n   所有编辑操作基于正则替换，日期格式使用 YYYY-MM-DD\r\n   快照存储在 localStorage 键 \"organizeSnapshots\"\r\n   快照最多保留 MAX_SNAPSHOTS(5) 条\r\n   自动补全默认向前推算 AUTOCOMPLETE_DAYS(3) 天\r\n   标记排序固定顺序：priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid\r\n   writeToFiles 通过 app.vault.process 原地替换行内容\r\n   依赖 src/tasks/read/read-tasks 中的 RX 正则集合\r\n   sync: .cline/skills/code/views/views.md → organize-task-view 数据源\r\n*/"
+				},
+				{
+					"line": 142,
+					"comment": "@skill-rule organize 编辑操作: Op 对象提供 setPriority/setRepeat/setCreated/setScheduled/setStarts/setDue/setDone/setCancel/setTag 及对应 del* 方法\r\n *\r\n * @namespace Op\r\n *\r\n * @example\r\n * // 设置优先级\r\n * const newLine = Op.setPriority(\"- [ ] 任务\", \"🔼\");\r\n */"
+				},
+				{
+					"line": 343,
+					"comment": "@skill-rule organize 自动补全: autoComplete 基于完成日期向前推算 3 天 → 自动填充 📅(due) 🛫(starts) ⏳(scheduled) ➕(created)\r\n\t *\r\n\t * @param {string} line - 行文本\r\n\t * @param {number} [days] - 向前推算天数，默认 AUTOCOMPLETE_DAYS（3）\r\n\t * @returns {string} 补全后的行文本\r\n\t *\r\n\t * @example\r\n\t * Op.autoComplete(\"- [x] 任务 ✅ 2026-05-06\", 3)\r\n\t * // 自动补全 📅 🛫 ⏳ ➕ 标记\r\n\t */"
+				},
+				{
+					"line": 399,
+					"comment": "@skill-rule organize 标记排序: sortTags 固定顺序 → priority → repeat → created → scheduled → starts → due → done → cancel → tag → id → forbid\r\n\t *\r\n\t * @param {string} line - 行文本\r\n\t * @returns {string} 标记重新排序后的行文本\r\n\t *\r\n\t * @example\r\n\t * Op.sortTags(\"- [ ] 任务 📅 2026-05-06 🔼\")\r\n\t * // => \"- [ ] 任务 🔼 📅 2026-05-06\"\r\n\t */"
+				},
+				{
+					"line": 496,
+					"comment": "@skill-rule organize 批量写入: writeToFiles 按文件路径分组后原地替换行内容\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @param {Array} tasks - 任务对象列表（需包含 path、line、_fullLine 属性）\r\n * @param {string[]} taskIds - 待修改的任务 ID 数组（格式 \"path|line\"）\r\n * @param {Object.<string, string>} linesMap - 任务 ID → 新行内容的映射\r\n * @returns {Promise<number>} 实际写入的任务行数\r\n *\r\n * @example\r\n * const count = await writeToFiles(app, tasks, [\"file.md|10\"], { \"file.md|10\": \"- [x] 任务 ✅ 2026-05-06\" });\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/recurring-task-process.js",
-			"category": "process",
-			"name": "recurring-task-process",
-			"description": "循环任务处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "classifyRecurrence",
+			"description": "循环任务处理模块，从 Obsidian Tasks 插件查询并分组(每天/每周/每月)循环任务 */",
+			"srcVersion": "1.0",
+			"hash": "47e72d44",
+			"lastModified": "2026-05-10T01:39:30.295Z",
+			"commentGroups": [
+				{
+					"line": 4,
+					"comment": "@skill-sig file src/tasks/process/recurring-task-process.js - 循环任务处理模块，从 Obsidian Tasks 插件查询并分组(每天/每周/每月)循环任务 */"
+				},
+				{
+					"line": 5,
+					"comment": "@skill-func\r\n   classifyRecurrence(recurrence) : string - 根据循环规则文本映射周期类别(daily/weekly/monthly/yearly/custom)\r\n   groupRecurringTasks(tasks) : GroupedTasks - 按每天/每周/每月分组循环任务\r\n   sortGroups(groups) : Object - 对每组任务按优先级和计划时间排序\r\n   fetchRecurringTasksGrouped(app) : Promise.Object - 从 Tasks 插件获取循环任务并分组(对外导出)\r\n*/"
+				},
+				{
+					"line": 11,
+					"comment": "@skill-flow\r\n   fetchRecurringTasksGrouped(app) → 获取 Tasks 插件实例 → path includes 过滤 → 过滤未完成 → classifyRecurrence → groupRecurringTasks → sortGroups → 返回分组结果\r\n   classifyRecurrence → 取 recurrence.toText().toLowerCase() → 包含 day/week/month/year 返回对应分类 → 否则 custom\r\n   groupRecurringTasks → 按 cycle text 分组为 每天/每周/每月 → 提取 status/priority/description/recurrenceLabel/due/scheduled/start/tags/fileName → 返回 groups\r\n   sortGroups → 按优先级排序(无优先级排最后) → 按 scheduled 日期排序\r\n*/"
+				},
+				{
+					"line": 17,
+					"comment": "@skill-param\r\n   recurrence: Object - Tasks 插件的 recurrence 对象(需含 toText() 方法)\r\n   tasks: Array - 循环任务列表(每项含 recurrence/status/description/priority/path/lineNumber/dueDate/scheduledDate/startDate/tags)\r\n   groups: Object - 按 cycle 分组的任务对象({每天:[], 每周:[], 每月:[]})\r\n   app: Obsidian.App - Obsidian 应用实例\r\n*/"
+				},
+				{
+					"line": 23,
+					"comment": "@skill-condition\r\n   依赖第三方 obsidian-tasks-plugin 插件，调用前需确保该插件已加载\r\n   循环规则文本包含 day/week/month/year 关键字来分类\r\n   过滤条件排除已完成任务(status symbol 为 x/X/-)\r\n   排序规则：优先级数字升序(无优先级 = 999) → scheduled 日期升序\r\n   导入常量来自 plugin-configs: TASK_FOLDER_PATH/TASK_FILENAME_REGEX_TASKS/STATUS_SYMBOL_MAP/STATUS_ICONS/STATUS_NAMES\r\n   关联视图 sync: src/panel/views/recurring-task-view.js\r\n   关联 Skill sync: .cline/skills/code/views/recurring-task-view.md\r\n*/"
+				},
+				{
+					"line": 42,
+					"comment": "@skill-sig\r\n * @param {object} recurrence - Tasks 插件的 recurrence 对象\r\n * @returns {string} 'daily'|'weekly'|'monthly'|'yearly'|'custom'\r\n * @sync .cline/skills/code/views/recurring-task-view.md → classifyRecurrence\r\n */"
+				},
+				{
+					"line": 57,
+					"comment": "@skill-sig\r\n * @param {Array} tasks - 循环任务列表\r\n * @returns {Object} GroupedTasks - 按每天/每周/每月分组后的任务对象\r\n * @sync .cline/skills/code/views/recurring-task-view.md → groupRecurringTasks\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/process/task-query-process.js",
-			"category": "process",
-			"name": "task-query-process",
-			"description": "任务查询处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
-		},
-		{
-			"path": "src/tasks/process/tree-task-process.js",
-			"category": "process",
-			"name": "tree-task-process",
-			"description": "树形任务处理",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "baseQuery",
+			"description": "任务查询入口模块，基于 Obsidian Tasks 插件 API，提供按标签/日期/状态/优先级等维度的任务查询能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */",
+			"srcVersion": "1.0",
+			"hash": "7db4abb1",
+			"lastModified": "2026-05-10T01:39:30.695Z",
+			"commentGroups": [
+				{
+					"line": 2,
+					"comment": "@skill-sig file src/tasks/process/task-query-process.js - 任务查询入口模块，基于 Obsidian Tasks 插件 API，提供按标签/日期/状态/优先级等维度的任务查询能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */"
+				},
+				{
+					"line": 3,
+					"comment": "@skill-func\r\n   fetchTasks(app, extraQuery) : Array - 基础查询，从 Tasks 插件获取符合条件的所有任务\r\n   fetchImportantTasks(app) : Array - 获取重要任务（优先级 non-none 且 <= 1），排除重复\r\n   fetchRecurringTasks(app) : Array - 获取所有周期性/重复任务\r\n   fetchTodayTasks(app) : Array - 获取今天到期的任务（dueDate 或 scheduledDate 匹配今天）\r\n   fetchFutureTasks(app, days) : Array - 获取未来指定天数内的任务\r\n   fetchOverdueTasks(app) : Array - 获取已过期任务\r\n   fetchDependsTasks(app) : Array - 获取有依赖关系的任务\r\n   fetchTagTasks(app, tag) : Array - 按 #标签 或自定义 🏁 标记筛选任务\r\n   fetchTodayTasksGrouped(app) : {groups, total} - 获取今日任务并按状态分组（未开始/计划中/进行中）\r\n   fetchImportantTasksByStatus(app) : {groups, total} - 获取重要任务并按状态分组\r\n*/"
+				},
+				{
+					"line": 15,
+					"comment": "@skill-flow\r\n   fetchTasks → plugins[\"obsidian-tasks-plugin\"].getTasks(baseQuery + extraQuery) → 返回原始任务数组\r\n   fetchXxxTasks → fetchTasks + 特定过滤条件（优先级/重复/日期/依赖/标签）\r\n   fetchTodayTasks → fetchTasks → 按 moment 格式化的今天日期匹配 dueDate/scheduledDate\r\n   fetchFutureTasks → fetchTasks → 按 moment.isBetween 判断日期是否在 [now, now+days) 内\r\n   fetchOverdueTasks → fetchTasks → 按 moment.isBefore 判断日期是否早于今天\r\n   fetchDependsTasks → fetchTasks → 按 dependsOn 数组非空过滤\r\n   fetchTagTasks → fetchTasks → 兼容原生 #tags + 自定义 RX.tag 正则提取 🏁 标记\r\n   fetchTodayTasksGrouped → fetchTasks('not done ...') → 按 status.symbol 分三组（空格/?//）→ 按优先级+日期排序\r\n   fetchImportantTasksByStatus → fetchTasks → 按 priority 1-3 + 有效状态过滤 → 分三组 → 按到期日期排序\r\n*/"
+				},
+				{
+					"line": 26,
+					"comment": "@skill-param\r\n   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件\r\n   extraQuery: string - 附加 Tasks 查询语句片段\r\n   days: number - 未来天数（默认 15）\r\n   tag: string - 标签名（不含 # 前缀），空字符串表示所有有标签的任务\r\n*/"
+				},
+				{
+					"line": 32,
+					"comment": "@skill-condition\r\n   所有查询依赖 obsidian-tasks-plugin 实例，插件未加载时抛出 Error\r\n   内部 baseQuery() 拼接 path + filename regex 定位到任务文件目录\r\n   日期比较均使用 window.moment（Obsidian 内置）\r\n   RX.tag 正则来自 read-tasks 模块\r\n   分组查询中的 status.symbol 约定：空格=未开始 / ?=计划中 / /=进行中\r\n   sync: .cline/skills/code/views/views.md → 所有视图的基础数据来源\r\n*/"
+				},
+				{
+					"line": 66,
+					"comment": "@skill-sig\r\n * 所有具体查询函数均以此为基础进行二次过滤\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @param {string} [extraQuery=''] - 附加查询条件\r\n * @returns {Promise<Array>} 符合条件的所有任务对象数组\r\n * @throws {Error} 当 Tasks 插件未加载时抛出\r\n *\r\n * @example\r\n * const tasks = await fetchTasks(app, 'is not recurring');\r\n * @sync .cline/skills/code/views/views.md → 所有视图的基础数据来源\r\n */"
+				},
+				{
+					"line": 85,
+					"comment": "@skill-sig\r\n * 过滤出关键优先级（high/critical）的任务，同时排除重复任务\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<Array>} 重要任务对象数组\r\n *\r\n * @example\r\n * const important = await fetchImportantTasks(app);\r\n * @sync .cline/skills/code/views/views.md → important-task-view 数据源\r\n */"
+				},
+				{
+					"line": 103,
+					"comment": "@skill-sig\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<Array>} 周期性任务对象数组\r\n *\r\n * @example\r\n * const recurring = await fetchRecurringTasks(app);\r\n * @sync .cline/skills/code/views/views.md → recurring-task-view 数据源\r\n */"
+				},
+				{
+					"line": 117,
+					"comment": "@skill-sig\r\n * 基于任务的到期日期（dueDate）或计划日期（scheduledDate）与今天匹配\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<Array>} 截止日期或计划日期为今天的任务数组\r\n *\r\n * @example\r\n * const todayTasks = await fetchTodayTasks(app);\r\n * @sync .cline/skills/code/views/views.md → today-task-view 数据源\r\n */"
+				},
+				{
+					"line": 142,
+					"comment": "@skill-sig\r\n * 基于到期日期或计划日期判断是否在 [今天, 今天+days) 区间内\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @param {number} [days=15] - 未来天数范围\r\n * @returns {Promise<Array>} 未来指定天数内的任务数组\r\n *\r\n * @example\r\n * const futureTasks = await fetchFutureTasks(app, 7);\r\n * @sync .cline/skills/code/views/views.md → future-task-n-view / future-task-all-view 数据源\r\n */"
+				},
+				{
+					"line": 164,
+					"comment": "@skill-sig\r\n * 基于到期日期或计划日期判断是否早于今天\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<Array>} 已过期的任务数组\r\n *\r\n * @example\r\n * const overdue = await fetchOverdueTasks(app);\r\n * @sync .cline/skills/code/views/views.md → overdue-task-view 数据源\r\n */"
+				},
+				{
+					"line": 184,
+					"comment": "@skill-sig\r\n * 过滤出定义了 dependsOn 字段的任务\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<Array>} 存在依赖关系的任务数组\r\n *\r\n * @example\r\n * const depends = await fetchDependsTasks(app);\r\n * @sync .cline/skills/code/views/views.md → depends-task-view 数据源\r\n */"
+				},
+				{
+					"line": 200,
+					"comment": "@skill-sig\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @param {string} tag - 要筛选的标签名（不含 # 前缀）；传入空字符串则返回所有包含任意标签的任务\r\n * @returns {Promise<Array>} 匹配标签的任务数组\r\n *\r\n * @example\r\n * // 获取所有带 \"urgent\" 标签的任务\r\n * const urgentTasks = await fetchTagTasks(app, 'urgent');\r\n *\r\n * // 获取所有有标签的任务\r\n * const taggedTasks = await fetchTagTasks(app, '');\r\n * @sync .cline/skills/code/views/views.md → tag-task-view 数据源\r\n */"
+				},
+				{
+					"line": 246,
+					"comment": "@skill-sig\r\n * 分组依据：status.symbol — 空格=未开始，?=计划中，/=进行中\r\n * 每个分组内按优先级（从高到低）和计划日期（从早到晚）排序\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<{groups: Object.<string, Array>, total: number}>}\r\n *          - groups: 包含 \"未开始\"、\"计划中\"、\"进行中\" 三个分组的任务数组\r\n *          - total: 任务总数\r\n *\r\n * @example\r\n * const { groups, total } = await fetchTodayTasksGrouped(app);\r\n * @sync .cline/skills/code/views/views.md → 今日任务分组展示\r\n */"
+				},
+				{
+					"line": 348,
+					"comment": "@skill-sig\r\n * 筛选条件：优先级 >= 1 且 <= 3（即高、中、低优先级），且状态为未开始/计划中/进行中\r\n * 每个分组内按到期日期（从早到晚）排序\r\n *\r\n * @param {App} app - Obsidian 应用实例\r\n * @returns {Promise<{groups: Object.<string, Array>, total: number}>}\r\n *          - groups: 包含 \"未开始\"、\"计划中\"、\"进行中\" 三个分组的任务数组\r\n *          - total: 任务总数\r\n *\r\n * @example\r\n * const { groups, total } = await fetchImportantTasksByStatus(app);\r\n * @sync .cline/skills/code/views/views.md → 重要任务分组展示\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/read/read-tasks.js",
-			"category": "read",
-			"name": "read-tasks",
-			"description": "读取任务数据",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "getTaskStatus",
+			"description": "任务读取和解析模块，提供正则标记集合(RX)、任务状态判断、属性提取等功能 */",
+			"srcVersion": "1.0",
+			"hash": "7505cb51",
+			"lastModified": "2026-05-08T10:40:50.677Z",
+			"commentGroups": [
+				{
+					"line": 3,
+					"comment": "@skill-sig file src/tasks/read/read-tasks.js - 任务读取和解析模块，提供正则标记集合(RX)、任务状态判断、属性提取等功能 */"
+				},
+				{
+					"line": 4,
+					"comment": "@skill-func\r\n   RX : Object - 正则标记集合，用于匹配任务行中的各种图标标记(priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid)\r\n   getTaskStatus(line) : string - 从任务行文本中解析任务状态(completed/in-progress/planned/cancelled/todo)\r\n   getStatusIcon(task) : string - 根据任务状态返回对应的状态图标(✅/⏩/❔/❎/🔲)\r\n   isTaskToday(task) : boolean - 判断任务是否为今天的任务(基于计划/截止/开始/创建日期)\r\n   computeTaskTimeRange(task) : Object|null - 计算任务的时间范围({start,end})或null\r\n   ensureTaskProperties(task) : void - 确保任务对象包含_cleanText/_tooltip/_tooltipHtml属性(直接修改原对象)\r\n   getAllTasks(force, dv, state) : Array - 获取所有配置文件夹中的任务(从Dataview查询结果中解析并缓存)\r\n*/"
+				},
+				{
+					"line": 13,
+					"comment": "@skill-flow\r\n   getAllTasks → 遍历TASK_FOLDERS → dv.pages(folder) → FILE_NAME_PATTERN过滤 → 遍历page.file.tasks → 解析状态/日期/标记 → computeTaskTimeRange → ensureTaskProperties → 缓存tasks → 构建taskIdMap → 返回tasks列表\r\n   ensureTaskProperties → 清理标记图标生成_cleanText → 组合各部分生成_tooltip → 转HTML生成_tooltipHtml\r\n   computeTaskTimeRange → 收集scheduled/due/starts/done → DateUtils.setStart/setEnd → 返回时间戳范围\r\n   getTaskStatus → 匹配\"- [x]/[X]/[-]/[/]/[?]\" → 映射completed/cancelled/in-progress/planned/todo\r\n   getStatusIcon → 按_status/completed判定 → 返回对应图标\r\n   isTaskToday → 取今天0点~明天0点范围 → 检查_scheduled/_due/_starts/_created是否在此范围\r\n*/"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-param\r\n   line: string - 任务行文本(如\"- [x] 任务内容\")\r\n   task: Object - 任务对象(可含_status/completed/text/_scheduled/_due/_starts/_created等属性)\r\n   force: boolean - 是否强制刷新缓存\r\n   dv: Object - Dataview 插件实例(需含dv.pages方法)\r\n   state: Object - 全局状态上下文(需含cachedAllTasks/taskIdMap属性)\r\n   RX: Object - 正则标记集合，包含priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid\r\n*/"
+				},
+				{
+					"line": 29,
+					"comment": "@skill-condition\r\n   依赖模块: src/configs/plugin-configs(CONFIG), src/utils/logger, src/tasks/process/common-process(DateUtils)\r\n   getAllTasks 依赖 Dataview 插件 API(dv) 和全局状态上下文(state)\r\n   CONFIG.TASK_FOLDERS 和 CONFIG.FILE_NAME_PATTERN 决定任务搜索范围和文件名过滤\r\n   ensureTaskProperties 直接修改传入的task对象(副作用)\r\n   状态映射表: {\"/\":\"in-progress\",\"?\":\"planned\",\"-\":\"cancelled\",x:\"completed\",X:\"completed\"}\r\n   正则标记集合RX的匹配优先级: priority → repeat → created → scheduled → starts → due → done → cancel → tag → id → forbid\r\n   _cleanText 按顺序移除所有标记图标后trim()，若为空则使用原始task.text\r\n   关联视图 sync: 各视图模块通过 getAllTasks 获取原始任务数据\r\n*/"
+				},
+				{
+					"line": 44,
+					"comment": "@skill-sig\r\n * @property {RegExp} priority - 优先级图标（⏬ 🔽 🔼 ⏫ 🔺）\r\n * @property {RegExp} repeat - 重复规则（🔁 every day/week/month/year）\r\n * @property {RegExp} created - 创建日期（➕ YYYY-MM-DD）\r\n * @property {RegExp} scheduled - 计划日期（⏳ YYYY-MM-DD）\r\n * @property {RegExp} starts - 开始日期（🛫 YYYY-MM-DD）\r\n * @property {RegExp} due - 截止日期（📅 YYYY-MM-DD）\r\n * @property {RegExp} done - 完成日期（✅ YYYY-MM-DD）\r\n * @property {RegExp} cancel - 取消日期（❌ YYYY-MM-DD）\r\n * @property {RegExp} tag - 标签标记（🏁 关键词）\r\n * @property {RegExp} id - ID 标记（🆔 标识符）\r\n * @property {RegExp} forbid - 禁止标记（⛔ 关键词列表）\r\n * @sync src/tasks/process/filter-task-process.js → RX.*\r\n */"
+				},
+				{
+					"line": 73,
+					"comment": "@skill-sig\r\n * @param {string} line - 任务行文本（如 \"- [x] 任务内容\"）\r\n * @returns {string} 状态值：'completed' | 'in-progress' | 'planned' | 'cancelled' | 'todo'\r\n * @example\r\n * getTaskStatus(\"- [x] 任务\")     // \"completed\"\r\n * getTaskStatus(\"- [ ] 任务\")     // \"todo\"\r\n * getTaskStatus(\"- [/] 任务\")    // \"in-progress\"\r\n * @sync src/tasks/process/filter-task-process.js → getTaskStatus\r\n */"
+				},
+				{
+					"line": 96,
+					"comment": "@skill-sig\r\n * @param {Object} task - 任务对象\r\n * @param {string} [task._status] - 任务状态\r\n * @param {boolean} [task.completed] - 是否完成（兼容旧格式）\r\n * @returns {string} 状态图标（✅ ⏩ ❔ ❎ 🔲）\r\n * @example\r\n * getStatusIcon({ _status: \"completed\" }) // \"✅\"\r\n * getStatusIcon({ _status: \"todo\" })      // \"🔲\"\r\n */"
+				},
+				{
+					"line": 114,
+					"comment": "@skill-sig\r\n * @param {Object} task - 任务对象\r\n * @param {string} [task._scheduled] - 计划日期\r\n * @param {string} [task._due] - 截止日期\r\n * @param {string} [task._starts] - 开始日期\r\n * @param {string} [task._created] - 创建日期\r\n * @returns {boolean} 如果有任一日期落在今天范围内则返回 true\r\n * @example\r\n * isTaskToday({ _due: \"2026-05-06\" }) // 如果今天为 2026-05-06 则返回 true\r\n * @sync src/panel/views/today-task-view.js → isTaskToday\r\n */"
+				},
+				{
+					"line": 141,
+					"comment": "@skill-sig\r\n * @param {Object} task - 任务对象\r\n * @param {string} [task._scheduled] - 计划日期\r\n * @param {string} [task._due] - 截止日期\r\n * @param {string} [task._starts] - 开始日期\r\n * @param {string} [task._done] - 完成日期\r\n * @returns {{ start: number, end: number } | null} 时间戳范围，若无日期则返回 null\r\n * @example\r\n * computeTaskTimeRange({ _scheduled: \"2026-05-01\", _due: \"2026-05-06\" })\r\n * // { start: 1748707200000, end: 1749139200000 }\r\n * @sync src/tasks/process/calcul-chart-process.js → computeTaskTimeRange\r\n */"
+				},
+				{
+					"line": 176,
+					"comment": "@skill-sig\r\n * _cleanText：去除所有标记图标后的纯净文本\r\n * _tooltip：用于显示的工具提示文本\r\n * _tooltipHtml：HTML 格式的工具提示文本\r\n * @param {Object} task - 任务对象（会被直接修改）\r\n * @param {string} task.text - 原始任务文本\r\n * @example\r\n * ensureTaskProperties(task);\r\n * console.log(task._cleanText);  // \"任务描述（无标记）\"\r\n * @sync src/panel/interacts/tooltip-interact.js → ensureTaskProperties\r\n */"
+				},
+				{
+					"line": 226,
+					"comment": "@skill-sig\r\n * 从 Dataview 查询结果中解析并缓存所有任务\r\n * @param {boolean} force - 是否强制刷新缓存\r\n * @param {Object} dv - Dataview 插件实例\r\n * @param {Object} state - 全局状态上下文（必须包含 cachedAllTasks、taskIdMap）\r\n * @returns {Array} 解析后的任务对象列表\r\n * @throws {Error} 如果 state 未提供则抛出\r\n * @example\r\n * const tasks = getAllTasks(false, dv, state);\r\n * // 返回所有配置文件夹中的任务列表\r\n * @sync src/panel/panel.js → getAllTasks\r\n * @sync .cline/skills/code/views/views.md → 数据获取流程\r\n */"
+				}
+			]
 		},
 		{
 			"path": "src/tasks/write/write-tasks.js",
-			"category": "write",
-			"name": "write-tasks",
-			"description": "写入任务数据",
-			"srcVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"category": "tasks",
+			"name": "Write Tasks",
+			"description": "任务写入工具模块（预留占位），提供将任务数据写入/更新到 Obsidian 文件的功能 */",
+			"srcVersion": "1.0",
+			"hash": "3e35723",
+			"lastModified": "2026-05-08T10:41:25.343Z",
+			"commentGroups": [
+				{
+					"line": 3,
+					"comment": "@skill-sig file src/tasks/write/write-tasks.js - 任务写入工具模块（预留占位），提供将任务数据写入/更新到 Obsidian 文件的功能 */"
+				},
+				{
+					"line": 4,
+					"comment": "@skill-func\r\n   writeTask(taskData, file, app) : Promise - 将任务写入指定文件(预留，功能未实现)\r\n   updateTaskStatus(taskId, status, state, app) : Promise - 更新任务状态(预留，功能未实现)\r\n   deleteTask(taskId, file, app) : Promise - 删除任务(预留，功能未实现)\r\n*/"
+				},
+				{
+					"line": 9,
+					"comment": "@skill-flow\r\n   writeTask → 打开文件 → 定位插入位置 → 写入markdown行 → 关闭文件(待实现)\r\n   updateTaskStatus → 查找taskId → 定位行 → 替换状态标记 → 保存文件(待实现)\r\n*/"
+				},
+				{
+					"line": 13,
+					"comment": "@skill-param\r\n   taskData: Object - 任务数据(标题/状态/优先级/日期等)\r\n   taskId: string - 任务ID标记(🆔后的标识符)\r\n   status: string - 目标状态(completed/in-progress/todo/planned/cancelled)\r\n   file: Object - Obsidian TFile对象\r\n   app: Object - Obsidian App实例\r\n   state: Object - 全局状态上下文(含taskIdMap)\r\n*/"
+				},
+				{
+					"line": 21,
+					"comment": "@skill-condition\r\n   预留模块: 当前为占位文件，无导出函数\r\n   依赖: 将来需要 Obsidian App API(Vault.modify/processFrontMatter)\r\n   关联: 与 src/tasks/read/read-tasks.js(getAllTasks) 的 taskIdMap 配合使用\r\n   writeTask 计划支持: 创建新任务(追加到文件末尾)、创建新文件(带frontmatter)、更新子任务\r\n   updateTaskStatus 计划通过 taskIdMap 快速定位任务\r\n*/"
+				}
+			]
 		},
 		{
-			"path": ".cline/skills/sync/update-code.md",
-			"category": "sync",
-			"name": "update-code",
-			"description": "反向同步中枢",
-			"skillVersion": "",
-			"lastModified": "",
-			"commentGroups": []
+			"path": "src/utils/logger.js",
+			"category": "utils",
+			"name": "isProduction",
+			"description": "文件：src/utils/logger.js",
+			"srcVersion": "1.0",
+			"hash": "556f9235",
+			"lastModified": "2026-05-10T01:39:28.585Z",
+			"commentGroups": [
+				{
+					"line": 25,
+					"comment": "@skill-anchor: isProduction */"
+				},
+				{
+					"line": 40,
+					"comment": "@skill-anchor: logger */"
+				},
+				{
+					"line": 43,
+					"comment": "@skill-anchor: logger.info */"
+				},
+				{
+					"line": 51,
+					"comment": "@skill-anchor: logger.warn */"
+				},
+				{
+					"line": 59,
+					"comment": "@skill-anchor: logger.error */"
+				},
+				{
+					"line": 67,
+					"comment": "@skill-anchor: logger.debug */"
+				}
+			]
 		}
 	]
 }

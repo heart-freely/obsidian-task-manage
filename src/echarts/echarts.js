@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig file src/echarts/echarts.js - ECharts 封装模块，导入 ECharts 库并确保全局可用，兼容旧代码中 window.echarts 引用 */
 /* @skill-func
@@ -20,7 +20,7 @@
    关联模块: src/panel/interacts/chart-interact.js(图表交互)、src/tasks/process/calcul-chart-process.js(图表数据处理)
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 /**
  * 文件：src/echarts/echarts.js
  * 描述：ECharts 封装模块——导入 ECharts 库并确保全局可用，兼容旧代码中 window.echarts 引用

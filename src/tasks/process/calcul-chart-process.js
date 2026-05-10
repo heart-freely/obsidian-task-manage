@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/tasks/process/calcul-chart-process.js - 图表数据纯计算模块，提供甘特图跨度/任务时长/每日状态堆叠等统计计算，不修改入参，不涉及 Obsidian API */
 /* @skill-func
    computeTotalSpanDays(tasks, fieldStart, fieldEnd) : number - 计算任务集合的时间跨度总天数，找出最早 start 和最晚 end 的差值
@@ -28,7 +28,7 @@
    prepareDailyStatusStack 在 dateRange 为 null 时自动扩展 dayMap
    sync: .cline/skills/code/views/views.md → ECharts 堆叠图数据 & 甘特图跨度计算
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 

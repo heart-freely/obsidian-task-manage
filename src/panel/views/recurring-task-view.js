@@ -10,7 +10,7 @@
  * @see .cline/skills/code/views/recurring-task-view.md
  */
 
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig class RecurringTaskView extends BaseTaskView - 循环任务视图，三列网格按频率分组展示循环任务 */
 
@@ -44,7 +44,7 @@
           .task-meta
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchRecurringTasksGrouped } from "../../tasks/process/recurring-task-process";
 import {

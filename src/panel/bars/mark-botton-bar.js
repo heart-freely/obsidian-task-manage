@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/bars/mark-botton-bar.js
  * 描述：标签筛选面板，支持全部/单标签模式切换，点击清空缓存触发重新筛选。
@@ -51,7 +51,7 @@
    所有标签变化均清空 filterCache.fingerprint
    按钮通过 .tag-btn-active 类名控制激活样式
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 /**
  * 构建标签筛选面板

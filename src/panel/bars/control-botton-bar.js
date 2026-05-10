@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/bars/control-botton-bar.js
  * 描述：控制按钮栏，提供全局任务视图控制按钮（刷新、间隔模式切换、循环/已完成/已取消任务的显隐控制、
@@ -52,7 +52,7 @@
 /* @skill-anchor
    buildControlPanel - 控制按钮栏主入口，刷新/间隔模式/显隐切换/重置清除
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 

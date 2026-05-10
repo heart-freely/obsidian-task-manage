@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/edit-tasks-view.js
  * 描述：任务编辑视图 - 提供批量编辑任务标记（优先级、日期、标签等）的界面
@@ -104,7 +104,7 @@
    S.page - 当前页码
    S.selectedIds - 选中任务 ID 集合
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import * as readTasks from "../../tasks/read/read-tasks";
 import { BaseTaskView } from "./base-task-view";

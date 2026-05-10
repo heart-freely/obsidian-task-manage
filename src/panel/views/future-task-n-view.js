@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/future-task-n-view.js
  * 描述：未来N天任务视图，展示未来15天内的任务，使用通用列表视图渲染
@@ -22,7 +22,7 @@
   startListBaseView (base-list-view)
   fetchFutureTasks (task-query-process)
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchFutureTasks } from "../../tasks/process/task-query-process";
 import { startListBaseView } from "./base-list-view";

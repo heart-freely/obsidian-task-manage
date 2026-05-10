@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/tree-task-view.js
  * 描述：树状视图，以文件路径为树形结构展示任务，支持展开/折叠、层级缩进、点击任务跳转
@@ -67,7 +67,7 @@
   app.vault.getAbstractFileByPath // 获取文件对象
   app.workspace.getLeaf           // 获取编辑器叶子节点
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchTasks } from "../../tasks/process/task-query-process";
 

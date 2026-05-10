@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/bars/hide-botton-bar.js
  * 描述：显隐控制面板，切换日历/图表/甘特图/文件树/过期/未到期任务的显示状态
@@ -48,9 +48,9 @@
    过期和未到期 toggle 影响筛选结果 → 清空 filterCache.fingerprint
    日历/图表/甘特图/文件树 toggle 仅影响显隐 → 不清空缓存
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
-// @skill-anchor buildHidePanel - 显隐控制面板主入口，创建日历/图表/甘特图/文件树/过期/未到期6个切换按钮
+/* @skill-anchor: buildHidePanel - 显隐控制面板主入口，创建日历/图表/甘特图/文件树/过期/未到期6个切换按钮 */
 export function buildHidePanel(container, dv, state) {
 	const hideRow = dv.el("div", "");
 	hideRow.style.cssText =
@@ -169,5 +169,5 @@ export function buildHidePanel(container, dv, state) {
 	return hideRow;
 }
 
-// @skill-anchor buildHideButtons - buildHidePanel 的别名导出（兼容旧引用）
+/* @skill-anchor: buildHideButtons - buildHidePanel 的别名导出（兼容旧引用） */
 export const buildHideButtons = buildHidePanel;

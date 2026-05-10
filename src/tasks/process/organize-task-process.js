@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 // src/tasks/process/organize-task-process.js
 
 /* @skill-sig file src/tasks/process/organize-task-process.js - 任务组织整理模块，提供编辑操作库(Op)、快照管理与批量写入功能，所有编辑操作基于正则替换且日期格式使用 YYYY-MM-DD，快照存储在 localStorage */
@@ -48,7 +48,7 @@
    依赖 src/tasks/read/read-tasks 中的 RX 正则集合
    sync: .cline/skills/code/views/views.md → organize-task-view 数据源
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { RX } from "../read/read-tasks";
 

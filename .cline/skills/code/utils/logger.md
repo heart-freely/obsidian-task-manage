@@ -15,10 +15,8 @@ triggers:
 
 ## 导出 <!-- @sync -->
 
-- `Logger`
-- `logDebug`
-- `logError`
-- `logInfo`
+- `logger`（默认导出）- 日志对象，包含 `info` / `warn` / `error` / `debug` 四个方法
+- 无命名导出
 
 ## 关联文件 <!-- @sync -->
 
@@ -27,16 +25,17 @@ triggers:
 
 ## 功能 <!-- @manual -->
 
-- 分级日志（debug/info/error）
-- 日志级别控制
-- 可选的控制台输出
+- 分级日志（info/warn/error/debug）
+- 生产模式静默 info 和 debug 级别
+- 控制台输出，带 `[TASK-*]` 前缀
 
 ## 核心函数 (@skill-sig) <!-- @sync -->
 
-- `Logger` 类 - 日志记录器
-- `logDebug(msg: string): void` - 调试日志
-- `logError(msg: string): void` - 错误日志
-- `logInfo(msg: string): void` - 信息日志
+- `logger.info(...args): void` - 输出信息日志，生产模式静默
+- `logger.warn(...args): void` - 输出警告日志，始终输出
+- `logger.error(...args): void` - 输出错误日志，始终输出
+- `logger.debug(...args): void` - 输出调试日志，生产模式静默
+- `isProduction: boolean` - 生产模式检测（检查 `process.env.NODE_ENV`）
 
 ## 依赖 <!-- @sync -->
 
@@ -44,4 +43,6 @@ triggers:
 
 ## 错误处理 <!-- @sync -->
 
-- 日志级别低于阈值时静默忽略
+- 无显式错误处理
+- `process.env.NODE_ENV` 检测尝试包裹在 try/catch 中，兼容无 `process` 对象的环境（如浏览器）
+- 若 `NODE_ENV` 未定义或非 `"production"`，所有级别日志均输出

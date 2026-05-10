@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/tasks/process/common-process.js - 纯工具函数集，提供日期操作(DateUtils)、帧节流(throttleByFrame)和简易 DOM 创建(createEl)，无外部依赖 */
 /* @skill-ns DateUtils
    formatDate(d: Date) : string - 格式化日期为 yyyy-MM-dd
@@ -28,7 +28,7 @@
    throttleByFrame: 使用 boolean `scheduled` 标志防止重复调度
    createEl: textOrOpts 为字符串时设 textContent，为对象时 Object.assign；opts 可选
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 /**
  * 日期工具集

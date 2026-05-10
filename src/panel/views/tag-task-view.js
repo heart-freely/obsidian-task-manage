@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/tag-task-view.js
  * 描述：标签任务视图，以标签为维度筛选和展示任务，支持任务卡片点击跳转
@@ -42,7 +42,7 @@
 
 /* @skill-query getAllTasks(false, dv, state) - 获取所有任务数据 */
 /* @skill-query normalizeTaskCardData - 标准化卡片数据结构 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 import * as readTasks from "../../tasks/read/read-tasks";

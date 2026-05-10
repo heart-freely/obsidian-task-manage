@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/panel/components/tree-view-components.js - 任务树渲染器 TaskTreeRenderer 类，将扁平任务构建为文件目录树，支持折叠/展开/排序/过滤/统计 */
 /* @skill-api
    panel.js (panel.js 创建 TaskTreeRenderer 实例并管理)
@@ -48,7 +48,7 @@
    文件内任务排序: 支持 status/priority/scheduled/start/due/filename 字段和 asc/desc
    _calcNodeStats 五种状态计数: todo/planned/in-progress/completed/cancelled
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 import { renderTreePanel } from "../views/tree-task-view"; // 相对路径正确

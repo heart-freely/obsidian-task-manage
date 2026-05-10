@@ -10,7 +10,7 @@
  * @see .cline/skills/code/views/important-task-view.md
  */
 
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig class ImportantTaskView extends BaseTaskView - 重要任务视图，三列网格按状态分组展示标记为重要的任务 */
 
@@ -44,7 +44,7 @@
           .task-meta
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchImportantTasksByStatus } from "../../tasks/process/task-query-process";
 import {

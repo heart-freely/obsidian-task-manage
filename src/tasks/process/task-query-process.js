@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/tasks/process/task-query-process.js - 任务查询入口模块，基于 Obsidian Tasks 插件 API，提供按标签/日期/状态/优先级等维度的任务查询能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */
 /* @skill-func
    fetchTasks(app, extraQuery) : Array - 基础查询，从 Tasks 插件获取符合条件的所有任务
@@ -37,7 +37,7 @@
    分组查询中的 status.symbol 约定：空格=未开始 / ?=计划中 / /=进行中
    sync: .cline/skills/code/views/views.md → 所有视图的基础数据来源
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import {
 	TASK_FILENAME_REGEX_TASKS,

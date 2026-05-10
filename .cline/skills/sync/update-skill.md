@@ -76,7 +76,7 @@ descriptions:
 
 ### 增量正向同步流程
 
-1. **变更检测**：执行 `git status --porcelain`，过滤出 `src/` 下修改的 `.js` 文件。并对比 `.cline/skills/cache/sync_state.json` 中的 mtime/hash，确保仅处理真正变更的文件。
+1. **变更检测**：执行 `git status --porcelain`，过滤出 `src/` 下修改的 `.js` 文件。并对比 `.cline/skills/cache/sync_state.json` 中的 lastModified/hash，确保仅处理真正变更的文件。
 2. **定位 Skill**：对每个变更的 `.js` 文件，在 `.cline/skills/README.md` 映射表中查找对应的 `.md` Skill 路径。若不存在，则进入“自动创建 Skill 模板”流程。
 3. **信息提取**：
     - **提取头部注释**：提取 `文件`、`描述`、`依赖`、`对外导出`、`注意事项`、`@see`。
@@ -94,7 +94,7 @@ descriptions:
     - `## 修改指南` 采用追加模式：若 AI 检测到新的设计决策或变更原因，在末尾添加 `YYYY-MM-DD: 内容`，不覆盖历史记录。
     - `## 依赖` 章节完全由 `import` 生成（覆盖旧内容）。
 6. **自动校验**：检查 Skill 文件的 YAML 头部、`@see` 有效性、章节结构是否符合标准模板，自动修复缺失的 `@see`、错误的章节顺序等。
-7. **保存同步状态**：更新 `.cline/skills/cache/sync_state.json`，记录本次同步的 commit hash 及每个文件的 mtime。
+7. **保存同步状态**：更新 `.cline/skills/cache/sync_state.json`，记录本次同步的 commit hash 及每个文件的 lastModified。
 8. 输出更新摘要。
 
 ### 全量正向同步（`全局同步技能`）额外步骤

@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/pomodoro-task-view.js
  * 描述：番茄钟统计视图（占位），继承 BaseTaskView，展示 "即将上线" 提示
@@ -23,7 +23,7 @@
 */
 
 /* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : { cleanup, updateSort } - 渲染占位内容，返回空操作接口 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { BaseTaskView } from "./base-task-view";
 

@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/tasks/process/inbox-task-process.js - 任务收件箱模块，提供收件箱任务的获取与分组处理能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */
 /* @skill-func
    fetchInboxTasks(app) : Array - 获取收件箱任务，筛选未完成、非重复、状态为待处理(空格)或计划中(?)
@@ -18,7 +18,7 @@
    优先级排序权重：none→999, actual priority 值越小优先级越高
    sync: .cline/skills/code/views/views.md → inbox-task-view 数据源
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import {
 	TASK_FILENAME_REGEX_TASKS,

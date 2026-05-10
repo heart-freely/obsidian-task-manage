@@ -1,6 +1,6 @@
 ---
 name: 更新skills
-description: 基于 skills-index.json 生成 skills.md 中的project文件树、skills文件树、双向同步触发词列表以及生成配置与缓存文件表。若 autoUpdateIndex 为 true 且索引缺失，自动调用 update-index.md。
+description: 基于 skills-index.json 生成 skills.md 中的project文件树、skills文件树、双向同步触发词列表、编码触发词列表以及生成配置与缓存文件表。若 autoUpdateIndex 为 true 且索引缺失，自动调用 update-index.md。
 triggers:
   - 更新skills|刷新skills|同步skills|生成skills
 descriptions:
@@ -45,7 +45,7 @@ descriptions:
 
 ### 更新project文件树
 
-根据前面读取的.cline/skills/skills-index.json获取project文件树信息
+根据前面读取的.cline/skills/skills-index.json获取project文件树信息,获取到最底层js文件。
 
 - 生成project文件树
 
@@ -171,11 +171,56 @@ root/
 
 ...
 
-## update-comment.md
+<!-- SYNC_FILES_END -->
+```
+
+
+
+### 更新编码触发词列表
+
+根据前面读取的.cline/skills/skills-index.json获取触发词信息
+
+1. **读取索引**：解析 `skills-index.json`，获取所有技能的元数据。
+
+   - 遍历skills-index.json中的所有"category"找出含有路径`code`的项。
+     - 对于每个项
+       - 如果存在 `triggerGroups` 字段且不为空，则：
+         - 输出一行：`{path的文件名部分}`
+
+       - 对每个 `triggerGroup`，输出一行：`执行触发词操作：{将 triggers 字段中的 `|` 替换为“ 或 ”}（{description}）（{path}）`
+
+2. 生成技能触发词列表
+
+   - 不同文件的技能之间用`## {path的文件名部分}`分隔。
+
+   - 每一行触发词使用纯文本，不要带MD标记
+
+3. 注意：只输出那些有操作描述的技能（即 YAML 中定义了 `descriptions` 的技能），视图技能等没有描述的不输出。
+
+
+以下为模板示例
+
+```markdown
+<!-- SYNC_CODES_START -->
+
+# 编码触发词列表
+
+## inbox-task-view.md.md
+
+执行触发词操作：修改收件箱视图（.cline/skills/code/panel/views/inbox-task-view.md）
+执行触发词操作：调整任务收集逻辑（.cline/skills/code/panel/views/inbox-task-view.md）
+执行触发词操作：添加过滤或排序（.cline/skills/code/panel/views/inbox-task-view.md）
+
+## kanban-task-view.md.md
 
 ...
 
-<!-- SYNC_FILES_END -->
+## matrix-task-view.md.md
+
+...
+
+
+<!-- SYNC_CODES_END -->
 ```
 
 ### 更新配置与缓存文件表

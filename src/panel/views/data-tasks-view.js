@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/data-tasks-view.js
  * 描述：数据统计图表视图，使用 ECharts 渲染任务的多维度统计饼图和堆叠柱状图
@@ -26,7 +26,7 @@
 /* @skill-sig Chart #8: 执行时长 - 饼图 */
 /* @skill-sig Chart #9: 计划执行对比 - 饼图 */
 /* @skill-sig Chart #10: 状态详细（日） - 堆叠柱状图，支持时间范围筛选和 zoom 弹窗 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 import { echarts } from "../../echarts/echarts";

@@ -11,7 +11,7 @@
  * @see .cline/skills/code/views/table-task-view.md
  */
 
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig file src/panel/views/table-task-view.js - 表格视图，以可配置列的可滚动表格展示所有任务，支持列显示/隐藏切换、点击列排序、点击描述跳转到文件 */
 
@@ -53,7 +53,7 @@
    空值排序统一置底（包括 null/undefined/空字符串）
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 import { CONFIG } from "../../configs/plugin-configs";
 import { fetchTasks } from "../../tasks/process/task-query-process";
 import { BaseTaskView } from "./base-task-view";

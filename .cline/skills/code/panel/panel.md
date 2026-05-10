@@ -1,258 +1,200 @@
-# panel.js - 导航中心视图（NavigatorView）
+---
+name: 导航中心视图
+skill-version: 4.0
+description: 导航中心视图（NavigatorView），提供任务管理的中心面板，包含侧边栏视图切换器、粘性头部（快捷日期/控制按钮/排序）、过滤区和主内容区
+triggers:
+  - 调整导航面板布局
+  - 修改子视图切换逻辑
+  - 改导航层过滤逻辑
+  - 修该视图激活/清理流程
+---
 
-## 基本信息
+# 导航中心视图 Skill
 
-- **文件路径**: `src/panel/panel.js`
-- **所属模块**: panel（面板）
-- **功能**: 提供任务管理的导航中心面板，包含侧边栏视图切换器、粘性头部（快捷日期/控制按钮/排序）、过滤区和主内容区，支持 20+ 种子视图的动态加载和切换
+## 文件 <!-- @sync -->
 
-## 核心架构
+`src/panel/panel.js`
 
+## 导出 <!-- @sync -->
+
+- `VIEW_TYPE_NAVIGATOR`
+- `NavigatorView` (class)
+- `startNavigatorCore`
+
+## 关联文件 <!-- @sync -->
+
+- 源码：`src/panel/panel.js`
+- Skill：`.cline/skills/code/panel/panel.md`
+- 子视图 skill 汇总：`.cline/skills/code/views/views.md`
+
+## 功能 <!-- @manual -->
+
+- 提供 Obsidian 自定义 ItemView 实现（NavigatorView）
+- 管理所有子视图的切换生命周期（activateSubView）
+- 构建粘性头部（快捷日期/控制按钮/排序/过滤区）
+- 实现导航层过滤（带指纹缓存）
+- 双面板布局：树面板 + 内容面板
+- 通过 PersistenceManager 持久化状态
+
+## API (@skill-api) <!-- @sync -->
+
+### 导入方
+
+`main.js` 或其他入口：
+```js
+import { VIEW_TYPE_NAVIGATOR, NavigatorView, startNavigatorCore } from "./panel/panel"
 ```
-NavigatorView (BaseTaskView 子类)
-  └── startNavigatorCore()
-       ├── 布局构建: outerWithSidebar → sidebar + mainArea
-       │   └── mainArea → scrollArea → stickyHeader + filterWrapper + contentLayout
-       │       └── contentLayout → treePanel (左) + viewPanel (右)
-       ├── 状态创建: createInitialState() + PersistenceManager
-       ├── 头部构建: buildHeader() → 快捷日期 + 控制按钮(含隐藏) + 过滤区 + 排序
-       ├── 树渲染: TaskTreeRenderer(treePanel)
-       ├── 视图切换: activateSubView() → 动态加载子视图
-       └── 刷新流程: refreshCurrentView() → 过滤 → 树渲染 → 内容渲染 → 持久化
+
+### 导入
+
+- `obsidian`: Notice
+- `configs/plugin-configs`: CONFIG
+- `storages/persist-storages`: createInitialState, getEffectiveDateRange, getFilterFingerprint, PersistenceManager
+- `tasks/read/read-tasks`: getAllTasks
+- `tasks/process/*`: filterTasks, fetchFutureTasks, fetchOverdueTasks, fetchTasks
+- `panel/bars/*`: buildControlPanel, buildDateCascadePanel, buildHideButtons, buildMarkFilterPanel, buildQuickDatePanel, buildViewSwitcher, buildSortRow
+- `panel/components/tree-view-components`: TaskTreeRenderer
+- `panel/interacts/tooltip-interact`: TooltipManager
+- `panel/views/*`: startListBaseView, BaseTaskView, drawCharts, startKanbanView, startMatrixView (等所有子视图)
+
+## 类与核心函数 (@skill-class) <!-- @sync -->
+
+- `NavigatorView` (extends `BaseTaskView`) - Obsidian 自定义 ItemView，管理子视图类型持久化
+- `startNavigatorCore()` - 导航核心，创建布局、初始化状态、构建头部、激活子视图
+- `buildHeader()` - 构建粘性头部（快捷日期/控制按钮/排序/过滤区）
+- `refreshCurrentView()` - 刷新当前子视图（过滤→树面板→内容面板→持久化）
+- `applyNavFilters(): Task[]` - 应用导航层过滤（带指纹缓存）
+- `renderContent(filteredTasks)` - 渲染非自渲染视图的内容面板
+- `activateSubView(viewType, force)` - 激活指定子视图
+- `TaskTreeRenderer` - 树面板渲染器
+- `tooltipManager` - 工具提示管理器单例
+- `persistence` - 持久化管理器
+
+## 核心函数 (@skill-func) <!-- @sync -->
+
+- `VIEW_TYPE_NAVIGATOR: string` - 视图类型标识符
+- `NavigatorView.getViewType(): string` - 返回视图类型
+- `NavigatorView.getDisplayText(): string` - 返回显示名称
+- `NavigatorView.getIcon(): string` - 返回图标名
+- `NavigatorView.onOpen(): Promise` - 恢复上次子视图类型
+- `NavigatorView._startCore(dv, app, storageAdapter, instanceId): Promise<Function>` - 启动导航核心
+- `NavigatorView.getState(): { subViewType }` - 获取状态
+- `NavigatorView.setState(state): void` - 设置状态
+- `startNavigatorCore(dv, app, storageAdapter, instanceId, initialSubView, navigatorView?): Promise<Function>` - 核心启动函数
+- `buildHeader(): void` - 构建粘性头部
+- `refreshCurrentView(): Promise` - 刷新当前子视图
+- `applyNavFilters(): Task[]` - 应用导航层过滤
+- `renderContent(filteredTasks): Promise` - 渲染内容面板
+- `activateSubView(viewType, force?): Promise` - 激活子视图
+
+## 数据流伪代码 (@skill-flow) <!-- @sync -->
+
+```text
+NavigatorView.onOpen() → 从 getState() 恢复 _lastViewType
+→ _startCore() → startNavigatorCore()
+→ 创建布局 outerWithSidebar + sidebar + mainArea
+→ 创建 state + persistence + tooltipManager + treeRenderer
+→ buildViewSwitcher() 构建侧边栏
+→ buildHeader() 构建粘性头部
+→ persistence.load() 恢复持久化状态
+→ 激活初始子视图 (activateSubView)
+→ applyNavFilters() 过滤任务
+→ treeRenderer.render() + renderContent()
+→ 返回 cleanup 函数
 ```
 
-## 类说明
+## 全局状态 (@skill-global-state) <!-- @sync -->
 
-### `NavigatorView` (extends BaseTaskView)
-
-Obsidian 自定义 ItemView 实现，提供任务导航的中心面板。
-
-| 方法                                              | 说明                                                    |
-| ------------------------------------------------- | ------------------------------------------------------- |
-| `getViewType()`                                   | 返回 `"navigator-view"`                                 |
-| `getDisplayText()`                                | 返回 `"任务导航中心"`                                   |
-| `getIcon()`                                       | 返回 `"compass"`                                        |
-| `onOpen()`                                        | 打开时恢复上次的子视图类型，默认 `"task-dataview-view"` |
-| `_startCore(dv, app, storageAdapter, instanceId)` | 调用 `startNavigatorCore` 启动核心逻辑                  |
-| `getState()`                                      | 返回 `{ subViewType }` 保存子视图状态                   |
-| `setState(state)`                                 | 恢复子视图类型                                          |
-
-## 函数说明
-
-### `startNavigatorCore(dv, app, storageAdapter, instanceId, initialSubView, navigatorView?)`
-
-启动导航核心逻辑，创建完整布局、初始化状态、构建头部和侧边栏、激活初始子视图。
-
-**参数**:
-
-- `dv` (Object): Obsidian Dataview API
-- `app` (Object): Obsidian App 实例
-- `storageAdapter` (Object): 存储适配器
-- `instanceId` (string): 实例 ID
-- `initialSubView` (string): 初始子视图类型
-- `navigatorView` (NavigatorView, optional): NavigatorView 实例
-
-**返回值**: `Promise<Function>` - cleanup 函数，调用时清理所有资源
-
----
-
-### `buildHeader()`
-
-构建粘性头部区域（内部函数），包含快捷日期按钮行、控制按钮（含隐藏按钮）、过滤区。每次重新渲染全局 UI 时重建。
-
----
-
-### `refreshCurrentView()`
-
-刷新当前子视图（内部函数），执行过滤 → 渲染树面板 → 渲染内容面板 → 持久化状态。
-
----
-
-### `applyNavFilters()`
-
-应用导航层过滤（内部函数），使用指纹缓存避免重复过滤。
-
-**返回值**: `Array` - 过滤后的任务列表
-
----
-
-### `renderContent(filteredTasks)`
-
-渲染内容面板（内部函数），仅对非自渲染视图生效。
-
-**参数**:
-
-- `filteredTasks` (Array): 过滤后的任务列表
-
----
-
-### `activateSubView(viewType, force?)`
-
-激活指定子视图（内部函数），切换当前子视图、清理旧视图、加载新视图、刷新过滤和布局。同时更新侧边栏视图切换器高亮状态。
-
-**参数**:
-
-- `viewType` (string): 目标子视图类型
-- `force` (boolean, optional): 是否强制切换
-
-## 全局状态
-
-### `NavigatorView._lastViewType`
-
-持久化的子视图类型，通过 `getState()`/`setState()` 由 Obsidian 管理。
-
-### `state` 对象（由 `createInitialState()` 创建）
-
-```
+```js
 state = {
-  dateFilterState: { start, end, isAll },  // 日期过滤
-  markFilterState: { statuses, includeMarks, excludeMarks },  // 标记过滤
-  hideRepeatTasks: boolean,       // 隐藏重复任务
-  hideCompletedTasks: boolean,    // 隐藏已完成任务
-  hideCancelledTasks: boolean,    // 隐藏已取消任务
-  hideFolders: boolean,           // 隐藏文件夹/根路径过滤
-  showTree: boolean,              // 显示树面板
-  showFilters: boolean,           // 显示过滤区
-  filterRootPath: string|null,    // 树面板根路径过滤
-  leftSort: { type, order },      // 左侧排序状态
-  activeQuickBtn: DOMElement|null,  // 当前活跃快捷按钮
-  quickBtns: DOMElement[],         // 快捷按钮数组
-  filterCache: { fingerprint, tasks },  // 过滤缓存
-  collapsedNodes: Object,          // 树面板折叠节点
-  chartInstances: Object[],        // 图表实例列表
-  dataViewStatuses: string[],      // 数据视图状态列表
+  dateFilterState: { start, end, isAll },
+  markFilterState: { statuses, includeMarks, excludeMarks },
+  hideRepeatTasks: boolean,
+  hideCompletedTasks: boolean,
+  hideCancelledTasks: boolean,
+  hideFolders: boolean,
+  showTree: boolean,
+  showFilters: boolean,
+  filterRootPath: string|null,
+  leftSort: { type, order },
+  activeQuickBtn: DOMElement|null,
+  quickBtns: DOMElement[],
+  dateCascadeEls: Object,
+  chartInstances: Object[],
+  filterCache: { fingerprint, tasks },
+  collapsedNodes: Object,
+  dataViewStatuses: string[],
 }
+NavigatorView._lastViewType: string  // 持久化的子视图类型
 ```
 
-## 支持的子视图列表
+## 子视图清单 (@skill-anchor) <!-- @sync -->
 
-| 视图类型               | 说明             | 加载方式            |
-| ---------------------- | ---------------- | ------------------- |
-| `task-dataview-view`   | 数据视图（图表） | 直接调用 drawCharts |
-| `matrix-tasks-view`    | 矩阵视图         | startMatrixView     |
-| `kanban-task-view`     | 看板视图         | startKanbanView     |
-| `important-task-view`  | 重要任务         | 动态 import         |
-| `recurring-task-view`  | 循环任务         | 动态 import         |
-| `today-task-view`      | 今天任务         | 动态 import         |
-| `future-n-task-view`   | 未来15天         | startListBaseView   |
-| `future-all-task-view` | 未来所有任务     | startListBaseView   |
-| `overdue-task-view`    | 逾期任务         | startListBaseView   |
-| `depends-task-view`    | 依赖任务         | 动态 import         |
-| `tag-task-view`        | 标签视图         | 动态 import         |
-| `inbox-task-view`      | 收集箱           | 动态 import         |
-| `timeline-task-view`   | 时间线           | 动态 import         |
-| `table-task-view`      | 表格视图         | 动态 import         |
-| `calendar-task-view`   | 日历视图         | 动态 import         |
-| `gantt-task-view`      | 甘特图           | 动态 import         |
-| `organize-task-view`   | 整理箱           | 动态 import         |
-| `pomodoro-task-view`   | 番茄钟           | 占位（即将上线）    |
-| `tree-task-view`       | 树视图           | 占位（即将上线）    |
-| `edit-tasks-view`      | 编辑视图         | 占位（即将上线）    |
+| viewType | 视图 | 文件 |
+|---|---|---|
+| `task-dataview-view` | 数据图表视图 | `views/data-tasks-view.js` |
+| `matrix-tasks-view` | 矩阵视图 | `views/matrix-task-view.js` |
+| `kanban-task-view` | 看板视图 | `views/kanban-task-view.js` |
+| `important-task-view` | 重要任务视图 | `views/important-task-view.js` |
+| `inbox-task-view` | 收集箱视图 | `views/inbox-task-view.js` |
+| `today-task-view` | 今日任务视图 | `views/today-task-view.js` |
+| `recurring-task-view` | 循环任务视图 | `views/recurring-task-view.js` |
+| `future-n-task-view` | 未来15天视图 | `views/future-task-n-view.js` |
+| `future-all-task-view` | 未来所有视图 | `views/future-task-all-view.js` |
+| `overdue-task-view` | 逾期任务视图 | `views/overdue-task-view.js` |
+| `depends-task-view` | 依赖任务视图 | `views/depends-task-view.js` |
+| `tag-task-view` | 标签任务视图 | `views/tag-task-view.js` |
+| `timeline-task-view` | 时间线视图 | `views/timeline-task-view.js` |
+| `table-task-view` | 表格视图 | `views/table-task-view.js` |
+| `calendar-task-view` | 日历视图 | `views/calendar-task-view.js` |
+| `gantt-task-view` | 甘特图视图 | `views/gantt-task-view.js` |
+| `organize-task-view` | 整理箱视图 | `views/organize-task-view.js` |
+| `pomodoro-task-view` | 番茄钟视图 | `views/pomodoro-task-view.js` |
+| `tree-task-view` | 树形视图 | `views/tree-task-view.js` |
+| `edit-task-view` | 编辑视图 | `views/edit-tasks-view.js` |
 
-## 交互流程
+## 关键条件 <!-- @sync -->
 
-```
-startNavigatorCore()
-  │
-  ├── 清理全局 tooltip
-  ├── 创建 sharedSortState / tooltipManager / state / persistence
-  │
-  ├── 构建布局
-  │   ├── outerWithSidebar
-  │   ├── sidebar (视图切换)
-  │   └── mainArea
-  │       └── scrollArea
-  │           ├── stickyHeader (快捷日期+控制+排序)
-  │           ├── filterWrapper (级联日期+标记过滤)
-  │           └── contentLayout
-  │               ├── treePanel (左侧树)
-  │               └── viewPanel (右侧内容)
-  │
-  ├── 构建树渲染器 TaskTreeRenderer
-  │
-  ├── 构建侧边栏 buildViewSwitcher
-  │
-  ├── 构建头部 buildHeader()
-  │   ├── 快捷日期行 (quickRow)
-  │   ├── 控制按钮 (buildControlPanel + buildHideButtons)
-  │   └── 排序行 (buildSortRow)
-  │
-  ├── 加载持久化状态 persistence.load()
-  │
-  └── 激活初始子视图 activateSubView(initialSubView)
-      │
-      ├── 清理旧视图 (currentSubView.cleanup)
-      ├── 根据视图类型切换状态
-      │   ├── matrix/kanban/inbox → 限制 statuses 为 todo/planned/in-progress
-      │   └── 其他 → 恢复 dataViewStatuses
-      ├── 动态 import 加载目标视图
-      ├── 刷新过滤和渲染
-      └── 更新侧边栏高亮 + 持久化 lastViewType
-```
+- 子视图切换时: dataViewStatuses 在进出 task-dataview-view 时保存/恢复
+- matrix/kanban/inbox 视图强制 statuses = ["todo","planned","in-progress"]
+- 过滤指纹缓存: fingerprint 匹配时跳过重复过滤
+- 自渲染视图列表: selfRenderedViews 中的视图自行管理 viewPanel
+- 树面板显隐: state.showTree 控制 display
+- 过滤区显隐: state.showFilters 控制 display
+- cleanup: 销毁 echarts 实例 + 清理子视图 + 清空容器
 
-## 自渲染视图列表
+## DOM 结构 <!-- @sync -->
 
-以下视图自行管理 viewPanel 内容，不通过 `renderContent()` 渲染：
+- `.navigator-outer-with-sidebar` - 最外层容器（flex 行）
+- `.navigator-sidebar` - 侧边栏视图切换区
+- `.navigator-main` - 主内容区（flex 列）
+- `.navigator-scroll-area` - 可滚动内容区
+- `.header-sticky` - 粘性头部（快捷日期/控制按钮/排序/过滤）
+- `.filter-area` - 过滤区
+- `.navigator-content-layout` - 双面板布局（树面板 + 视图面板）
+- `.navigator-tree-panel` - 左侧树面板
+- `.navigator-view-panel` - 右侧视图内容面板
+- `.quick-row` - 快捷日期行
+- `.filter-label` - 过滤标签
+- `.section-divider` - 节分隔线
+- `.sort-row-wrapper` - 排序行容器
+- `.empty-message` - 空状态提示
+- `.dataview-tooltip` - 工具提示元素（全局唯一）
 
-```
-inbox-task-view, important-task-view, recurring-task-view,
-today-task-view, future-n-task-view, future-all-task-view,
-overdue-task-view, depends-task-view, tag-task-view,
-organize-task-view, timeline-task-view, table-task-view,
-tree-task-view, calendar-task-view, gantt-task-view,
-pomodoro-task-view
-```
+## 依赖 <!-- @sync -->
 
-## 状态持久化策略
+- `obsidian`: Notice
+- `configs/plugin-configs`: CONFIG
+- `storages/persist-storages`: createInitialState, getEffectiveDateRange, getFilterFingerprint, PersistenceManager
+- `tasks/process/common-process`: DateUtils
+- `tasks/process/filter-task-process`: filterTasks
+- `tasks/process/task-query-process`: fetchFutureTasks, fetchOverdueTasks, fetchTasks
+- `tasks/read/read-tasks`: getAllTasks
+- 所有 bars 子模块
+- 所有 views 子模块
+- `panel/components/tree-view-components`: TaskTreeRenderer
+- `panel/interacts/tooltip-interact`: TooltipManager
 
-`PersistenceManager.save()` 保存以下字段：
+## 修改指南 <!-- @auto-record -->
 
-- `showFilters`, `showTree` (面板显示开关)
-- `hideRepeatTasks`, `hideCompletedTasks`, `hideCancelledTasks`, `hideFolders` (过滤开关)
-- `leftSort` (排序偏好)
-- `markFilterState` (标记过滤状态)
-- `collapsedNodes` (树面板折叠状态)
-- `chartScale`, `leftPanelWidth`, `intervalMode` (布局/图表设置)
-- `dataViewStatuses` (数据视图状态列表)
-
-不保存运行时临时数据：缓存任务列表、图表实例、快捷按钮 DOM 引用等。
-
-## 条件逻辑
-
-| 条件                          | 行为                                             |
-| ----------------------------- | ------------------------------------------------ |
-| 过滤条件变化                  | 清空 `filterCache.fingerprint`，下次访问重新过滤 |
-| 切换 matrix/kanban/inbox 视图 | 自动限制状态为 `todo/planned/in-progress`        |
-| 切换其他视图                  | 恢复 `dataViewStatuses`                          |
-| 树面板隐藏                    | `treePanel.style.display = "none"`               |
-| 过滤区隐藏                    | `filterWrapper.style.display = "none"`           |
-| 重置全部                      | 恢复初始状态并重新构建头部和渲染                 |
-
-## DOM 结构
-
-```
-div.navigator-outer-with-sidebar
-├── div.navigator-sidebar (左侧边栏)
-│   └── 视图切换按钮 (buildViewSwitcher)
-│
-└── div.navigator-main (flex:1)
-    └── div.navigator-scroll-area
-        ├── div.header-sticky (粘性头部)
-        │   ├── div.quick-row
-        │   │   ├── span.filter-label "快捷"
-        │   │   └── 快捷日期按钮 (buildQuickDatePanel)
-        │   ├── div.section-divider
-        │   ├── 控制按钮行 (buildControlPanel + buildHideButtons)
-        │   ├── div.section-divider
-        │   └── div.sort-row-wrapper
-        │       └── 排序按钮 (buildSortRow)
-        │
-        ├── div.filter-area
-        │   ├── 级联日期面板 (buildDateCascadePanel)
-        │   ├── div.section-divider
-        │   └── 标记过滤面板 (buildMarkFilterPanel)
-        │
-        └── div.navigator-content-layout
-            ├── div.navigator-tree-panel (左侧: 任务树)
-            └── div.navigator-view-panel (右侧: 内容视图)
-```
+- 2026-05-07: v4.0 从源码注释中完整提取生命周期和结构

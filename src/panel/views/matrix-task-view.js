@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/matrix-task-view.js
  * 描述：艾森豪威尔矩阵视图，按紧急/重要四象限展示任务，支持状态过滤、排序和路径筛选
@@ -57,7 +57,7 @@
   normalizeTaskCardData(taskData)    // 标准化任务数据为卡片格式
   createTaskCard(cardData, app)      // 生成任务卡片 DOM
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import {
 	fetchRawTasks,

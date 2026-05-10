@@ -11,7 +11,7 @@
  * @see .cline/skills/code/views/future-task-all-view.md
  */
 
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig class FutureAllTaskView extends BaseTaskView - 未来所有任务视图，展示截止日期/计划日期在当前时间之后的所有任务列表 */
 
@@ -22,7 +22,7 @@
   fetchTasks (task-query-process)
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchTasks } from "../../tasks/process/task-query-process";
 import { startListBaseView } from "./base-list-view";

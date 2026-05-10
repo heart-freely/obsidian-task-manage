@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/bars/date-botton-bar.js
  * 描述：年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询。
@@ -67,7 +67,7 @@
    getQueryRangeFromDateSelection 优先级：周几 > 周 > 月 > 季度 > 年
    任何选中变化 → 清空 filterCache.fingerprint
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";

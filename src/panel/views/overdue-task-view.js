@@ -11,7 +11,7 @@
  * @see .cline/skills/code/views/overdue-task-view.md
  */
 
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig class OverdueTaskView extends BaseTaskView - 逾期任务视图，展示已过截止日期的任务列表 */
 
@@ -30,7 +30,7 @@
    fetchOverdueTasks 返回空数组 → startListBaseView 内部处理空状态显示
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchOverdueTasks } from "../../tasks/process/task-query-process";
 import { startListBaseView } from "./base-list-view";

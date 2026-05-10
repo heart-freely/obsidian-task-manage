@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/bars/side-botton-bar.js
  * 描述：侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能
@@ -40,7 +40,7 @@
    点击切换后清除其他按钮 active 类
    state.onViewChange 存在时触发回调
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 export function buildSideButtonBar(container, dv, state) {
 	const sideRow = dv.el("div", "");

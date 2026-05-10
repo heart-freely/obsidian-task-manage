@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/today-task-view.js
  * 描述：今天任务视图，按状态（未开始/计划中/进行中）分组展示当天任务，三列网格布局
@@ -42,7 +42,7 @@
   fetchTodayTasksGrouped (task-query-process)
   BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchTodayTasksGrouped } from "../../tasks/process/task-query-process";
 import {

@@ -1,238 +1,223 @@
-//  <!-- SYNC_COMMENTS_START -->
-/**
- * 文件：src/panel/bars/quick-botton-bar.js
- * 描述：快速日期筛选面板，提供常用日期范围的快速筛选按钮（今天、昨天、本周、本月等），
- *       支持上周/下周、上月/下月快捷切换及缓存状态恢复
- * 所属模块：panel/bars
- * 依赖：
- *   - DateUtils (common-process.js): 日期范围计算工具
- *   - panel.js (全局状态 state 和回调 callbacks)
- * 对外导出：clearQuickHighlights, resetQuickDateUI, restoreQuickButton, buildQuickDatePanel
- * 注意事项：依赖 state.quickBtns 数组管理按钮引用
- * @see .cline/skills/code/panel/bars/quick-botton-bar.md
+/*
+ * src/panel/bars/quick-botton-bar.js
+ * 初始化注释锚点脚本
+ * 扫描所有 skills-index.json 中已映射的 JS 文件，
+ * 提取所有 @skill-* 和 @skill-anchor 注释及其行号，
+ * 写入 .cline/skills/cache/code_cache.json
  */
 
-/* @skill-sig file src/panel/bars/quick-botton-bar.js - 快速日期筛选面板，提供常用日期范围的快速筛选按钮及缓存状态恢复 */
-/* @skill-api
-   DateUtils (common-process.js) - getDayRange / getWeekRange / getMonthRange 日期范围计算工具
-   panel.js (全局状态 state 和回调 callbacks)
-   state.quickBtns / state.activeQuickBtn / state.dateState.selections / state.dateFilterState (isAll, start, end) / state.filterCache.fingerprint
-   callbacks.onQuery - 执行查询回调
-*/
-/* @skill-state
-   state.quickBtns          : HTMLElement[] // 当前面板所有快速按钮的引用数组
-   state.activeQuickBtn     : string|null   // 当前高亮的按钮文本（如 "今天"）
-   state.dateState.selections : Object      // 日期选择器状态（年/季/月/周/周日）
-   state.dateFilterState    : { isAll, start, end } // 日期筛选条件
-   state.filterCache.fingerprint : string    // 筛选缓存指纹，切换后清空
-*/
-/* @skill-func
-   clearQuickHighlights(state) : void                 - 清除所有按钮的 quick-btn-active 类
-   resetQuickDateUI(state)     : void                 - 重置快速日期 UI（调用 clearQuickHighlights）
-   restoreQuickButton(state, label) : void            - 根据 label 恢复指定按钮的高亮样式
-   buildQuickDatePanel(container, dv, state, callbacks) : void - 构建面板，渲染按钮并绑定事件
-*/
-/* @skill-anchor
-   clearQuickHighlights - 清除所有快速日期按钮的高亮样式
-   resetQuickDateUI - 重置快速日期 UI（clearQuickHighlights 的包装）
-   restoreQuickButton - 从缓存状态恢复指定按钮的高亮样式
-   buildQuickDatePanel - 构建快速日期筛选面板主入口
-*/
-/* @skill-dom
-   .quick-bar (容器 flex-wrap:wrap gap:8px)
-   button.quick-btn / button.quick-btn-active
-     今天 | 昨天 | 明天 | 本周 上周 下周 | 本月 上月 下月 | 所有任务
-*/
-/* @skill-flow
-   buildQuickDatePanel(container, dv, state, callbacks)
-   定义 quickDefs 按钮配置数组 → 遍历创建按钮 → 本周/本月附近附加上周/下周/上月/下月 → 追加"执行查询"按钮 → 若 state.activeQuickBtn 非空则 restoreQuickButton
-   点击按钮 → clearQuickHighlights → 按钮添加 active 类 → 设置 dateFilterState 范围 → 清空 filterCache.fingerprint
-*/
-/* @skill-condition
-   按钮 label="所有任务" 时 → dateFilterState.isAll=true, start/end=null
-   点击上周/下周 → 当前日期 ±7 天后再计算周范围
-   点击上月/下月 → 当前月份 ±1 个月后再计算月范围
-   state.activeQuickBtn 残留 → 面板重建后自动恢复该按钮高亮
-*/
-//  <!-- SYNC_COMMENTS_END -->
+const fs = require("fs");
+const path = require("path");
 
-import { DateUtils } from "../../tasks/process/common-process";
+const ROOT = path.resolve(__dirname, "..");
+const SKILLS_INDEX_PATH = path.join(ROOT, ".cline/skills/skills-index.json");
+const CACHE_PATH = path.join(ROOT, ".cline/skills/cache/code_cache.json");
 
-/**
- * 清除所有快速日期按钮的高亮样式
- * @param {Object} state - 全局状态对象（需包含 quickBtns 数组）
- */
-/* @skill-anchor: clearQuickHighlights */
-export function clearQuickHighlights(state) {
-	state.quickBtns.forEach((b) => (b.className = "quick-btn"));
+// 加载 skills-index.json
+const indexData = JSON.parse(fs.readFileSync(SKILLS_INDEX_PATH, "utf-8"));
+const srcEntries = indexData.src;
+
+// 读取已有的缓存（如果有）
+let existingCache = {
+	version: "1.0",
+	code: new Date().toISOString(),
+	comments: [],
+};
+try {
+	if (fs.existsSync(CACHE_PATH)) {
+		existingCache = JSON.parse(fs.readFileSync(CACHE_PATH, "utf-8"));
+		if (!existingCache.comments) existingCache.comments = [];
+	}
+} catch (e) {
+	console.warn("无法读取现有缓存，将创建新缓存");
 }
 
-/**
- * 重置快速日期 UI（清除高亮状态）
- * @param {Object} state - 全局状态对象
- */
-/* @skill-anchor: resetQuickDateUI */
-export function resetQuickDateUI(state) {
-	clearQuickHighlights(state);
+// 构建已有缓存的 path -> entry 映射
+const existingMap = {};
+for (const entry of existingCache.comments) {
+	existingMap[entry.path] = entry;
 }
 
-/**
- * 从缓存状态恢复某个快速按钮的高亮样式
- * @param {Object} state - 全局状态对象（需包含 quickBtns 数组）
- * @param {string} label - 要恢复高亮的按钮文本（如 "今天"、"本周"）
+/*
+ * 从 JS 文件内容中提取 @skill-* 和 @skill-anchor 注释
+ * 返回 commentGroups: [{line, comment}, ...]
+ * 支持
+ * 一个多行块注释内若含多个 `@skill-` 标签，会被拆分为多个独立条目
  */
-/* @skill-anchor: restoreQuickButton */
-export function restoreQuickButton(state, label) {
-	if (!label) return;
-	state.quickBtns.forEach((b) => {
-		b.className =
-			b.textContent === label
-				? "quick-btn quick-btn-active"
-				: "quick-btn";
-	});
-}
+function extractComments(content) {
+	const lines = content.split("\n");
+	const result = [];
+	let inBlockComment = false;
+	let blockCommentLines = [];
+	let blockStartLine = -1;
 
-/**
- * 构建快速日期筛选面板
- * @param {HTMLElement} container - 父容器
- * @param {Object} dv - Dataview 实例
- * @param {Object} state - 全局状态对象（需包含 quickBtns, dateState, dateFilterState, filterCache, activeQuickBtn 等）
- * @param {Object} [callbacks] - 可选的回调函数集合
- * @param {Function} [callbacks.onQuery] - 执行查询回调
- * @returns {void} 直接修改 container 内容
- */
-/* @skill-anchor: buildQuickDatePanel */
-export function buildQuickDatePanel(container, dv, state, callbacks = {}) {
-	container.style.cssText =
-		"display:flex; align-items:center; flex-wrap:wrap; gap:8px;";
+	/**
+	 * 判断是否是真实的行注释（排除 URL、正则中的 //）
+	 */
+	function isLineComment(line, idx) {
+		if (idx === 0) return true;
+		const ch = line[idx - 1];
+		return " \t;,()[]{} +-*%&|!~=<>?:.".includes(ch);
+	}
 
-	const quickDefs = [
-		{ label: "今天", range: () => DateUtils.getDayRange(new Date()) },
-		{
-			label: "昨天",
-			range: () => {
-				const d = new Date();
-				d.setDate(d.getDate() - 1);
-				return DateUtils.getDayRange(d);
-			},
-		},
-		{
-			label: "明天",
-			range: () => {
-				const d = new Date();
-				d.setDate(d.getDate() + 1);
-				return DateUtils.getDayRange(d);
-			},
-		},
-		{ label: "本周", range: () => DateUtils.getWeekRange(new Date()) },
-		{ label: "本月", range: () => DateUtils.getMonthRange(new Date()) },
-		{ label: "所有任务", range: null },
-	];
-	state.quickBtns = [];
+	/**
+	 * 将收集到的多行块注释按 @skill-* / @skill-anchor 拆分
+	 */
+	function processBlockComment(blockLines, startLine) {
+		const skillRegex = /@skill-(?!anchor\b)|@skill-anchor/;
+		const matchIndices = [];
 
-	quickDefs.forEach((def) => {
-		const btn = dv.el("button", def.label, { cls: "quick-btn" });
-		btn.onclick = () => {
-			clearQuickHighlights(state);
-			btn.classList.add("quick-btn-active");
-			state.activeQuickBtn = def.label;
-			state.dateState.selections = {
-				years: {},
-				quarters: {},
-				months: {},
-				weeks: {},
-				weekdays: {},
-			};
-			if (def.label === "所有任务") {
-				state.dateFilterState.isAll = true;
-				state.dateFilterState.start = state.dateFilterState.end = null;
-			} else {
-				state.dateFilterState.isAll = false;
-				const r = def.range();
-				state.dateFilterState.start = r.start;
-				state.dateFilterState.end = r.end;
+		// 找出所有包含 @skill- 标签的行索引（相对于块起始）
+		for (let i = 0; i < blockLines.length; i++) {
+			if (skillRegex.test(blockLines[i])) {
+				matchIndices.push(i);
 			}
-			state.filterCache.fingerprint = "";
-		};
-		container.appendChild(btn);
-		state.quickBtns.push(btn);
-
-		if (def.label === "本周") {
-			const prevBtn = dv.el("button", "上周", { cls: "quick-btn" });
-			prevBtn.onclick = () => {
-				clearQuickHighlights(state);
-				state.activeQuickBtn = "上周";
-				const now = new Date();
-				now.setDate(now.getDate() - 7);
-				const r = DateUtils.getWeekRange(now);
-				state.dateFilterState.isAll = false;
-				state.dateFilterState.start = r.start;
-				state.dateFilterState.end = r.end;
-				state.filterCache.fingerprint = "";
-				prevBtn.classList.add("quick-btn-active");
-			};
-			container.appendChild(prevBtn);
-			state.quickBtns.push(prevBtn);
-			const nextBtn = dv.el("button", "下周", { cls: "quick-btn" });
-			nextBtn.onclick = () => {
-				clearQuickHighlights(state);
-				state.activeQuickBtn = "下周";
-				const now = new Date();
-				now.setDate(now.getDate() + 7);
-				const r = DateUtils.getWeekRange(now);
-				state.dateFilterState.isAll = false;
-				state.dateFilterState.start = r.start;
-				state.dateFilterState.end = r.end;
-				state.filterCache.fingerprint = "";
-				nextBtn.classList.add("quick-btn-active");
-			};
-			container.appendChild(nextBtn);
-			state.quickBtns.push(nextBtn);
 		}
 
-		if (def.label === "本月") {
-			const prevBtn = dv.el("button", "上月", { cls: "quick-btn" });
-			prevBtn.onclick = () => {
-				clearQuickHighlights(state);
-				state.activeQuickBtn = "上月";
-				const now = new Date();
-				now.setMonth(now.getMonth() - 1);
-				const r = DateUtils.getMonthRange(now);
-				state.dateFilterState.isAll = false;
-				state.dateFilterState.start = r.start;
-				state.dateFilterState.end = r.end;
-				state.filterCache.fingerprint = "";
-				prevBtn.classList.add("quick-btn-active");
-			};
-			container.appendChild(prevBtn);
-			state.quickBtns.push(prevBtn);
-			const nextBtn = dv.el("button", "下月", { cls: "quick-btn" });
-			nextBtn.onclick = () => {
-				clearQuickHighlights(state);
-				state.activeQuickBtn = "下月";
-				const now = new Date();
-				now.setMonth(now.getMonth() + 1);
-				const r = DateUtils.getMonthRange(now);
-				state.dateFilterState.isAll = false;
-				state.dateFilterState.start = r.start;
-				state.dateFilterState.end = r.end;
-				state.filterCache.fingerprint = "";
-				nextBtn.classList.add("quick-btn-active");
-			};
-			container.appendChild(nextBtn);
-			state.quickBtns.push(nextBtn);
+		if (matchIndices.length === 0) return;
+
+		// 为每个标签生成一个条目
+		for (let m = 0; m < matchIndices.length; m++) {
+			const startIdx = matchIndices[m];
+			// 结束索引：下一个标签的前一行，或块的最后一行
+			const endIdx =
+				m + 1 < matchIndices.length
+					? matchIndices[m + 1] - 1
+					: blockLines.length - 1;
+
+			const segmentLines = blockLines.slice(startIdx, endIdx + 1);
+			result.push({
+				line: startLine + startIdx, // 1-based 行号
+				comment: segmentLines.join("\n"), // 保留原始格式
+			});
 		}
-	});
+	}
 
-	// 执行查询按钮（不高亮）
-	const queryBtn = dv.el("button", "🔍 执行查询", {
-		cls: "quick-btn",
-		style: "margin-left:auto;",
-	});
-	queryBtn.onclick = () => {
-		if (callbacks.onQuery) callbacks.onQuery();
-	};
-	container.appendChild(queryBtn);
+	for (let i = 0; i < lines.length; i++) {
+		const lineNum = i + 1;
+		const line = lines[i];
 
-	if (state.activeQuickBtn) restoreQuickButton(state, state.activeQuickBtn);
+		if (inBlockComment) {
+			blockCommentLines.push(line);
+			if (line.includes("*/")) {
+				inBlockComment = false;
+				processBlockComment(blockCommentLines, blockStartLine);
+				blockCommentLines = [];
+				blockStartLine = -1;
+			}
+			continue;
+		}
+
+		// 行注释 //
+		const singleIdx = line.indexOf("//");
+		if (singleIdx !== -1 && isLineComment(line, singleIdx)) {
+			const commentPart = line.slice(singleIdx);
+			if (/@skill-(?!anchor\b)|@skill-anchor/.test(commentPart)) {
+				result.push({ line: lineNum, comment: commentPart });
+			}
+			continue;
+		}
+
+		// 块注释开始 /*
+		if (line.includes("/*")) {
+			inBlockComment = true;
+			blockCommentLines = [line];
+			blockStartLine = lineNum;
+
+			if (line.includes("*/")) {
+				inBlockComment = false;
+				processBlockComment(blockCommentLines, blockStartLine);
+				blockCommentLines = [];
+				blockStartLine = -1;
+			}
+		}
+	}
+
+	return result;
 }
+
+/**
+ * 获取文件的简易哈希（用于检测变更）
+ */
+function getFileHash(filePath) {
+	try {
+		const content = fs.readFileSync(filePath, "utf-8");
+		let hash = 0;
+		for (let i = 0; i < content.length; i++) {
+			const chr = content.charCodeAt(i);
+			hash = (hash << 5) - hash + chr;
+			hash |= 0;
+		}
+		return Math.abs(hash).toString(16);
+	} catch (e) {
+		return "unknown";
+	}
+}
+
+// 处理每个 src 条目
+const updatedComments = [];
+let processedCount = 0;
+let errorCount = 0;
+
+for (const entry of srcEntries) {
+	const filePath = path.join(ROOT, entry.path);
+
+	if (!fs.existsSync(filePath)) {
+		console.warn(`文件不存在: ${entry.path}`);
+		errorCount++;
+		continue;
+	}
+
+	try {
+		const content = fs.readFileSync(filePath, "utf-8");
+		const commentGroups = extractComments(content);
+		const hash = getFileHash(filePath);
+		const stat = fs.statSync(filePath);
+
+		// 获取已有缓存的 lastModified（若无则使用当前文件修改时间）
+		const existing = existingMap[entry.path];
+		const lastModified = existing
+			? existing.lastModified
+			: stat.mtime.toISOString();
+
+		updatedComments.push({
+			path: entry.path,
+			category: entry.category || "",
+			name: entry.name || "",
+			description: entry.description || "",
+			srcVersion: entry.srcVersion || "1.0",
+			hash: hash,
+			lastModified: lastModified,
+			commentGroups: commentGroups.map((cg) => ({
+				line: cg.line,
+				comment: cg.comment,
+			})),
+		});
+
+		processedCount++;
+		if (commentGroups.length > 0) {
+			console.log(`  [${commentGroups.length} 个注释] ${entry.path}`);
+		}
+	} catch (e) {
+		console.error(`读取失败: ${entry.path} - ${e.message}`);
+		errorCount++;
+	}
+}
+
+// 构建结果
+const result = {
+	version: "1.0",
+	code: new Date().toISOString(),
+	comments: updatedComments,
+};
+
+// 写入缓存
+fs.writeFileSync(CACHE_PATH, JSON.stringify(result, null, "\t"), "utf-8");
+
+console.log(`\n===== 注释锚点初始化完成 =====`);
+console.log(`  处理文件: ${processedCount} 个`);
+console.log(`  失败文件: ${errorCount} 个`);
+console.log(
+	`  总计注释: ${updatedComments.reduce((sum, e) => sum + e.commentGroups.length, 0)} 条`,
+);
+console.log(`  输出路径: ${CACHE_PATH}`);

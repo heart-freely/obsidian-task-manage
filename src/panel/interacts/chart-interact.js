@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/interacts/chart-interact.js
  * 描述：图表区交互模块，提供 Alt+滚轮缩放、分隔条拖拽、ResizeObserver 自适应
@@ -61,7 +61,7 @@
    leftDiv - 左侧面板，宽度通过拖拽动态变化
    chartDiv - 图表容器，ResizeObserver 监听尺寸变化
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { throttleByFrame } from "../../tasks/process/common-process";
 
@@ -76,7 +76,7 @@ import { throttleByFrame } from "../../tasks/process/common-process";
  * @param {Function} saveFilterState - 持久化保存回调
  * @returns {Function} cleanup - 清理函数，卸载所有事件监听和 ResizeObserver
  */
-// @skill-anchor initChartInteractions - 图表交互初始化，入口函数
+/* @skill-anchor: initChartInteractions - 图表交互初始化，入口函数 */
 export function initChartInteractions(
 	chartDiv,
 	resizer,
@@ -87,7 +87,7 @@ export function initChartInteractions(
 ) {
 	// ---------- 缩放更新 ----------
 	/** 更新所有 .chart-body 元素的 CSS transform scale */
-	// @skill-anchor updateChartScale - 更新图表缩放
+	/* @skill-anchor: updateChartScale - 更新图表缩放 */
 	function updateChartScale() {
 		document.querySelectorAll(".chart-body").forEach((b) => {
 			b.style.transform = "scale(" + state.chartScale + ")";
@@ -100,7 +100,7 @@ export function initChartInteractions(
 	 * 防抖处理所有图表实例的 resize 调用
 	 * 避免频繁触发 resize 导致性能问题
 	 */
-	// @skill-anchor debouncedResize - 防抖 resize
+	/* @skill-anchor: debouncedResize - 防抖 resize */
 	function debouncedResize() {
 		if (chartResizeTimer) clearTimeout(chartResizeTimer);
 		chartResizeTimer = setTimeout(() => {
@@ -117,7 +117,7 @@ export function initChartInteractions(
 	 * Alt + 滚轮缩放图表
 	 * 使用 requestAnimationFrame 节流，避免高频触发
 	 */
-	// @skill-anchor onWheel - Alt+滚轮缩放处理
+	/* @skill-anchor: onWheel - Alt+滚轮缩放处理 */
 	const onWheel = (e) => {
 		if (!e.altKey) return;
 		e.preventDefault(); // 阻止页面滚动
@@ -151,7 +151,7 @@ export function initChartInteractions(
 	// ---------- 分隔条拖拽 ----------
 	let startX, startWidth;
 	/** 分隔条 mousedown：记录起始位置并绑定全局 move/up 事件 */
-	// @skill-anchor onMouseDown - 分隔条拖拽开始
+	/* @skill-anchor: onMouseDown - 分隔条拖拽开始 */
 	const onMouseDown = (e) => {
 		startX = e.clientX;
 		startWidth = leftDiv.offsetWidth;
@@ -161,7 +161,7 @@ export function initChartInteractions(
 		window.addEventListener("mouseup", onMouseUp, { once: true });
 	};
 	/** 全局 mousemove：计算宽度变化并更新左面板宽度 */
-	// @skill-anchor onMouseMove - 分隔条拖拽移动
+	/* @skill-anchor: onMouseMove - 分隔条拖拽移动 */
 	const onMouseMove = (e) => {
 		const dx = e.clientX - startX;
 		const newW = Math.max(200, Math.min(600, startWidth + dx));
@@ -170,7 +170,7 @@ export function initChartInteractions(
 		debouncedResize();
 	};
 	/** 全局 mouseup：重置样式并持久化 */
-	// @skill-anchor onMouseUp - 分隔条拖拽结束
+	/* @skill-anchor: onMouseUp - 分隔条拖拽结束 */
 	const onMouseUp = (e) => {
 		document.body.style.cursor = "";
 		document.body.style.userSelect = "";
@@ -191,7 +191,7 @@ export function initChartInteractions(
 	 * 清理函数：移除所有事件监听和 ResizeObserver
 	 * @returns {void}
 	 */
-	// @skill-anchor cleanup - 清理函数（返回值）
+	/* @skill-anchor: cleanup - 清理函数（返回值） */
 	return function cleanup() {
 		chartDiv.removeEventListener("wheel", onWheel);
 		resizer.removeEventListener("mousedown", onMouseDown);

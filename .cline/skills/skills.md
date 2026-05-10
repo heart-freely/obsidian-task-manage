@@ -53,7 +53,7 @@ root/
 │   │       ├── timeline-task-view.js  # 时间线任务视图
 │   │       ├── today-task-view.js     # 今天任务视图
 │   │       ├── tree-task-view.js      # 树状视图
-│   │       └── view-list-tasks.js     # 视图任务列表
+│   │       └── view-list-tasks.js     # 通用视图任务列表
 │   ├── storages/
 │   │   └── persist-storages.js        # 持久化管理与状态创建
 │   ├── tasks/
@@ -84,46 +84,108 @@ root/
 
 ```text
 .cline/skills/
-├── archive/                           # 归档旧技能文件
-├── cache/                             # 缓存文件
-│   ├── parsed_cache.json              # 源码 `@skill-*` 注释解析缓存
-│   └── anchor_cache.json              # `@skill-anchor` 位置缓存
-├── code/                              # 源码技能——与具体功能模块对应
+├── README.md                        # 技能文件索引
+├── skills-index.json                # 所有技能元数据索引
+├── skills.md                        # 技能索引总览（本项目）
+├── archive/                         # 归档旧技能文件
+├── cache/                           # 缓存文件
+│   ├── code_cache.json              # 源码中 @skill-* 注释的解析结果缓存
+│   ├── parsed_cache.json            # 源码 `@skill-*` 注释解析缓存
+│   └── anchor_cache.json            # `@skill-anchor` 位置缓存
+├── code/                            # 源码技能——与具体功能模块对应
+│   ├── code.md                      # 插件整体架构、数据流、开发规范
+│   ├── main.md                      # 插件主入口技能
+│   ├── __tests__/
+│   │   └── test.md                  # 测试要点参考（只读）
+│   ├── configs/
+│   │   └── plugin-configs.md        # 插件全局配置
 │   ├── echarts/
-│   │   └── echarts.md                 # ECharts 封装技能
+│   │   └── echarts.md               # ECharts 封装技能
 │   ├── panel/
+│   │   ├── panel.md                 # 导航中心面板技能
+│   │   ├── bars/                    # 按钮栏技能
+│   │   │   ├── control-botton-bar.md
+│   │   │   ├── date-botton-bar.md
+│   │   │   ├── hide-botton-bar.md
+│   │   │   ├── mark-botton-bar.md
+│   │   │   ├── quick-botton-bar.md
+│   │   │   ├── side-botton-bar.md
+│   │   │   └── sort-botton-bar.md
+│   │   ├── components/
+│   │   │   └── tree-view-components.md
 │   │   ├── interacts/
-│   │   │   ├── chart-interact.md      # 图表交互技能
-│   │   │   └── tooltip-interact.md    # Tooltip 交互技能
-│   │   ├── bars/                      # 按钮栏技能
-│   │   ├── components/                # 组件技能
-│   │   └── views/                     # 视图技能
-│   └── tasks/
-│       ├── read/
-│       ├── write/
-│       └── process/
-│           ├── inbox-task-process.md  # 收件箱任务处理技能
-│           ├── kanban-task-process.md # 看板任务处理技能
-│           ├── matrix-task-process.md # 艾森豪威尔矩阵处理技能
-│           ├── organize-task-process.md# 任务整理技能
-│           ├── recurring-task-process.md# 循环任务处理技能
-│           ├── task-query-process.md  # 任务查询技能
-│           └── tree-task-process.md   # 树形任务处理技能
-├── snapshots/                         # 对话快照
-├── sync/                              # 同步/运维技能
-│   ├── update-code.md                 # 反向同步（Skill→源码）
-│   ├── update-comment.md              # 注释管理
-│   ├── update-index.md                # 索引更新
-│   ├── update-skill.md                # 正向同步（源码→Skill）
-│   ├── update-skill-self.md           # 自举验证
-│   ├── update-skill-version.md        # 版本迁移
-│   ├── update-skills.md               # 更新 skills.md（本项目）
-│   ├── update-smart-check.md          # 一致性巡检
-│   ├── update-smart-sync.md           # 智能同步（统一入口）
-│   └── update-snapshot.md             # 快照管理
-├── skills-index.json                  # 所有技能元数据索引
-├── skills.md                          # 技能索引总览（本项目）
-├── README.md                          # 技能文件索引（根 README）
+│   │   │   ├── chart-interact.md    # 图表交互技能
+│   │   │   └── tooltip-interact.md  # Tooltip 交互技能
+│   │   └── views/                   # 视图技能
+│   │       ├── base-card-view.md    # 通用卡片工厂开发
+│   │       ├── base-list-view.md    # 通用列表工厂开发
+│   │       ├── base-table-view.md   # 通用表格工厂开发
+│   │       ├── base-task-view.md    # 任务视图基类
+│   │       ├── calendar-task-view.md# 日历视图开发
+│   │       ├── data-tasks-view.md   # 统计图表视图开发
+│   │       ├── depends-task-view.md # 依赖视图开发
+│   │       ├── edit-tasks-view.md   # 单任务编辑视图开发
+│   │       ├── future-task-all-view.md
+│   │       ├── future-task-n-view.md# 未来N天视图开发
+│   │       ├── gantt-task-view.md   # 甘特图视图开发
+│   │       ├── important-task-view.md# 重要任务视图开发
+│   │       ├── inbox-task-view.md   # 收件箱视图开发
+│   │       ├── kanban-task-view.md  # 看板视图开发
+│   │       ├── matrix-task-view.md  # 四象限矩阵视图开发
+│   │       ├── organize-task-view.md# 任务整理箱视图开发
+│   │       ├── overdue-task-view.md # 逾期任务视图开发
+│   │       ├── pomodoro-task-view.md# 番茄钟视图开发
+│   │       ├── recurring-task-view.md# 循环任务视图开发
+│   │       ├── table-task-view.md
+│   │       ├── tag-task-view.md     # 标签聚合视图开发
+│   │       ├── timeline-task-view.md# 时间轴视图开发
+│   │       ├── today-task-view.md   # 今天任务视图开发
+│   │       ├── tree-task-view.md    # 任务树视图开发
+│   │       ├── view-list-tasks.md   # 通用任务列表渲染组件开发
+│   │       └── views.md             # 视图注册中心
+│   ├── references/                  # 参考技能（只读）
+│   │   ├── develop-standard.md      # 开发规范参考
+│   │   ├── obsidian-plugin-basics.md# Obsidian 插件开发基础参考
+│   │   ├── project-software-design.md
+│   │   └── tasks-plugin-design.md   # Tasks 插件设计参考
+│   ├── storage/
+│   │   └── persist-storages.md
+│   ├── tasks/
+│   │   ├── tasks.md                 # 任务数据模型
+│   │   ├── process/                 # 任务处理模块技能
+│   │   │   ├── calcul-chart-process.md  # 图表数据计算
+│   │   │   ├── common-process.md        # 通用任务处理
+│   │   │   ├── filter-task-process.md   # 任务筛选处理
+│   │   │   ├── inbox-task-process.md    # 收件箱任务处理
+│   │   │   ├── kanban-task-process.md   # 看板任务处理
+│   │   │   ├── matrix-task-process.md   # 矩阵任务处理
+│   │   │   ├── organize-task-process.md # 组织任务处理
+│   │   │   ├── recurring-task-process.md# 循环任务处理
+│   │   │   ├── task-query-process.md    # 任务查询处理
+│   │   │   └── tree-task-process.md     # 树状任务处理
+│   │   ├── read/
+│   │   │   └── read-tasks.md
+│   │   └── write/
+│   │       └── write.tasks.md       # 任务写入与快照
+│   └── utils/
+│       └── logger.md                # 日志工具
+├── snapshots/                       # 对话快照
+│   ├── index.json                   # 快照索引
+│   ├── 2026-05-09-0922.md
+│   └── 2026-05-09-0933.md
+└── sync/                            # 同步/运维技能
+    ├── sync_config.json             # 同步配置
+    ├── update-code.md               # 反向同步（Skill→源码）
+    ├── update-comment.md            # 注释管理
+    ├── update-index.md              # 索引更新
+    ├── update-skill-depend.md       # 依赖分析
+    ├── update-skill-self.md         # 自举验证
+    ├── update-skill-version.md      # 版本迁移
+    ├── update-skill.md              # 正向同步（源码→Skill）
+    ├── update-skills.md             # 更新 skills.md（本项目）
+    ├── update-smart-check.md        # 一致性巡检
+    ├── update-smart-sync.md         # 智能同步（统一入口）
+    └── update-snapshot.md           # 快照管理
 ```
 
 <!-- SYNC_FILES_END -->
@@ -134,9 +196,9 @@ root/
 
 ## update-code.md
 
-执行触发词操作：更新代码 或 反向同步（增量反向同步）（.cline/skills/sync/update-code.md）
-执行触发词操作：全局同步代码（全量反向同步 + 索引刷新）（.cline/skills/sync/update-code.md）
-执行触发词操作：检查功能实现 或 功能校验（功能校验）（.cline/skills/sync/update-code.md）
+执行触发词操作：初始化注释锚点（增量反向同步）（.cline/skills/sync/update-code.md）
+执行触发词操作：更新代码 或 反向同步（全量反向同步 + 索引刷新）（.cline/skills/sync/update-code.md）
+执行触发词操作：全局同步代码（记录反向同步注释行号）（.cline/skills/sync/update-code.md）
 
 ## update-comment.md
 
@@ -152,11 +214,9 @@ root/
 
 执行触发词操作：更新索引 或 刷新索引 或 重建索引（生成/更新索引）（.cline/skills/sync/update-index.md）
 
-## update-skill.md
+## update-skill-depend.md
 
-执行触发词操作：更新技能 或 同步技能（增量正向同步）（.cline/skills/sync/update-skill.md）
-执行触发词操作：全局同步技能（全量正向同步 + 结构对齐 + 索引刷新）（.cline/skills/sync/update-skill.md）
-执行触发词操作：检查功能实现 或 功能校验（功能校验）（.cline/skills/sync/update-skill.md）
+执行触发词操作：检查依赖（依赖分析）（.cline/skills/sync/update-skill-depend.md）
 
 ## update-skill-self.md
 
@@ -166,6 +226,11 @@ root/
 
 执行触发词操作：升级技能格式 或 迁移版本 或 检查版本（版本迁移）（.cline/skills/sync/update-skill-version.md）
 
+## update-skill.md
+
+执行触发词操作：更新技能 或 同步技能（增量正向同步）（.cline/skills/sync/update-skill.md）
+执行触发词操作：全局同步技能（全量正向同步 + 结构对齐 + 索引刷新）（.cline/skills/sync/update-skill.md）
+
 ## update-skills.md
 
 执行触发词操作：更新skills 或 刷新skills 或 同步skills 或 生成skills（更新项目文件索引和skills文件索引）（.cline/skills/sync/update-skills.md）
@@ -173,7 +238,7 @@ root/
 ## update-smart-check.md
 
 执行触发词操作：检查一致性 或 巡检（一致性巡检）（.cline/skills/sync/update-smart-check.md）
-执行触发词操作：检查依赖（依赖分析）（.cline/skills/sync/update-smart-check.md）
+执行触发词操作：检查功能实现 或 功能校验（功能校验）（.cline/skills/sync/update-smart-check.md）
 
 ## update-smart-sync.md
 
@@ -193,14 +258,12 @@ root/
 
 # 配置与缓存文件表
 
-| 文件                    | 用途                                                         | 维护方式         |
-| ----------------------- | ------------------------------------------------------------ | ---------------- |
-| `skills-index.json`     | 所有技能的元数据（路径、名称、触发词、版本、修改时间）       | AI 自动生成/更新 |
-| `sync/sync_config.json` | 同步行为的配置（仲裁规则、自动快照、索引更新等）             | 人工手动编辑     |
-| `snapshots/index.json`  | 快照文件的索引（文件名、时间戳、主题、决策）                 | AI 自动维护      |
-| `cache/sync_state.json` | 上次同步状态的记录（commit hash、文件 mtime）                | AI 自动读写      |
+| 文件                    | 用途                                                                         | 维护方式         |
+| ----------------------- | ---------------------------------------------------------------------------- | ---------------- |
+| `skills-index.json`     | 所有技能的元数据（路径、名称、触发词、版本、修改时间）                       | AI 自动生成/更新 |
+| `sync/sync_config.json` | 同步行为的配置（仲裁规则、自动快照、索引更新等）                             | 人工手动编辑     |
+| `snapshots/index.json`  | 快照文件的索引（文件名、时间戳、主题、决策）                                 | AI 自动维护      |
+| `cache/sync_state.json` | 上次同步状态的记录（commit hash、文件 mtime）                                | AI 自动读写      |
 | `cache/code_cache.json` | 源码中锚点（`@skill-anchor`）的位置缓存,源码中 `@skill-*` 注释的解析结果缓存 | AI 自动更新      |
-|                         |                                                              |                  |
 
 <!-- SYNC_CONFIGS_END -->
-

@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/kanban-task-view.js
  * 描述：看板任务视图，按状态（未开始/计划中/进行中）三列看板布局展示任务
@@ -39,7 +39,7 @@
   processKanbanTasks (kanban-task-process)
   createTaskCard, normalizeTaskCardData (base-task-view)
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 import {
 	fetchKanbanTasks,
 	processKanbanTasks,

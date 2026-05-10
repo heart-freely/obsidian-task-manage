@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 // src/tasks/process/recurring-task-process.js
 
 /* @skill-sig file src/tasks/process/recurring-task-process.js - 循环任务处理模块，从 Obsidian Tasks 插件查询并分组(每天/每周/每月)循环任务 */
@@ -29,7 +29,7 @@
    关联视图 sync: src/panel/views/recurring-task-view.js
    关联 Skill sync: .cline/skills/code/views/recurring-task-view.md
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 import {
 	STATUS_ICONS,
 	STATUS_NAMES,

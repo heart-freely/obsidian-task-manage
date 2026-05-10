@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/base-task-view.js
  * 描述：基础任务视图类 BaseTaskView（继承 ItemView），以及通用任务卡片创建、数据标准化工具函数
@@ -51,7 +51,7 @@
   PRIORITY_ICONS, PRIORITY_LABELS, STATUS_ICONS, STATUS_NAMES (plugin-configs)
   RX (read-tasks)
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 import { ItemView } from "obsidian";
 import {
 	PRIORITY_ICONS,

@@ -17,7 +17,7 @@ descriptions:
 
 生成`.cline/skills/skills-index.json`。
 
-- 遍历 `src/`目录提取每个 `.js` 文件的路径信息，写入`.cline/skills/skills-index.json`。
+- 遍历 `src/`目录提取每个 `.js` 文件的简略信息，写入`.cline/skills/skills-index.json`。
 - 遍历 `.cline/skills/`目录提取每个 `.md` 文件的 YAML 头部信息（包括 `name`、`description`、`skill-version`、`triggers`、`descriptions`）及文件修改时间，写入`.cline/skills/skills-index.json`。
 
 ## 索引文件结构
@@ -38,18 +38,32 @@ descriptions:
 			"lastModified": "2026-05-08T09:00:00Z",
             "imports": "obsidian, ../../configs/plugin-configs,../../tasks/read/read-tasks",
             "exports": "class BaseTaskView extends ItemView,function createTaskCard(task, app),export function normalizeTaskCardData(raw),export function adaptTasksApiTask(task)",
-			"dependGroups": [
-				{
-					"depends": "xxx",
-					"description": "xxx"
-				},
-				{
-					"depends": "xxx",
-					"description": "xxx"
-				}
-			]
 		}
-	]
+	],
+    "skills": [
+       {
+      "path": ".cline/skills/sync/update-code.md",
+      "category": "sync",
+      "name": "更新代码",
+      "description": "反向同步（Skill→源码）同步前可选提醒功能校验；全量反向同步后自动更新索引。",
+      "skillVersion": "1.0",
+      "lastModified": "2026-05-09T06:34:44Z",
+      "triggerGroups": [
+        {
+          "triggers": "初始化注释锚点",
+          "description": "增量反向同步"
+        },
+        {
+          "triggers": "更新代码|反向同步",
+          "description": "全量反向同步 + 索引刷新"
+        },
+        {
+          "triggers": "全局同步代码",
+          "description": "记录反向同步注释行号"
+        }
+      ]
+    },
+   ]
 }
 ```
 
@@ -95,3 +109,4 @@ descriptions:
 
 - 只读分析，不修改 Skill 文件。
 - 供 `update-readme.md`、`update-skill-self.md` 等技能使用。
+- 可用运行脚本生成`src/scripts/build-skill-index.js`，维护更新。

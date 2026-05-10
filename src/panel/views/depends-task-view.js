@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/depends-task-view.js
  * 描述：依赖任务视图 - 展示所有设置了 forbid（引用/依赖）标记的任务
@@ -43,7 +43,7 @@
   getAllTasks (read-tasks)
   BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 import { CONFIG } from "../../configs/plugin-configs";
 import * as readTasks from "../../tasks/read/read-tasks";
 import {

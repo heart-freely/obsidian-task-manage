@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/view-list-tasks.js
  * 描述：通用列表视图，用于任何基于 Tasks 插件的列表展示，支持自定义获取函数和标题
@@ -54,7 +54,7 @@
    cleanup - 清理函数（清空容器）
    updateSort - 排序占位函数（空操作）
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 export async function startTaskListView(
 	app,

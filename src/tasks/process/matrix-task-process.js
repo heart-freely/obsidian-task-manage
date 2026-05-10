@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/tasks/process/matrix-task-process.js - 艾森豪威尔矩阵任务处理模块，提供四象限任务获取、分组与排序能力，优先级映射采用局部常量不含全局配置，使用 Map 缓存日期格式化结果 */
 /* @skill-func
    fetchRawTasks(app) : Promise.Array - 获取原始任务列表(不限状态)，查询条件为路径+文件名正则
@@ -25,7 +25,7 @@
    日期格式化使用 Map 缓存避免重复 moment 转换
    sync: .cline/skills/code/views/views.md → matrix-task-view 数据源
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import {
 	PRIORITY_ICONS,

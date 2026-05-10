@@ -1,5 +1,5 @@
 // src/tasks/process/filter-task-process.js
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/tasks/process/filter-task-process.js - 多条件任务过滤核心，基于日期范围/状态/标记/路径/重复/完成/取消等维度过滤，被所有视图复用 */
 /* @skill-func
    filterTasks(tasks: Array, options: Object) : Array - 多条件过滤函数，过滤顺序：日期范围 → 文件路径 → 状态 → 重复/完成/取消 → 包含标记 → 排除标记
@@ -30,7 +30,7 @@
    excludeMarks 为 "或" 条件（任一满足即排除）
    sync: .cline/skills/code/views/views.md → 所有视图共用过滤逻辑
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 

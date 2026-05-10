@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/bars/sort-botton-bar.js
  * 描述：排序控制面板，提供按多种字段排序及升降序切换功能
@@ -39,9 +39,9 @@
    点击不同字段 → 设为新字段，sortOrder=desc
    state.sortField 未设置时 → 默认 priority/desc
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
-// @skill-anchor buildSortPanel - 排序控制面板主入口，创建排序按钮行并绑定交互
+/* @skill-anchor: buildSortPanel - 排序控制面板主入口，创建排序按钮行并绑定交互 */
 export function buildSortPanel(container, dv, state) {
 	const sortRow = dv.el("div", "");
 	sortRow.style.cssText =
@@ -107,5 +107,5 @@ export function buildSortPanel(container, dv, state) {
 	return sortRow;
 }
 
-// @skill-anchor buildSortRow - buildSortPanel 的别名导出（兼容旧引用）
+/* @skill-anchor: buildSortRow - buildSortPanel 的别名导出（兼容旧引用） */
 export { buildSortPanel as buildSortRow };

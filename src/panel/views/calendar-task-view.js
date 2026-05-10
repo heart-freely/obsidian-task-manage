@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/calendar-task-view.js
  * 描述：日历视图，支持日/周/月/季/年五种视图模式，展示任务在时间轴上的分布，支持无任务时间段合并显示
@@ -86,7 +86,7 @@
   app.vault.getAbstractFileByPath
   app.workspace.getLeaf
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";

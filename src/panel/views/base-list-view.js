@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/base-list-view.js
  * 描述：列表基础视图工具函数，提供通用列表渲染函数 startListBaseView，被多个列表类视图复用
@@ -33,7 +33,7 @@
 */
 
 /* @skill-tool mapSymbolToStatus(symbol) - 将 Tasks 插件的状态符号映射为内部状态键 (todo/planned/in-progress/completed/cancelled) */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import {
 	adaptTasksApiTask,

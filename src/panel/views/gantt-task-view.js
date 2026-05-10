@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /**
  * 文件：src/panel/views/gantt-task-view.js
  * 描述：甘特图视图，以甘特图形式展示任务时间线，支持缩放、拖拽、折叠文件夹和任务依赖箭头
@@ -239,7 +239,7 @@
   app.vault.getAbstractFileByPath(path)            // 获取文件对象
   app.workspace.getLeaf(false)                     // 获取编辑器叶子
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";

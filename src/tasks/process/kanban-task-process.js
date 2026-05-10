@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/tasks/process/kanban-task-process.js - 看板任务处理模块，提供看板视图所需的任务获取、分组与列定义，颜色使用半透明配色与矩阵视图风格统一 */
 /* @skill-func
    KANBAN_COLUMNS : Array - 看板三列定义(🔲未开始/❔计划中/⏩进行中)，每列包含 symbol/label/color 属性
@@ -22,7 +22,7 @@
    颜色使用半透明配色(rgba)，与矩阵视图风格统一
    sync: .cline/skills/code/views/views.md → kanban-task-view 数据源
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import {
 	STATUS_SYMBOL_MAP,

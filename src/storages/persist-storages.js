@@ -1,4 +1,4 @@
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 /* @skill-sig file src/storages/persist-storage.js - 持久化管理与状态创建模块，提供初始状态创建、过滤指纹生成、日期范围获取以及 PersistenceManager 类 */
 /* @skill-func
    createInitialState() : Object - 创建插件的初始状态对象（包含所有面板、过滤、排序、图表等功能的默认值）
@@ -33,7 +33,7 @@
   关联模块: src/panel/panel.js(使用 PersistenceManager)、所有 view 模块(使用 state)
   路径说明: 实际文件路径为 src/storages/persist-storage.js(vault 中以 storages 命名)
 */
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 // src/storage/persist-storage.js
 import { CONFIG } from "../configs/plugin-configs";
 

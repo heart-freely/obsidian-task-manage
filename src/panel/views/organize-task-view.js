@@ -11,7 +11,7 @@
  * @see .cline/skills/code/views/organize-task-view.md
  */
 
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig file src/panel/views/organize-task-view.js - 任务整理箱视图，提供四级模式过滤任务、批量编辑标记/日期/优先级/标签、预览修改并批量写入文件 */
 
@@ -94,7 +94,7 @@
 /* @skill-func toggleOp(key, op, val) : void - 切换编辑操作（添加/移除操作到 opsState） */
 /* @skill-func async startOrganizeView(dvParam, appParam, panelContainer, gState) : { cleanup, updateSort } - 启动任务整理箱视图，返回控制器 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import {
 	addSnapshot,

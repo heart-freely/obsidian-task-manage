@@ -10,7 +10,7 @@
  * @see .cline/skills/code/views/timeline-task-view.md
  */
 
-//  <!-- SYNC_COMMENTS_START -->
+/* <!-- SYNC_COMMENTS_START --> */
 
 /* @skill-sig class TimelineTaskView extends BaseTaskView - 时间线任务视图，按日期轴展示任务的时间分布 */
 
@@ -47,7 +47,7 @@
             .task-meta
 */
 
-//  <!-- SYNC_COMMENTS_END -->
+/* <!-- SYNC_COMMENTS_END --> */
 
 import { fetchTasks } from "../../tasks/process/task-query-process";
 import { BaseTaskView } from "./base-task-view";
