@@ -1,63 +1,9 @@
+// src/panel/interacts/tooltip-interact.js
 export class TooltipManager {
-	/**
-	 * 初始化时 div 为 null，首次显示时创建
-	 */
-
-	constructor() {
-		this.div = null;
-	}
-
-	/**
-	 * 确保 tooltip 的 DOM 元素存在
-	 * 如果 div 尚未创建，则创建并追加到 document.body
-	 * @returns {HTMLElement} tooltip 的 div 元素
-	 */
-
-	ensureDiv() {
-		if (!this.div) {
-			this.div = document.createElement("div");
-			this.div.className = "dataview-tooltip";
-			document.body.appendChild(this.div);
-		}
-		return this.div;
-	}
-
-	/**
-	 * 在指定位置显示 tooltip
-	 * @param {string} html - tooltip 的 HTML 内容
-	 * @param {number} x - 鼠标 X 坐标（px）
-	 * @param {number} y - 鼠标 Y 坐标（px）
-	 */
-
-	show(html, x, y) {
-		const div = this.ensureDiv();
-		div.innerHTML = html;
-		div.style.display = "block";
-		div.style.left = x + 15 + "px";
-		div.style.top = y + 15 + "px";
-	}
-
-	/**
-	 * 移动 tooltip 到新位置（仅在 tooltip 当前可见时生效）
-	 * @param {number} x - 鼠标 X 坐标（px）
-	 * @param {number} y - 鼠标 Y 坐标（px）
-	 */
-
-	move(x, y) {
-		if (this.div && this.div.style.display === "block") {
-			this.div.style.left = x + 15 + "px";
-			this.div.style.top = y + 15 + "px";
-		}
-	}
-
-	hide() {
-		if (this.div) this.div.style.display = "none";
-	}
-
-	remove() {
-		if (this.div) {
-			this.div.remove();
-			this.div = null;
-		}
-	}
+    constructor() { this.div = null; }
+    ensureDiv() { if (!this.div) { this.div = document.createElement('div'); this.div.className = 'dataview-tooltip'; document.body.appendChild(this.div); } return this.div; }
+    show(html, x, y) { const div = this.ensureDiv(); div.innerHTML = html; div.style.display = 'block'; div.style.left = (x + 15) + 'px'; div.style.top = (y + 15) + 'px'; }
+    move(x, y) { if (this.div && this.div.style.display === 'block') { this.div.style.left = (x + 15) + 'px'; this.div.style.top = (y + 15) + 'px'; } }
+    hide() { if (this.div) this.div.style.display = 'none'; }
+    remove() { if (this.div) { this.div.remove(); this.div = null; } }
 }

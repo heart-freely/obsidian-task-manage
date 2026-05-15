@@ -37,6 +37,7 @@ package-lock.json
 # 文档（只读参考，无需修改）
 AGENTS.md
 LICENSE
+README.md
 styles.css
 
 # 其他临时文件

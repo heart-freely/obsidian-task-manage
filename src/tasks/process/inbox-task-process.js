@@ -1,85 +1,47 @@
-const {
-	getDailyNotesSettings,
-	getAllTasks,
-	getTasksForDay,
-	getTasksForDateRange,
-	getTasksForToday,
-} = require("../read/read-tasks");
-const { getSettings } = require("../../configs/plugin-configs");
+// src/tasks/process/inbox-task-process.js
+import { TASK_FOLDER_PATH, TASK_FILENAME_REGEX_TASKS } from '../../configs/plugin-configs';
 
-/**
- * 获取今日收件箱任务
- * @param {object} app - Obsidian App 实例
- * @returns {Promise<object[]>}
- */
-async function getInboxTasks(app) {
-	const tasks = await getAllTasks(app);
-	return tasks.filter((t) => !t.isTask && !t.completed);
+export async function fetchInboxTasks(app) {
+    const tasksPlugin = app.plugins.plugins['obsidian-tasks-plugin'];
+    if (!tasksPlugin) throw new Error('Tasks 插件未安装');
+    const query = `not done path includes "${TASK_FOLDER_PATH}" filename regex matches ${TASK_FILENAME_REGEX_TASKS} is not recurring`;
+    const allTasks = await tasksPlugin.getTasks(query);
+    return allTasks.filter(t => t.status.symbol === ' ' || t.status.symbol === '?');
 }
 
-/**
- * 获取未来收件箱任务（按大类分组渲染）
- * @param {object} app - Obsidian App 实例
- * @param {object} [opts] - 控制选项
- * @param {boolean} [opts.includeDone] - 是否包含已完成任务
- * @param {string[]}  [opts.categories] - 要展示的大类列表，默认全部
- * @returns {Promise<string>} 渲染后的 Markdown
- */
-async function getFutureInboxTasks(app, opts = {}) {
-	const { includeDone = false, categories } = opts;
-	const tasks = await getAllTasks(app, { includeDone });
+export function processInboxTasks(allTasks) {
+    const groups = { "未开始": [], "计划中": [] };
 
-	const inboxTasks = tasks.filter((t) => !t.tags?.length && !t.section);
+    allTasks.forEach(t => {
+        const isPlanned = t.status.symbol === '?';
+        const prio = t.priority || 'none';
+        const desc = t.description || '（无描述）';
+        const taskItem = {
+            description: desc,
+            priority: prio,
+            path: t.path,
+            lineNumber: t.lineNumber,
+            scheduled: t.scheduledDate ? window.moment(t.scheduledDate).format('YYYY-MM-DD') : null,
+            start: t.startDate ? window.moment(t.startDate).format('YYYY-MM-DD') : null,
+            due: t.dueDate ? window.moment(t.dueDate).format('YYYY-MM-DD') : null,
+            tags: (t.tags || []).map(tag => tag.replace(/^#/, '')),
+            fileName: t.path.split('/').pop().replace(/\.md$/, '')
+        };
 
-	const grouped = groupByCategory(inboxTasks);
-	const catNames = categories ?? Object.keys(grouped);
+        if (isPlanned) {
+            groups["计划中"].push(taskItem);
+        } else {
+            groups["未开始"].push(taskItem);
+        }
+    });
 
-	const parts = catNames
-		.filter((cat) => grouped[cat]?.length > 0)
-		.map((cat) => _renderCategory(cat, grouped[cat]));
+    for (const groupName in groups) {
+        groups[groupName].sort((a, b) => {
+            const pa = a.priority === 'none' ? 999 : parseInt(a.priority);
+            const pb = b.priority === 'none' ? 999 : parseInt(b.priority);
+            return pa - pb;
+        });
+    }
 
-	return parts.join("\n\n");
+    return { groups, total: allTasks.length };
 }
-
-/**
- * 将任务按“大类”分组
- * @param {object[]} tasks
- * @returns {object<string, object[]>}
- */
-function groupByCategory(tasks) {
-	const map = {};
-	for (const t of tasks) {
-		const cat = resolveCategory(t);
-		if (!map[cat]) map[cat] = [];
-		map[cat].push(t);
-	}
-	return map;
-}
-
-/**
- * 解析一条任务所属的大类
- * @param {object} task
- * @returns {string} 大类名称
- */
-function resolveCategory(task) {
-	return task.category || "未分类";
-}
-
-/**
- * 渲染单个大类的完整 Markdown 区块
- * @param {string} cat - 大类名称
- * @param {object[]} tasks - 该大类下的所有任务
- * @returns {string} Markdown 字符串
- */
-function _renderCategory(cat, tasks) {
-	const lines = [`### ${cat}（${tasks.length}）`];
-	for (const t of tasks) {
-		lines.push(`- [ ] ${t.content ?? t.title ?? ""}`);
-	}
-	return lines.join("\n");
-}
-
-module.exports = {
-	getInboxTasks,
-	getFutureInboxTasks,
-};

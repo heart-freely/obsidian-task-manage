@@ -1,434 +1,162 @@
-import { fetchTasks } from "../../tasks/process/task-query-process";
+// src/panel/views/tree-task-view.js
+import * as readTasks from '../../tasks/read/read-tasks';
+import { CONFIG } from '../../configs/plugin-configs';
+import { BaseTaskView } from './base-task-view';
 
-export async function startTreeView(app, container, leftSort, state = {}) {
-	let tasks = [];
-	let treeData = {};
-	let expanded = new Set();
-	let sortType = leftSort?.type || "status";
-	let sortAsc = leftSort?.order !== "desc";
+const ROW_HEIGHT = 28;
+const BUFFER_COUNT = 5;
 
-	const MAX_DEPTH = 10;
+// ========== 树渲染函数（保持不变） ==========
+export function renderTreePanel(container, flatNodes, context) {
+    const { state, dv, app, collapsedNodes, tooltip, onFilterRootPathChange, onCollapseChange, onRefresh } = context;
+    if (!container) return;
+    container.innerHTML = '';
 
-	/**
-	 * 将任务列表按文件路径构建为树结构
-	 * 树节点结构：{ name, tasks[], children{} }
-	 */
-	function buildTree() {
-		const root = { name: "root", tasks: [], children: {} };
-		tasks.forEach((task) => {
-			if (!task.path) return;
-			const parts = task.path.split("/");
-			let current = root;
-			parts.forEach((part, idx) => {
-				if (!current.children[part]) {
-					current.children[part] = {
-						name: part,
-						tasks: [],
-						children: {},
-					};
-				}
-				current = current.children[part];
+    if (state.filterRootPath) {
+        const ind = document.createElement('div');
+        ind.innerHTML = '📌 已聚焦：' + state.filterRootPath + ' <span style="cursor:pointer;margin-left:8px;">❌ 清除</span>';
+        ind.querySelector('span').onclick = () => onFilterRootPathChange(null);
+        container.appendChild(ind);
+    }
 
-				if (idx === parts.length - 1) {
-					current.tasks.push(task);
-				}
-			});
-		});
-		return root;
-	}
+    if (!flatNodes?.length) {
+        container.appendChild(dv.el('div', '📭 无匹配任务', { cls: 'empty-message' }));
+        return;
+    }
 
-	/**
-	 * 应用排序：按状态/优先级/日期等排序任务数组
-	 * @param {Array<Object>} taskList - 待排序任务列表
-	 * @returns {Array<Object>} 排序后的任务列表
-	 */
-	function sortTasks(taskList) {
-		const copy = [...taskList];
-		const statusOrder = {
-			" ": 1,
-			"?": 2,
-			"/": 3,
-			"-": 4,
-			x: 5,
-			X: 5,
-			"!": 6,
-		};
-		copy.sort((a, b) => {
-			let cmp = 0;
-			switch (sortType) {
-				case "status": {
-					const sa = statusOrder[a.status?.symbol] ?? 99;
-					const sb = statusOrder[b.status?.symbol] ?? 99;
-					cmp = sa - sb;
-					break;
-				}
-				case "priority": {
-					const pa =
-						a.priority === "none" ? 999 : parseInt(a.priority) || 5;
-					const pb =
-						b.priority === "none" ? 999 : parseInt(b.priority) || 5;
-					cmp = pa - pb;
-					break;
-				}
-				case "due": {
-					const da = a.dueDate ? +new Date(a.dueDate) : 0;
-					const db = b.dueDate ? +new Date(b.dueDate) : 0;
-					cmp = da - db;
-					break;
-				}
-				case "created": {
-					const ca = a.createdDate ? +new Date(a.createdDate) : 0;
-					const cb = b.createdDate ? +new Date(b.createdDate) : 0;
-					cmp = ca - cb;
-					break;
-				}
-				default:
-					cmp = (a.description || "").localeCompare(
-						b.description || "",
-					);
-			}
-			return sortAsc ? cmp : -cmp;
-		});
-		return copy;
-	}
+    const totalHeight = flatNodes.length * ROW_HEIGHT;
+    const ul = document.createElement('div');
+    ul.style.cssText = 'position:relative; height:100%; overflow-y:auto;';
+    const inner = document.createElement('div');
+    inner.style.height = totalHeight + 'px'; inner.style.position = 'relative';
+    ul.appendChild(inner);
 
-	/* @auto-dom
-	  .tree-root
-	    .tree-header
-	      button.collapse-all / button.expand-all (全局折叠/展开)
-	      select.sort-select (排序选择器)
-	    .tree-container
-	      .tree-node (递归渲染)
-	        .node-header (可点击的文件夹/文件行)
-	          span.toggle-icon (▶/▼ 切换图标)
-	          span.node-name (名称)
-	          span.task-count (任务数)
-	        .node-children (展开后的子节点列表)
-	          .tree-node (递归)
-	        .node-tasks (任务列表)
-	          .task-item
-	            span.status-icon
-	            span.task-description
-	*/
+    const renderRange = () => {
+        const scrollTop = ul.scrollTop;
+        const containerHeight = ul.clientHeight || 400;
+        const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_COUNT);
+        const endIdx = Math.min(flatNodes.length - 1, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER_COUNT);
+        const children = inner.querySelectorAll('[data-index]');
+        const existingSet = new Set();
+        children.forEach(el => {
+            const idx = parseInt(el.getAttribute('data-index'), 10);
+            if (idx >= startIdx && idx <= endIdx) existingSet.add(idx);
+            else el.remove();
+        });
+        for (let i = startIdx; i <= endIdx; i++) {
+            if (existingSet.has(i)) continue;
+            const node = flatNodes[i];
+            const row = createNodeRow(node, i, collapsedNodes, state, dv, app, onCollapseChange, onRefresh, onFilterRootPathChange, tooltip);
+            row.style.position = 'absolute';
+            row.style.top = (i * ROW_HEIGHT) + 'px';
+            row.setAttribute('data-index', i);
+            inner.appendChild(row);
+        }
+    };
 
-	/* @auto-flow
-	  初始化 → loadData() → fetchTasks() → buildTree() → render() → expandAll()
-	  折叠全部 → collapseAll() → expanded 清空 → render()
-	  展开全部 → expandAll() → expanded 填入所有路径 → render()
-	  节点点击 → toggleNode(path) → expanded toggle → render()
-	  排序切换 → sort-select change → sortType/sortAsc 变更 → render()
-	  任务点击 → 打开文件跳转到对应行
-	*/
+    let rafId = null;
+    ul.addEventListener('scroll', () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(renderRange);
+    }, { passive: true });
+    setTimeout(renderRange, 0);
 
-	/* @auto-condition
-	  若 fetchTasks 返回空 → 显示 "暂无任务"
-	  根节点始终展开，不计入 expanded 跟踪
-	  最大深度 MAX_DEPTH = 10，超出深度的节点不再展开
-	  空节点（无任务也无子节点）自动隐藏
-	*/
+    ul.addEventListener('mouseover', e => {
+        if (state.modalOpen) return;
+        const target = e.target.closest('[data-tooltip-html]');
+        if (target && tooltip) { tooltip.show(target.getAttribute('data-tooltip-html'), e.clientX, e.clientY); }
+    });
+    ul.addEventListener('mousemove', e => { if (state.modalOpen || !tooltip) return; tooltip.move(e.clientX, e.clientY); });
+    ul.addEventListener('mouseleave', () => { if (!state.modalOpen && tooltip) tooltip.hide(); });
+    ul.addEventListener('click', e => {
+        const target = e.target.closest('[data-task-link]');
+        if (!target) return;
+        app.workspace.openLinkText(target.getAttribute('data-task-link'), '', { active: true });
+    });
 
-	/* @auto-api
-	  fetchTasks(app)                 // 获取所有任务
-	  app.vault.getAbstractFileByPath // 获取文件对象
-	  app.workspace.getLeaf           // 获取编辑器叶子节点
-	*/
-
-	/**
-	 * 渲染树节点（递归）
-	 * @param {Object} node - 树节点 { name, tasks[], children{} }
-	 * @param {number} depth - 当前深度
-	 * @param {string} path - 当前节点路径
-	 * @returns {HTMLElement|null} 节点DOM元素，空节点返回 null
-	 */
-	function renderNode(node, depth = 0, path = "") {
-		const hasChildren = Object.keys(node.children).length > 0;
-		const hasTasks = node.tasks.length > 0;
-		const isEmpty = !hasChildren && !hasTasks;
-		if (isEmpty) return null;
-
-		const div = document.createElement("div");
-		div.className = "tree-node";
-		div.style.paddingLeft = `${depth * 16}px`;
-
-		const header = document.createElement("div");
-		header.className = "node-header";
-
-		const toggleIcon = document.createElement("span");
-		toggleIcon.className = "toggle-icon";
-		if (hasChildren) {
-			toggleIcon.textContent = expanded.has(path) ? "▼" : "▶";
-			toggleIcon.style.cursor = "pointer";
-			toggleIcon.style.marginRight = "4px";
-		} else {
-			toggleIcon.textContent = "📄";
-			toggleIcon.style.marginRight = "4px";
-		}
-		header.appendChild(toggleIcon);
-
-		const nameSpan = document.createElement("span");
-		nameSpan.className = "node-name";
-		nameSpan.textContent = node.name;
-		header.appendChild(nameSpan);
-
-		if (hasTasks) {
-			const countSpan = document.createElement("span");
-			countSpan.className = "task-count";
-			countSpan.textContent = ` (${node.tasks.length})`;
-			header.appendChild(countSpan);
-		}
-
-		if (hasChildren) {
-			header.addEventListener("click", () => {
-				if (expanded.has(path)) {
-					expanded.delete(path);
-				} else {
-					expanded.add(path);
-				}
-				render();
-			});
-			header.style.cursor = "pointer";
-		}
-
-		div.appendChild(header);
-
-		if (hasChildren && expanded.has(path)) {
-			if (depth < MAX_DEPTH) {
-				const childrenDiv = document.createElement("div");
-				childrenDiv.className = "node-children";
-
-				const sortedKeys = Object.keys(node.children).sort((a, b) => {
-					const aHasChildren =
-						Object.keys(node.children[a].children).length > 0;
-					const bHasChildren =
-						Object.keys(node.children[b].children).length > 0;
-					if (aHasChildren && !bHasChildren) return -1;
-					if (!aHasChildren && bHasChildren) return 1;
-					return a.localeCompare(b, "zh-CN");
-				});
-
-				sortedKeys.forEach((key) => {
-					const childPath = path ? `${path}/${key}` : key;
-					const childEl = renderNode(
-						node.children[key],
-						depth + 1,
-						childPath,
-					);
-					if (childEl) {
-						childrenDiv.appendChild(childEl);
-					}
-				});
-				div.appendChild(childrenDiv);
-			} else {
-				const limitMsg = document.createElement("div");
-				limitMsg.className = "depth-limit-hint";
-				limitMsg.textContent = `...超出最大深度 ${MAX_DEPTH}`;
-				div.appendChild(limitMsg);
-			}
-		}
-
-		if (hasTasks && expanded.has(path)) {
-			const tasksDiv = document.createElement("div");
-			tasksDiv.className = "node-tasks";
-			const sorted = sortTasks(node.tasks);
-			sorted.forEach((task) => {
-				const item = document.createElement("div");
-				item.className = "task-item";
-				item.style.paddingLeft = `${depth * 16 + 24}px`;
-
-				const icon = document.createElement("span");
-				icon.className = "status-icon";
-				const statusKey = task.status?.symbol || " ";
-				const iconMap = {
-					" ": "🔲",
-					"?": "❓",
-					"/": "🔄",
-					"-": "⏸",
-					x: "✅",
-					X: "✅",
-					"!": "⛔",
-				};
-				icon.textContent = iconMap[statusKey] || "🔲";
-				item.appendChild(icon);
-
-				const desc = document.createElement("span");
-				desc.className = "task-description";
-				desc.textContent = task.description || "（无描述）";
-				item.appendChild(desc);
-
-				item.addEventListener("click", () => {
-					if (task.path) {
-						const file = app.vault.getAbstractFileByPath(task.path);
-						if (file) {
-							const leaf = app.workspace.getLeaf(false);
-							leaf.openFile(file).then(() => {
-								if (task.lineNumber !== undefined) {
-									setTimeout(() => {
-										leaf.view?.editor?.setCursor({
-											line: task.lineNumber,
-											ch: 0,
-										});
-									}, 50);
-								}
-							});
-						}
-					}
-				});
-				item.style.cursor = "pointer";
-				tasksDiv.appendChild(item);
-			});
-			div.appendChild(tasksDiv);
-		}
-
-		return div;
-	}
-
-	/**
-	 * 主渲染函数
-	 */
-	function render() {
-		container.innerHTML = "";
-
-		const toolbar = document.createElement("div");
-		toolbar.className = "tree-header";
-
-		const collapseBtn = document.createElement("button");
-		collapseBtn.textContent = "折叠全部";
-		collapseBtn.addEventListener("click", () => {
-			expanded.clear();
-			render();
-		});
-		toolbar.appendChild(collapseBtn);
-
-		const expandBtn = document.createElement("button");
-		expandBtn.textContent = "展开全部";
-		expandBtn.addEventListener("click", () => {
-			function collectPaths(node, path) {
-				Object.keys(node.children).forEach((key) => {
-					const childPath = path ? `${path}/${key}` : key;
-					expanded.add(childPath);
-					collectPaths(node.children[key], childPath);
-				});
-			}
-			collectPaths(treeData, "");
-			render();
-		});
-		toolbar.appendChild(expandBtn);
-
-		const sortSelect = document.createElement("select");
-		sortSelect.className = "sort-select";
-		const sortOptions = [
-			{ value: "status", label: "按状态排序" },
-			{ value: "priority", label: "按优先级排序" },
-			{ value: "due", label: "按截止日期排序" },
-			{ value: "created", label: "按创建日期排序" },
-		];
-		sortOptions.forEach((opt) => {
-			const option = document.createElement("option");
-			option.value = opt.value;
-			option.textContent = opt.label;
-			if (opt.value === sortType) option.selected = true;
-			sortSelect.appendChild(option);
-		});
-		sortSelect.addEventListener("change", () => {
-			sortType = sortSelect.value;
-			render();
-		});
-		toolbar.appendChild(sortSelect);
-
-		const orderBtn = document.createElement("button");
-		orderBtn.textContent = sortAsc ? "↑ 升序" : "↓ 降序";
-		orderBtn.addEventListener("click", () => {
-			sortAsc = !sortAsc;
-			render();
-		});
-		toolbar.appendChild(orderBtn);
-
-		container.appendChild(toolbar);
-
-		if (tasks.length === 0) {
-			const empty = document.createElement("div");
-			empty.className = "empty-placeholder";
-			empty.textContent = "暂无任务";
-			container.appendChild(empty);
-			return;
-		}
-
-		const treeContainer = document.createElement("div");
-		treeContainer.className = "tree-container";
-
-		Object.keys(treeData.children).forEach((key) => {
-			const nodeEl = renderNode(treeData.children[key], 0, key);
-			if (nodeEl) {
-				treeContainer.appendChild(nodeEl);
-			}
-		});
-
-		if (treeContainer.children.length === 0) {
-			const empty = document.createElement("div");
-			empty.className = "empty-placeholder";
-			empty.textContent = "暂无任务";
-			treeContainer.appendChild(empty);
-		}
-
-		container.appendChild(treeContainer);
-	}
-
-	/**
-	 * 加载任务数据
-	 */
-	async function loadData() {
-		try {
-			tasks = await fetchTasks(app);
-			treeData = buildTree();
-
-			if (expanded.size === 0) {
-				Object.keys(treeData.children).forEach((key) => {
-					expanded.add(key);
-				});
-			}
-		} catch (e) {
-			tasks = [];
-			treeData = { name: "root", tasks: [], children: {} };
-		}
-	}
-
-	/**
-	 * 初始化
-	 */
-	async function init() {
-		await loadData();
-		render();
-	}
-
-	await init();
-
-	return {
-		cleanup: () => {
-			container.innerHTML = "";
-		},
-		updateSort: (newSort) => {
-			if (newSort) {
-				sortType = newSort.type || sortType;
-				sortAsc = newSort.order !== "desc";
-			}
-			render();
-		},
-	};
+    container.appendChild(ul);
 }
 
-/**
- * 渲染树形面板（与 startTreeView 功能相同）
- * 用于 tree-view-components.js 中的导入
- */
-export const renderTreePanel = startTreeView;
+function createNodeRow(node, index, collapsedNodes, state, dv, app, onCollapseChange, onRefresh, onFilterRootPathChange, tooltip) {
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;cursor:pointer;padding:2px 0;height:28px;';
+    header.style.paddingLeft = (node.level * 16) + 'px';
+    const toggle = document.createElement('span');
+    toggle.style.cssText = 'width:16px;text-align:center;font-size:12px;';
 
-/**
- * 树视图类（占位，因为当前实现使用函数式 startTreeView）
- * 若需要类形式，可以后续包装，目前先导出空对象让编译通过
- */
-export const TreeTaskView = {};
+    if (node.type === 'task') {
+        toggle.style.visibility = 'hidden';
+        header.appendChild(toggle);
+        const task = node.task;
+        if (readTasks.isTaskToday(task)) {
+            const mk = document.createElement('span'); mk.className = 'today-marker'; mk.textContent = '🔹'; header.appendChild(mk);
+        }
+        const statusIcon = document.createElement('span'); statusIcon.textContent = readTasks.getStatusIcon(task) + ' '; statusIcon.style.marginLeft = '4px';
+        header.appendChild(statusIcon);
+        const descSpan = document.createElement('span'); descSpan.className = 'task-text'; descSpan.textContent = task._cleanText;
+        header.appendChild(descSpan);
+        header.setAttribute('data-tooltip-html', task._tooltipHtml);
+        header.setAttribute('data-task-link', task.path + '#' + (task.line + 1));
+        return header;
+    }
 
-/**
- * 树视图类型标识
- */
-export const VIEW_TYPE_TREE = "tree-task-view";
+    const expanded = !collapsedNodes[node.fullPath];
+    toggle.textContent = expanded ? '▼' : '▶';
+    toggle.onclick = (e) => {
+        e.stopPropagation();
+        if (collapsedNodes[node.fullPath]) delete collapsedNodes[node.fullPath];
+        else collapsedNodes[node.fullPath] = true;
+        if (onCollapseChange) onCollapseChange();
+        if (onRefresh) onRefresh();
+    };
+    header.appendChild(toggle);
+
+    const iconSpan = document.createElement('span');
+    iconSpan.style.cssText = 'margin-left:4px;font-weight:bold;color:var(--text-accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;';
+    iconSpan.textContent = node.type === 'folder' ? '📁 ' + node.name : '📄 ' + node.name + ' (' + node.tasks.length + ')';
+    header.appendChild(iconSpan);
+
+    const stats = calcNodeStats(node);
+    if (stats.total > 0) {
+        const prog = document.createElement('div');
+        prog.style.cssText = 'display:inline-flex;width:70px;height:6px;border-radius:3px;margin-left:8px;overflow:hidden;flex-shrink:0;background:transparent;font-size:0;line-height:0;';
+        CONFIG.ALLOWED_STATUSES.forEach(st => {
+            if (stats[st] > 0) {
+                const seg = document.createElement('div');
+                seg.style.cssText = `display:inline-block;height:6px;width:${(stats[st]/stats.total*100).toFixed(2)}%;background-color:${CONFIG.STATUS_COLORS[st]}!important;min-width:1px;vertical-align:top;`;
+                seg.title = CONFIG.STATUS_NAMES[st] + ': ' + stats[st];
+                prog.appendChild(seg);
+            }
+        });
+        header.appendChild(prog);
+        const pct = document.createElement('span'); pct.className = 'progress-text'; pct.textContent = Math.round(stats.completed / stats.total * 100) + '%';
+        header.appendChild(pct);
+    }
+
+    header.onclick = (e) => {
+        e.stopPropagation();
+        const newPath = state.filterRootPath === node.fullPath ? null : node.fullPath;
+        onFilterRootPathChange(newPath);
+    };
+    return header;
+}
+
+function calcNodeStats(node) {
+    const stats = { todo: 0, planned: 0, 'in-progress': 0, completed: 0, cancelled: 0, total: 0 };
+    if (node.type === 'task') { stats[node.task._status]++; stats.total++; return stats; }
+    if (node.tasks) node.tasks.forEach(t => { stats[t._status]++; stats.total++; });
+    if (node.children) node.children.forEach(ch => { const cs = calcNodeStats(ch); for (const k in cs) if (Object.hasOwn(cs, k)) stats[k] += cs[k]; });
+    return stats;
+}
+
+// ========== 占位视图类 ==========
+export const VIEW_TYPE_TREE = 'tree-task-view';
+export class TreeTaskView extends BaseTaskView {
+    getViewType() { return VIEW_TYPE_TREE; }
+    getDisplayText() { return '任务树'; }
+    getIcon() { return 'git-branch'; }
+    async _startCore(dv, app, storageAdapter, instanceId) {
+        dv.container.innerHTML = '<div class="empty-message">🌲 任务树视图即将上线</div>';
+        return { cleanup: () => {}, updateSort: () => {} };
+    }
+}

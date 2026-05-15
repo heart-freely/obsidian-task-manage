@@ -1,62 +1,46 @@
-export function buildSortPanel(container, dv, state) {
-	const sortRow = dv.el("div", "");
-	sortRow.style.cssText =
-		"display:flex; align-items:center; padding:12px 0 8px 0; gap:8px; flex-wrap:wrap;";
+// src/panel/panel-sort-bottons.js
+import { CONFIG } from '../../configs/plugin-configs';
 
-	const sortFields = [
-		{ field: "priority", label: "🔥 优先级" },
-		{ field: "due", label: "📅 截止日期" },
-		{ field: "created", label: "📝 创建时间" },
-		{ field: "completed", label: "✅ 完成时间" },
-		{ field: "status", label: "📌 状态" },
-		{ field: "alphabetical", label: "🔤 字母序" },
-	];
+export const ALL_SORT_KEYS = [
+    { type: 'status', label: '状态' },
+    { type: 'priority', label: '优先级' },
+    { type: 'scheduled', label: '计划' },
+    { type: 'start', label: '开始' },
+    { type: 'due', label: '截止' },
+    { type: 'filename', label: '文件名' },
+];
 
-	if (!state.sortField) state.sortField = "priority";
-	if (!state.sortOrder) state.sortOrder = "desc";
-
-	sortFields.forEach((sf) => {
-		const isActive = state.sortField === sf.field;
-		const btn = dv.el(
-			"button",
-			sf.label +
-				(isActive ? (state.sortOrder === "asc" ? " ↑" : " ↓") : ""),
-			{
-				cls: "sort-btn" + (isActive ? " sort-btn-active" : ""),
-				title: "按" + sf.label + "排序",
-			},
-		);
-		btn.onclick = () => {
-			if (state.sortField === sf.field) {
-				state.sortOrder = state.sortOrder === "asc" ? "desc" : "asc";
-			} else {
-				state.sortField = sf.field;
-				state.sortOrder = "desc";
-			}
-
-			document.querySelectorAll(".sort-btn").forEach((b) => {
-				b.classList.remove("sort-btn-active");
-			});
-			btn.classList.add("sort-btn-active");
-
-			btn.textContent =
-				sf.label +
-				(state.sortField === sf.field
-					? state.sortOrder === "asc"
-						? " ↑"
-						: " ↓"
-					: "");
-			state.filterCache.fingerprint = "";
-
-			if (state.onSortChange) {
-				state.onSortChange(sf.field, state.sortOrder);
-			}
-		};
-		sortRow.appendChild(btn);
-	});
-
-	container.appendChild(sortRow);
-	return sortRow;
+export function buildSortRow(container, dv, state, callbacks = {}, sortKeys = ALL_SORT_KEYS) {
+    const row = dv.el('div', '', { cls: 'sort-row' });
+    row.appendChild(dv.el('span', '排序:', { style: 'font-weight:bold;' }));
+    sortKeys.forEach(({ type, label }) => {
+        const btn = dv.el('button', label, { cls: 'sort-btn' });
+        if (state.leftSort.type === type) {
+            btn.textContent = label + (state.leftSort.order === 'asc' ? '↑' : '↓');
+            btn.classList.add('sort-btn-active');
+        }
+        btn.onclick = () => {
+            if (state.leftSort.type === type) state.leftSort.order = state.leftSort.order === 'asc' ? 'desc' : 'asc';
+            else { state.leftSort.type = type; state.leftSort.order = 'asc'; }
+            if (callbacks.onRenderAll) callbacks.onRenderAll();
+            updateSortButtons(state, sortKeys);
+        };
+        row.appendChild(btn);
+    });
+    container.appendChild(row);
 }
 
-export { buildSortPanel as buildSortRow };
+export function updateSortButtons(state, sortKeys = ALL_SORT_KEYS) {
+    const btns = document.querySelectorAll('.sort-btn');
+    btns.forEach((btn, index) => {
+        const { type, label } = sortKeys[index] || {};
+        if (!type) return;
+        if (type === state.leftSort.type) {
+            btn.textContent = label + (state.leftSort.order === 'asc' ? '↑' : '↓');
+            btn.classList.add('sort-btn-active');
+        } else {
+            btn.textContent = label;
+            btn.classList.remove('sort-btn-active');
+        }
+    });
+}
