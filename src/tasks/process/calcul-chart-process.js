@@ -1,41 +1,7 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/* @skill-sig file src/tasks/process/calcul-chart-process.js - 图表数据纯计算模块，提供甘特图跨度/任务时长/每日状态堆叠等统计计算，不修改入参，不涉及 Obsidian API */
-/* @skill-func
-   computeTotalSpanDays(tasks, fieldStart, fieldEnd) : number - 计算任务集合的时间跨度总天数，找出最早 start 和最晚 end 的差值
-   calcPlannedDuration(tasks) : number - 计算计划总时长（天），基于 _scheduled → _due
-   calcActualDuration(tasks) : number - 计算实际总时长（天），基于 _starts → _done
-   calcTotalSpanHours(tasks, fieldStart, fieldEnd) : number - 计算总工时 = 跨度天数 × WORK_HOURS_PER_DAY
-   prepareDailyStatusStack(tasks, dateRange, formatDate, setStart, setEnd) : {dates, seriesData, statusOrder} - 准备每日状态堆叠数据，遍历日期范围内每一天统计各状态任务数
-*/
-/* @skill-flow
-   computeTotalSpanDays → 遍历 tasks 取 fieldStart/fieldEnd → 计算 min->max 毫秒差 → 转天数 ceil
-   calcPlannedDuration → 遍历 tasks 取 _scheduled/_due → 累加 duration → Math.round
-   calcActualDuration → 遍历 tasks 取 _starts/_done → 累加 duration → Math.round
-   calcTotalSpanHours → 调用 computeTotalSpanDays → 乘以 WORK_HOURS_PER_DAY
-   prepareDailyStatusStack → 若 dateRange 则预填 dayMap 每一天的初始计数 → 遍历 tasks 按 _cachedTimeRange 逐日填充各 _status 计数 → 排序 keys → 构建 seriesData
-*/
-/* @skill-param
-   tasks: Array - 任务对象数组，不修改
-   fieldStart/fieldEnd: string - 日期字段名（_scheduled/_due/_starts/_done）
-   dateRange: {start: Date, end:Date}|null - 限定统计日期范围
-   formatDate: Function - 日期格式化函数，接收 Date 返回字符串键
-   setStart/setEnd: Function - 日期边界设置函数（来自 DateUtils）
-*/
-/* @skill-condition
-   所有函数均为纯函数，不修改入参
-   依赖 CONFIG.ALLOWED_STATUSES / CONFIG.WORK_HOURS_PER_DAY（来自 plugin-configs）
-   任务对象必须具有 _cachedTimeRange / _status
-   prepareDailyStatusStack 在 dateRange 为 null 时自动扩展 dayMap
-   sync: .cline/skills/code/views/views.md → ECharts 堆叠图数据 & 甘特图跨度计算
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { CONFIG } from "../../configs/plugin-configs";
 
-// ========== 图表数据计算 ==========
-
 /**
- * 计算任务集合的时间跨度总天数 @skill-sig
+ * 计算任务集合的时间跨度总天数 @auto-sig
  * 根据指定的起始和截止字段，找出所有任务中的最早开始和最晚结束日期，计算总天数
  *
  * @param {Array} tasks - 任务对象数组
@@ -125,7 +91,7 @@ export function calcTotalSpanHours(tasks, fieldStart, fieldEnd) {
 }
 
 /**
- * 准备每日任务状态堆叠数据 @skill-sig
+ * 准备每日任务状态堆叠数据 @auto-sig
  * 遍历指定日期范围内的每一天，统计每个状态下包含的任务数量
  * 用于生成每日状态堆叠图（如 ECharts 堆叠面积图）
  *

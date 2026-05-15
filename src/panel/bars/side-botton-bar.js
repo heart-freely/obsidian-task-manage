@@ -1,86 +1,272 @@
-/* <!-- SYNC_COMMENTS_START --> */
 /**
- * 文件：src/panel/bars/side-botton-bar.js
- * 描述：侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能
- * 所属模块：panel/bars
- * 依赖：
- *   - panel.js (全局状态 state)
- * 对外导出：buildSideButtonBar, buildViewSwitcher
- * 注意事项：无内部状态变更，纯 UI 交互
+ * 侧边栏面板 - 按照 GTD 方法论分组显示视图切换按钮
+ *
+ * 分组：
+ *   收集  - 任务收集箱
+ *   整理  - 任务整理处、任务矩阵、任务看板
+ *   回顾  - 重要任务、循环任务、今天任务、未来 15 天任务、未来任务、逾期任务、
+ *           依赖任务、标签任务、所有任务时间轴、所有任务任务表、所有任务任务树、
+ *           所有任务日历图、所有任务甘特图
+ *   执行  - (预留)
+ *   统计  - 所有任务基础统计图、所有任务详细统计图、番茄钟统计图
  */
 
-/* @skill-sig file src/panel/bars/side-botton-bar.js - 侧边视图切换面板，提供列表/卡片/表格/树形/时间线视图切换功能 */
-/* @skill-api
-   panel.js (全局状态 state)
-   state.sideViewType : string   // 当前侧边视图类型: list|grid|table|tree|timeline
-   state.onViewChange : Function // 视图变更回调
-*/
-/* @skill-state
-   state.sideViewType : string   // 当前侧边视图: list|grid|table|tree|timeline
-*/
-/* @skill-func
-   buildSideButtonBar(container, dv, state) : HTMLElement - 构建侧边视图切换面板
-   buildViewSwitcher(container, dv, state) : HTMLElement - buildSideButtonBar 的别名导出
-*/
-/* @skill-anchor
-   buildSideButtonBar - 侧边视图切换面板主函数
-   buildViewSwitcher - buildSideButtonBar 的导出别名
-*/
-/* @skill-dom
-   .side-btn / .side-btn-active (按钮样式)
-   📋 列表 | 🔲 卡片 | 📊 表格 | 🌳 树形 | 📅 时间线
-*/
-/* @skill-flow
-   buildSideButtonBar(container, dv, state)
-   定义 views 数组 → 遍历创建按钮 → 当前 view 加 side-btn-active 类
-   → 点击切换 state.sideViewType → 调用 state.onViewChange(type)
-*/
-/* @skill-condition
-   state.sideViewType===view.type → 该按钮 side-btn-active
-   点击切换后清除其他按钮 active 类
-   state.onViewChange 存在时触发回调
-*/
-/* <!-- SYNC_COMMENTS_END --> */
+const VIEW_GROUPS = {
+	collect: {
+		title: "收集",
+		views: [
+			{
+				type: "inbox",
+				emoji: "📥",
+				label: "任务收集箱",
+				title: "任务收集箱 - 收集所有待处理任务",
+			},
+		],
+	},
+	organize: {
+		title: "整理",
+		views: [
+			{
+				type: "organize",
+				emoji: "✏️",
+				label: "任务整理处",
+				title: "任务整理处 - 补全和修改任务标记",
+			},
+			{
+				type: "matrix",
+				emoji: "◈",
+				label: "任务矩阵",
+				title: "任务矩阵 - 四象限优先级管理",
+			},
+			{
+				type: "kanban",
+				emoji: "〰",
+				label: "任务看板",
+				title: "任务看板 - 看板视图",
+			},
+		],
+	},
+	review: {
+		title: "回顾",
+		views: [
+			{
+				type: "important",
+				emoji: "⭐",
+				label: "重要任务",
+				title: "重要任务 - 高优先级任务",
+			},
+			{
+				type: "recurring",
+				emoji: "🔁",
+				label: "循环任务",
+				title: "循环任务 - 周期性重复任务",
+			},
+			{
+				type: "today",
+				emoji: "📅",
+				label: "今天任务",
+				title: "今天任务 - 今日需处理的任务",
+			},
+			{
+				type: "future-n",
+				emoji: "➡️",
+				label: "未来 15 天",
+				title: "未来 15 天任务",
+			},
+			{
+				type: "future-all",
+				emoji: "🔮",
+				label: "未来任务",
+				title: "全部未来任务",
+			},
+			{
+				type: "overdue",
+				emoji: "⚠️",
+				label: "逾期任务",
+				title: "逾期任务 - 已过期未完成的任务",
+			},
+			{
+				type: "depends",
+				emoji: "🔗",
+				label: "依赖任务",
+				title: "依赖任务 - 有依赖关系的任务",
+			},
+			{
+				type: "tag",
+				emoji: "🏷️",
+				label: "标签任务",
+				title: "标签任务 - 按标签聚合",
+			},
+			{
+				type: "timeline",
+				emoji: "📈",
+				label: "时间线",
+				title: "所有任务时间轴",
+			},
+			{
+				type: "table",
+				emoji: "📊",
+				label: "任务表",
+				title: "所有任务任务表",
+			},
+			{
+				type: "tree",
+				emoji: "🌳",
+				label: "任务树",
+				title: "所有任务任务树",
+			},
+			{
+				type: "calendar",
+				emoji: "🗓️",
+				label: "日历图",
+				title: "所有任务日历图",
+			},
+			{
+				type: "gantt",
+				emoji: "📋",
+				label: "甘特图",
+				title: "所有任务甘特图",
+			},
+		],
+	},
+	execute: {
+		title: "执行",
+		views: [],
+	},
+	stats: {
+		title: "统计",
+		views: [
+			{
+				type: "data",
+				emoji: "📉",
+				label: "基础统计",
+				title: "所有任务基础统计图",
+			},
+			{
+				type: "data-detail",
+				emoji: "📊",
+				label: "详细统计",
+				title: "所有任务详细统计图",
+			},
+			{
+				type: "pomodoro",
+				emoji: "🍅",
+				label: "番茄钟",
+				title: "番茄钟统计图",
+			},
+		],
+	},
+};
 
+/**
+ * 构建带折叠功能的侧边栏按钮面板
+ * 分组标题可点击切换展开/收起，内部按钮纵向排列
+ * 默认所有分组全部展开
+ */
 export function buildSideButtonBar(container, dv, state) {
-	const sideRow = dv.el("div", "");
-	sideRow.style.cssText =
-		"display:flex; align-items:center; padding:12px 0 8px 0; gap:8px; flex-wrap:wrap;";
+	const sideBar = dv.el("div", "");
+	// 垂直布局，整体从上到下
+	sideBar.style.cssText =
+		"display:flex; flex-direction:column; padding:4px 0; gap:4px;";
 
-	// ── 视图模式按钮定义 ─────────────────────────────────────────────
-	// 每个按钮对应一种视图类型
-	const views = [
-		{ type: "list", label: "📋 列表", title: "列表视图" },
-		{ type: "grid", label: "🔲 卡片", title: "卡片视图" },
-		{ type: "table", label: "📊 表格", title: "表格视图" },
-		{ type: "tree", label: "🌳 树形", title: "树形视图" },
-		{ type: "timeline", label: "📅 时间线", title: "时间线视图" },
-	];
+	Object.entries(VIEW_GROUPS).forEach(([groupKey, group]) => {
+		if (group.views.length === 0) return;
 
-	views.forEach((view) => {
-		const btn = dv.el("button", view.label, {
-			cls:
-				"side-btn" +
-				(state.sideViewType === view.type ? " side-btn-active" : ""),
-			title: view.title,
+		// ---- 分组标题按钮（可点击折叠） ----
+		const headerBtn = dv.el("button", group.title, {
+			cls: "side-group-header",
 		});
-		btn.onclick = () => {
-			state.sideViewType = view.type;
-			// 更新所有侧边按钮的样式
-			document.querySelectorAll(".side-btn").forEach((b) => {
-				b.classList.remove("side-btn-active");
+		headerBtn.style.cssText =
+			"display:flex; align-items:center; justify-content:space-between; " +
+			"width:100%; padding:8px 12px; font-size:13px; font-weight:600; " +
+			"text-transform:uppercase; letter-spacing:0.5px; " +
+			"border:none; border-radius:4px; background:transparent; " +
+			"cursor:pointer; text-align:left; transition:background 0.15s;";
+
+		// 添加一个展开/收起的箭头图标
+		const arrow = dv.el("span", "▸", { cls: "group-arrow" });
+		arrow.style.cssText =
+			"font-size:10px; transition:transform 0.2s; display:inline-block;";
+		headerBtn.appendChild(arrow);
+
+		// ---- 分组内按钮容器（默认展开） ----
+		const btnWrap = dv.el("div", "");
+		btnWrap.style.cssText =
+			"display:flex; flex-direction:column; gap:2px; padding:0 4px;";
+
+		// 填充该分组的视图按钮
+		group.views.forEach((view) => {
+			const btn = dv.el("button", view.emoji, {
+				cls:
+					"side-btn" +
+					(state.sideViewType === view.type
+						? " side-btn-active"
+						: ""),
+				title: view.label + " - " + view.title,
 			});
-			btn.classList.add("side-btn-active");
-			// 触发视图刷新
-			if (state.onViewChange) {
-				state.onViewChange(view.type);
+			btn.style.cssText =
+				"display:flex; align-items:center; justify-content:center; " +
+				"padding:4px 8px; font-size:16px; border:none; border-radius:4px; " +
+				"background:transparent; cursor:pointer; width:100%; " +
+				"transition:background 0.15s;";
+
+			// 鼠标悬停
+			btn.onmouseenter = () => {
+				if (!btn.classList.contains("side-btn-active")) {
+					btn.style.background = "var(--background-modifier-hover)";
+				}
+			};
+			btn.onmouseleave = () => {
+				btn.style.background = "";
+			};
+
+			// 点击切换视图
+			btn.onclick = () => {
+				state.sideViewType = view.type;
+				document.querySelectorAll(".side-btn").forEach((b) => {
+					b.classList.remove("side-btn-active");
+					b.style.background = "";
+				});
+				btn.classList.add("side-btn-active");
+				btn.style.background = "var(--background-modifier-hover)";
+				if (state.onViewChange) {
+					state.onViewChange(view.type);
+				}
+			};
+
+			btnWrap.appendChild(btn);
+		});
+
+		// ---- 折叠交互逻辑 ----
+		headerBtn.onclick = () => {
+			const isExpanded = btnWrap.style.display !== "none";
+			if (isExpanded) {
+				// 收起
+				btnWrap.style.display = "none";
+				arrow.style.transform = "rotate(0deg)";
+			} else {
+				// 展开
+				btnWrap.style.display = "flex";
+				arrow.style.transform = "rotate(90deg)";
 			}
 		};
-		sideRow.appendChild(btn);
+
+		// 鼠标悬停效果（标题按钮）
+		headerBtn.onmouseenter = () => {
+			headerBtn.style.background = "var(--background-modifier-hover)";
+		};
+		headerBtn.onmouseleave = () => {
+			headerBtn.style.background = "transparent";
+		};
+
+		// 默认全部展开：设置箭头旋转
+		arrow.style.transform = "rotate(90deg)";
+
+		sideBar.appendChild(headerBtn);
+		sideBar.appendChild(btnWrap);
 	});
 
-	container.appendChild(sideRow);
-	return sideRow;
+	container.appendChild(sideBar);
+	return sideBar;
 }
-
 export { buildSideButtonBar as buildViewSwitcher };

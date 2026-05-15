@@ -1,6 +1,6 @@
 ---
 name: 更新注释
-description: 管理源码中的 `@skill-*` 注释和头部规范，支持增量/全局更新、格式校验、锚点管理。
+description: 管理源码中的 `@auto-*` 注释和头部规范，支持增量/全局更新、格式校验、锚点管理。
 triggers:
     - 更新注释
     - 新增注释
@@ -38,19 +38,18 @@ descriptions:
 
 - 注释位置和顺序符合规范
     - 注释开始标记，头部注释第一行，代码源文件第一行，
-    -  文件头部注释
-    - @skill-global-*格式注释。
-    - @skill-*标签格式注释，除@skill-anchor。
-    - JSDoc注释，在锚点标签注释@skill-anchor上一行。
-    - @skill-anchor格式注释在函数名上一行。
-    -  注释结束标记，头部注释结束后的下一行
-
+    - 文件头部注释
+    - @auto-global-\*格式注释。
+    - @auto-\*标签格式注释，除@auto-anchor。
+    - JSDoc注释，在锚点标签注释@auto-anchor上一行。
+    - @auto-anchor格式注释在函数名上一行。
+    - 注释结束标记，头部注释结束后的下一行
 
 ### 1. 文件头部注释（必须）
 
 JSDoc 风格头部注释格式。
 
-**必填字段**：`文件`、`描述`、`所属模块`、`依赖`、`对外导出`、`注意事项`、`@see`。`@see` 必须指向对应的 同名Skill 文件，如src/panel/views/inbox-task-view.js指向.cline/skills/code/inbox-task-view.md。
+**必填字段**：`文件`、`描述`、`所属模块`、`依赖`、`对外导出`、`注意事项`、`@see`。`@see` 必须指向对应的 同名Skill 文件，如src/panel/views/inbox-task-view.js指向docs/inbox-task-view.md。
 
 规范格式如下：
 
@@ -65,29 +64,29 @@ JSDoc 风格头部注释格式。
  *   - createTaskCard: 标准任务卡片生成器
  * 对外导出：VIEW_TYPE_INBOX, InboxTaskView
  * 注意事项：该视图无内部状态，纯展示
- * @see .cline/skills/code/panel/views/inbox-task-view.md
+ * @see docs/panel/views/inbox-task-view.md
  */
 ```
 
-### 2. `@skill-sig`（函数签名）
+### 2. `@auto-sig`（函数签名）
 
 紧贴函数定义
 
 规范格式如下：
 
 ```javascript
-/* @skill-sig function fetchInboxTasks(dv, state) : Array<Task> - 获取过滤后的收件箱任务 */
+/* @auto-sig function fetchInboxTasks(dv, state) : Array<Task> - 获取过滤后的收件箱任务 */
 function fetchInboxTasks(dv, state) { ... }
 ```
 
-### 3. `@skill-dom`（DOM 结构）
+### 3. `@auto-dom`（DOM 结构）
 
 紧贴 DOM 构建代码，缩进表示层级
 
 规范格式如下：
 
 ```javascript
-/* @skill-dom
+/* @auto-dom
 .inbox-view
 .inbox-group[data-status]
   h3
@@ -98,70 +97,70 @@ function fetchInboxTasks(dv, state) { ... }
 */
 ```
 
-### 4. `@skill-state`（状态模型）
+### 4. `@auto-state`（状态模型）
 
 规范格式如下：
 
 ```javascript
-/* @skill-state
+/* @auto-state
 selectedTasks : Set<string       // 已勾选的任务ID
 previewCache  : Map<string,string // 任务ID → 预览文本
 */
 ```
 
-无状态时写：`/* @skill-state 无（纯展示视图） */`
+无状态时写：`/* @auto-state 无（纯展示视图） */`
 
-### 5. `@skill-flow`（事件流）
+### 5. `@auto-flow`（事件流）
 
 箭头表示调用链
 
 规范格式如下：
 
 ```javascript
-/* @skill-flow
+/* @auto-flow
 勾选任务 → handleCheck(id) → updatePreviewCache() → renderPreviews()
 点击确认 → confirmTask(id) → writeTasks.patchTask() → 刷新该行
 */
 ```
 
-### 6. `@skill-condition`（关键条件）
+### 6. `@auto-condition`（关键条件）
 
 规范格式如下：
 
 ```javascript
-/* @skill-condition
+/* @auto-condition
 若任务无截止日期 → 置底并显示灰色文字
 */
 ```
 
-### 7. `@skill-api`（公共模块调用）
+### 7. `@auto-api`（公共模块调用）
 
 规范格式如下：
 
 ```javascript
-/* @skill-api
+/* @auto-api
 readTasks.getAllTasks(dv, state)
 createTaskCard(normalizeTaskCardData(task))
 */
 ```
 
-### 8. `@skill-algorithm`（算法复杂度）
+### 8. `@auto-algorithm`（算法复杂度）
 
 规范格式如下：
 
 ```javascript
-/* @skill-algorithm sortTasks: O(n log n) 基于优先级排序 */
+/* @auto-algorithm sortTasks: O(n log n) 基于优先级排序 */
 ```
 
 ### 9. 全局标签（用于架构汇总）
 
-- `@skill-global-style`：描述界面风格、CSS 变量等。
-- `@skill-global-state`：描述全局状态结构。
+- `@auto-global-style`：描述界面风格、CSS 变量等。
+- `@auto-global-state`：描述全局状态结构。
 
 规范格式如下：
 
 ```javascript
-/* @skill-global-state
+/* @auto-global-state
 state = { dateFilter: {...}, markFilter: {...} }
 */
 ```
@@ -171,11 +170,9 @@ state = { dateFilter: {...}, markFilter: {...} }
 规范格式如下：
 
 ```javascript
-/* @skill-anchor: functionName */
+/* @auto-anchor: functionName */
 function functionName() { ... }
 ```
-
-
 
 ### 11. JSDoc 风格注释
 
@@ -184,7 +181,7 @@ function functionName() { ... }
 以函数注释为例
 
 - 简单函数需不写 `@param`、`@returns`。
-- 复杂函数需写明 `@param`、`@returns`，与 `@skill-sig` 共存，不冲突。
+- 复杂函数需写明 `@param`、`@returns`，与 `@auto-sig` 共存，不冲突。
 
 规范格式如下：
 
@@ -211,20 +208,16 @@ function functionName() { ... }
 - 同一个文件中不能有多个标记注释开始标记和注释结束标记。
 
 - 代码中要添加注释符号
-  
-  规范格式如下：
-  
-  ```
-  /* <!-- SYNC_COMMENTS_START --> */
-  /* 文件头部注释 */
-  /* @skill-global-*格式注释。 */
-  /* @skill-\*标签格式注释，除@skill-anchor */
-  /* <!-- SYNC_COMMENTS_END --> */
-  ```
-  
-  
 
----
+    规范格式如下：
+
+```JavaScript
+/* <!-- SYNC_COMMENTS_START --> */
+/* 文件头部注释 */
+/* @auto-global-*格式注释。 */
+/* @auto-\*标签格式注释，除@auto-anchor */
+/* <!-- SYNC_COMMENTS_END --> */
+```
 
 ## 操作模式
 
@@ -252,7 +245,7 @@ function functionName() { ... }
 6. **自动报告注释**
     1. 生成详细报告。
 7. **更新缓存注释**：
-    1. 将本次处理文件的 `@skill-*` 标签位置写入 `.cline/skills/cache/code_cache.json`，每个条目包含 ` lastModified ` 和 `hash`。
+    1. 将本次处理文件的 `@auto-*` 标签位置写入 `.cline/skills/cache/code_cache.json`，每个条目包含 `lastModified` 和 `hash`。
     2. 完成后**不自动校验**
     3. 完成后更新缓存。每次更新注释全部清空后重写，而非增量追加。
 
@@ -264,7 +257,7 @@ function functionName() { ... }
     1. 为所有核心函数/DOM/状态等添加标准化标签。
     2. 已有注释仅补全缺失字段。缺失头部字段的补全
 1. **更新缓存注释**
-    1. 将本次处理文件的 `@skill-*` 标签位置写入 `.cline/skills/cache/code_cache.json`，每个条目包含 ` lastModified ` 和 `hash`。
+    1. 将本次处理文件的 `@auto-*` 标签位置写入 `.cline/skills/cache/code_cache.json`，每个条目包含 `lastModified` 和 `hash`。
     2. 完成后**不自动校验**
     3. 完成后更新缓存。每次更新注释全部清空后重写，而非增量追加。
 
@@ -289,7 +282,7 @@ function functionName() { ... }
 5. **自动报告注释**
     1. 生成详细报告。
 6. **更新缓存注释**：
-    1. 将本次处理文件的 `@skill-*` 标签位置写入 `.cline/skills/cache/code_cache.json`，每个条目包含 ` lastModified ` 和 `hash`。
+    1. 将本次处理文件的 `@auto-*` 标签位置写入 `.cline/skills/cache/code_cache.json`，每个条目包含 `lastModified` 和 `hash`。
     2. 完成后**不自动校验**
     3. 完成后更新缓存。每次更新注释全部清空后重写，而非增量追加。
 
@@ -299,14 +292,13 @@ function functionName() { ... }
 
 1. 询问删除范围
     - 指定注释范围，某个文件或某个文件夹或全局
-    - 指定注释类型，参考文件头部注释（必须），如：头部注释或@skill-\*标签格式注释
+    - 指定注释类型，参考文件头部注释（必须），如：头部注释或@auto-\*标签格式注释
 2. 确定删除范围
     1. 某个文件或某个文件夹或全局
 
 3. 删除注释
     1. 从对应js文件中移除对应条目。
     2. 从`.cline/skills/cache/code_cache.json`中移除对应条目。
-
 
 ### 校验注释格式（`校验注释` / `校验注释格式`）
 

@@ -1,51 +1,8 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/* @skill-sig file src/tasks/process/task-query-process.js - 任务查询入口模块，基于 Obsidian Tasks 插件 API，提供按标签/日期/状态/优先级等维度的任务查询能力，所有查询依赖 Tasks 插件实例，调用前需确保插件已加载 */
-/* @skill-func
-   fetchTasks(app, extraQuery) : Array - 基础查询，从 Tasks 插件获取符合条件的所有任务
-   fetchImportantTasks(app) : Array - 获取重要任务（优先级 non-none 且 <= 1），排除重复
-   fetchRecurringTasks(app) : Array - 获取所有周期性/重复任务
-   fetchTodayTasks(app) : Array - 获取今天到期的任务（dueDate 或 scheduledDate 匹配今天）
-   fetchFutureTasks(app, days) : Array - 获取未来指定天数内的任务
-   fetchOverdueTasks(app) : Array - 获取已过期任务
-   fetchDependsTasks(app) : Array - 获取有依赖关系的任务
-   fetchTagTasks(app, tag) : Array - 按 #标签 或自定义 🏁 标记筛选任务
-   fetchTodayTasksGrouped(app) : {groups, total} - 获取今日任务并按状态分组（未开始/计划中/进行中）
-   fetchImportantTasksByStatus(app) : {groups, total} - 获取重要任务并按状态分组
-*/
-/* @skill-flow
-   fetchTasks → plugins["obsidian-tasks-plugin"].getTasks(baseQuery + extraQuery) → 返回原始任务数组
-   fetchXxxTasks → fetchTasks + 特定过滤条件（优先级/重复/日期/依赖/标签）
-   fetchTodayTasks → fetchTasks → 按 moment 格式化的今天日期匹配 dueDate/scheduledDate
-   fetchFutureTasks → fetchTasks → 按 moment.isBetween 判断日期是否在 [now, now+days) 内
-   fetchOverdueTasks → fetchTasks → 按 moment.isBefore 判断日期是否早于今天
-   fetchDependsTasks → fetchTasks → 按 dependsOn 数组非空过滤
-   fetchTagTasks → fetchTasks → 兼容原生 #tags + 自定义 RX.tag 正则提取 🏁 标记
-   fetchTodayTasksGrouped → fetchTasks('not done ...') → 按 status.symbol 分三组（空格/?//）→ 按优先级+日期排序
-   fetchImportantTasksByStatus → fetchTasks → 按 priority 1-3 + 有效状态过滤 → 分三组 → 按到期日期排序
-*/
-/* @skill-param
-   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件
-   extraQuery: string - 附加 Tasks 查询语句片段
-   days: number - 未来天数（默认 15）
-   tag: string - 标签名（不含 # 前缀），空字符串表示所有有标签的任务
-*/
-/* @skill-condition
-   所有查询依赖 obsidian-tasks-plugin 实例，插件未加载时抛出 Error
-   内部 baseQuery() 拼接 path + filename regex 定位到任务文件目录
-   日期比较均使用 window.moment（Obsidian 内置）
-   RX.tag 正则来自 read-tasks 模块
-   分组查询中的 status.symbol 约定：空格=未开始 / ?=计划中 / /=进行中
-   sync: .cline/skills/code/views/views.md → 所有视图的基础数据来源
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import {
 	TASK_FILENAME_REGEX_TASKS,
 	TASK_FOLDER_PATH,
 } from "../../configs/plugin-configs";
 import { RX } from "../../tasks/read/read-tasks"; // 引入统一正则以提取自定义标记
-
-// ========== 内部工具函数 ==========
 
 /**
  * 构建基础的 Tasks 查询字符串
@@ -63,7 +20,7 @@ function baseQuery(extra = "") {
 }
 
 /**
- * 从 Tasks 插件获取任务（基础查询） @skill-sig
+ * 从 Tasks 插件获取任务（基础查询） @auto-sig
  * 所有具体查询函数均以此为基础进行二次过滤
  *
  * @param {App} app - Obsidian 应用实例
@@ -82,7 +39,7 @@ export async function fetchTasks(app, extraQuery = "") {
 }
 
 /**
- * 获取重要任务（优先级非 none 且优先级值 <= 1） @skill-sig
+ * 获取重要任务（优先级非 none 且优先级值 <= 1） @auto-sig
  * 过滤出关键优先级（high/critical）的任务，同时排除重复任务
  *
  * @param {App} app - Obsidian 应用实例
@@ -100,7 +57,7 @@ export async function fetchImportantTasks(app) {
 }
 
 /**
- * 获取所有重复任务（周期性任务） @skill-sig
+ * 获取所有重复任务（周期性任务） @auto-sig
  *
  * @param {App} app - Obsidian 应用实例
  * @returns {Promise<Array>} 周期性任务对象数组
@@ -114,7 +71,7 @@ export async function fetchRecurringTasks(app) {
 }
 
 /**
- * 获取今天的任务 @skill-sig
+ * 获取今天的任务 @auto-sig
  * 基于任务的到期日期（dueDate）或计划日期（scheduledDate）与今天匹配
  *
  * @param {App} app - Obsidian 应用实例
@@ -139,7 +96,7 @@ export async function fetchTodayTasks(app) {
 }
 
 /**
- * 获取未来指定天数内的任务 @skill-sig
+ * 获取未来指定天数内的任务 @auto-sig
  * 基于到期日期或计划日期判断是否在 [今天, 今天+days) 区间内
  *
  * @param {App} app - Obsidian 应用实例
@@ -161,7 +118,7 @@ export async function fetchFutureTasks(app, days = 15) {
 }
 
 /**
- * 获取已过期的任务 @skill-sig
+ * 获取已过期的任务 @auto-sig
  * 基于到期日期或计划日期判断是否早于今天
  *
  * @param {App} app - Obsidian 应用实例
@@ -181,7 +138,7 @@ export async function fetchOverdueTasks(app) {
 }
 
 /**
- * 获取有依赖关系的任务 @skill-sig
+ * 获取有依赖关系的任务 @auto-sig
  * 过滤出定义了 dependsOn 字段的任务
  *
  * @param {App} app - Obsidian 应用实例
@@ -197,7 +154,7 @@ export async function fetchDependsTasks(app) {
 }
 
 /**
- * 获取标签任务（同时兼容原生 #标签 和自定义 🏁 标记） @skill-sig
+ * 获取标签任务（同时兼容原生 #标签 和自定义 🏁 标记） @auto-sig
  *
  * @param {App} app - Obsidian 应用实例
  * @param {string} tag - 要筛选的标签名（不含 # 前缀）；传入空字符串则返回所有包含任意标签的任务
@@ -216,10 +173,8 @@ export async function fetchTagTasks(app, tag) {
 	const result = [];
 
 	for (const task of allTasks) {
-		// 原生 tags（Tasks 插件自动解析的 #标签）
 		const nativeTags = (task.tags || []).map((t) => t.replace(/^#/, ""));
 
-		// 自定义标签：从任务文本中提取，使用与系统统一的 RX 正则
 		const fullText = task.description || task.text || "";
 		const match = RX.tag.exec(fullText);
 		const customTag = match ? match[1] : null;
@@ -240,10 +195,8 @@ export async function fetchTagTasks(app, tag) {
 	return result;
 }
 
-// ========== 分组查询函数（返回按状态分组的结构化数据） ==========
-
 /**
- * 获取今日任务并按状态分组（未开始/计划中/进行中） @skill-sig
+ * 获取今日任务并按状态分组（未开始/计划中/进行中） @auto-sig
  * 分组依据：status.symbol — 空格=未开始，?=计划中，/=进行中
  * 每个分组内按优先级（从高到低）和计划日期（从早到晚）排序
  *
@@ -345,7 +298,7 @@ export async function fetchTodayTasksGrouped(app) {
 }
 
 /**
- * 获取重要任务并按状态分组（未开始/计划中/进行中） @skill-sig
+ * 获取重要任务并按状态分组（未开始/计划中/进行中） @auto-sig
  * 筛选条件：优先级 >= 1 且 <= 3（即高、中、低优先级），且状态为未开始/计划中/进行中
  * 每个分组内按到期日期（从早到晚）排序
  *

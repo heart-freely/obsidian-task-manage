@@ -30,16 +30,16 @@ descriptions:
 3. 存在对应的json文件就更新。
 4. 对每个对：
     - 确保对应的json文件有内容
-    - **提取源码注释**：解析 `.cline/skills/cache/parsed_cache.json` 或实时解析源码中的 `@skill-*` 标签，构造内存中的“标准 Skill”表示（只包含 `@sync` 章节）。
+    - **提取源码注释**：解析 `.cline/skills/cache/parsed_cache.json` 或实时解析源码中的 `@auto-*` 标签，构造内存中的“标准 Skill”表示（只包含 `@sync` 章节）。
     - **读取现有 Skill 文档**：提取 `@sync` 和无标记章节（忽略 `@manual`）。
     - **逐章节对比**：比较函数签名、DOM、状态等是否完全相同。
     - **记录差异**：标记为 `仅源码新`（源码有但 Skill 缺失）、`仅 Skill 新`（Skill 有但源码注释缺失）、`冲突`（内容不同）。
 5. 输出 Markdown 表格报告：
 
 ```markdown
-| 源码文件                      | Skill 文件                     | 差异章节   | 类型 | 源码内容摘要          | Skill 内容摘要     |
-| ----------------------------- | ------------------------------ | ---------- | ---- | --------------------- | ------------------ |
-| src/panel/views/today-view.js | code/panel/views/today-view.md | @skill-sig | 冲突 | `sortTasks(priority)` | `sortTasks(order)` |
+| 源码文件                      | Skill 文件                     | 差异章节  | 类型 | 源码内容摘要          | Skill 内容摘要     |
+| ----------------------------- | ------------------------------ | --------- | ---- | --------------------- | ------------------ |
+| src/panel/views/today-view.js | code/panel/views/today-view.md | @auto-sig | 冲突 | `sortTasks(priority)` | `sortTasks(order)` |
 ```
 
 1. 提供选项：
@@ -47,7 +47,7 @@ descriptions:
     - `逐项修复`：每项单独确认。
     - `导出报告`：保存为 `.cline/consistency_report.md`。
 
-      **注意**：自动修复前会输出预览，用户确认后执行。
+        **注意**：自动修复前会输出预览，用户确认后执行。
 
 ---
 
@@ -70,8 +70,6 @@ descriptions:
 6. 输出 Markdown 表格报告，包含功能点、状态、依据，并计算完成率。
 
 7. 若用户追加 `--suggest`，输出缺失功能的代码建议（不自动写入）。
-
-   
 
 ## 三、配置项
 

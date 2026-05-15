@@ -1,74 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/bars/date-botton-bar.js
- * 描述：年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询。
- *       用户选中上级后下级才可点击（disabled 状态切换），支持多选。
- *       通过 getQueryRangeFromDateSelection 将选中项合并为一个日期范围用于查询。
- * 所属模块：panel/bars
- * 依赖：
- *   - DateUtils (common-process.js): 日期范围计算工具
- *   - CONFIG.YEAR_LIST (plugin-configs.js): 年份列表
- *   - panel.js: 全局状态 state（dateState, filterCache 等）
- * 对外导出：resetCascadeDateUI, getQueryRangeFromDateSelection, buildDateCascadePanel
- * 注意事项：与 quick-botton-bar 互斥使用；任何选中变化立即清空 filterCache.fingerprint
- * @see .cline/skills/code/panel/bars/date-botton-bar.md
- */
-
-/* @skill-sig file src/panel/bars/date-botton-bar.js - 年/季/月/周/周几五级级联日期筛选面板，支持多选及合并日期范围查询 */
-/* @skill-api
-   CONFIG.YEAR_LIST (plugin-configs.js) - 年份列表
-   DateUtils (common-process.js) - getISOWeekNumber / getWeekRangeByYearWeek / getWeekdayRange / getMonthRangeByYearMonth / getQuarterRangeByYearQuarter / getYearRangeByYear / setStart / setEnd
-   panel.js (state.dateState, state.filterCache, state.yearBtns / quarterBtns / monthBtns / weekBtns / weekdayBtns)
-*/
-/* @skill-state
-   state.dateState.selections : {
-     years:    { [year: string]: true },
-     quarters: { [key: string]: true },   // key = "YYYY-QN"
-     months:   { [key: string]: true },   // key = "YYYY-QN-MN"
-     weeks:    { [key: string]: true },   // key = "YYYY-QN-MN-WN"
-     weekdays: { [key: string]: true },   // key = "YYYY-QN-MN-WN-DN"
-   }
-   state.yearBtns / quarterBtns / monthBtns / weekBtns / weekdayBtns : HTMLElement[]
-   state.filterCache.fingerprint : string
-*/
-/* @skill-func
-   clearCascadeSelections(state) : void                          - 清空所有级联选择
-   resetCascadeDateUI(state) : void                              - 公开的级联重置接口
-   updateDateButtonStyles(state) : void                          - 刷新级联按钮样式和 disabled 状态
-   getQueryRangeFromDateSelection(state) : {start,end}|null      - 将级联选择转换为日期范围
-   buildDateCascadePanel(container, dv, state) : void            - 构建级联筛选面板 UI
-*/
-/* @skill-anchor
-   clearCascadeSelections - 清空所有级联选择（内部函数）
-   resetCascadeDateUI - 公开的级联重置接口
-   updateDateButtonStyles - 刷新级联按钮样式和 disabled 状态
-   getQueryRangeFromDateSelection - 将级联选择转换为日期范围查询对象
-   buildDateCascadePanel - 构建年/季/月/周/周几五级级联日期筛选面板
-*/
-/* @skill-dom
-   .filter-section (容器)
-   .cascade-btn / .cascade-btn-active / .cascade-btn-disabled
-   label: 年份 | 季度 | 月份 | 周数 | 周几
-   年份: 2023-2033 | 季度: 第1-4季度 | 月份: 1-12月 | 周数: 第1-4周 | 周几: 周一至周日
-*/
-/* @skill-flow
-   buildDateCascadePanel(container, dv, state)
-   创建 5 行 label+按钮 → 年份行始终可点击 → 季度/月份/周数/周几初始 disabled
-   点击年份 → 切换选中 → 唯一选中时下级启用，否则下级清空/禁用
-   点击季度 → 类似级联 → 月份只显示该季度 3 个月
-   点击月份 → 周数列出 4 周 → 点击周 → 周几列出 7 天
-   各级选中多个时下级被清空并禁用
-   getQueryRangeFromDateSelection: 从最细粒度反向合成日期范围（周几>周>月>季度>年）
-*/
-/* @skill-condition
-   上级选中数量 !== 1 → 下级全部 disabled
-   上级选中数量 === 1 → 下级 enabled
-   月份行：选中季度后仅显示该季度的 3 个月
-   getQueryRangeFromDateSelection 优先级：周几 > 周 > 月 > 季度 > 年
-   任何选中变化 → 清空 filterCache.fingerprint
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";
 
@@ -76,7 +5,7 @@ import { DateUtils } from "../../tasks/process/common-process";
  * 清除所有级联选择（重置为空白状态）
  * @param {Object} state - 全局状态对象
  */
-/* @skill-anchor: clearCascadeSelections */
+
 function clearCascadeSelections(state) {
 	state.dateState.selections = {
 		years: {},
@@ -88,8 +17,6 @@ function clearCascadeSelections(state) {
 	updateDateButtonStyles(state);
 }
 
-/** 公开的级联清除接口，供外部重置时调用 */
-/* @skill-anchor: resetCascadeDateUI */
 export function resetCascadeDateUI(state) {
 	clearCascadeSelections(state);
 }
@@ -99,18 +26,16 @@ export function resetCascadeDateUI(state) {
  * 核心逻辑：只有上层选了且仅选 1 个时，下层才可点击
  * @param {Object} state - 全局状态对象
  */
-/* @skill-anchor: updateDateButtonStyles */
+
 function updateDateButtonStyles(state) {
 	const s = state.dateState.selections;
 
-	// ── 年份按钮（始终可点击） ──
 	state.yearBtns.forEach((btn, i) => {
 		btn.className = s.years[CONFIG.YEAR_LIST[i]]
 			? "cascade-btn cascade-btn-active"
 			: "cascade-btn";
 	});
 
-	// ── 季度按钮（仅当恰好选中 1 个年份时可点击） ──
 	const yearsSel = Object.keys(s.years).length > 0;
 	const singleY =
 		yearsSel && Object.keys(s.years).length === 1
@@ -128,7 +53,6 @@ function updateDateButtonStyles(state) {
 				: "cascade-btn";
 	});
 
-	// ── 月份按钮（仅当恰好选中 1 个季度时可点击，且只显示该季度的 3 个月） ──
 	const quartersSel = Object.keys(s.quarters).length > 0;
 	const singleQ =
 		quartersSel && Object.keys(s.quarters).length === 1
@@ -157,7 +81,6 @@ function updateDateButtonStyles(state) {
 				: "cascade-btn";
 	});
 
-	// ── 周数按钮（仅当恰好选中 1 个月份时可点击） ──
 	const monthsSel = Object.keys(s.months).length > 0;
 	const singleM =
 		monthsSel && Object.keys(s.months).length === 1
@@ -175,7 +98,6 @@ function updateDateButtonStyles(state) {
 				: "cascade-btn";
 	});
 
-	// ── 周几按钮（仅当恰好选中 1 个周时可点击） ──
 	const weeksSel = Object.keys(s.weeks).length > 0;
 	const singleW =
 		weeksSel && Object.keys(s.weeks).length === 1
@@ -200,14 +122,13 @@ function updateDateButtonStyles(state) {
  * @param {Object} state - 全局状态对象
  * @returns {{ start: Date, end: Date } | null} 日期范围，无选择时返回 null
  */
-/* @skill-anchor: getQueryRangeFromDateSelection */
+
 export function getQueryRangeFromDateSelection(state) {
 	const s = state.dateState.selections;
 	const years = Object.keys(s.years);
 	if (!years.length) return null;
 	years.sort();
 
-	// 周几级别
 	const wdKeys = Object.keys(s.weekdays);
 	if (wdKeys.length) {
 		const ranges = wdKeys.map((k) => {
@@ -232,7 +153,6 @@ export function getQueryRangeFromDateSelection(state) {
 		};
 	}
 
-	// 周级别
 	const wKeys = Object.keys(s.weeks);
 	if (wKeys.length) {
 		const ranges = wKeys.map((k) => {
@@ -255,7 +175,6 @@ export function getQueryRangeFromDateSelection(state) {
 		};
 	}
 
-	// 月份级别
 	const mKeys = Object.keys(s.months);
 	if (mKeys.length) {
 		const ranges = mKeys.map((k) => {
@@ -272,7 +191,6 @@ export function getQueryRangeFromDateSelection(state) {
 		};
 	}
 
-	// 季度级别
 	const qKeys = Object.keys(s.quarters);
 	if (qKeys.length) {
 		const ranges = qKeys.map((k) => {
@@ -289,7 +207,6 @@ export function getQueryRangeFromDateSelection(state) {
 		};
 	}
 
-	// 仅年份级别（兜底）
 	const ranges = years.map((y) => DateUtils.getYearRangeByYear(+y));
 	return {
 		start: DateUtils.setStart(
@@ -306,7 +223,7 @@ export function getQueryRangeFromDateSelection(state) {
  * @param {Object} dv - Dataview 实例
  * @param {Object} state - 全局状态对象（需包含 dateState, filterCache）
  */
-/* @skill-anchor: buildDateCascadePanel */
+
 export function buildDateCascadePanel(container, dv, state) {
 	const dateSection = dv.el("div", "", { cls: "filter-section" });
 
@@ -325,7 +242,6 @@ export function buildDateCascadePanel(container, dv, state) {
 		dateSection.appendChild(row);
 	});
 
-	// ── 年份按钮 ──
 	state.yearBtns = [];
 	CONFIG.YEAR_LIST.forEach((y) => {
 		const btn = dv.el("button", y.toString(), { cls: "cascade-btn" });
@@ -346,7 +262,6 @@ export function buildDateCascadePanel(container, dv, state) {
 		state.yearBtns.push(btn);
 	});
 
-	// ── 季度按钮 ──
 	state.quarterBtns = [];
 	for (let q = 1; q <= 4; q++) {
 		(function (qq) {
@@ -378,7 +293,6 @@ export function buildDateCascadePanel(container, dv, state) {
 		})(q);
 	}
 
-	// ── 月份按钮 ──
 	state.monthBtns = [];
 	for (let m = 1; m <= 12; m++) {
 		(function (mm) {
@@ -413,7 +327,6 @@ export function buildDateCascadePanel(container, dv, state) {
 		})(m);
 	}
 
-	// ── 周数按钮 ──
 	state.weekBtns = [];
 	for (let w = 1; w <= 4; w++) {
 		(function (ww) {
@@ -442,7 +355,6 @@ export function buildDateCascadePanel(container, dv, state) {
 		})(w);
 	}
 
-	// ── 周几按钮 ──
 	state.weekdayBtns = [];
 	["周一", "周二", "周三", "周四", "周五", "周六", "周日"].forEach(
 		(wd, d) => {

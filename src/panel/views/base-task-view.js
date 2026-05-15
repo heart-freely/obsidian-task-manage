@@ -1,57 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/views/base-task-view.js
- * 描述：基础任务视图类 BaseTaskView（继承 ItemView），以及通用任务卡片创建、数据标准化工具函数
- * 所属模块：panel/views
- * 依赖：
- *   - obsidian: ItemView
- *   - configs/plugin-configs: PRIORITY_ICONS, PRIORITY_LABELS, STATUS_ICONS, STATUS_NAMES
- *   - tasks/read/read-tasks: RX（正则表达式集）
- * 对外导出：VIEW_TYPE_INBOX, BaseTaskView, createTaskCard, normalizeTaskCardData, adaptTasksApiTask
- * 注意事项：所有具体任务视图均继承 BaseTaskView；createTaskCard 创建标准任务卡片 DOM；normalizeTaskCardData 统一数据格式
- * @see .cline/skills/code/views/base-task-view.md
- */
-
-/* @skill-sig class BaseTaskView extends ItemView - 任务视图基类，所有具体任务视图均继承此类 */
-/* @skill-sig createTaskCard(task, app) → HTMLLIElement - 创建统一的任务卡片 DOM 元素，含 meta 信息行和点击跳转事件 */
-/* @skill-sig normalizeTaskCardData(raw) → object - 将原始任务数据标准化为 createTaskCard 所需的格式 */
-/* @skill-sig adaptTasksApiTask(task) → task - 适配 Tasks 插件 API 返回的任务对象，解析自定义字段（id/forbid/tag/repeat/priority） */
-
-/* @skill-dom
-   li.task-item[data-path][data-line]
-     div.task-desc   // 任务描述（加粗）
-     div.task-meta   // meta 信息行（状态、优先级、循环、日期、ID、引用、标签、文件名）
-*/
-
-/* @skill-state
-  _cleanupFn : function|null        // 视图清理函数（在 onClose 或重新渲染时调用）
-  _storageAdapter : StorageAdapter   // 持久化存储适配器
-  _instanceId : string               // 视图实例唯一 ID
-  无 UI 级内部状态（纯展示视图）
-*/
-
-/* @skill-flow
-       onOpen() → 检查 Dataview 插件 → 创建 dv 适配器对象 → this.contentEl.empty() → await this._startCore(dv, this.app, ...)
-       createTaskCard(task, app) → 解析优先级/状态 → 拼接 meta 行 → 创建 li 元素 → 绑定 click 事件（跳转到任务行） → 返回 li
-       normalizeTaskCardData(raw) → 映射 description/priority/status/recurrenceLabel/scheduled/start/due/tags/id/forbid/fileName/path/lineNumber → 返回标准化对象
-       adaptTasksApiTask(task) → 构造 _fullLine → 正则解析 _id / _forbid / _tag / _repeat / _priorityIcon → 合并 tags → 返回 task
-*/
-
-/* @skill-condition
-       若 Dataview 插件未加载 → 显示提示信息并直接返回
-       若已加载 → 创建 dv 适配器（包含 pages / page / el 方法），执行子类 _startCore
-*/
-
-/* @skill-api
-  ItemView (obsidian)
-  this.app.plugins.plugins.dataview
-  this.app.workspace.getLeaf()
-  this.app.vault.getAbstractFileByPath()
-  this.contentEl.createEl / empty
-  PRIORITY_ICONS, PRIORITY_LABELS, STATUS_ICONS, STATUS_NAMES (plugin-configs)
-  RX (read-tasks)
-*/
-/* <!-- SYNC_COMMENTS_END --> */
 import { ItemView } from "obsidian";
 import {
 	PRIORITY_ICONS,
@@ -62,8 +8,6 @@ import {
 import { RX } from "../../tasks/read/read-tasks";
 
 export class BaseTaskView extends ItemView {
-	/* @skill-sig constructor(leaf, storageAdapter, instanceId) - 初始化基类视图，保存存储适配器和实例 ID */
-
 	constructor(leaf, storageAdapter, instanceId) {
 		super(leaf);
 		this._cleanupFn = null;
@@ -80,13 +24,11 @@ export class BaseTaskView extends ItemView {
 		return "bar-chart-3";
 	}
 
-	/* @skill-sig async onOpen() : void - 视图打开时自动调用：初始化 Dataview API 适配器 dv，清空容器，调用 _startCore */
-
-	/* @skill-flow
+	/* @auto-flow
        onOpen() → 检查 Dataview 插件 → 创建 dv 适配器对象 → this.contentEl.empty() → await this._startCore(dv, this.app, ...)
     */
 
-	/* @skill-condition
+	/* @auto-condition
        若 Dataview 插件未加载 → 显示提示信息并直接返回
        若已加载 → 创建 dv 适配器（包含 pages / page / el 方法），执行子类 _startCore
     */
@@ -135,21 +77,17 @@ export class BaseTaskView extends ItemView {
 		);
 	}
 
-	async onClose() {
-		/* 可扩展 */
-	}
+	async onClose() {}
 	async _startCore(dv, app, storageAdapter, instanceId) {
 		throw new Error("Must override _startCore");
 	}
 }
 
-/* @skill-func createTaskCard(task, app) → HTMLLIElement - 创建统一的任务卡片 DOM 元素，含 meta 信息行和点击跳转事件 */
-
-/* @skill-flow
+/* @auto-flow
    createTaskCard(task, app) → 解析优先级/状态 → 拼接 meta 行 → 创建 li 元素 → 绑定 click 事件（跳转到任务行） → 返回 li
 */
 
-/* @skill-dom
+/* @auto-dom
    li.task-item[data-path][data-line]
      div.task-desc   // 任务描述（加粗）
      div.task-meta   // meta 信息行（状态、优先级、循环、日期、ID、引用、标签、文件名）
@@ -168,7 +106,6 @@ export function createTaskCard(task, app) {
 		statusName = STATUS_NAMES[statusKey] || "未开始";
 	}
 
-	// 修改后的 meta 顺序：状态、优先级、循环、日期、ID、引用、标签、文件名
 	const meta = [
 		`<span>${statusIcon} ${statusName}</span>`,
 		prioIcon
@@ -222,9 +159,7 @@ export function createTaskCard(task, app) {
 	return li;
 }
 
-/* @skill-func normalizeTaskCardData(raw) → object - 将原始任务数据标准化为 createTaskCard 所需的格式 */
-
-/* @skill-flow
+/* @auto-flow
    normalizeTaskCardData(raw) → 映射 description/priority/status/recurrenceLabel/scheduled/start/due/tags/id/forbid/fileName/path/lineNumber → 返回标准化对象
 */
 
@@ -254,9 +189,7 @@ function mapStatusTextToKey(statusText) {
 	return map[statusText] || "todo";
 }
 
-/* @skill-func adaptTasksApiTask(task) → task - 适配 Tasks 插件 API 返回的任务对象，解析自定义字段（id/forbid/tag/repeat/priority） */
-
-/* @skill-flow
+/* @auto-flow
    adaptTasksApiTask(task) → 构造 _fullLine → 正则解析 _id / _forbid / _tag / _repeat / _priorityIcon → 合并 tags → 返回 task
 */
 

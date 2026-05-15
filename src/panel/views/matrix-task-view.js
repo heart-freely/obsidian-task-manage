@@ -1,64 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/views/matrix-task-view.js
- * 描述：艾森豪威尔矩阵视图，按紧急/重要四象限展示任务，支持状态过滤、排序和路径筛选
- * 所属模块：panel/views
- * 依赖：
- *   - matrix-task-process: 任务获取(fetchRawTasks)、四象限分类(processTasks)、排序(sortTasks)
- *   - base-task-view: 标准任务卡片生成(createTaskCard)和数据标准化(normalizeTaskCardData)
- * 对外导出：startMatrixView
- * 注意事项：此视图依赖 Obsidian Tasks 插件获取原始数据，无 Tasks 时显示错误提示
- * @see .cline/skills/code/views/matrix-task-view.md
- */
-
-/* @skill-sig function startMatrixView(app, container, leftSort, state) : ViewController - 启动艾森豪威尔矩阵视图 */
-
-/* @skill-state
-  hideRecurring          : boolean              // 是否隐藏重复任务
-  cachedRawTasks         : Array|null            // 缓存原始任务数据
-  cachedQuadrantsData    : Array<Array<Task>>    // 四象限分类后的数据缓存
-  currentSort            : {type, order}         // 当前排序规则
-  currentState           : Object|null           // 当前全局状态快照
-  currentFilterRootPath  : string|null           // 路径过滤条件
-*/
-
-/* @skill-dom matrix 视图 DOM 结构
-  .matrix-view (container)
-    .control-bar
-    .view-grid.cols-2
-      .view-col (x4)
-        .col-header
-          span (象限名称)
-          span.task-count
-        ul.task-list
-          li.empty-placeholder (或无任务提示)
-          li.task-item (对每个任务)
-            .task-check
-            .task-desc
-*/
-
-/* @skill-flow
-  数据加载 → fetchRawTasks(app) → processTasks() → cachedQuadrantsData → renderMatrix()
-  排序变更 → updateSort(newSort) → renderMatrix()
-  状态变更 → update({state}) → 更新过滤条件 → renderMatrix()
-  路径过滤 → 检查 currentFilterRootPath → 过滤 quadrantsData → renderMatrix()
-*/
-
-/* @skill-condition
-  若无缓存数据(cachedQuadrantsData为空) → 不渲染
-  若设置了 currentFilterRootPath → 过滤任务路径前缀匹配
-  若 quadrant 中无任务 → 显示空状态提示
-*/
-
-/* @skill-api
-  fetchRawTasks(app)                 // 从 Obsidian Tasks 插件获取原始任务
-  processTasks(rawTasks, hideRecurring)  // 将任务分类到四个象限
-  sortTasks(tasks, currentSort)      // 按规则排序
-  normalizeTaskCardData(taskData)    // 标准化任务数据为卡片格式
-  createTaskCard(cardData, app)      // 生成任务卡片 DOM
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import {
 	fetchRawTasks,
 	processTasks,
@@ -82,7 +21,6 @@ export async function startMatrixView(app, container, leftSort, state = {}) {
 	let currentState = null;
 	let currentFilterRootPath = null;
 
-	// 四象限配置：名称、背景颜色、空状态提示文案
 	const QUADRANTS = [
 		{
 			name: "🔺 紧急与重要",
@@ -137,7 +75,6 @@ export async function startMatrixView(app, container, leftSort, state = {}) {
 		);
 		container.innerHTML = "";
 
-		// 顶部控制栏：显示总任务数和当前状态过滤信息
 		const controlBar = document.createElement("div");
 		controlBar.className = "control-bar";
 		const total = sortedData.flat().length;

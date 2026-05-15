@@ -1,10 +1,10 @@
 ---
 name: 更新skills
-description: 基于 skills-index.json 生成 skills.md 中的project文件树、skills文件树、双向同步触发词列表、编码触发词列表以及生成配置与缓存文件表。若 autoUpdateIndex 为 true 且索引缺失，自动调用 update-index.md。
+description: 基于 skills-index.json 生成 skills.md 中的源码与文档映射表、双向同步触发词列表以及生成配置文件表，缓存文件表。若 autoUpdateIndex 为 true 且索引缺失，自动调用 update-index.md。
 triggers:
-  - 更新skills|刷新skills|同步skills|生成skills
+    - 更新skills|刷新skills|同步skills|生成skills
 descriptions:
-  - 更新项目文件索引和skills文件索引
+    - 更新项目文件索引和skills文件索引
 ---
 
 # 更新skills Skill
@@ -43,89 +43,58 @@ descriptions:
 2. 修改需要更新的段落，替换标记之间的内容（保留标记本身）。
 3. **输出预览**，显示将要替换的段落内容，用户确认后写入。
 
-### 更新project文件树
+### 更新源码与文档映射表
 
-根据前面读取的.cline/skills/skills-index.json获取project文件树信息,获取到最底层js文件。
+根据前面读取的.cline/skills/skills-index.json获取src文件路径信息,docs文件路径信息。
 
-- 生成project文件树
+- src文件夹下
+    - 忽略所有以点开头的文件夹，如：.cline,.github.vscode
 
-  - 忽略所有以点开头的文件夹，如：.cline,.github.vscode
+    - 忽略所有以点开头的文件，如：.clineignore,.editorconfig.gitignore,.npmrc
 
-  - 忽略所有以点开头的文件，如：.clineignore,.editorconfig.gitignore,.npmrc
+    - 忽略所有.config配置文件，如：jest.config.js,jest.setup.js
 
-  - 忽略所有.config配置文件，如：jest.config.js,jest.setup.js
+    - 忽略所有编译临时文件，如：obsidian-task-manage\main.js
 
-  - 忽略所有编译临时文件，如：obsidian-task-manage\main.js
+    - 忽略所有环境配置文件，如：node_modules
 
-  - 忽略所有环境配置文件，如：node_modules
+    - 忽略所有脚本文件，如：scripts
 
-  - 忽略所有脚本文件，如：scripts
+      以下为模板示例
 
+- docs文件夹下
 
-以下为模板示例
+    - 忽略所有json文件
 
-````markdown
-<!-- SYNC_PROJECT_START -->
-
-# project文件树
-
-```text
-root/
-├── main.js                         # 构建产物
-├── manifest.json                   # 插件清单
-├── styles.css                      # 全局样式
-├── src/
-│   ├── main.js                     # 插件入口：注册所有视图、命令，启动数据加载
-│   ├── configs/
-│   │   └── plugin-configs.js       # 全局常量：文件夹路径
-│   ├── panel/
-│   │   ├── panel.js                # 导航中心 ItemView：
-│   │   ├── bars/                   # UI 按钮栏组件
-│   │   │   ├── date-botton-bar.js     # 日期级联选择器（年/季/月/周/日）
-│   │   │   ├── hide-botton-bar.js     # 筛选面板与任务树的显示/隐藏
-│   │   ├── components/
-│   │   │   └── tree-view-components.js # 可复用的任务树组件
-│   │   ├── interacts/
-│   │   │   ├── chart-interact.js      # 图表缩放/拖拽交互
-│   │   │   └── tooltip-interact.js    # 通用 Tooltip 管理器
-│   │   └── views/                     # 所有子视图（均继承 BaseTaskView）
-│   │       ├── base-task-view.js
-│   ├── echarts/
-│   │   └── echarts.js                 # ECharts 本地封装
-│   └── utils/
-│       └── logger.js                  # 日志工具（生产环境静默）
-└── skills/                            # AI 开发引用文件（本项目知识库）
-```
-
-<!-- SYNC_PROJECT_END -->
-````
-
-### 更新skills文件树
-
-根据前面读取的.cline/skills/skills-index.json获取skills文件树信息
-
-生成skills文件树
-
-以下为模板示例
 
 ````markdown
-<!-- SYNC_FILES_START -->
+<!-- SYNC_MAP_START -->
 
-# skills文件树
+# 源码与文档映射表
+| src 源码路径 | docs 文档路径 |
+|:---|:---|
+| `src/configs/plugin-configs.js` | `docs/configs/plugin-configs.md` |
+| `src/echarts/echarts.js` | `docs/echarts/echarts.md` |
+| `src/main.js` | `docs/main.md` |
+| `src/storages/persist-storages.js` | `docs/storage/persist-storages.md` |
+| `src/utils/logger.js` | `docs/utils/logger.md` |
+| `src/panel/panel.js` | `docs/panel/panel.md` |
+| `src/panel/bars/control-botton-bar.js` | `docs/panel/bars/control-botton-bar.md` |
+| `src/panel/bars/date-botton-bar.js` | `docs/panel/bars/date-botton-bar.md` |
+| ⋯ (bars/ 其余5个文件省略) | |
+| `src/panel/components/tree-view-components.js` | `docs/panel/components/tree-view-components.md` |
+| `src/panel/interacts/chart-interact.js` | `docs/panel/interacts/chart-interact.md` |
+| `src/panel/interacts/tooltip-interact.js` | `docs/panel/interacts/tooltip-interact.md` |
+| `src/panel/views/base-list-view.js` | `docs/panel/views/base-list-view.md` |
+| `src/panel/views/base-table-view.js` | `docs/panel/views/base-table-view.md` |
+| ⋯ (views/ 其余21个文件省略) | |
+| `src/tasks/process/calcul-chart-process.js` | `docs/tasks/process/calcul-chart-process.md` |
+| `src/tasks/process/common-process.js` | `docs/tasks/process/common-process.md` |
+| ⋯ (process/ 其余8个文件省略) | |
+| `src/tasks/read/read-tasks.js` | `docs/tasks/read/read-tasks.md` |
+| `src/tasks/write/write-tasks.js` | `docs/tasks/write/write-tasks.md` |
 
-```text
-root/
-├── archive                        # 注释
-├── code
-├── snapshots
-├── sync
-│   ├── update-index.md            # 注释
-├── ...
-├── skills.md
-├── skills-index.json
-```
-
-<!-- SYNC_FILES_END -->
+<!-- SYNC_MAP_END -->
 ````
 
 ### 更新双向同步触发词列表
@@ -133,22 +102,19 @@ root/
 根据前面读取的.cline/skills/skills-index.json获取触发词信息
 
 1. **读取索引**：解析 `skills-index.json`，获取所有技能的元数据。
+    - 遍历skills-index.json中的所有"category"找出含有路径`sync`的项。
+        - 对于每个项
+            - 如果存在 `triggerGroups` 字段且不为空，则：
+                - 输出一行：`{path的文件名部分}`
 
-   - 遍历skills-index.json中的所有"category"找出含有路径`sync`的项。
-       - 对于每个项
-           - 如果存在 `triggerGroups` 字段且不为空，则：
-               - 输出一行：`{path的文件名部分}`
-
-           - 对每个 `triggerGroup`，输出一行：`执行触发词操作：{将 triggers 字段中的 `|` 替换为“ 或 ”}（{description}）（{path}）`
+            - 对每个 `triggerGroup`，输出一行：`执行触发词操作：{将 triggers 字段中的 `|` 替换为“ 或 ”}（{description}）（{path}）`
 
 2. 生成技能触发词列表
+    - 不同文件的技能之间用`## {path的文件名部分}`分隔。
 
-   - 不同文件的技能之间用`## {path的文件名部分}`分隔。
-
-   - 每一行触发词使用纯文本，不要带MD标记
+    - 每一行触发词使用纯文本，不要带MD标记
 
 3. 注意：只输出那些有操作描述的技能（即 YAML 中定义了 `descriptions` 的技能），视图技能等没有描述的不输出。
-
 
 以下为模板示例
 
@@ -174,68 +140,36 @@ root/
 <!-- SYNC_FILES_END -->
 ```
 
+<!-- SYNC_CONFIG_START -->
 
-
-### 更新编码触发词列表
-
-根据前面读取的.cline/skills/skills-index.json获取触发词信息
-
-1. **读取索引**：解析 `skills-index.json`，获取所有技能的元数据。
-
-   - 遍历skills-index.json中的所有"category"找出含有路径`code`的项。
-     - 对于每个项
-       - 如果存在 `triggerGroups` 字段且不为空，则：
-         - 输出一行：`{path的文件名部分}`
-
-       - 对每个 `triggerGroup`，输出一行：`执行触发词操作：{将 triggers 字段中的 `|` 替换为“ 或 ”}（{description}）（{path}）`
-
-2. 生成技能触发词列表
-
-   - 不同文件的技能之间用`## {path的文件名部分}`分隔。
-
-   - 每一行触发词使用纯文本，不要带MD标记
-
-3. 注意：只输出那些有操作描述的技能（即 YAML 中定义了 `descriptions` 的技能），视图技能等没有描述的不输出。
-
-
-以下为模板示例
-
-```markdown
-<!-- SYNC_CODES_START -->
-
-# 编码触发词列表
-
-## inbox-task-view.md.md
-
-执行触发词操作：修改收件箱视图（.cline/skills/code/panel/views/inbox-task-view.md）
-执行触发词操作：调整任务收集逻辑（.cline/skills/code/panel/views/inbox-task-view.md）
-执行触发词操作：添加过滤或排序（.cline/skills/code/panel/views/inbox-task-view.md）
-
-## kanban-task-view.md.md
-
-...
-
-## matrix-task-view.md.md
-
-...
-
-
-<!-- SYNC_CODES_END -->
-```
-
-### 更新配置与缓存文件表
+### 更新配置文件表
 
 - 直接输出固定内容（这些文件路径和用途稳定，无需动态读取）：
 
 ```markdown
-| 文件                      | 用途                                                   | 维护方式         |
-| ------------------------- | ------------------------------------------------------ | ---------------- |
-| `skills-index.json`       | 所有技能的元数据（路径、名称、触发词、版本、修改时间） | AI 自动生成/更新 |
-| `sync/sync_config.json`   | 同步行为的配置（仲裁规则、自动快照、索引更新等）       | 人工手动编辑     |
-| `snapshots/index.json`    | 快照文件的索引（文件名、时间戳、主题、决策）           | AI 自动维护      |
-| `cache/sync_state.json`   | 上次同步状态的记录（commit hash、文件 mtime）          | AI 自动读写      |
-| `cache/code_cache.json` | 源码中锚点（`@skill-anchor`）的位置缓存,源码中 `@skill-*` 注释的解析结果缓存          | AI 自动读写      |
+| 文件                    | 用途                                                                       | 维护方式         |
+| ----------------------- | -------------------------------------------------------------------------- | ---------------- |
+| `sync/sync_config.json` | 同步行为的配置（仲裁规则、自动快照、索引更新等）                           | 人工手动编辑     |
+| `cache/sync_state.json` | 上次同步状态的记录（commit hash、文件 mtime）                              | AI 自动读写      |
 ```
+
+<!-- SYNC_CONFIG_END -->
+
+<!-- SYNC_CACHE_START -->
+
+### 更新缓存文件表
+
+- 直接输出固定内容（这些文件路径和用途稳定，无需动态读取）：
+
+```markdown
+| 文件                    | 用途                                                                       | 维护方式         |
+| ----------------------- | -------------------------------------------------------------------------- | ---------------- |
+| `skills-index.json`     | 所有技能的元数据（路径、名称、触发词、版本、修改时间）                     | AI 自动生成/更新 |
+| `snapshots/index.json`  | 快照文件的索引（文件名、时间戳、主题、决策）                               | AI 自动维护      |
+| `cache/code_cache.json` | 源码中锚点（`@auto-anchor`）的位置缓存,源码中 `@auto-*` 注释的解析结果缓存 | AI 自动读写      |
+```
+
+<!-- SYNC_CACHE_END -->
 
 ## 配置项（`.cline/skills/sync/sync_config.json`）
 

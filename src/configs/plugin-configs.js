@@ -1,46 +1,15 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/configs/plugin-configs.js
- * 描述：插件核心常量和配置定义，包括任务文件夹、状态、优先级、循环、日期标记等配置
- * 所属模块：configs
- * 依赖：无
- * 对外导出：所有命名导出常量 + CONFIG 和 DEFAULT_SETTINGS
- * 注意事项：所有常量应避免运行时修改，CONFIG 为运行时聚合配置，DEFAULT_SETTINGS 为用户自定义默认值
- * @see .cline/skills/code/configs/plugin-configs.md
- */
-
-/* @skill-state 无（纯常量定义，无运行时状态） */
-
-/* @skill-global-state
-CONFIG = {
-  TASK_FOLDERS, STATUS_*, PRIORITY_*, REPEAT_*, DATE_MARK_*, ...
-}
-DEFAULT_SETTINGS = {
-  TASK_FOLDERS, STATUS_COLORS, PRIORITY_ORDER, ...
-}
-*/
-
-/* <!-- SYNC_COMMENTS_END --> */
-
-/** 任务文件所在文件夹路径数组 */
 export const TASK_FOLDERS = ['"pages/A 系统/A 任务系统"'];
 
-/** 任务文件名匹配正则 */
 export const FILE_NAME_PATTERN = /任务$/;
 
-/** 任务根路径 */
 export const ROOT_PATH = "pages/A 系统/A 任务系统/";
 
-/** 任务文件夹路径 */
 export const TASK_FOLDER_PATH = "pages/A 系统/A 任务系统";
 
-/** 任务文件名的正则表达式字符串形式 */
 export const TASK_FILENAME_REGEX_TASKS = "/.*任务\\.md$/";
 
-/** 任务文件名的正则表达式对象 */
 export const TASK_FILENAME_REGEXP = /.*任务\.md$/;
 
-/** 允许的任务状态列表 */
 export const ALLOWED_STATUSES = [
 	"todo",
 	"planned",
@@ -49,7 +18,6 @@ export const ALLOWED_STATUSES = [
 	"cancelled",
 ];
 
-/** 状态名称映射：英文标识 → 中文名称 */
 export const STATUS_NAMES = {
 	todo: "未开始",
 	planned: "计划中",
@@ -58,7 +26,6 @@ export const STATUS_NAMES = {
 	cancelled: "已取消",
 };
 
-/** 状态图标映射：英文标识 → 图标字符 */
 export const STATUS_ICONS = {
 	todo: "🔲",
 	planned: "❔",
@@ -67,7 +34,6 @@ export const STATUS_ICONS = {
 	cancelled: "❎",
 };
 
-/** 状态排序顺序 */
 export const STATUS_SORT_ORDER = [
 	"todo",
 	"planned",
@@ -76,7 +42,6 @@ export const STATUS_SORT_ORDER = [
 	"cancelled",
 ];
 
-/** 任务标记符号到状态的映射 */
 export const STATUS_SYMBOL_MAP = {
 	" ": "todo",
 	"?": "planned",
@@ -86,10 +51,8 @@ export const STATUS_SYMBOL_MAP = {
 	"-": "cancelled",
 };
 
-/** 优先级排序顺序（从低到高） */
 export const PRIORITY_ORDER = ["⏬", "🔽", "🔼", "⏫", "🔺"];
 
-/** 优先级颜色映射（与 PRIORITY_ORDER 一一对应） */
 export const PRIORITY_COLORS = [
 	"#98c379",
 	"#61afef",
@@ -98,7 +61,6 @@ export const PRIORITY_COLORS = [
 	"#c3393e",
 ];
 
-/** 优先级图标映射：优先级数值 → 图标 */
 export const PRIORITY_ICONS = {
 	0: "🔺",
 	1: "⏫",
@@ -108,7 +70,6 @@ export const PRIORITY_ICONS = {
 	none: "",
 };
 
-/** 优先级标签映射：优先级数值 → 中文/英文标签 */
 export const PRIORITY_LABELS = {
 	0: "Highest|最高",
 	1: "High|高",
@@ -118,7 +79,6 @@ export const PRIORITY_LABELS = {
 	none: "None|无",
 };
 
-/** 优先级名称映射：优先级数值 → 简短名称 */
 export const PRIORITY_NAME_MAP = {
 	0: "VH🔺",
 	1: "H⏫",
@@ -128,7 +88,6 @@ export const PRIORITY_NAME_MAP = {
 	none: "NON",
 };
 
-/** 循环类型排序顺序 */
 export const REPEAT_ORDER = [
 	"every day",
 	"every week",
@@ -136,13 +95,10 @@ export const REPEAT_ORDER = [
 	"every year",
 ];
 
-/** 循环类型颜色映射（与 REPEAT_ORDER 一一对应） */
 export const REPEAT_COLORS = ["#a0c4ff", "#9bf6ff", "#ffd6a5", "#fdffb6"];
 
-/** 循环图标 */
 export const REPEAT_ICON = "🔁";
 
-/** 循环标签映射 */
 export const REPEAT_LABELS = {
 	day: "每天",
 	week: "每周",
@@ -150,7 +106,6 @@ export const REPEAT_LABELS = {
 	year: "每年",
 };
 
-/** 日期标记类型排序顺序 */
 export const DATE_MARK_ORDER = [
 	"created",
 	"scheduled",
@@ -160,7 +115,6 @@ export const DATE_MARK_ORDER = [
 	"cancel",
 ];
 
-/** 日期标记图标映射：标记类型 → 图标 */
 export const DATE_MARK_ICONS = {
 	created: "➕",
 	scheduled: "⏳",
@@ -170,7 +124,6 @@ export const DATE_MARK_ICONS = {
 	cancel: "❌",
 };
 
-/** 日期标记名称映射：标记类型 → 带图标的中文名称 */
 export const DATE_MARK_NAMES = {
 	created: "➕ 创建",
 	scheduled: "⏳ 计划",
@@ -180,7 +133,6 @@ export const DATE_MARK_NAMES = {
 	cancel: "❌ 取消",
 };
 
-/** 日期字段排序顺序 */
 export const DATE_FIELD_SORT_ORDER = [
 	"created",
 	"starts",
@@ -190,16 +142,12 @@ export const DATE_FIELD_SORT_ORDER = [
 	"done",
 ];
 
-/** 唯一 ID 图标 */
 export const ID_ICON = "🆔";
 
-/** 依赖图标 */
 export const DEPENDS_ICON = "⛔";
 
-/** 标签图标 */
 export const TAG_ICON = "🏁";
 
-/** 任务标记序列（解析和渲染顺序） */
 export const TASK_MARK_SEQUENCE = [
 	"status",
 	"description",
@@ -216,7 +164,6 @@ export const TASK_MARK_SEQUENCE = [
 	"tag",
 ];
 
-/** 标记名称映射：标记键名 → 中文名称 */
 export const MARK_NAMES = {
 	priority: "优先级",
 	repeat: "循环",
@@ -231,7 +178,6 @@ export const MARK_NAMES = {
 	forbid: "引用ID",
 };
 
-/** 所有标记键名列表 */
 export const ALL_MARKS = Object.keys(MARK_NAMES);
 
 /**
@@ -339,20 +285,6 @@ export const CONFIG = {
 	},
 };
 
-/**
- * 用户自定义默认设置
- * 用于插件的 Settings 初始化，用户可在设置界面中修改
- * @type {Object}
- * @property {string[]} TASK_FOLDERS - 任务文件夹列表
- * @property {string} ROOT_PATH - 任务根路径
- * @property {number} WORK_HOURS_PER_DAY - 每天工作小时数
- * @property {Object} STATUS_COLORS - 状态颜色映射
- * @property {string[]} PRIORITY_ORDER - 优先级排序顺序
- * @property {string[]} PRIORITY_COLORS - 优先级颜色映射
- * @property {string[]} REPEAT_COLORS - 循环类型颜色映射
- * @property {string[]} DATE_MARK_COLORS - 日期标记颜色数组
- * @property {number[]} YEAR_LIST - 年份列表
- */
 export const DEFAULT_SETTINGS = {
 	TASK_FOLDERS,
 	ROOT_PATH,

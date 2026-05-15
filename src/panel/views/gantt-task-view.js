@@ -1,246 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/views/gantt-task-view.js
- * 描述：甘特图视图，以甘特图形式展示任务时间线，支持缩放、拖拽、折叠文件夹和任务依赖箭头
- * 所属模块：panel/views
- * 依赖：
- *   - base-task-view: 基础视图类
- *   - read-tasks: 任务读取接口
- *   - common-process.DateUtils: 日期工具函数
- *   - plugin-configs: 全局配置
- * 对外导出：GanttTaskView 类、startGanttView 函数
- * 注意事项：
- *   - 使用 Canvas 2D 绘制，支持虚拟滚动
- *   - 依赖关系通过 _forbid 字段解析，绘制箭头
- *   - 支持 Alt+滚轮缩放、拖拽平移、左侧栏拖拽调整宽度
- * @see .cline/skills/code/views/gantt-task-view.md
- */
-
-/* @skill-sig function startGanttView(dv, app, container, globalState) : ViewController - 启动甘特图视图 */
-
-/* @skill-segment class GanttTaskView - 甘特图视图类，继承 BaseTaskView */
-
-/* @skill-route _startCore -> startGanttView - 核心启动路由 */
-
-/* @skill-state
-  gs 全局状态对象（模块级单例）:
-    wrapper       : HTMLElement   // 甘特图外层容器
-    canvas        : HTMLCanvas    // 绘图画布
-    ctx           : CanvasRenderingContext2D
-    rowH          : number (26)   // 行高
-    headerH       : number (24)   // 顶部日期标签高度
-    leftW         : number (300)  // 左侧树面板宽度
-    scale         : number (1)    // 时间轴缩放比例
-    offsetX       : number (0)    // 时间轴水平偏移
-    scrollTop     : number (0)    // 虚拟滚动偏移
-    flatNodes     : Array         // 展平后的树节点列表
-    ganttTasks    : Array         // 甘特图任务条数据
-    minTime       : number        // 时间轴起始时间戳
-    maxTime       : number        // 时间轴结束时间戳
-    timeToX       : Function      // 时间 → x 坐标映射函数
-    tooltip       : HTMLElement   // 悬浮提示元素
-    collapsed     : Set           // 已折叠的文件夹路径集合
-    theme         : Object|null   // 缓存的主题样式
-    barPath       : Path2D|null   // 缓存的圆角条路径
-    resizeObs     : ResizeObserver|null
-    isResizing    : boolean       // 是否正在拖拽调整左栏宽度
-    isDragging    : boolean       // 是否正在拖拽平移时间轴
-    lastDragX     : number        // 上次拖拽鼠标 X 坐标
-*/
-
-/* @skill-constant STATUS_COLORS - 不同状态对应的十六进制颜色值 */
-
-/* @skill-flow gantt 视图完整流程
-  入口 → startGanttView()
-    → injectStyle() 注入动态样式
-    → 构建工具栏 + wrapper + canvas + tooltip DOM
-    → 注册各种事件监听器
-    → render() 循环：
-      → readTasks.getAllTasks() 获取全量任务
-      → 应用过滤器（日期/状态/标记/重复/已完成/已取消）
-      → buildTree() 构建文件路径树
-      → sortNodes() 排序
-      → flatten() 展平并应用折叠状态
-      → prepareTasks() 提取有时间区间的任务条
-      → 计算 minTime/maxTime
-      → resize() 调整画布尺寸 + draw() 绘制
-*/
-
-/* @skill-flow render 主渲染循环
-  1. 获取排序和区间模式配置
-  2. getAllTasks 获取全量任务 → 应用过滤器
-  3. buildTree → sortNodes → flatten → prepareTasks
-  4. 计算时间轴范围（minTime/maxTime）
-  5. resize → draw
-*/
-
-/* @skill-flow 入口流程
-  1. injectStyle → 注入全局样式
-  2. 构建工具栏（折叠/展开文件夹按钮）
-  3. 构建滚动容器 + Canvas
-  4. 构建 tooltip DOM（fixed 绝对定位）
-  5. 注册事件：
-    - canvas click → onCanvasClick
-    - canvas mousemove → onMouseMove
-    - canvas mousedown → 开始拖拽（左栏宽度 或 时间轴平移）
-    - window mousemove → 拖拽中
-    - window mouseup → 结束拖拽
-    - canvas wheel（Alt）→ 缩放
-    - wrapper scroll → 虚拟滚动更新
-    - ResizeObserver → 自适应
-  6. 默认设为本周 → 首次 render
-*/
-
-/* @skill-dom gantt 视图 DOM 结构
-  .gantt-root
-    .gantt-toolbar
-      button (折叠/展开文件夹按钮)
-    .gantt-wrapper (滚动容器)
-      canvas.gantt-canvas (直接绘制)
-    .gantt-tooltip (fixed 定位的悬浮提示)
-*/
-
-/* @skill-dom draw - Canvas 绘制流程
-  1. 清空画布
-  2. 分区背景（左侧灰、右侧白）、分割线
-  3. 左侧树节点文字（虚拟滚动优化）
-  4. 周网格线
-  5. 今日竖线（黄色虚线）
-  6. 任务条（圆角矩形 + 时长标签）
-  7. 依赖箭头（折线 + 箭头三角形）
-  8. 顶部日期标签
-*/
-
-/* @skill-helpers
-  getInterval(task, mode)       // 提取任务时间区间 {start, end}
-  buildTree(tasks, dv)          // 按文件路径构建树
-  sortNodes(nodes, sort)        // 递归排序节点
-  flatten(nodes, level, out, collapsed) // 展平树，应用折叠
-  prepareTasks(flat, mode)      // 从展平节点中提取甘特条
-  ensureTheme()                 // 缓存 CSS 变量主题
-  updateTimeScale()             // 更新 time→x 映射
-  formatDur(ms)                 // 毫秒 → 人类可读时长
-  isToday(task)                 // 任务是否在今天
-  resize()                      // 调整画布尺寸
-  draw()                        // 主绘制函数
-  onCanvasClick(e, app, refresh)// 画布点击处理
-  onMouseMove(e)                // 鼠标移动 → 悬浮提示
-  render(dv, app, globalState)  // 主渲染循环
-*/
-
-/* @skill-event onCanvasClick - 画布点击事件
-  - 左侧树区域：文件夹/文件行 → 展开/折叠；任务行 → 打开文件
-  - 其他区域：忽略
-*/
-
-/* @skill-event onMouseMove - 鼠标移动 → 悬浮提示
-  - 时间轴区域 → 检测鼠标是否悬停在任务条上
-  - 左侧树区域 → 计算对应行号 → 获取 task 类型节点
-  - 找到目标 → 调用 ensureTaskProperties 填充 _tooltip → 显示提示
-*/
-
-/* @skill-query - 从展平节点中提取有时间区间标记的任务条数据 */
-
-/* @skill-condition series - 甘特图条件描述合集:
-
-  getInterval:
-    mode="starts-done" → 使用 _starts 和 _done||_due 构建区间
-    mode="scheduled-due" → 使用 _scheduled 和 _due 构建区间
-    缺少日期 → 返回 null（该任务不显示条）
-
-  buildTree:
-    1. 按 path 分组任务 (Map<path, tasks[]>)
-    2. 使用 dv.page(path) 获取文件元信息
-    3. 去掉 ROOT_PATH 前缀，按 / 分割路径片段
-    4. 逐层构建树：非末级创建 folder 节点，末级创建 file 节点
-    5. 返回根节点数组
-
-  sortNodes:
-    同级排序：文件夹 > 文件，名称字典序
-    文件内任务排序：
-      sort.type="status" → 自定义状态顺序映射
-      sort.type="priority" → 优先级图标映射数值
-      sort.type="date" → 按 _scheduled/_due/_starts/_created 中最早日期排序
-    sort.order="asc"/"desc" 控制方向
-
-  flatten - 深度优先展平树:
-    文件夹节点 → 自身入列；未折叠时递归子节点
-    文件节点 → 自身入列；未折叠时子任务入列（类型为 task）
-    每个节点记录 level 缩进层级
-
-  ensureTheme:
-    theme 已缓存 → 直接返回
-    首次调用 → 读取 CSS 变量，缓存到 gs.theme
-    barPath 未创建 → 用 Path2D 构建圆角矩形路径
-
-  updateTimeScale:
-    时间 → X 坐标映射：
-    chartW = canvas宽度 - leftW - 边距
-    startX = leftW + 边距 + offsetX（拖拽偏移）
-    t → x = startX + ((t - minTime) / range) * chartW * scale
-
-  draw - 虚拟滚动：只绘制可视区域内的行 ±2 行缓冲
-
-  draw - 依赖箭头绘制:
-    遍历每个任务 → 解析 _forbid 字段 → 按逗号拆分依赖 ID
-    对每个依赖 ID → 在 flatNodes 中查找对应 task → 获取其行列
-    起点：依赖任务的 _done 或 _due 时间
-    终点：当前任务的 _starts 或 _scheduled 时间
-    绘制折线（上→右→下）→ 终点箭头三角形
-
-  isToday - 检查任务的任意日期字段是否落在今天范围内
-
-  resize - 根据 flatNodes 数量计算画布高度，dp 适配高清屏
-
-  render - 过滤器链（按顺序应用）:
-    1. 日期范围过滤器 (dateFilterState)
-    2. 状态过滤器 (markFilterState.statuses)
-    3. 包含标记过滤器 (markFilterState.includeMarks)
-    4. 排除标记过滤器 (markFilterState.excludeMarks)
-    5. 隐藏重复任务 (hideRepeatTasks)
-    6. 隐藏已完成任务 (hideCompletedTasks)
-    7. 隐藏已取消任务 (hideCancelledTasks)
-*/
-
-/* @skill-algorithm series - 甘特图算法描述合集:
-
-  buildTree:
-    1. 按 path 分组任务 (Map<path, tasks[]>)
-    2. 使用 dv.page(path) 获取文件元信息
-    3. 去掉 ROOT_PATH 前缀，按 / 分割路径片段
-    4. 逐层构建树：非末级创建 folder 节点，末级创建 file 节点
-    5. 返回根节点数组
-
-  sortNodes:
-    同级排序：文件夹 > 文件，名称字典序
-    文件内任务排序：
-      sort.type="status" → 自定义状态顺序映射
-      sort.type="priority" → 优先级图标映射数值
-      sort.type="date" → 按 _scheduled/_due/_starts/_created 中最早日期排序
-    sort.order="asc"/"desc" 控制方向
-
-  flatten:
-    文件夹节点 → 自身入列；未折叠时递归子节点
-    文件节点 → 自身入列；未折叠时子任务入列（类型为 task）
-    每个节点记录 level 缩进层级
-
-  updateTimeScale:
-    时间 → X 坐标映射：
-    chartW = canvas宽度 - leftW - 边距
-    startX = leftW + 边距 + offsetX（拖拽偏移）
-    t → x = startX + ((t - minTime) / range) * chartW * scale
-*/
-
-/* @skill-api
-  readTasks.getAllTasks(false, dv, globalState)  // 获取全量任务
-  readTasks.ensureTaskProperties(tip)              // 填充任务 tooltip 属性
-  dv.page(path)                                    // 获取文件元信息
-  app.workspace.openLinkText(path, "", {active})  // 打开文件
-  app.vault.getAbstractFileByPath(path)            // 获取文件对象
-  app.workspace.getLeaf(false)                     // 获取编辑器叶子
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";
 import * as readTasks from "../../tasks/read/read-tasks";
@@ -263,7 +20,6 @@ export class GanttTaskView extends BaseTaskView {
 	}
 }
 
-// ---------- 内部状态 ----------
 const gs = {
 	wrapper: null,
 	canvas: null,
@@ -299,7 +55,6 @@ const STATUS_COLORS = {
 	cancelled: "#495057",
 };
 
-// ---------- 样式 ----------
 function injectStyle() {
 	if (document.getElementById("gantt-style")) return;
 	const s = document.createElement("style");
@@ -330,7 +85,6 @@ function injectStyle() {
 	document.head.appendChild(s);
 }
 
-// ---------- 工具函数 ----------
 function getInterval(task, mode) {
 	if (mode === "starts-done") {
 		const s = task._starts,
@@ -478,7 +232,6 @@ function prepareTasks(flat, intervalMode) {
 	return rows;
 }
 
-// ---------- 主题缓存 ----------
 function ensureTheme() {
 	if (gs.theme) return gs.theme;
 	const style = getComputedStyle(document.body);
@@ -527,7 +280,6 @@ function updateTimeScale() {
 	gs.timeToX = (t) => startX + ((t - gs.minTime) / range) * chartW * gs.scale;
 }
 
-// ---------- 绘制 ----------
 function draw() {
 	if (!gs.canvas || !gs.ctx || !gs.timeToX) return;
 	const ctx = gs.ctx;
@@ -540,7 +292,6 @@ function draw() {
 
 	ctx.clearRect(0, 0, w, h);
 
-	// 分区背景
 	ctx.fillStyle = theme.secondary;
 	ctx.fillRect(0, 0, gs.leftW, h);
 	ctx.fillStyle = theme.bg;
@@ -563,7 +314,6 @@ function draw() {
 	ctx.font = theme.font;
 	ctx.textBaseline = "middle";
 
-	// 左侧树节点
 	for (let i = startRow; i < endRow; i++) {
 		const node = nodes[i];
 		const y = yOff + i * rowH + rowH / 2;
@@ -598,7 +348,6 @@ function draw() {
 		}
 	}
 
-	// 周网格线
 	ctx.strokeStyle = theme.grid;
 	ctx.lineWidth = 0.5;
 	const gridStart = new Date(gs.minTime);
@@ -616,7 +365,6 @@ function draw() {
 		}
 	}
 
-	// 今日线
 	const now = setStart(new Date()).getTime();
 	if (now >= gs.minTime && now <= gs.maxTime) {
 		const nx = gs.timeToX(now);
@@ -630,7 +378,6 @@ function draw() {
 		ctx.setLineDash([]);
 	}
 
-	// 任务条
 	rows.forEach((item) => {
 		if (item.flatIdx < startRow || item.flatIdx >= endRow) return;
 		const x1 = gs.timeToX(item.start.getTime()),
@@ -654,7 +401,6 @@ function draw() {
 		}
 	});
 
-	// 依赖箭头
 	const depColor = "#3a6ea5";
 	ctx.strokeStyle = depColor;
 	ctx.lineWidth = 1;
@@ -694,7 +440,6 @@ function draw() {
 		});
 	});
 
-	// 顶部日期标签
 	ctx.fillStyle = theme.text;
 	ctx.font = "11px " + theme.fontFam;
 	ctx.textAlign = "center";
@@ -731,7 +476,6 @@ function isToday(task) {
 	);
 }
 
-// ---------- 画布尺寸更新 ----------
 function resize() {
 	if (!gs.wrapper || !gs.canvas) return;
 	const w = gs.wrapper.clientWidth;
@@ -747,7 +491,6 @@ function resize() {
 	draw();
 }
 
-// ---------- 交互 ----------
 function onCanvasClick(e, app, refresh) {
 	const rect = gs.canvas.getBoundingClientRect();
 	const dpr = window.devicePixelRatio || 1;
@@ -817,7 +560,6 @@ function onMouseMove(e) {
 	}
 }
 
-// ---------- 主渲染 ----------
 function render(dv, app, globalState) {
 	const sort = globalState?.leftSort || { type: "status", order: "asc" };
 	const intervalMode = globalState?.intervalMode || "scheduled-due";
@@ -882,7 +624,6 @@ function render(dv, app, globalState) {
 	resize();
 }
 
-// ---------- 入口 ----------
 export async function startGanttView(dv, app, container, globalState) {
 	injectStyle();
 	container.innerHTML = "";
@@ -992,7 +733,7 @@ export async function startGanttView(dv, app, container, globalState) {
 	gs.resizeObs.observe(wrapper);
 
 	ensureTheme();
-	// 默认本周
+
 	const thisWeek = getWeekRange(new Date());
 	globalState.dateFilterState = {
 		isAll: false,

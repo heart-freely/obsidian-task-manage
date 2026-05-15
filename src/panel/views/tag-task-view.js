@@ -1,49 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/views/tag-task-view.js
- * 描述：标签任务视图，以标签为维度筛选和展示任务，支持任务卡片点击跳转
- * 所属模块：panel/views
- * 依赖：
- *   - base-task-view: 基础视图类、任务卡片创建工具
- *   - read-tasks: 任务读取接口
- *   - plugin-configs: 全局配置
- * 对外导出：TagTaskView 类、startTagView 函数
- * 注意事项：
- *   - 筛选条件为自定义标签 _tag 字段非空
- *   - 优先级处理逻辑与依赖任务视图一致
- * @see .cline/skills/code/views/tag-task-view.md
- */
-
-/* @skill-sig function startTagView(dv, app, container) : ViewController - 启动标签任务视图 */
-
-/* @skill-segment class TagTaskView - 标签任务视图类，继承 BaseTaskView */
-
-/* @skill-flow
-  初始化 → render()
-  获取任务 → getAllTasks() → filter(_tag)
-  渲染卡片 → createTaskCard(normalizeTaskCardData)
-  任务点击 → 打开文件并跳转到对应行
-*/
-
-/* @skill-condition
-  getAllTasks 返回空数组 → 显示 "暂无标签任务"
-  _tag 字段为空或纯空白 → 筛除
-  优先级匹配失败 → 回退为 "none"
-  优先级来源优先级：_priorityIcon > priority
-  未知 _priorityIcon → 反向查找 CONFIG.PRIORITY_ICONS
-  均无法匹配 → 回退为 "none"
-*/
-
-/* @skill-api
-  readTasks.getAllTasks(false, dv, state) // 获取所有任务
-  createTaskCard(cardData, app)            // 创建可点击的任务卡片
-  normalizeTaskCardData(data)              // 标准化任务卡片数据
-*/
-
-/* @skill-query getAllTasks(false, dv, state) - 获取所有任务数据 */
-/* @skill-query normalizeTaskCardData - 标准化卡片数据结构 */
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { CONFIG } from "../../configs/plugin-configs";
 import * as readTasks from "../../tasks/read/read-tasks";
 import {
@@ -82,7 +36,7 @@ export async function startTagView(dv, app, container) {
 		try {
 			const state = {};
 			const allTasks = readTasks.getAllTasks(false, dv, state);
-			// 筛选含有自定义标签 _tag 的任务
+
 			const tagTasks = allTasks.filter((t) => t._tag && t._tag.trim());
 
 			if (!tagTasks.length) {
@@ -107,7 +61,6 @@ export async function startTagView(dv, app, container) {
 			ul.className = "task-list";
 
 			tagTasks.forEach((task) => {
-				// 优先级处理（与依赖任务一致）
 				let priority = "none";
 				if (task._priorityIcon) {
 					const found = Object.entries(CONFIG.PRIORITY_ICONS).find(

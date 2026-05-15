@@ -1,67 +1,10 @@
-/* <!-- SYNC_COMMENTS_START --> */
-// src/tasks/process/organize-task-process.js
-
-/* @skill-sig file src/tasks/process/organize-task-process.js - 任务组织整理模块，提供编辑操作库(Op)、快照管理与批量写入功能，所有编辑操作基于正则替换且日期格式使用 YYYY-MM-DD，快照存储在 localStorage */
-/* @skill-func
-   isIncomplete(s) : boolean - 判断任务状态是否为"未完成"(todo/planned/in-progress)
-   isCompleted(s) : boolean - 判断任务状态是否为"已完成"(completed/cancelled)
-   hasEssentialTags(t) : boolean - 检查任务是否具备完整的必要标签(优先级/创建/计划/开始/截止)
-   Op : Object - 编辑操作库，提供 setPriority/setRepeat/setCreated/setScheduled/setStarts/setDue/setDone/setCancel/setTag 及对应 del* 方法，以及 autoComplete/sortTags
-   loadSnapshots() : Array - 从 localStorage 加载快照列表
-   saveSnapshots(snapshots) : void - 将快照列表持久化到 localStorage
-   addSnapshot(snapshots, map) : void - 添加新快照到列表头部，超 5 条自动裁剪
-   writeToFiles(app, tasks, taskIds, linesMap) : Promise.number - 按文件路径分组后原地替换行内容
-*/
-/* @skill-flow
-   isIncomplete/isCompleted → 检查任务状态字符串 → 返回 boolean
-   hasEssentialTags → 检查 t._priorityIcon/_created/_scheduled/_starts/_due → 全部存在返回 true
-   Op.set* /del* -> replaceMark(line, RX.xxx, newMark) -> 返回新行
-   Op.autoComplete → 从 RX.done 提取完成日期 → 向前推算 N 天 → 填充 📅/🛫/⏳/➕ → sortTags → 返回新行
-   Op.sortTags → 按固定顺序(priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid)重新排列标记 → 返回排序后行
-   loadSnapshots → localStorage.getItem → JSON.parse → 返回快照数组
-   saveSnapshots → JSON.stringify → localStorage.setItem
-   addSnapshot → unshift {time, snapshot} → 超 5 条 pop → saveSnapshots
-   writeToFiles → 按 path 分组 → app.vault.process 逐文件替换 → 返回 count
-*/
-/* @skill-param
-   s: string - 任务状态标识
-   t: Object - 任务对象(含 _priorityIcon/_created/_scheduled/_starts/_due 属性)
-   line: string - 任务行文本
-   emoji: string - 优先级图标(如 🔼/🔽)
-   rule/date: string - 重复规则字符串(如 "every day") 或日期 YYYY-MM-DD
-   keyword: string - 标签关键词
-   days: number - 自动补全向前推算天数(默认 3)
-   app: Obsidian.App - Obsidian 应用实例
-   tasks: Array - 任务对象列表(需含 path/line/_fullLine)
-   taskIds: Array.string - 待修改的任务 ID 数组(格式 "path|line")
-   linesMap: Object.string - 任务 ID → 新行内容映射
-   snapshots: Array - 快照数组
-   map: Object - 快照数据(任务 ID → 原始行内容映射)
-*/
-/* @skill-condition
-   所有编辑操作基于正则替换，日期格式使用 YYYY-MM-DD
-   快照存储在 localStorage 键 "organizeSnapshots"
-   快照最多保留 MAX_SNAPSHOTS(5) 条
-   自动补全默认向前推算 AUTOCOMPLETE_DAYS(3) 天
-   标记排序固定顺序：priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid
-   writeToFiles 通过 app.vault.process 原地替换行内容
-   依赖 src/tasks/read/read-tasks 中的 RX 正则集合
-   sync: .cline/skills/code/views/views.md → organize-task-view 数据源
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { RX } from "../read/read-tasks";
 
-/** 自动补全时默认向前推算的天数 */
 const AUTOCOMPLETE_DAYS = 3;
 
-/** 快照历史最大保留数量 */
 const MAX_SNAPSHOTS = 5;
 
-/** localStorage 中快照数据的存储键名 */
 const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";
-
-// ==================== 辅助函数 ====================
 
 /**
  * 判断任务状态是否为"未完成"
@@ -135,11 +78,9 @@ function replaceMark(line, regex, newMark) {
 	return (line + " " + newMark).replace(/\s{2,}/g, " ").trim();
 }
 
-// ==================== 编辑操作库 ====================
-
 /**
  * 编辑操作库，提供针对行级任务标记的增删改方法
- * @skill-rule organize 编辑操作: Op 对象提供 setPriority/setRepeat/setCreated/setScheduled/setStarts/setDue/setDone/setCancel/setTag 及对应 del* 方法
+ * @auto-rule organize 编辑操作: Op 对象提供 setPriority/setRepeat/setCreated/setScheduled/setStarts/setDue/setDone/setCancel/setTag 及对应 del* 方法
  *
  * @namespace Op
  *
@@ -340,7 +281,7 @@ export const Op = {
 	/**
 	 * 自动补全日期标记
 	 * 基于完成日期向前推算 n 天，自动设置创建、计划、开始和截止日期
-	 * @skill-rule organize 自动补全: autoComplete 基于完成日期向前推算 3 天 → 自动填充 📅(due) 🛫(starts) ⏳(scheduled) ➕(created)
+	 * @auto-rule organize 自动补全: autoComplete 基于完成日期向前推算 3 天 → 自动填充 📅(due) 🛫(starts) ⏳(scheduled) ➕(created)
 	 *
 	 * @param {string} line - 行文本
 	 * @param {number} [days] - 向前推算天数，默认 AUTOCOMPLETE_DAYS（3）
@@ -396,7 +337,7 @@ export const Op = {
 	/**
 	 * 排序行内标记顺序
 	 * 固定顺序：priority → repeat → created → scheduled → starts → due → done → cancel → tag → id → forbid
-	 * @skill-rule organize 标记排序: sortTags 固定顺序 → priority → repeat → created → scheduled → starts → due → done → cancel → tag → id → forbid
+	 * @auto-rule organize 标记排序: sortTags 固定顺序 → priority → repeat → created → scheduled → starts → due → done → cancel → tag → id → forbid
 	 *
 	 * @param {string} line - 行文本
 	 * @returns {string} 标记重新排序后的行文本
@@ -434,8 +375,6 @@ export const Op = {
 			.trim();
 	},
 };
-
-// ==================== 快照管理 ====================
 
 /**
  * 从 localStorage 加载快照列表
@@ -488,12 +427,10 @@ export function addSnapshot(snapshots, map) {
 	saveSnapshots(snapshots);
 }
 
-// ==================== 文件写入 ====================
-
 /**
  * 批量将修改后的任务行写入文件
  * 按文件路径分组后逐一调用 app.vault.process 进行原地替换
- * @skill-rule organize 批量写入: writeToFiles 按文件路径分组后原地替换行内容
+ * @auto-rule organize 批量写入: writeToFiles 按文件路径分组后原地替换行内容
  *
  * @param {App} app - Obsidian 应用实例
  * @param {Array} tasks - 任务对象列表（需包含 path、line、_fullLine 属性）

@@ -1,33 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/views/data-tasks-view.js
- * 描述：数据统计图表视图，使用 ECharts 渲染任务的多维度统计饼图和堆叠柱状图
- * 所属模块：panel/views
- * 依赖：
- *   - echarts/echarts: echarts
- *   - configs/plugin-configs: CONFIG
- *   - tasks/process/calcul-chart-process: computeTotalSpanDays, calcPlannedDuration, calcActualDuration, calcTotalSpanHours, prepareDailyStatusStack
- * 对外导出：drawCharts
- * 注意事项：依赖 ECharts 库；chartInstances 存储在外部 state 对象中，调用者需自行管理生命周期；大图弹窗模式通过 state.modalOpen 防止重复弹出
- * @see .cline/skills/code/views/data-tasks-view.md
- */
-
-/* @skill-sig createChartItem(title, showZoom, spanCols) : { chartDiv, item } - 创建 chart-item 容器，添加标题 + 可选 zoom 按钮 */
-/* @skill-sig makePieOption(data) : Object - 返回 ECharts 饼图配置（背景色/主题色/图例/序列） */
-/* @skill-sig openChartModal(chartInst) : void - 创建全屏遮罩 → 渲染放大图表 → 点击遮罩/关闭按钮销毁 */
-
-/* @skill-sig Chart #1: 执行状态 - 饼图 */
-/* @skill-sig Chart #2: 优先级 - 饼图 */
-/* @skill-sig Chart #3: 循环周期 - 饼图 */
-/* @skill-sig Chart #4: 日期标记 - 饼图 */
-/* @skill-sig Chart #5: 依赖关系 - 饼图 */
-/* @skill-sig Chart #6: 标签 - 饼图 */
-/* @skill-sig Chart #7: 计划时长 - 饼图 */
-/* @skill-sig Chart #8: 执行时长 - 饼图 */
-/* @skill-sig Chart #9: 计划执行对比 - 饼图 */
-/* @skill-sig Chart #10: 状态详细（日） - 堆叠柱状图，支持时间范围筛选和 zoom 弹窗 */
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { CONFIG } from "../../configs/plugin-configs";
 import { echarts } from "../../echarts/echarts";
 import {
@@ -37,18 +7,16 @@ import {
 	prepareDailyStatusStack,
 } from "../../tasks/process/calcul-chart-process";
 
-/* @skill-func drawCharts(container, tasks, context) : void - 渲染任务统计图表面板，包括状态/优先级/循环/日期/依赖/标签/时长等 10 个图表 */
-
-/* @skill-flow
+/* @auto-flow
    drawCharts(container, tasks, context) → 清空容器（空则显示占位） → 清理旧 chartInstances → 创建 grid 容器 → 创建 10 个图表项（状态/优先级/循环/日期/依赖/标签/计划时长/执行时长/执行对比/状态堆叠柱状图） → 绑定 zoom 按钮弹窗事件 → 延迟 resize → 结束
 */
 
-/* @skill-condition
+/* @auto-condition
    若 tasks 为空数组 → 显示 "📭 无任务数据"
    若某统计维度数据全部为 0 → 该图表渲染 "无数据" 占位扇形
 */
 
-/* @skill-dom
+/* @auto-dom
   div.chart-grid (CSS Grid 布局)
     div.chart-item[style*="gridColumn: span N"]
       div.chart-header
@@ -57,7 +25,7 @@ import {
       div.chart-body (ECharts 挂载点)
 */
 
-/* @skill-api
+/* @auto-api
   echarts.init, setOption, dispose, resize (echarts)
   CONFIG.ALLOWED_STATUSES, PRIORITY_ORDER, REPEAT_ORDER, DATE_MARK_ORDER, STATUS_ICONS etc. (plugin-configs)
   calcPlannedDuration, calcActualDuration, calcTotalSpanHours, prepareDailyStatusStack (calcul-chart-process)
@@ -76,7 +44,6 @@ export function drawCharts(container, tasks, context) {
 		return;
 	}
 
-	// 防御：确保 chartInstances 是一个数组
 	if (!Array.isArray(state.chartInstances)) state.chartInstances = [];
 	state.chartInstances.forEach((c) => {
 		try {
@@ -91,7 +58,6 @@ export function drawCharts(container, tasks, context) {
 	const textColor = theme.getPropertyValue("--text-normal") || "#333";
 	const bgColor = theme.getPropertyValue("--background-primary") || "#fff";
 
-	/* @skill-flow createChartItem(title, showZoom, spanCols) → 创建 chart-item 容器 → 添加标题 + 可选 zoom 按钮 → 返回 { chartDiv, item } */
 	function createChartItem(title, showZoom, spanCols) {
 		if (showZoom === undefined) showZoom = false;
 		if (spanCols === undefined) spanCols = 1;
@@ -115,7 +81,6 @@ export function drawCharts(container, tasks, context) {
 		return { chartDiv, item };
 	}
 
-	/* @skill-flow makePieOption(data) → 返回 ECharts 饼图配置（背景色/主题色/图例/序列） */
 	function makePieOption(data) {
 		return {
 			backgroundColor: bgColor,
@@ -151,7 +116,6 @@ export function drawCharts(container, tasks, context) {
 		};
 	}
 
-	/* @skill-flow openChartModal(chartInst) → 创建全屏遮罩 → 渲染放大图表 → 点击遮罩/关闭按钮销毁 */
 	function openChartModal(chartInst) {
 		if (!echarts || state.modalOpen) return;
 		state.modalOpen = true;
@@ -184,7 +148,6 @@ export function drawCharts(container, tasks, context) {
 		newInst.setOption(opt);
 	}
 
-	// ---- 数据统计 ----
 	const statusCounts = {};
 	CONFIG.ALLOWED_STATUSES.forEach((s) => (statusCounts[s] = 0));
 	const prioCounts = {};
@@ -216,8 +179,6 @@ export function drawCharts(container, tasks, context) {
 		if (t._tag) tagMap[t._tag] = (tagMap[t._tag] || 0) + 1;
 	});
 
-	// ---- 创建所有图表 ----
-	/* @skill-sig Chart #1: 执行状态 - 饼图 */
 	const ch1 = createChartItem("📊 执行状态");
 	const i1 = echarts.init(ch1.chartDiv);
 	i1.setOption(
@@ -231,7 +192,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i1);
 
-	/* @skill-sig Chart #2: 优先级 - 饼图 */
 	const ch2 = createChartItem("🎯 优先级");
 	const i2 = echarts.init(ch2.chartDiv);
 	i2.setOption(
@@ -245,7 +205,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i2);
 
-	/* @skill-sig Chart #3: 循环周期 - 饼图 */
 	const ch3 = createChartItem("🔄 循环周期");
 	const i3 = echarts.init(ch3.chartDiv);
 	i3.setOption(
@@ -259,7 +218,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i3);
 
-	/* @skill-sig Chart #4: 日期标记 - 饼图 */
 	const ch4 = createChartItem("📅 日期标记");
 	const i4 = echarts.init(ch4.chartDiv);
 	i4.setOption(
@@ -273,7 +231,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i4);
 
-	/* @skill-sig Chart #5: 依赖关系 - 饼图 */
 	const ch5 = createChartItem("🔗 依赖关系");
 	const i5 = echarts.init(ch5.chartDiv);
 	i5.setOption(
@@ -287,7 +244,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i5);
 
-	/* @skill-sig Chart #6: 标签 - 饼图 */
 	const ch6 = createChartItem("🏷️ 标签");
 	const i6 = echarts.init(ch6.chartDiv);
 	i6.setOption(
@@ -305,7 +261,6 @@ export function drawCharts(container, tasks, context) {
 	const actualDays = calcActualDuration(tasks);
 	const actualSpanHours = calcTotalSpanHours(tasks, "_starts", "_done");
 
-	/* @skill-sig Chart #7: 计划时长 - 饼图 */
 	const ch7 = createChartItem("⏳ 计划时长", false);
 	const i7 = echarts.init(ch7.chartDiv);
 	i7.setOption(
@@ -316,7 +271,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i7);
 
-	/* @skill-sig Chart #8: 执行时长 - 饼图 */
 	const ch8 = createChartItem("✅ 执行时长", false);
 	const i8 = echarts.init(ch8.chartDiv);
 	i8.setOption(
@@ -327,7 +281,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i8);
 
-	/* @skill-sig Chart #9: 计划执行对比 - 饼图 */
 	const ch9 = createChartItem("⚖️ 计划执行对比", false);
 	const i9 = echarts.init(ch9.chartDiv);
 	i9.setOption(
@@ -338,7 +291,6 @@ export function drawCharts(container, tasks, context) {
 	);
 	state.chartInstances.push(i9);
 
-	/* @skill-sig Chart #10: 状态详细（日） - 堆叠柱状图，支持时间范围筛选和 zoom 弹窗 */
 	const dateRange = getEffectiveDateRange();
 	let chartTitle = "📊 状态详细（日）";
 	if (dateRange)

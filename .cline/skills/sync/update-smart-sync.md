@@ -21,10 +21,10 @@ descriptions:
 
 ## 流程
 
-1. **检测变更文件**：执行 `git status --porcelain`，结合 `.cline/skills/cache/sync_state.json` 获取自上次同步后的所有变更文件。
+1. **检测变更文件**： 获取所有变更文件，结合`.cline/skills/cache/sync_state.json`。
 2. **分类**：
     - 若变更文件只包含 `src/` 下的 `.js` 文件 → 执行 `增量正向同步`（调用 `update-code.md` 的增量模式）。
-    - 若变更文件只包含 `.cline/skills/code/` 或 `sync/` 下的 `.md` 文件 → 执行 `增量反向同步`（调用 `update-code.md` 的增量模式）。
+    - 若变更文件只包含 `docs/` 或 `sync/` 下的 `.md` 文件 → 执行 `增量反向同步`（调用 `update-code.md` 的增量模式）。
     - 若两者都有 → 先执行反向同步，再执行正向同步。
 3. **参数处理**：
     - 用户输入 `同步 --full` 或 `全量同步` → 执行 `全局同步技能`（正向全量+结构对齐）和 `全局同步代码`（反向全量），二者都执行。

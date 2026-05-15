@@ -1,11 +1,3 @@
-/*
- * src/panel/bars/quick-botton-bar.js
- * 初始化注释锚点脚本
- * 扫描所有 skills-index.json 中已映射的 JS 文件，
- * 提取所有 @skill-* 和 @skill-anchor 注释及其行号，
- * 写入 .cline/skills/cache/code_cache.json
- */
-
 const fs = require("fs");
 const path = require("path");
 
@@ -13,11 +5,9 @@ const ROOT = path.resolve(__dirname, "..");
 const SKILLS_INDEX_PATH = path.join(ROOT, ".cline/skills/skills-index.json");
 const CACHE_PATH = path.join(ROOT, ".cline/skills/cache/code_cache.json");
 
-// 加载 skills-index.json
 const indexData = JSON.parse(fs.readFileSync(SKILLS_INDEX_PATH, "utf-8"));
 const srcEntries = indexData.src;
 
-// 读取已有的缓存（如果有）
 let existingCache = {
 	version: "1.0",
 	code: new Date().toISOString(),
@@ -32,18 +22,11 @@ try {
 	console.warn("无法读取现有缓存，将创建新缓存");
 }
 
-// 构建已有缓存的 path -> entry 映射
 const existingMap = {};
 for (const entry of existingCache.comments) {
 	existingMap[entry.path] = entry;
 }
 
-/*
- * 从 JS 文件内容中提取 @skill-* 和 @skill-anchor 注释
- * 返回 commentGroups: [{line, comment}, ...]
- * 支持
- * 一个多行块注释内若含多个 `@skill-` 标签，会被拆分为多个独立条目
- */
 function extractComments(content) {
 	const lines = content.split("\n");
 	const result = [];
@@ -61,13 +44,12 @@ function extractComments(content) {
 	}
 
 	/**
-	 * 将收集到的多行块注释按 @skill-* / @skill-anchor 拆分
+	 * 将收集到的多行块注释按 @auto-* / @auto-anchor 拆分
 	 */
 	function processBlockComment(blockLines, startLine) {
-		const skillRegex = /@skill-(?!anchor\b)|@skill-anchor/;
+		const skillRegex = /@auto-(?!anchor\b)|@auto-anchor/;
 		const matchIndices = [];
 
-		// 找出所有包含 @skill- 标签的行索引（相对于块起始）
 		for (let i = 0; i < blockLines.length; i++) {
 			if (skillRegex.test(blockLines[i])) {
 				matchIndices.push(i);
@@ -76,10 +58,9 @@ function extractComments(content) {
 
 		if (matchIndices.length === 0) return;
 
-		// 为每个标签生成一个条目
 		for (let m = 0; m < matchIndices.length; m++) {
 			const startIdx = matchIndices[m];
-			// 结束索引：下一个标签的前一行，或块的最后一行
+
 			const endIdx =
 				m + 1 < matchIndices.length
 					? matchIndices[m + 1] - 1
@@ -108,17 +89,15 @@ function extractComments(content) {
 			continue;
 		}
 
-		// 行注释 //
 		const singleIdx = line.indexOf("//");
 		if (singleIdx !== -1 && isLineComment(line, singleIdx)) {
 			const commentPart = line.slice(singleIdx);
-			if (/@skill-(?!anchor\b)|@skill-anchor/.test(commentPart)) {
+			if (/@auto-(?!anchor\b)|@auto-anchor/.test(commentPart)) {
 				result.push({ line: lineNum, comment: commentPart });
 			}
 			continue;
 		}
 
-		// 块注释开始 /*
 		if (line.includes("/*")) {
 			inBlockComment = true;
 			blockCommentLines = [line];
@@ -154,7 +133,6 @@ function getFileHash(filePath) {
 	}
 }
 
-// 处理每个 src 条目
 const updatedComments = [];
 let processedCount = 0;
 let errorCount = 0;
@@ -174,7 +152,6 @@ for (const entry of srcEntries) {
 		const hash = getFileHash(filePath);
 		const stat = fs.statSync(filePath);
 
-		// 获取已有缓存的 lastModified（若无则使用当前文件修改时间）
 		const existing = existingMap[entry.path];
 		const lastModified = existing
 			? existing.lastModified
@@ -204,14 +181,12 @@ for (const entry of srcEntries) {
 	}
 }
 
-// 构建结果
 const result = {
 	version: "1.0",
 	code: new Date().toISOString(),
 	comments: updatedComments,
 };
 
-// 写入缓存
 fs.writeFileSync(CACHE_PATH, JSON.stringify(result, null, "\t"), "utf-8");
 
 console.log(`\n===== 注释锚点初始化完成 =====`);

@@ -1,54 +1,3 @@
-/**
- * 文件：src/panel/views/timeline-task-view.js
- * 描述：时间线任务视图，按日期轴展示任务的时间分布，支持自定义过滤和缩放
- * 所属模块：panel/views
- * 依赖：
- *   - BaseTaskView: 基础视图类
- *   - task-query-process.fetchTasks: 获取任务数据
- * 对外导出：VIEW_TYPE_TIMELINE, TimelineTaskView, startTimelineView
- * 注意事项：时间线视图为自渲染视图，通过 startTimelineView 函数实例化，同时提供 TimelineTaskView 类供标准视图系统使用
- * @see .cline/skills/code/views/timeline-task-view.md
- */
-
-/* <!-- SYNC_COMMENTS_START --> */
-
-/* @skill-sig class TimelineTaskView extends BaseTaskView - 时间线任务视图，按日期轴展示任务的时间分布 */
-
-/* @skill-state 无（纯展示视图） */
-
-/* @skill-api
-  fetchTasks (task-query-process)
-  BaseTaskView (base-task-view)
-*/
-
-/* @skill-func async startTimelineView(dv, app, container) : { cleanup, updateSort } - 渲染时间轴视图，按日期分组展示任务 */
-
-/* @skill-flow
-   startTimelineView(dv, app, container) → fetchTasks(app) → 按日期分组渲染时间轴 → 返回 { cleanup, updateSort }
-*/
-
-/* @skill-condition
-   若 fetchTasks 抛出异常或返回空 → 显示 "暂无时间线数据"
-*/
-
-/* @skill-dom
-  .timeline-container
-    .timeline-header
-    .timeline-axis (日期轴)
-      .axis-item (每个日期节点)
-        .date-label
-        .task-count
-    .timeline-body
-      .timeline-day-group
-        .day-header
-        ul.task-list
-          li.task-item
-            .task-desc
-            .task-meta
-*/
-
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { fetchTasks } from "../../tasks/process/task-query-process";
 import { BaseTaskView } from "./base-task-view";
 
@@ -111,7 +60,6 @@ export async function startTimelineView(dv, app, container) {
 		const body = document.createElement("div");
 		body.className = "timeline-body";
 
-		// 按日期分组
 		const grouped = {};
 		tasks.forEach((t) => {
 			const dateKey = t.scheduled || t.due || t.start || "未排期";
@@ -119,7 +67,6 @@ export async function startTimelineView(dv, app, container) {
 			grouped[dateKey].push(t);
 		});
 
-		// 排序日期键
 		const sortedDates = Object.keys(grouped).sort((a, b) => {
 			if (a === "未排期") return 1;
 			if (b === "未排期") return -1;
@@ -129,13 +76,11 @@ export async function startTimelineView(dv, app, container) {
 		sortedDates.forEach((dateKey) => {
 			const dateTasks = grouped[dateKey];
 
-			// 日期轴节点
 			const axisItem = document.createElement("div");
 			axisItem.className = "axis-item";
 			axisItem.innerHTML = `<span class="date-label">${dateKey}</span><span class="task-count">${dateTasks.length}</span>`;
 			axis.appendChild(axisItem);
 
-			// 任务列表
 			const dayGroup = document.createElement("div");
 			dayGroup.className = "timeline-day-group";
 

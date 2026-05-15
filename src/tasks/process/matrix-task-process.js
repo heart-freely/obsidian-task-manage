@@ -1,32 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/* @skill-sig file src/tasks/process/matrix-task-process.js - 艾森豪威尔矩阵任务处理模块，提供四象限任务获取、分组与排序能力，优先级映射采用局部常量不含全局配置，使用 Map 缓存日期格式化结果 */
-/* @skill-func
-   fetchRawTasks(app) : Promise.Array - 获取原始任务列表(不限状态)，查询条件为路径+文件名正则
-   processTasks(allTasks, hideRecurring) : Array.Array - 按优先级映射到四象限 Q0(紧急重要)/Q1(重要不紧急)/Q2(紧急不重要)/Q3(不紧急不重要)
-   sortTasks(tasks, sortConfig) : Array - 按配置排序任务，支持 status/priority/filename/日期字段
-*/
-/* @skill-flow
-   fetchRawTasks → tasksPlugin.getTasks(path + filename regex) → 返回原始任务数组
-   processTasks → 遍历 allTasks → 过滤文件名正则/状态符号/循环任务 → 按优先级映射分入四象限 → 返回四象限数据
-   sortTasks → 按 type(order) → 对排序后副本返回
-*/
-/* @skill-param
-   app: Obsidian.App - Obsidian 应用实例，用于访问 plugins 获取 Tasks 插件
-   allTasks: Array - 原始任务对象数组，由 fetchRawTasks 返回
-   hideRecurring: boolean - 是否排除周期性任务(默认 false)
-   tasks: Array - 待排序的任务对象数组(不会被修改)
-   sortConfig: {type: string, order: "asc"|"desc"} - 排序配置
-*/
-/* @skill-condition
-   依赖 obsidian-tasks-plugin 实例，插件未加载时返回 Promise.reject
-   符号过滤：仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态
-   优先级映射：1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none(→5)→Q3
-   排序规则：status 时按 进行中→计划中→未开始 排序
-   日期格式化使用 Map 缓存避免重复 moment 转换
-   sync: .cline/skills/code/views/views.md → matrix-task-view 数据源
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import {
 	PRIORITY_ICONS,
 	TASK_FILENAME_REGEX_TASKS,
@@ -36,7 +7,7 @@ import {
 
 /**
  * 参与矩阵展示的状态符号集合：空格（未开始）、?（计划中）、/（进行中）
- * @skill-rule 矩阵状态过滤: 仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态
+ * @auto-rule 矩阵状态过滤: 仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态
  */
 const STATUS_SYMBOLS = [" ", "?", "/"];
 
@@ -48,7 +19,7 @@ const STATUS_SYMBOLS = [" ", "?", "/"];
  * - 3（中）   → 象限2：紧急但不重要
  * - 4（低）   → 象限3：不紧急不重要
  * - 'none'（无优先级）在逻辑中默认归入象限3
- * @skill-rule 矩阵优先级映射: 1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none→Q3
+ * @auto-rule 矩阵优先级映射: 1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none→Q3
  *
  * @type {Object.<number, number>}
  */
@@ -57,10 +28,8 @@ const PRIORITY_TO_QUADRANT = {
 	2: 1, // 高        → 不紧急但重要
 	3: 2, // 中        → 紧急但不重要
 	4: 3, // 低        → 不紧急不重要
-	// 无优先级（'none'）在逻辑中默认归入象限3
 };
 
-/** 日期格式化缓存，避免重复调用 moment 或 Date 转换 */
 const dateCache = new Map();
 
 /**
@@ -108,8 +77,8 @@ export function fetchRawTasks(app) {
  * 处理任务集合，按优先级映射到四象限
  * 过滤规则：文件名须匹配 TASK_FILENAME_REGEXP、状态符号须在 STATUS_SYMBOLS 中
  * 可选择排除周期性任务
- * @skill-rule 矩阵状态过滤: 仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态
- * @skill-rule 矩阵优先级映射: 1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none→Q3
+ * @auto-rule 矩阵状态过滤: 仅处理 空格(未开始)/?(计划中)/(进行中) 三种状态
+ * @auto-rule 矩阵优先级映射: 1→Q0 / 2→Q1 / 3→Q2 / 4→Q3 / none→Q3
  *
  * @param {Array} allTasks - 原始任务对象数组
  * @param {boolean} [hideRecurring=false] - 是否排除周期性任务
@@ -168,7 +137,6 @@ export function processTasks(allTasks, hideRecurring = false) {
 						: "todo",
 		};
 
-		// 使用显式映射，无优先级默认象限3（不紧急不重要）
 		const quadIndex = PRIORITY_TO_QUADRANT[priorityNum] ?? 3;
 		quadrantsData[quadIndex].push(taskItem);
 	});
@@ -177,7 +145,7 @@ export function processTasks(allTasks, hideRecurring = false) {
 
 /**
  * 排序任务列表
- * @skill-rule 矩阵排序规则: 按状态(进行中→计划中→未开始)→优先级(小→大)→排序日期(早→晚)
+ * @auto-rule 矩阵排序规则: 按状态(进行中→计划中→未开始)→优先级(小→大)→排序日期(早→晚)
  *
  * @param {Array} tasks - 待排序的任务对象数组（不会被修改）
  * @param {{type: string, order: string}} sortConfig - 排序配置

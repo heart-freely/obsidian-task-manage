@@ -1,51 +1,3 @@
-/**
- * 文件：src/panel/views/important-task-view.js
- * 描述：重要任务视图，按状态（未开始/计划中/进行中）分组展示标记为重要的任务，三列网格布局
- * 所属模块：panel/views
- * 依赖：
- *   - BaseTaskView, createTaskCard, normalizeTaskCardData: 基础视图和卡片工具
- *   - task-query-process.fetchImportantTasksByStatus: 获取按状态分组的重要任务数据
- * 对外导出：VIEW_TYPE_IMPORTANT, ImportantTaskView, startImportantView
- * 注意事项：依赖于 Tasks 插件的优先级/重要性标记
- * @see .cline/skills/code/views/important-task-view.md
- */
-
-/* <!-- SYNC_COMMENTS_START --> */
-
-/* @skill-sig class ImportantTaskView extends BaseTaskView - 重要任务视图，三列网格按状态分组展示标记为重要的任务 */
-
-/* @skill-state 无（纯展示视图） */
-
-/* @skill-api
-  fetchImportantTasksByStatus (task-query-process)
-  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
-*/
-
-/* @skill-func async startImportantView(dv, app, container) : { cleanup, updateSort } - 渲染重要任务三列网格视图 */
-
-/* @skill-flow
-   startImportantView(dv, app, container) → fetchImportantTasksByStatus(app) → 网格容器 → 三列分组渲染（未开始/计划中/进行中） → 返回 { cleanup, updateSort }
-*/
-
-/* @skill-condition
-   若 fetchImportantTasksByStatus 抛出异常 → 显示错误提示 "❌ 未检测到 Tasks 插件"
-   若某分组任务数为 0 → 显示 "暂无任务"
-*/
-
-/* @skill-dom
-  .view-grid.cols-3
-    .view-col (x3)
-      .col-header
-        span (分组名)
-        span (任务数)
-      ul.task-list
-        li.task-item[data-path][data-line]
-          .task-desc
-          .task-meta
-*/
-
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { fetchImportantTasksByStatus } from "../../tasks/process/task-query-process";
 import {
 	BaseTaskView,
@@ -66,7 +18,6 @@ export class ImportantTaskView extends BaseTaskView {
 		return "star";
 	}
 
-	/* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startImportantView 渲染重要任务视图 */
 	async _startCore(dv, app, storageAdapter, instanceId) {
 		return await startImportantView(dv, app, dv.container);
 	}

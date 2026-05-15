@@ -1,51 +1,3 @@
-/**
- * 文件：src/panel/views/recurring-task-view.js
- * 描述：循环任务视图，按频率（每天/每周/每月）分组展示循环任务，三列网格布局
- * 所属模块：panel/views
- * 依赖：
- *   - BaseTaskView, createTaskCard, normalizeTaskCardData: 基础视图和卡片工具
- *   - fetchRecurringTasksGrouped (recurring-task-process): 获取按频率分组的循环任务
- * 对外导出：VIEW_TYPE_RECURRING, RecurringTaskView, startRecurringView
- * 注意事项：依赖于 Tasks 插件的重复规则解析
- * @see .cline/skills/code/views/recurring-task-view.md
- */
-
-/* <!-- SYNC_COMMENTS_START --> */
-
-/* @skill-sig class RecurringTaskView extends BaseTaskView - 循环任务视图，三列网格按频率分组展示循环任务 */
-
-/* @skill-state 无（纯展示视图） */
-
-/* @skill-api
-  fetchRecurringTasksGrouped (recurring-task-process)
-  BaseTaskView, createTaskCard, normalizeTaskCardData (base-task-view)
-*/
-
-/* @skill-func async startRecurringView(dv, app, container) : { cleanup, updateSort } - 渲染循环任务三列网格视图（每天/每周/每月） */
-
-/* @skill-flow
-   startRecurringView(dv, app, container) → fetchRecurringTasksGrouped(app) → 网格容器 → 三列分组渲染（每天/每周/每月） → 返回 { cleanup, updateSort }
-*/
-
-/* @skill-condition
-   若 fetchRecurringTasksGrouped 抛出异常 → 显示错误提示 "❌ 未检测到 Tasks 插件"
-   若某分组任务数为 0 → 显示 "暂无任务"
-*/
-
-/* @skill-dom
-  .view-grid.cols-3
-    .view-col (x3)
-      .col-header
-        span (分组名)
-        span (任务数)
-      ul.task-list
-        li.task-item
-          .task-desc
-          .task-meta
-*/
-
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { fetchRecurringTasksGrouped } from "../../tasks/process/recurring-task-process";
 import {
 	BaseTaskView,
@@ -66,7 +18,6 @@ export class RecurringTaskView extends BaseTaskView {
 		return "refresh-cw";
 	}
 
-	/* @skill-sig async _startCore(dv, app, storageAdapter, instanceId) : function - 调用 startRecurringView 渲染循环任务视图 */
 	async _startCore(dv, app, storageAdapter, instanceId) {
 		return await startRecurringView(dv, app, dv.container);
 	}

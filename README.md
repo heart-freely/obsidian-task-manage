@@ -14,12 +14,6 @@
 docker run -it --rm -v ${PWD}:/workspace -w /workspace node:20-slim bash
 ```
 
-如果在 VSCode 终端中进入 Docker 容器（docker run -it ... bash）后看到乱码，可以用以下方式启动容器，指定 UTF-8 环境：
-
-```powershell
-docker run -it --rm -e LANG=C.UTF-8 -e LC_ALL=C.UTF-8 -v ${PWD}:/workspace -w /workspace node:20-slim bash
-```
-
 ### 编译
 
 - **手动编译**：`npm run build`

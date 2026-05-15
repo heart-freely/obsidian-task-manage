@@ -1,93 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/views/calendar-task-view.js
- * 描述：日历视图，支持日/周/月/季/年五种视图模式，展示任务在时间轴上的分布，支持无任务时间段合并显示
- * 所属模块：panel/views
- * 依赖：
- *   - BaseTaskView: 视图基类
- *   - readTasks.getAllTasks: 统一任务读取接口
- *   - DateUtils: 日期工具（formatDate, setStart, setEnd, getWeekRange, getISOWeekNumber等）
- *   - CONFIG: 插件配置（状态、优先级、日期标记等定义）
- * 对外导出：VIEW_TYPE_CALENDAR, CalendarTaskView, startCalendarView
- * 注意事项：该视图使用内部 calState 管理视图切换状态，包含五种渲染模式（日/周/月/季/年），大量 DOM 操作
- * @see .cline/skills/code/views/calendar-task-view.md
- */
-
-/* @skill-sig function safeState(globalState) : Object - 安全包装全局状态，提供默认值 */
-/* @skill-sig function getFilteredTasks(dv, globalState) : Array<Task> - 获取过滤后的任务列表（日期范围+标记筛选+重复/完成排除） */
-/* @skill-sig function getEffectiveDateRange(state, dv) : { start:Date, end:Date } | null - 获取有效日期范围（从过滤状态或全部任务推断） */
-/* @skill-sig function getTaskInterval(task, state) : { start:Date, end:Date } | null - 获取任务在时间轴上的区间（根据 intervalMode 选择时间字段对） */
-/* @skill-condition 仅当天是该任务区间的首日或末日时，才显示完整描述文本；其余天数仅显示颜色条 */
-/* @skill-sig function buildDateTaskMap(tasks, state) : Object<string, Task[]> - 构建日期→任务映射（含区间展开和平铺去重） */
-/* @skill-sig function buildGlobalTitle(state, groupCount, taskCount) : string - 构建全局标题（含日期范围、筛选条件和统计信息） */
-
-/* @skill-state
-  calState.currentView : string       // 当前视图模式（'day'|'week'|'month'|'quarter'|'year'）
-  calState.singleDateMode : boolean   // 是否为单日聚焦模式（从其他视图点击日期进入）
-  calState.focusedDate : Date|null    // 聚焦的日期
-  calState.focusedTaskId : string|null // 聚焦的任务ID（用于高亮和滚动定位）
-*/
-
-/* @skill-dom
-  .cal-root > .cal-view-area
-    .view-col
-      .col-header[data-date]
-      ul.task-list
-        li.task-item[data-id]                  // day view
-    .week-block
-      .week-title
-      .week-row
-        .cal-cell[data-date]                  // week view
-          .cal-cell-header
-          .cal-task-row
-            .cal-task-desc (首末日/今日显示全描述，其余显示颜色条)
-            .cal-task-line.status-tag
-    .calendar-grid
-      .cal-cell[data-date]                    // month/quarter view
-        .cal-cell-header (日期数字)
-        .cal-task-row
-          .cal-task-desc (今日和首末日显示)
-          .cal-task-line (其余显示颜色条)
-        .cal-more (+N剩余)
-    .quarter-block
-      .month-block
-        .calendar-grid
-          .cal-cell[data-date]                // nested in quarter
-    .year-block
-      .year-grid
-        .year-month-card
-          .year-month-title
-          .year-heat-grid
-            .year-heat-cell[data-date] (颜色深度表示任务密度)
-*/
-
-/* @skill-flow
-  初始化工具栏 → 构建标题栏 → 创建视图区域 → 添加悬浮按钮 → renderCurrentView()
-  点击视图切换按钮 → 更新 calState.currentView → renderCurrentView()
-  点击日期 → 切换到日视图 + 聚焦该日期
-  点击任务 → handleTaskClick(task, date) → 切换到日视图 + 高亮定位该任务
-  startCalendarView(dv, app, container, globalState) → 初始化UI → renderCurrentView() → 返回 {cleanup, updateSort}
-*/
-
-/* @skill-api
-  BaseTaskView (base-task-view)
-  readTasks.getAllTasks(false, dv, state)
-  DateUtils.formatDate(date)
-  DateUtils.setStart(date)
-  DateUtils.setEnd(date)
-  DateUtils.getWeekRange(date)
-  DateUtils.getISOWeekNumber(date)
-  DateUtils.getWeekOfMonth(date)
-  DateUtils.getWeekRangeByYearWeek(year, week)
-  DateUtils.getMonthRangeByYearMonth(year, month)
-  DateUtils.getQuarterRangeByYearQuarter(year, quarter)
-  DateUtils.getYearRangeByYear(year)
-  DateUtils.getWeekdayRange(start, end)
-  app.vault.getAbstractFileByPath
-  app.workspace.getLeaf
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { CONFIG } from "../../configs/plugin-configs";
 import { DateUtils } from "../../tasks/process/common-process";
 import * as readTasks from "../../tasks/read/read-tasks";
@@ -114,7 +24,6 @@ export class CalendarTaskView extends BaseTaskView {
 	}
 }
 
-// ---------- 内部状态 ----------
 const calState = {
 	currentView: "month",
 	singleDateMode: false,
@@ -136,7 +45,6 @@ const {
 	getWeekdayRange,
 } = DateUtils;
 
-// ---------- 注入样式 ----------
 function injectStyle() {
 	if (document.getElementById("calendar-final-style")) return;
 	const style = document.createElement("style");
@@ -219,7 +127,7 @@ function injectStyle() {
 
         .empty-message { padding: 40px; text-align: center; color: var(--text-muted); font-style: italic; }
 
-        /* 无任务合并块样式 */
+
         .no-tasks-block {
             margin-bottom: 24px;
             border-left: 4px solid var(--text-muted);
@@ -234,7 +142,7 @@ function injectStyle() {
             margin-bottom: 4px;
         }
 
-        /* 悬浮按钮 */
+
         .cal-scroll-buttons {
             position: fixed; bottom: 20px; right: 20px;
             display: flex; gap: 8px; z-index: 10000;
@@ -251,7 +159,6 @@ function injectStyle() {
 	document.head.appendChild(style);
 }
 
-// ---------- 辅助函数 ----------
 function safeState(globalState) {
 	return {
 		dateFilterState: {
@@ -468,7 +375,6 @@ function buildGlobalTitle(state, groupCount, taskCount) {
 	return title + (stats.length ? ` (${stats.join(" ")})` : "");
 }
 
-// ---------- 日视图 ----------
 function renderDayView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -610,12 +516,10 @@ function renderDayView(container, tasks, globalState, app, dv, renderFn) {
 		container.appendChild(col);
 	});
 
-	// 更新标题中的组数和总数（外部通过读取 container 属性或回调，这里暂不处理）
 	container.dataset.groupCount = groupCount;
 	container.dataset.taskCount = tasks.length;
 }
 
-// ---------- 周视图（连续无任务合并为独立块）----------
 function renderWeekView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -791,7 +695,6 @@ function renderWeekView(container, tasks, globalState, app, dv, renderFn) {
 
 	items.forEach((item) => container.appendChild(item));
 
-	// 计算有任务的组数
 	const groupCount = items.filter((item) =>
 		item.classList.contains("week-block"),
 	).length;
@@ -806,7 +709,6 @@ function handleTaskClick(task, date) {
 	calState.focusedTaskId = task.line + "@" + task.path;
 }
 
-// ---------- 月视图 (连续无任务月合并为独立块) ----------
 function renderMonthView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -994,7 +896,6 @@ function renderMonthView(container, tasks, globalState, app, dv, renderFn) {
 	container.dataset.taskCount = tasks.length;
 }
 
-// ---------- 季视图 (连续无任务季合并为独立块) ----------
 function renderQuarterView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -1191,7 +1092,6 @@ function renderQuarterView(container, tasks, globalState, app, dv, renderFn) {
 	container.dataset.taskCount = tasks.length;
 }
 
-// ---------- 年视图 (热力图，已自适应多列) ----------
 function renderYearView(container, tasks, globalState, app, dv, renderFn) {
 	container.innerHTML = "";
 	if (!tasks.length) {
@@ -1285,7 +1185,6 @@ function renderYearView(container, tasks, globalState, app, dv, renderFn) {
 	container.dataset.taskCount = tasks.length;
 }
 
-// ---------- 主渲染调度 ----------
 function renderCurrentView(container, dv, app, globalState) {
 	const viewArea = container.querySelector(".cal-view-area");
 	if (!viewArea) return;
@@ -1322,13 +1221,11 @@ function renderCurrentView(container, dv, app, globalState) {
 	}
 }
 
-// ---------- 导出入口 ----------
 export async function startCalendarView(dv, app, container, globalState) {
 	injectStyle();
 	container.innerHTML = "";
 	container.className = "cal-root";
 
-	// 工具栏
 	const toolbar = document.createElement("div");
 	toolbar.className = "cal-toolbar";
 	const views = ["day", "week", "month", "quarter", "year"];
@@ -1352,7 +1249,6 @@ export async function startCalendarView(dv, app, container, globalState) {
 	});
 	container.appendChild(toolbar);
 
-	// 标题（分为前缀和统计）
 	const stateForTitle = safeState(globalState);
 	const titleDiv = document.createElement("div");
 	titleDiv.className = "cal-global-title";
@@ -1371,7 +1267,6 @@ export async function startCalendarView(dv, app, container, globalState) {
 	viewArea.className = "cal-view-area";
 	container.appendChild(viewArea);
 
-	// 悬浮按钮
 	const existingBtns = document.getElementById("cal-scroll-btns");
 	if (existingBtns) existingBtns.remove();
 	const scrollBtns = document.createElement("div");

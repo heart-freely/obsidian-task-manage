@@ -1,40 +1,3 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/* @skill-sig file src/tasks/process/common-process.js - 纯工具函数集，提供日期操作(DateUtils)、帧节流(throttleByFrame)和简易 DOM 创建(createEl)，无外部依赖 */
-/* @skill-ns DateUtils
-   formatDate(d: Date) : string - 格式化日期为 yyyy-MM-dd
-   setStart(d: Date) : Date - 设置当天起始时刻 00:00:00.000
-   setEnd(d: Date) : Date - 设置当天结束时刻 23:59:59.999
-   getDayRange(d) : {start,end} - 获取全天范围
-   getISOWeekNumber(date) : number - 获取 ISO 周数
-   getWeekRangeByYearWeek(year, week) : {start,end} - 根据年月获取周范围
-   getWeekRange(d) : {start,end} - 获取日期所在周范围
-   getMonthRange(d) : {start,end} - 获取日期所在月范围
-   getMonthRangeByYearMonth(y, m) : {start,end} - 根据年月获取月范围
-   getQuarterRangeByYearQuarter(y, q) : {start,end} - 根据年份季度获取季度范围
-   getYearRangeByYear(y) : {start,end} - 获取全年范围
-   getWeekdayRange(date, wd) : {start,end} - 获取下个星期几的范围
-*/
-/* @skill-func
-   throttleByFrame(fn: Function) : Function - 帧节流函数，用 requestAnimationFrame 节流
-   createEl(tag, textOrOpts?, opts?) : HTMLElement - 简易 DOM 元素创建
-*/
-/* @skill-flow
-   DateUtils.get/Day/Week/Month/Quarter/Year Range() → 调用 setStart/setEnd 统一边界
-   throttleByFrame(fn) → 返回节流包装函数 → 内部用 requestAnimationFrame 调度
-   createEl(tag, textOrOpts, opts) → 创建元素 → 设置 textContent 或 Object.assign → 处理 cls/style/attr
-*/
-/* @skill-condition
-   DateUtils 所有方法均返回新 Date 对象，不修改入参
-   throttleByFrame: 使用 boolean `scheduled` 标志防止重复调度
-   createEl: textOrOpts 为字符串时设 textContent，为对象时 Object.assign；opts 可选
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
-/**
- * 日期工具集
- * 提供常用的日期格式化、范围计算（日/周/月/季度/年）等静态方法
- * @namespace
- */
 export const DateUtils = {
 	/**
 	 * 格式化日期为 yyyy-MM-dd 字符串
@@ -232,7 +195,7 @@ export function throttleByFrame(fn) {
 }
 
 /**
- * 简易 DOM 元素创建函数 @skill-sig
+ * 简易 DOM 元素创建函数 @auto-sig
  * 提供轻量级的元素创建方式，不依赖 Obsidian API
  * 若需复杂功能（如事件绑定、子元素管理），建议使用 dv.el 或 Obsidian 的 createEl
  *

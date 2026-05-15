@@ -1,101 +1,3 @@
-/**
- * 文件：src/panel/views/organize-task-view.js
- * 描述：任务整理箱视图，提供四级模式过滤任务、批量编辑标记/日期/优先级/标签、预览修改并批量写入文件
- * 所属模块：panel/views
- * 依赖：
- *   - BaseTaskView: 基础视图类
- *   - read-tasks: 读取任务数据
- *   - organize-task-process: 任务整理逻辑（Op 操作、快照、写入）
- * 对外导出：VIEW_TYPE_ORGANIZE, OrganizeTaskView, startOrganizeView
- * 注意事项：内部维护大量 UI 状态，页面较大，支持分页和快照机制
- * @see .cline/skills/code/views/organize-task-view.md
- */
-
-/* <!-- SYNC_COMMENTS_START --> */
-
-/* @skill-sig file src/panel/views/organize-task-view.js - 任务整理箱视图，提供四级模式过滤任务、批量编辑标记/日期/优先级/标签、预览修改并批量写入文件 */
-
-/* @skill-state
-   State.mode: 当前模式索引（0-3）
-   State.statuses: 已选状态数组
-   State.includeMarks: 包含标记列表
-   State.excludeMarks: 排除标记列表
-   State.tagOrderInvalidOnly: 是否仅显示标记顺序异常
-   State.sort: { type: string, order: 'asc'|'desc' }
-   State.page: 当前页码
-   State.selectedIds: 选中任务 ID 集合
-   State.previewMap: 预览结果映射
-   State.opsState: 待执行操作队列
-   State.snapshots: 历史快照
-   State.modifiedMap: 已确定修改映射
-   globalState: 外部全局缓存（需传入）
-*/
-
-/* @skill-api
-   BaseTaskView (base-task-view)
-   readTasks (read-tasks)
-   isIncomplete, isCompleted, hasEssentialTags, Op, loadSnapshots, saveSnapshots, addSnapshot, writeToFiles (organize-task-process)
-*/
-
-/* @skill-dom
-   .organize-wrap
-     .organize-toolbar
-       .toolbar-left (模式切换按钮)
-       .toolbar-right (页首/页尾按钮)
-     .organize-row (状态筛选)
-     .organize-row (包含/排除标记筛选)
-     .organize-edit (编辑面板: 优先级/循环/日期/标签等)
-     .organize-row (操作栏: 清空预览/保存/快照撤回/刷新/重置)
-     .organize-row (排序面板 + 仅显示无序)
-     .task-list
-       li.task-item (复选框 + 原始行 + 预览/已修改标记)
-     .organize-row (分页导航)
-*/
-
-/* @skill-flow
-   getFilteredTasks() → globalState.filterCache.tasks → MODE 过滤 → statuses 过滤 → includeMarks 过滤 → excludeMarks 过滤 → tagOrderInvalidOnly 过滤 → 排序 → 返回
-   整页渲染 → render() → buildStatusFilter() → buildMarkFilter() → buildEditPanel() → buildActionBar() → buildSortAndFilter() → paginate() → buildTaskTable()
-   toggleOp() → 切换 opsState → paginate() → generatePreviews() → render()
-   确定按钮 → 写入 modifiedMap → render()
-   保存按钮 → addSnapshot() → writeToFiles() → 清空 modifiedMap → 刷新数据 → render()
-   快照撤回 → 从 snapshots 恢复文件行 → 刷新数据 → render()
-*/
-
-/* @skill-condition
-   若 globalState?.filterCache?.tasks 不存在 → 返回 []
-   排序类型: time(默认按日期), missing(缺失标记数), priority(优先级权重), tagOrder(标记顺序正确性)
-   空值排序统一置底（包括 null/undefined/空字符串）
-*/
-
-/* @skill-const MODES - 四级过滤模式配置：
-   [0] 未完成 & 缺失必需标记 → 可编辑 priority/repeat/created/scheduled/starts/due/tag/id/forbid/sort/autoComplete
-   [1] 未完成 & 格式完整 → 可编辑 repeat/due/tag/id/forbid/sort
-   [2] 已完成 & 缺失必需标记 → 可编辑 priority/repeat/created/scheduled/starts/due/done/cancel/tag/id/forbid/sort/autoComplete
-   [3] 已完成 & 格式完整 → 可编辑 repeat/done/cancel/tag/id/forbid/sort
-*/
-
-/* @skill-const EDIT_GROUPS - 编辑分组定义，包含键名/标签/子选项类型 */
-
-/* @skill-object State - 全局状态对象，管理视图层的所有可持久化状态 */
-
-/* @skill-func getApp() : app - 获取 app 引用 */
-/* @skill-func loadViewState() : void - 从 localStorage 恢复视图状态 */
-/* @skill-func saveViewState() : void - 将视图状态持久化到 localStorage */
-/* @skill-func getFilteredTasks() : Task[] - 根据当前 State 筛选和排序任务列表 */
-/* @skill-func paginate() : { tasks, paginated } - 对筛选结果分页，重置选中和预览 */
-/* @skill-func generatePreviews(paginated) : void - 基于当前 opsState 生成选中任务的预览文本 */
-/* @skill-func render() : void - 渲染完整的整理箱 UI */
-/* @skill-func buildStatusFilter(root) : void - 构建状态筛选按钮行 */
-/* @skill-func buildMarkFilter(root) : void - 构建包含/排除标记筛选行 */
-/* @skill-func buildEditPanel(root) : void - 构建编辑操作面板（优先级/循环/日期/标签等） */
-/* @skill-func buildActionBar(root) : void - 构建操作栏（清空/保存/快照撤回/刷新/重置） */
-/* @skill-func buildSortAndFilter(root) : void - 构建排序面板（时间/缺失标记/优先级/标记顺序 + 仅显示无序） */
-/* @skill-func buildTaskTable(root, allTasks, paginated) : void - 构建任务表格（全选/任务行/分页） */
-/* @skill-func toggleOp(key, op, val) : void - 切换编辑操作（添加/移除操作到 opsState） */
-/* @skill-func async startOrganizeView(dvParam, appParam, panelContainer, gState) : { cleanup, updateSort } - 启动任务整理箱视图，返回控制器 */
-
-/* <!-- SYNC_COMMENTS_END --> */
-
 import {
 	addSnapshot,
 	hasEssentialTags,
@@ -127,7 +29,6 @@ export class OrganizeTaskView extends BaseTaskView {
 	}
 }
 
-// ---------- 模块级变量 ----------
 let app, dv, globalState, container;
 
 function getApp() {
@@ -985,8 +886,6 @@ function toggleOp(key, op, val) {
 	generatePreviews(paginated);
 	render();
 }
-
-// ---------- 入口 ----------
 
 export async function startOrganizeView(
 	dvParam,

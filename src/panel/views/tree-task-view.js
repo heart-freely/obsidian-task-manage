@@ -1,84 +1,5 @@
-/* <!-- SYNC_COMMENTS_START --> */
-/**
- * 文件：src/panel/views/tree-task-view.js
- * 描述：树状视图，以文件路径为树形结构展示任务，支持展开/折叠、层级缩进、点击任务跳转
- * 所属模块：panel/views
- * 依赖：
- *   - task-query-process.fetchTasks: 统一任务查询接口
- * 对外导出：startTreeView
- * 注意事项：从任务文件路径解析树结构，使用 Set 跟踪展开状态，深度优先渲染
- * @see .cline/skills/code/views/tree-task-view.md
- */
-
-/* @skill-sig function startTreeView(app, container, leftSort, state) : ViewController - 启动树状视图 */
-
-/* @skill-state
-  tasks    : Array<Object>     // 加载后的任务列表
-  treeData : Object            // 树状结构数据 {path: {name, tasks[], children{}}}
-  expanded : Set<string>      // 已展开的路径集合
-  sortType : string           // 排序类型: "status"|"priority"|"due"|"created"
-  sortAsc  : boolean          // 排序方向
-*/
-
-/* @skill-constant MAX_DEPTH : number - 树最大深度，防止无限递归 */
-
-/* @skill-helpers
-  getDirParts(path) : string[]    // 拆分路径为目录片段
-  getFileName(path) : string      // 提取文件名（无扩展名）
-*/
-
-/* @skill-dom
-  .tree-root
-    .tree-header
-      button.collapse-all / button.expand-all (全局折叠/展开)
-      select.sort-select (排序选择器)
-    .tree-container
-      .tree-node (递归渲染)
-        .node-header (可点击的文件夹/文件行)
-          span.toggle-icon (▶/▼ 切换图标)
-          span.node-name (名称)
-          span.task-count (任务数)
-        .node-children (展开后的子节点列表)
-          .tree-node (递归)
-        .node-tasks (任务列表)
-          .task-item
-            span.status-icon
-            span.task-description
-*/
-
-/* @skill-flow
-  初始化 → loadData() → fetchTasks() → buildTree() → render() → expandAll()
-  折叠全部 → collapseAll() → expanded 清空 → render()
-  展开全部 → expandAll() → expanded 填入所有路径 → render()
-  节点点击 → toggleNode(path) → expanded toggle → render()
-  排序切换 → sort-select change → sortType/sortAsc 变更 → render()
-  任务点击 → 打开文件跳转到对应行
-*/
-
-/* @skill-condition
-  若 fetchTasks 返回空 → 显示 "暂无任务"
-  根节点始终展开，不计入 expanded 跟踪
-  最大深度 MAX_DEPTH = 10，超出深度的节点不再展开
-  空节点（无任务也无子节点）自动隐藏
-*/
-
-/* @skill-api
-  fetchTasks(app)                 // 获取所有任务
-  app.vault.getAbstractFileByPath // 获取文件对象
-  app.workspace.getLeaf           // 获取编辑器叶子节点
-*/
-/* <!-- SYNC_COMMENTS_END --> */
-
 import { fetchTasks } from "../../tasks/process/task-query-process";
 
-/**
- * 启动树状视图
- * @param {Object} app - Obsidian App 实例
- * @param {HTMLElement} container - 视图容器 DOM 元素
- * @param {Object} leftSort - 左侧栏排序配置（含 type 和 order）
- * @param {Object} state - 全局状态（可选）
- * @returns {Promise<{cleanup, updateSort}>} 视图控制接口
- */
 export async function startTreeView(app, container, leftSort, state = {}) {
 	let tasks = [];
 	let treeData = {};
@@ -107,7 +28,7 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 					};
 				}
 				current = current.children[part];
-				// 将任务附加到每个层级节点
+
 				if (idx === parts.length - 1) {
 					current.tasks.push(task);
 				}
@@ -171,7 +92,7 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 		return copy;
 	}
 
-	/* @skill-dom
+	/* @auto-dom
 	  .tree-root
 	    .tree-header
 	      button.collapse-all / button.expand-all (全局折叠/展开)
@@ -190,7 +111,7 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 	            span.task-description
 	*/
 
-	/* @skill-flow
+	/* @auto-flow
 	  初始化 → loadData() → fetchTasks() → buildTree() → render() → expandAll()
 	  折叠全部 → collapseAll() → expanded 清空 → render()
 	  展开全部 → expandAll() → expanded 填入所有路径 → render()
@@ -199,14 +120,14 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 	  任务点击 → 打开文件跳转到对应行
 	*/
 
-	/* @skill-condition
+	/* @auto-condition
 	  若 fetchTasks 返回空 → 显示 "暂无任务"
 	  根节点始终展开，不计入 expanded 跟踪
 	  最大深度 MAX_DEPTH = 10，超出深度的节点不再展开
 	  空节点（无任务也无子节点）自动隐藏
 	*/
 
-	/* @skill-api
+	/* @auto-api
 	  fetchTasks(app)                 // 获取所有任务
 	  app.vault.getAbstractFileByPath // 获取文件对象
 	  app.workspace.getLeaf           // 获取编辑器叶子节点
@@ -232,7 +153,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 		const header = document.createElement("div");
 		header.className = "node-header";
 
-		// 展开/折叠图标
 		const toggleIcon = document.createElement("span");
 		toggleIcon.className = "toggle-icon";
 		if (hasChildren) {
@@ -245,13 +165,11 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 		}
 		header.appendChild(toggleIcon);
 
-		// 节点名称
 		const nameSpan = document.createElement("span");
 		nameSpan.className = "node-name";
 		nameSpan.textContent = node.name;
 		header.appendChild(nameSpan);
 
-		// 任务计数
 		if (hasTasks) {
 			const countSpan = document.createElement("span");
 			countSpan.className = "task-count";
@@ -259,7 +177,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 			header.appendChild(countSpan);
 		}
 
-		// 点击展开/折叠
 		if (hasChildren) {
 			header.addEventListener("click", () => {
 				if (expanded.has(path)) {
@@ -274,14 +191,12 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 
 		div.appendChild(header);
 
-		// 子节点（展开时渲染）
 		if (hasChildren && expanded.has(path)) {
 			if (depth < MAX_DEPTH) {
 				const childrenDiv = document.createElement("div");
 				childrenDiv.className = "node-children";
 
 				const sortedKeys = Object.keys(node.children).sort((a, b) => {
-					// 文件夹（有子节点的）排前面
 					const aHasChildren =
 						Object.keys(node.children[a].children).length > 0;
 					const bHasChildren =
@@ -311,7 +226,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 			}
 		}
 
-		// 渲染当前节点的任务列表
 		if (hasTasks && expanded.has(path)) {
 			const tasksDiv = document.createElement("div");
 			tasksDiv.className = "node-tasks";
@@ -374,7 +288,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 	function render() {
 		container.innerHTML = "";
 
-		// 工具栏
 		const toolbar = document.createElement("div");
 		toolbar.className = "tree-header";
 
@@ -389,7 +302,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 		const expandBtn = document.createElement("button");
 		expandBtn.textContent = "展开全部";
 		expandBtn.addEventListener("click", () => {
-			// 将所有路径加入 expanded
 			function collectPaths(node, path) {
 				Object.keys(node.children).forEach((key) => {
 					const childPath = path ? `${path}/${key}` : key;
@@ -433,7 +345,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 
 		container.appendChild(toolbar);
 
-		// 检查是否有任务
 		if (tasks.length === 0) {
 			const empty = document.createElement("div");
 			empty.className = "empty-placeholder";
@@ -442,11 +353,9 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 			return;
 		}
 
-		// 树容器
 		const treeContainer = document.createElement("div");
 		treeContainer.className = "tree-container";
 
-		// 遍历根节点子节点
 		Object.keys(treeData.children).forEach((key) => {
 			const nodeEl = renderNode(treeData.children[key], 0, key);
 			if (nodeEl) {
@@ -472,7 +381,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 			tasks = await fetchTasks(app);
 			treeData = buildTree();
 
-			// 初始化展开状态：顶层节点默认展开
 			if (expanded.size === 0) {
 				Object.keys(treeData.children).forEach((key) => {
 					expanded.add(key);
@@ -507,8 +415,6 @@ export async function startTreeView(app, container, leftSort, state = {}) {
 		},
 	};
 }
-
-// ===== 为兼容其他模块添加的导出 =====
 
 /**
  * 渲染树形面板（与 startTreeView 功能相同）
