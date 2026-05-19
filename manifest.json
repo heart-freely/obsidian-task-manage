@@ -1,11 +1,14 @@
 {
-    "id": "obsidian-task-manage",
-    "name": "任务面板",
-    "version": "1.0.0",
-    "minAppVersion": "0.15.0",
-    "description": "任务汇总分析面板，支持任务收集、整理、组织、回顾、执行、统计、归档全流程管理，支持习惯追踪",
-    "author": "heart-freely",
-    "authorUrl": "https://github.com/heart-freely",
-    "isDesktopOnly": false,
-    "dependsOn": ["obsidian-tasks-plugin", "dataview"]
+	"id": "obsidian-task-manage",
+	"name": "任务面板",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "任务汇总分析面板，支持任务收集、整理、组织、回顾、执行、统计、归档全流程管理，支持习惯追踪",
+	"author": "heart-freely",
+	"authorUrl": "https://github.com/heart-freely",
+	"isDesktopOnly": false,
+	"dependencies": {
+		"obsidian-tasks-plugin": "^1.0.0",
+		"dataview": "^0.5.0"
+	}
 }

@@ -1,85 +1,137 @@
-## 概述
+# Obsidian 任务管理插件
 
-这是一个功能丰富的 Obsidian 任务管理插件，使用 Dataview 和 Tasks 插件 API 作为数据源，采用 ItemView 架构实现多个视图（矩阵、看板、日历、甘特图、时间线、任务表、整理箱等），并统一复用全局筛选条件、排序、左侧树导航。
+一个功能丰富的 Obsidian 任务管理插件，使用 Dataview 和 Tasks 插件 API 作为数据源，采用 ItemView 架构实现矩阵、看板、日历、甘特图、时间线、任务表、整理箱等多个视图，并统一复用全局筛选条件、排序、左侧树导航。
 
----
+## 功能特性
 
-## 项目结构
+- **任务收集箱**：自动展示未开始和计划中的任务，按状态和优先级分组。
+- **任务整理处**：批量编辑任务标记（优先级、日期、标签、ID 等），支持预览、快照撤回和持久化。
+- **任务矩阵**：四象限视图（紧急/重要、不紧急/重要、紧急/不重要、不紧急/不重要），快速识别重点任务。
+- **任务看板**：三列看板展示未开始、计划中、进行中的任务，拖拽流畅。
+- **日期视图**：
+    - **今日/逾期/未来任务**：基于日期字段智能筛选。
+    - **日历视图**：日、周、月、季、年多层级展示，支持折叠无任务区间。
+    - **甘特图**：Canvas 实现的任务条与依赖箭头，支持缩放和拖拽。
+- **时间轴与任务表**：按截止日期分组的时间轴；可排序、可筛选的任务表格。
+- **任务树**：展示文件与任务的层级关系，支持折叠、进度条、筛选文件夹。
+- **标签与依赖视图**：聚合标签任务；显示任务间依赖关系。
+- **统计图表**：基于 ECharts 的饼图、堆叠柱状图，统计状态、优先级、循环周期、日期标记等。
+- **全局筛选与排序**：统一的日期、状态、标记筛选条件，所有视图同步复用。
+- **状态持久化**：筛选条件、展开折叠状态自动保存，重启 Obsidian 后恢复。
+- **移动端兼容**：支持桌面端和移动端（需 Dataview 和 Tasks 插件支持）。
 
-```text
-src/
-├── __mocks__/
-│   └── obsidian.js
-├── __tests__/
-│   ├── common-process.test.js
-│   ├── filter-task-process.test.js
-│   └── persist-storage.test.js
-├── configs/
-│   └── plugin-configs.js
-├── echarts/
-│   └── echarts.js
-├── panel/
-│   ├── bars/
-│   │   ├── control-botton-bar.js
-│   │   ├── date-botton-bar.js
-│   │   ├── hide-botton-bar.js
-│   │   ├── mark-botton-bar.js
-│   │   ├── quick-botton-bar.js
-│   │   ├── side-botton-bar.js
-│   │   └── sort-botton-bar.js
-│   ├── components/
-│   │   └── tree-view-components.js
-│   ├── images/
-│   │   └── panel/
-│   ├── interacts/
-│   │   ├── chart-interact.js
-│   │   └── tooltip-interact.js
-│   ├── views/
-│   │   ├── base-list-view.js
-│   │   ├── base-table-view.js
-│   │   ├── base-task-view.js
-│   │   ├── calendar-task-view.js
-│   │   ├── data-base-tasks-view.js
-│   │   ├── data-detail-tasks-view.js
-│   │   ├── depends-task-view.js
-│   │   ├── edit-tasks-view.js
-│   │   ├── future-task-all-view.js
-│   │   ├── future-task-n-view.js
-│   │   ├── gantt-task-view.js
-│   │   ├── important-task-view.js
-│   │   ├── inbox-task-view.js
-│   │   ├── kanban-task-view.js
-│   │   ├── matrix-task-view.js
-│   │   ├── organize-task-view.js
-│   │   ├── overdue-task-view.js
-│   │   ├── pomodoro-task-view.js
-│   │   ├── recurring-task-view.js
-│   │   ├── table-task-view.js
-│   │   ├── tag-task-view.js
-│   │   ├── timeline-task-view.js
-│   │   ├── today-task-view.js
-│   │   ├── tree-task-view.js
-│   │   └── view-list-tasks.js
-│   └── panel.js
-├── storage/
-│   └── persist-storage.js
-├── tasks/
-│   ├── process/
-│   │   ├── calcul-chart-process.js
-│   │   ├── common-process.js
-│   │   ├── filter-task-process.js
-│   │   ├── inbox-task-process.js
-│   │   ├── kanban-task-process.js
-│   │   ├── matrix-task-process.js
-│   │   ├── organize-task-process.js
-│   │   ├── recurring-task-process.js
-│   │   ├── task-query-process.js
-│   │   └── tree-task-process.js
-│   ├── read/
-│   │   └── read-tasks.js
-│   └── write/
-│       └── write-tasks.js
-├── utils/
-│   └── logger.js
-└── main.js
+## 安装
+
+### 前提条件
+
+- Obsidian v0.15.0 及以上
+- 已安装并启用以下社区插件：
+    - [Dataview](https://obsidian.md/plugins?id=dataview)
+    - [Tasks](https://obsidian.md/plugins?id=obsidian-tasks-plugin)
+
+### 从社区插件市场安装（推荐）
+
+1. 在 Obsidian 内打开 **设置 → 社区插件**。
+2. 点击 **浏览**，搜索 **Obsidian Task Manage**。
+3. 点击安装并启用。
+
+### 手动安装
+
+1. 从 [GitHub Releases](https://github.com/heart-freely/obsidian-task-manage/releases) 下载最新版本。
+2. 解压并将整个文件夹复制到你的库的插件目录：`<vault>/.obsidian/plugins/obsidian-task-manage/`。
+3. 重启 Obsidian，在 **设置 → 社区插件** 中启用 **任务面板**。
+
+## 使用方法
+
+### 打开主面板
+
+- 点击左侧功能区的 **指南针** 图标，或通过命令面板执行 **打开任务导航中心**。
+- 在导航中心左侧栏可切换不同视图：收集、整理、组织、回顾、统计。
+
+### 全局筛选
+
+- 顶部的快捷日期按钮（今天、本周、本月等）和级联日期选择器。
+- 可控制是否隐藏循环、已完成、已取消任务。
+- 支持按执行状态、标记（优先级、循环、日期标记等）进行包含/排除筛选。
+- 排序栏可切换排序方式（状态、优先级、计划日期、文件名等）。
+
+### 视图交互
+
+- **日历/甘特图**：Alt + 滚轮缩放；拖拽分隔条调整面板宽度；点击日期格子跳转日视图。
+- **任务卡片**：点击跳转到源文件对应行，悬停显示完整任务信息。
+- **任务树**：点击文件夹或文件过滤该路径下的任务，支持折叠/展开和进度条。
+
+### 整理箱（批量编辑）
+
+1. 选择筛选模式（未完成/已完成 × 缺失必需标记/格式完整）。
+2. 勾选需要编辑的任务，使用编辑按钮添加、修改或删除标记。
+3. 预览内容会实时更新，支持连续累积编辑。
+4. 点击 **确定修改** 或逐行 **确定** 提交修改；支持快照撤回。
+
+## 截图
+
+> 以下为界面预览（实际效果因主题而异）
+
+### 日历视图
+
+![日历月视图](screenshots/calendar-month.png)
+_月视图展示每日任务，彩色线条表示状态，点击可展开_
+
+### 甘特图
+
+![甘特图](screenshots/gantt.png)
+_左侧任务树 + 右侧任务条与依赖箭头_
+
+### 四象限矩阵
+
+![矩阵视图](screenshots/matrix.png)
+_按优先级自动分拣到四个象限_
+
+### 任务整理处
+
+![整理处](screenshots/organize.png)
+_批量编辑标记，实时预览与快照撤回_
+
+## 配置
+
+在 **设置 → 任务面板** 中可配置：
+
+- **任务文件夹**：设置读取任务的文件夹路径（支持多个，每行一个）。
+- **根路径**：任务树的根目录。
+- **每日工时**：用于计算计划/执行时长的每日工作小时数。
+
+## 开发与构建
+
+### 环境要求
+
+- Node.js 18+
+- npm
+
+### 构建命令
+
+```bash
+npm install
+npm run dev    # 开发模式，监听文件变化
+npm run build  # 生产构建
 ```
+
+构建产物 `main.js` 和 `styles.css` 将直接生成在项目根目录，同时需要 `manifest.json` 才能被 Obsidian 加载。
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！请确保代码通过 ESLint 检查并遵循项目命名规范。
+
+## 许可证
+
+[MIT](LICENSE)
+
+## 作者
+
+heart-freely ([GitHub](https://github.com/heart-freely))
+
+## 鸣谢
+
+- [Obsidian](https://obsidian.md)
+- [Dataview 插件](https://github.com/blacksmithgu/obsidian-dataview)
+- [Tasks 插件](https://github.com/obsidian-tasks-group/obsidian-tasks)
+- [ECharts](https://echarts.apache.org/)
