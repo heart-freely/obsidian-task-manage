@@ -1,6 +1,6 @@
 // src/tasks/read/read-tasks.js
 import logger from '../../utils/logger';
-import { CONFIG } from '../../configs/plugin-configs';
+import { CONFIG } from '../../configs/configs';
 import { DateUtils } from '../process/common-process';
 
 export const RX = {

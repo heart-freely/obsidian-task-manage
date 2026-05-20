@@ -2,12 +2,13 @@
 	"compilerOptions": {
 		"target": "ES6",
 		"module": "ESNext",
-		"lib": ["ES6", "DOM"],
+		"lib": ["ES6", "ES2016", "DOM"], // 添加 ES2016
 		"strict": true,
 		"noImplicitAny": true,
 		"strictNullChecks": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"esModuleInterop": true,
+		"resolvePackageJsonExports": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"outDir": "./dist",

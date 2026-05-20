@@ -1,49 +1,56 @@
-// src/tasks/process/filter-task-process.js
-import { CONFIG } from '../../configs/plugin-configs';
+// src/tasks/process/filter-task-process.ts
+import { GlobalFilter } from "../../types";
 
-export function filterTasks(tasks, options) {
-    const {
-        dateFilterState = { start: null, end: null, isAll: false },
-        markFilterState = {},
-        hideRepeatTasks = true,
-        hideCompletedTasks = true,
-        hideCancelledTasks = true,
-        filterRootPath = null
-    } = options;
+export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
+	let result = tasks;
 
-    const statuses = markFilterState.statuses || CONFIG.ALLOWED_STATUSES;
-    const includeMarks = markFilterState.includeMarks || [];
-    const excludeMarks = markFilterState.excludeMarks || [];
+	// 1. 日期范围筛选
+	if (
+		!filter.dateRange.isAll &&
+		filter.dateRange.start != null &&
+		filter.dateRange.end != null
+	) {
+		const start = filter.dateRange.start;
+		const end = filter.dateRange.end;
+		result = result.filter((t: any) => {
+			if (!t._cachedTimeRange) return false;
+			return (
+				t._cachedTimeRange.start <= end &&
+				t._cachedTimeRange.end >= start
+			);
+		});
+	}
 
-    let result = tasks;
+	// 2. 状态筛选
+	if (filter.statuses && filter.statuses.length > 0) {
+		result = result.filter((t: any) => filter.statuses.includes(t._status));
+	}
 
-    if (!dateFilterState.isAll && dateFilterState.start && dateFilterState.end) {
-        const qr = {
-            start: dateFilterState.start.getTime(),
-            end: dateFilterState.end.getTime()
-        };
-        result = result.filter(t => {
-            const tr = t._cachedTimeRange;
-            return tr && tr.start <= qr.end && tr.end >= qr.start;
-        });
-    }
+	// 3. 标记筛选（选中参与过滤：任务必须包含所有选中的标记）
+	if (filter.includeMarks && filter.includeMarks.length > 0) {
+		result = result.filter((t: any) =>
+			filter.includeMarks!.every((m: string) => t._marks?.[m]),
+		);
+	}
+	// 排除标记逻辑已移除（根据最新需求，未选中的标记不参与过滤）
 
-    if (filterRootPath) result = result.filter(t => t.path.startsWith(filterRootPath));
+	// 4. 显示/隐藏切换
+	if (filter.hideRepeat) {
+		result = result.filter((t: any) => !t._repeat);
+	}
+	if (filter.hideCompleted) {
+		result = result.filter((t: any) => t._status !== "completed");
+	}
+	if (filter.hideCancelled) {
+		result = result.filter((t: any) => t._status !== "cancelled");
+	}
 
-    if (statuses.length < CONFIG.ALLOWED_STATUSES.length) {
-        result = result.filter(t => statuses.includes(t._status));
-    }
+	// 5. 文件夹路径过滤
+	if (filter.rootPath) {
+		result = result.filter((t: any) =>
+			t.path?.startsWith(filter.rootPath!),
+		);
+	}
 
-    if (hideRepeatTasks) result = result.filter(t => !t._repeat);
-    if (hideCompletedTasks) result = result.filter(t => t._status !== 'completed');
-    if (hideCancelledTasks) result = result.filter(t => t._status !== 'cancelled');
-
-    if (includeMarks.length) {
-        result = result.filter(t => includeMarks.every(m => t._marks && t._marks[m]));
-    }
-    if (excludeMarks.length) {
-        result = result.filter(t => !excludeMarks.some(m => t._marks && t._marks[m]));
-    }
-
-    return result;
+	return result;
 }

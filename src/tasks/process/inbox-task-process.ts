@@ -1,5 +1,5 @@
 // src/tasks/process/inbox-task-process.js
-import { TASK_FOLDER_PATH, TASK_FILENAME_REGEX_TASKS } from '../../configs/plugin-configs';
+import { TASK_FOLDER_PATH, TASK_FILENAME_REGEX_TASKS } from '../../configs/configs';
 
 export async function fetchInboxTasks(app) {
     const tasksPlugin = app.plugins.plugins['obsidian-tasks-plugin'];

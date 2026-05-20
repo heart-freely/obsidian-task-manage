@@ -4,7 +4,7 @@ import {
     TASK_FILENAME_REGEX_TASKS,
     TASK_FILENAME_REGEXP,
     PRIORITY_ICONS
-} from '../../configs/plugin-configs';
+} from '../../configs/configs';
 
 const STATUS_SYMBOLS = [" ", "?", "/"];
 

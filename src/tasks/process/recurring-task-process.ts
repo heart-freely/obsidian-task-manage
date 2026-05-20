@@ -5,7 +5,7 @@ import {
     STATUS_SYMBOL_MAP,
     STATUS_ICONS,
     STATUS_NAMES
-} from '../../configs/plugin-configs';
+} from '../../configs/configs';
 
 export async function fetchRecurringTasksGrouped(app) {
     const tasksPlugin = app.plugins.plugins['obsidian-tasks-plugin'];

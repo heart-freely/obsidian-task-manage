@@ -1,5 +1,5 @@
 // src/tasks/process/task-query-process.js
-import { TASK_FOLDER_PATH, TASK_FILENAME_REGEX_TASKS } from '../../configs/plugin-configs';
+import { TASK_FOLDER_PATH, TASK_FILENAME_REGEX_TASKS } from '../../configs/configs';
 import { RX } from '../../tasks/read/read-tasks';   // 引入统一正则以提取自定义标记
 
 function baseQuery(extra = '') {

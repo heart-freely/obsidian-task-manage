@@ -1,7 +1,7 @@
 // src/tasks/process/calcul-chart-process.js
 // 图表数据计算及任务计算（纯函数）
 
-import { CONFIG } from '../../configs/plugin-configs';
+import { CONFIG } from '../../configs/configs';
 
 // ========== 原 calcul-echarts 计算 ==========
 export function computeTotalSpanDays(tasks, fieldStart, fieldEnd) {

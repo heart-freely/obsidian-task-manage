@@ -3,7 +3,7 @@ import {
     TASK_FOLDER_PATH,
     TASK_FILENAME_REGEX_TASKS,
     STATUS_SYMBOL_MAP
-} from '../../configs/plugin-configs';
+} from '../../configs/configs';
 
 // 看板列定义（颜色使用半透明，与矩阵视图配色风格统一）
 export const KANBAN_COLUMNS = [
