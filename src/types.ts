@@ -45,9 +45,22 @@ export interface Preset {
 	groupId: string;
 	businessView: string;
 	viewStyle: string;
+	icon?: string;
 	filter: GlobalFilter;
 	sort: { type: string; order: "asc" | "desc" };
+	showManagePanel?: boolean; // 是否显示配置管理面板
+	manageBars?: {
+		// 各子栏显示状态
+		time: boolean;
+		mark: boolean;
+		excut: boolean;
+	};
+	showToolbar?: boolean; // 是否显示工具栏
+	toolbarOrder?: string[]; // 工具栏各栏排序 ['time','mark','excut','view']
+	barVisibility?: Record<string, boolean>; // 各栏显隐状态
 	showHidden?: boolean;
+	toolbarEverShown?: boolean; // 是否已至少展开过一次工具栏
+	searchText?: string; // 任务描述搜索关键词
 }
 
 /** 方案分组 */

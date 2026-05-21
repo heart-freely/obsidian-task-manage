@@ -7,7 +7,6 @@ import {
 } from "../../tasks/process/organize-task-process";
 import { getAllTasks } from "../../tasks/read/read-tasks";
 import { GlobalFilter } from "../../types";
-import { renderViewBar } from "../bars/view-bar";
 import { BaseTaskView } from "./base-view";
 
 // 编辑操作的描述（用于按钮渲染）
@@ -50,7 +49,7 @@ export class OrganizeView extends BaseTaskView {
 
 		// 工具栏（使用通用视图工具栏）
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		renderViewBar(toolbar, this.store);
+		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();

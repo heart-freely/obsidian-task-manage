@@ -5,7 +5,6 @@ import {
 	processInboxTasks,
 } from "../../tasks/process/inbox-task-process";
 import { GlobalFilter } from "../../types";
-import { renderViewBar } from "../bars/view-bar";
 import { renderKanban } from "../components/boards/kanban";
 import { renderTaskList } from "../components/lists/task-list";
 import { renderTaskTable } from "../components/tables/task-table";
@@ -16,7 +15,7 @@ export class InboxView extends BaseTaskView {
 		this.container.empty();
 
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		renderViewBar(toolbar, this.store);
+		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();

@@ -1,4 +1,4 @@
-import { CONFIG } from "../../../configs/configs";
+import { CONFIG, DEFAULT_SETTINGS } from "../../../configs/configs";
 import { echarts } from "./echarts";
 
 export function renderStatistics(container: HTMLElement, tasks: any[]) {
@@ -61,7 +61,7 @@ export function renderStatistics(container: HTMLElement, tasks: any[]) {
 		});
 	}
 
-	// 数据统计
+	// 数据统计视图
 	const statusCounts: Record<string, number> = {};
 	CONFIG.ALLOWED_STATUSES.forEach((s) => (statusCounts[s] = 0));
 	tasks.forEach((t) => {
@@ -114,7 +114,7 @@ export function renderStatistics(container: HTMLElement, tasks: any[]) {
 		CONFIG.ALLOWED_STATUSES.map((s) => ({
 			name: CONFIG.STATUS_ICONS[s] + " " + CONFIG.STATUS_NAMES[s],
 			value: statusCounts[s],
-			color: CONFIG.DEFAULT_SETTINGS.STATUS_COLORS[s],
+			color: DEFAULT_SETTINGS.STATUS_COLORS[s],
 		})).filter((d) => d.value > 0),
 	);
 
@@ -144,7 +144,7 @@ export function renderStatistics(container: HTMLElement, tasks: any[]) {
 		CONFIG.DATE_MARK_ORDER.map((m, i) => ({
 			name: CONFIG.DATE_MARK_NAMES[m],
 			value: dateCounts[m],
-			color: CONFIG.DEFAULT_SETTINGS.DATE_MARK_COLORS[i],
+			color: DEFAULT_SETTINGS.DATE_MARK_COLORS[i],
 		})).filter((d) => d.value > 0),
 	);
 

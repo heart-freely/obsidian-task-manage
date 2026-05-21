@@ -1,13 +1,11 @@
 import { filterTasks } from "../../tasks/process/filter-task-process";
 import { getAllTasks } from "../../tasks/read/read-tasks";
 import { GlobalFilter } from "../../types";
-import { renderViewBar } from "../bars/view-bar";
 import { renderKanban } from "../components/boards/kanban";
 import { renderMatrix } from "../components/boards/matrix";
 import { renderCalendarDay } from "../components/calendar/day";
 import { renderCalendarMonth } from "../components/calendar/month";
 import { renderCalendarQuarter } from "../components/calendar/quarter";
-import { renderCalendar } from "../components/calendar/task-calendar";
 import { renderCalendarWeek } from "../components/calendar/week";
 import { renderCalendarYear } from "../components/calendar/year";
 import { renderDetail } from "../components/charts/detail";
@@ -20,11 +18,14 @@ import { renderTimeline } from "../components/timeline/task-timeline";
 import { BaseTaskView } from "./base-view";
 
 export class AllTasksView extends BaseTaskView {
+	private calendarSubView: string = "month";
+
 	async render() {
 		this.container.empty();
 
+		// 工具栏
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		renderViewBar(toolbar, this.store);
+		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
@@ -86,32 +87,61 @@ export class AllTasksView extends BaseTaskView {
 					renderGantt(viewContainer, filtered);
 					break;
 				case "calendar":
-					renderCalendar(viewContainer, filtered);
-					break;
-				case "calendar-day":
-					renderCalendarDay(viewContainer, filtered, {
-						onClick: (t: any) => this.openTask(t),
+					const calendarBar = viewContainer.createDiv({
+						cls: "calendar-toolbar",
 					});
-					break;
-				case "calendar-week":
-					renderCalendarWeek(viewContainer, filtered, {
-						onClick: (t: any) => this.openTask(t),
+					const views = ["day", "week", "month", "quarter", "year"];
+					const labels = ["日", "周", "月", "季", "年"];
+					views.forEach((v, idx) => {
+						const btn = calendarBar.createEl("button", {
+							text: labels[idx],
+							cls: "bar-btn",
+						});
+						if (v === this.calendarSubView) btn.addClass("active");
+						btn.onclick = () => {
+							this.calendarSubView = v;
+							this.render();
+						};
 					});
-					break;
-				case "calendar-month":
-					renderCalendarMonth(viewContainer, filtered, {
-						onClick: (t: any) => this.openTask(t),
+					const calContainer = viewContainer.createDiv({
+						cls: "calendar-content",
 					});
-					break;
-				case "calendar-quarter":
-					renderCalendarQuarter(viewContainer, filtered, {
-						onClick: (t: any) => this.openTask(t),
-					});
-					break;
-				case "calendar-year":
-					renderCalendarYear(viewContainer, filtered, {
-						onClick: (t: any) => this.openTask(t),
-					});
+					if (this.calendarSubView === "day") {
+						renderCalendarDay(calContainer, filtered, {
+							onClick: (t: any) => this.openTask(t),
+							intervalMode:
+								(preset as any)?.intervalMode ||
+								"scheduled-due",
+						});
+					} else if (this.calendarSubView === "week") {
+						renderCalendarWeek(calContainer, filtered, {
+							onClick: (t: any) => this.openTask(t),
+							intervalMode:
+								(preset as any)?.intervalMode ||
+								"scheduled-due",
+						});
+					} else if (this.calendarSubView === "month") {
+						renderCalendarMonth(calContainer, filtered, {
+							onClick: (t: any) => this.openTask(t),
+							intervalMode:
+								(preset as any)?.intervalMode ||
+								"scheduled-due",
+						});
+					} else if (this.calendarSubView === "quarter") {
+						renderCalendarQuarter(calContainer, filtered, {
+							onClick: (t: any) => this.openTask(t),
+							intervalMode:
+								(preset as any)?.intervalMode ||
+								"scheduled-due",
+						});
+					} else if (this.calendarSubView === "year") {
+						renderCalendarYear(calContainer, filtered, {
+							onClick: (t: any) => this.openTask(t),
+							intervalMode:
+								(preset as any)?.intervalMode ||
+								"scheduled-due",
+						});
+					}
 					break;
 				case "statistics":
 					renderStatistics(viewContainer, filtered);

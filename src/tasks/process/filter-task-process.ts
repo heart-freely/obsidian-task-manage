@@ -1,4 +1,3 @@
-// src/tasks/process/filter-task-process.ts
 import { GlobalFilter } from "../../types";
 
 export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
@@ -26,13 +25,12 @@ export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
 		result = result.filter((t: any) => filter.statuses.includes(t._status));
 	}
 
-	// 3. 标记筛选（选中参与过滤：任务必须包含所有选中的标记）
+	// 3. 标记筛选（选中参与过滤）
 	if (filter.includeMarks && filter.includeMarks.length > 0) {
 		result = result.filter((t: any) =>
 			filter.includeMarks!.every((m: string) => t._marks?.[m]),
 		);
 	}
-	// 排除标记逻辑已移除（根据最新需求，未选中的标记不参与过滤）
 
 	// 4. 显示/隐藏切换
 	if (filter.hideRepeat) {
@@ -50,6 +48,15 @@ export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
 		result = result.filter((t: any) =>
 			t.path?.startsWith(filter.rootPath!),
 		);
+	}
+
+	// 6. 搜索文本过滤（匹配 _cleanText 或 text）
+	if (filter.searchText) {
+		const keyword = filter.searchText.toLowerCase();
+		result = result.filter((t: any) => {
+			const desc = (t._cleanText || t.text || "").toLowerCase();
+			return desc.includes(keyword);
+		});
 	}
 
 	return result;

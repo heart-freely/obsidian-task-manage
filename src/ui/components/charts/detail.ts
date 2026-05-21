@@ -1,11 +1,10 @@
-import { CONFIG } from "../../../configs/configs";
+import { CONFIG, DEFAULT_SETTINGS } from "../../../configs/configs";
 import { DateUtils } from "../../../tasks/process/common-process";
 import { echarts } from "./echarts";
 
 export function renderDetail(container: HTMLElement, tasks: any[]) {
 	container.empty();
 
-	// 计算日期范围
 	const today = new Date();
 	let minDate = new Date(today);
 	let maxDate = new Date(today);
@@ -38,7 +37,6 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 		}
 	});
 
-	// 创建图表容器
 	const wrapper = document.createElement("div");
 	wrapper.className = "detail-chart-wrapper";
 	wrapper.style.width = "100%";
@@ -46,12 +44,10 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 	wrapper.style.position = "relative";
 
 	const chartDiv = document.createElement("div");
-	chartDiv.className = "detail-chart-body";
 	chartDiv.style.width = "100%";
 	chartDiv.style.height = "500px";
 	wrapper.appendChild(chartDiv);
 
-	// 放大按钮
 	const zoomBtn = document.createElement("button");
 	zoomBtn.className = "zoom-btn";
 	zoomBtn.textContent = "🔍";
@@ -69,7 +65,7 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 	const chart = echarts.init(chartDiv);
 
 	const statusNames: any = CONFIG.STATUS_NAMES || {};
-	const statusColors: any = CONFIG.DEFAULT_SETTINGS.STATUS_COLORS || {};
+	const statusColors: any = DEFAULT_SETTINGS.STATUS_COLORS || {};
 
 	const option = {
 		tooltip: { trigger: "axis" },
@@ -92,7 +88,6 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 
 	chart.setOption(option);
 
-	// 放大功能
 	zoomBtn.onclick = () => {
 		const modal = document.createElement("div");
 		modal.style.cssText =

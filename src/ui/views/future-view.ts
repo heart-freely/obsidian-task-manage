@@ -1,7 +1,7 @@
 import { filterTasks } from "../../tasks/process/filter-task-process";
 import { fetchFutureTasks } from "../../tasks/process/task-query-process";
 import { GlobalFilter } from "../../types";
-import { renderViewBar } from "../bars/view-bar"; // 修改1
+// 修改1
 import { renderKanban } from "../components/boards/kanban";
 import { renderTaskList } from "../components/lists/task-list";
 import { renderTaskTable } from "../components/tables/task-table";
@@ -12,7 +12,7 @@ export class FutureView extends BaseTaskView {
 		this.container.empty();
 
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		renderViewBar(toolbar, this.store);
+		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
