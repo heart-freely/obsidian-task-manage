@@ -1,4 +1,3 @@
-// src/main.ts
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./commands";
 import { TaskManageSettingTab } from "./settings";
@@ -33,11 +32,12 @@ export default class TaskManagePlugin extends Plugin {
 		const defaultPresets: Preset[] = [
 			{
 				id: "inbox",
-				name: "待办任务", // 原名“收集箱”
+				name: "待办任务",
 				groupId: "basic",
 				businessView: "inbox",
 				viewStyle: "list",
 				icon: "📥",
+				showToolbar: false,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -68,6 +68,7 @@ export default class TaskManagePlugin extends Plugin {
 				businessView: "important",
 				viewStyle: "list",
 				icon: "⭐",
+				showToolbar: false,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -101,6 +102,7 @@ export default class TaskManagePlugin extends Plugin {
 				businessView: "today",
 				viewStyle: "list",
 				icon: "📅",
+				showToolbar: false,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -134,6 +136,7 @@ export default class TaskManagePlugin extends Plugin {
 				businessView: "overdue",
 				viewStyle: "list",
 				icon: "⏰",
+				showToolbar: false,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -164,6 +167,7 @@ export default class TaskManagePlugin extends Plugin {
 				businessView: "future",
 				viewStyle: "list",
 				icon: "🔜",
+				showToolbar: false,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -194,6 +198,7 @@ export default class TaskManagePlugin extends Plugin {
 				businessView: "allTasks",
 				viewStyle: "table",
 				icon: "📋",
+				showToolbar: false,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -219,12 +224,19 @@ export default class TaskManagePlugin extends Plugin {
 			},
 		];
 
+		// 合并保存的预设，恢复用户之前设置的状态
+		const savedPresets = savedData.presets || [];
+		const mergedPresets = defaultPresets.map((dp) => {
+			const saved = savedPresets.find((sp: any) => sp.id === dp.id);
+			return saved ? { ...dp, ...saved } : dp;
+		});
+
 		const initialState: AppState = {
 			activePresetId: savedData.activePresetId || "all-tasks",
-			presets: defaultPresets,
+			presets: mergedPresets,
 			presetGroups: [{ id: "basic", name: "任务视图", order: 0 }],
-			sidebarCollapsed: false,
-			sidebarWidth: 160,
+			sidebarCollapsed: savedData.sidebarCollapsed ?? false,
+			sidebarWidth: savedData.sidebarWidth || 100,
 			draftFilter: null,
 		};
 
@@ -244,6 +256,16 @@ export default class TaskManagePlugin extends Plugin {
 		this.addRibbonIcon("compass", "任务导航中心", () => {
 			this.activateView("navigator-view");
 		});
+	}
+
+	async onunload() {
+		// 清理挂载到 body 的工具栏元素，避免重载插件时残留
+		document
+			.querySelectorAll(".toolbar-buttons")
+			.forEach((el) => el.remove());
+		document
+			.querySelectorAll(".toolbar-panels")
+			.forEach((el) => el.remove());
 	}
 
 	async activateView(viewType: string) {

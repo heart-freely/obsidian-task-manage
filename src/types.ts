@@ -79,4 +79,5 @@ export interface AppState {
 	sidebarCollapsed: boolean;
 	sidebarWidth: number; // 新增：侧边栏宽度
 	draftFilter: GlobalFilter | null;
+	toolbarHeight?: number; // 工具栏总高度（按钮条+面板），用于内容区上边距
 }

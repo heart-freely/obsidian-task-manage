@@ -93,33 +93,36 @@
 	height: 100%;
 	overflow: hidden;
 }
-.navigator-sidebar {
-	width: 48px;
-	min-width: 48px;
-	border-right: 1px solid var(--background-modifier-border);
-	padding: 4px;
-	background: var(--background-secondary);
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 4px;
-	transition: width 0.2s;
+.navigator-sidebar:not([style*="width: 40px"]) .preset-btn {
+	width: 100% !important;
+	box-sizing: border-box;
+	text-align: left;
+	padding: 6px 12px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 .navigator-main {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
 	overflow-y: auto;
+	position: relative;
+	min-height: 0; /* 允许内部 flex 子元素收缩 */
 }
 .navigator-filter {
 	flex-shrink: 0;
+	flex: 1;
+	overflow: auto; /* 内容滚动 */
 }
 .navigator-view {
 	flex: 1;
 	min-height: 800px;
 	padding: 8px;
 }
-
+.sidebar-resize-handle {
+	transition: background 0.2s;
+}
 /* ========== 侧边栏 ========== */
 .side-btn {
 	width: auto;
@@ -133,7 +136,19 @@
 	cursor: pointer;
 	text-align: left;
 }
+.side-icon-btn {
+	width: 32px !important;
+	height: 32px;
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	font-size: 18px;
+	padding: 4px !important;
+}
 .preset-btn {
+	transition:
+		background 0.2s,
+		color 0.2s;
 	background: transparent;
 	border: none;
 	padding: 4px 12px;
@@ -159,15 +174,7 @@
 	cursor: pointer;
 	font-size: 12px;
 }
-.side-icon-btn {
-	width: 100%;
-	padding: 6px;
-	margin-bottom: 4px;
-	background: var(--interactive-normal);
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
+
 .side-icon-btn.active {
 	background: var(--interactive-accent);
 	color: white;
@@ -179,6 +186,7 @@
 }
 .side-content {
 	overflow-y: auto;
+	overflow-x: hidden;
 	flex: 1;
 }
 
@@ -700,12 +708,13 @@
 	flex-direction: column;
 	gap: 8px;
 }
+/* 工具栏左对齐 */
 .toolbar-buttons {
+	padding: 8px 0 !important;
 	display: flex;
 	flex-wrap: nowrap;
 	overflow-x: auto;
 	gap: 6px;
-	padding: 8px;
 	background: var(--background-secondary);
 	border-radius: 6px;
 	border: 1px solid var(--background-modifier-border);
@@ -861,12 +870,4 @@
 	border: none;
 	cursor: pointer;
 	font-size: 12px;
-}
-.side-icon-btn {
-	width: 100% !important; /* 填满容器，但不影响高度 */
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	padding: 6px 0;
-	font-size: 18px;
 }

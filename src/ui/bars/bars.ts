@@ -1,6 +1,7 @@
 import { Store } from "../../store/store";
 import { ConfigBar } from "./config-bar";
 import { ExcutBar } from "./excut-bar";
+import { HeadBar } from "./head-bar";
 import { HideBar } from "./hide-bar";
 import { MarkBar } from "./mark-bar";
 import { SearchBar } from "./search-bar";
@@ -22,177 +23,76 @@ const BAR_COMPONENTS: Record<
 	hide: HideBar,
 };
 
-const BAR_LABELS: Record<string, string> = {
-	time: "任务时间",
-	excut: "任务状态",
-	search: "任务搜索",
-	mark: "任务标记",
-	view: "任务视图",
-	hide: "视图隐藏",
-	sort: "视图排序",
-	config: "视图配置",
-};
-
 export class Toolbar {
 	private container: HTMLElement;
 	private store: Store;
-	private buttonBar: HTMLElement | null = null;
+	private viewEl: HTMLElement;
+	private headBar: HeadBar | null = null;
+	private buttonBarEl: HTMLElement | null = null;
 	private panelsContainer: HTMLElement | null = null;
-	private observer: IntersectionObserver | null = null;
+	private resizeHandler: (() => void) | null = null;
+	private observer: ResizeObserver | null = null;
 
-	constructor(container: HTMLElement, store: Store) {
+	constructor(container: HTMLElement, store: Store, viewEl: HTMLElement) {
 		this.container = container;
 		this.store = store;
+		this.viewEl = viewEl;
 		this.store.subscribe(() => this.render());
 		this.render();
 	}
 
-	handleScroll() {
-		// 悬浮切换由 IntersectionObserver 处理
-	}
+	handleScroll() {}
 
 	render() {
+		if (this.observer) {
+			this.observer.disconnect();
+			this.observer = null;
+		}
+		this.removeResizeListener();
+		this.removePanelsContainer();
+		this.removeButtonBar();
 		this.container.empty();
-		this.removeObserver();
 
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
-		if (!preset) return;
+		if (!preset || !preset.showToolbar) {
+			this.viewEl.style.paddingTop = "0px";
+			return;
+		}
 
-		const barVisibility = preset.barVisibility ?? {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-		};
-		const toolbarOrder = preset.toolbarOrder ?? [
-			"time",
-			"excut",
-			"search",
-			"mark",
-			"view",
-			"hide",
-			"sort",
-			"config",
-		];
-
-		this.buttonBar = this.container.createDiv({ cls: "toolbar-buttons" });
-		this.buttonBar.style.position = "relative";
-		this.buttonBar.style.transition = "box-shadow 0.2s";
-
-		let draggedKey: string | null = null;
-
-		toolbarOrder.forEach((barKey) => {
-			const btnDiv = this.buttonBar!.createDiv({
-				cls: "toolbar-btn-item",
-				attr: { "data-key": barKey, draggable: "true" },
-			});
-
-			btnDiv.createSpan({
-				cls: "toolbar-btn-label",
-				text: BAR_LABELS[barKey] || barKey,
-			});
-			const eyeBtn = btnDiv.createSpan({
-				cls: "toolbar-eye",
-				text: "👁",
-			});
-			eyeBtn.title = barVisibility[barKey] ? "隐藏面板" : "显示面板";
-			if (!barVisibility[barKey]) eyeBtn.style.opacity = "0.4";
-
-			eyeBtn.onclick = (e: Event) => {
-				e.stopPropagation();
-				const newVisibility = {
-					...barVisibility,
-					[barKey]: !barVisibility[barKey],
-				};
-				this.updatePreset({ barVisibility: newVisibility });
-			};
-
-			btnDiv.addEventListener("dragstart", (e) => {
-				draggedKey = barKey;
-				e.dataTransfer!.effectAllowed = "move";
-				btnDiv.classList.add("dragging");
-			});
-
-			btnDiv.addEventListener("dragend", () => {
-				btnDiv.classList.remove("dragging");
-				draggedKey = null;
-				this.buttonBar
-					?.querySelectorAll(".drag-over")
-					.forEach((el) => el.classList.remove("drag-over"));
-			});
-
-			btnDiv.addEventListener("dragover", (e) => {
-				e.preventDefault();
-				e.dataTransfer!.dropEffect = "move";
-				btnDiv.classList.add("drag-over");
-			});
-
-			btnDiv.addEventListener("dragleave", () => {
-				btnDiv.classList.remove("drag-over");
-			});
-
-			btnDiv.addEventListener("drop", (e) => {
-				e.preventDefault();
-				btnDiv.classList.remove("drag-over");
-				if (draggedKey && draggedKey !== barKey) {
-					const fromIndex = toolbarOrder.indexOf(draggedKey);
-					const toIndex = toolbarOrder.indexOf(barKey);
-					const newOrder = [...toolbarOrder];
-					newOrder.splice(fromIndex, 1);
-					newOrder.splice(toIndex, 0, draggedKey);
-					this.updatePreset({ toolbarOrder: newOrder });
-				}
-			});
-		});
+		this.headBar = new HeadBar(this.container, this.store);
+		this.buttonBarEl = this.headBar.getElement();
+		if (this.buttonBarEl) {
+			document.body.appendChild(this.buttonBarEl);
+		}
 
 		this.panelsContainer = document.createElement("div");
 		this.panelsContainer.className = "toolbar-panels";
-		this.container.appendChild(this.panelsContainer);
+		this.panelsContainer.style.position = "fixed";
+		this.panelsContainer.style.background = "var(--background-primary)";
+		this.panelsContainer.style.opacity = "1"; // 确保不透明
+		this.panelsContainer.style.border =
+			"1px solid var(--background-modifier-border)";
+		this.panelsContainer.style.borderRadius = "0 0 6px 6px";
+		this.panelsContainer.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
+		this.panelsContainer.style.padding = "4px";
+		this.panelsContainer.style.display = "flex";
+		this.panelsContainer.style.flexDirection = "column";
+		this.panelsContainer.style.gap = "4px";
+		document.body.appendChild(this.panelsContainer);
+
 		this.renderPanels();
+		this.updatePositions();
 
-		if (this.buttonBar) {
-			this.observer = new IntersectionObserver(
-				(entries) => {
-					entries.forEach((entry) => {
-						if (!this.buttonBar) return;
-						const rect = this.buttonBar.getBoundingClientRect();
-						if (!entry.isIntersecting) {
-							this.buttonBar.style.position = "fixed";
-							this.buttonBar.style.top = "0";
-							this.buttonBar.style.left = rect.left + "px";
-							this.buttonBar.style.width = rect.width + "px";
-							this.buttonBar.style.zIndex = "100";
-							this.buttonBar.style.boxShadow =
-								"0 2px 8px rgba(0,0,0,0.15)";
-						} else {
-							this.buttonBar.style.position = "relative";
-							this.buttonBar.style.top = "";
-							this.buttonBar.style.left = "";
-							this.buttonBar.style.width = "";
-							this.buttonBar.style.zIndex = "1";
-							this.buttonBar.style.boxShadow = "";
-						}
-					});
-				},
-				{ threshold: 1.0 },
-			);
-			this.observer.observe(this.buttonBar);
+		this.observer = new ResizeObserver(() => this.updatePositions());
+		if (this.buttonBarEl) {
+			this.buttonBarEl.style.opacity = "1"; // 按钮条也不透明
+			this.observer.observe(this.buttonBarEl);
 		}
+		if (this.panelsContainer) this.observer.observe(this.panelsContainer);
 
-		// 修复：侧边栏宽度变化后，如果按钮条处于悬浮状态，强制更新其水平位置
-		// 使用 requestAnimationFrame 确保布局计算完成
-		requestAnimationFrame(() => {
-			if (this.buttonBar && this.buttonBar.style.position === "fixed") {
-				const rect = this.buttonBar.getBoundingClientRect();
-				this.buttonBar.style.left = rect.left + "px";
-				this.buttonBar.style.width = rect.width + "px";
-			}
-		});
+		this.resizeHandler = () => this.updatePositions();
+		window.addEventListener("resize", this.resizeHandler);
 	}
 
 	private renderPanels() {
@@ -209,26 +109,62 @@ export class Toolbar {
 				cls: "toolbar-panel",
 				attr: { "data-key": barKey },
 			});
-			if (BAR_COMPONENTS[barKey]) {
+			if (BAR_COMPONENTS[barKey])
 				new BAR_COMPONENTS[barKey](panel, this.store);
-			}
 		});
 	}
 
-	private updatePreset(changes: Partial<any>) {
-		const state = this.store.getState();
-		const preset = state.presets.find((p) => p.id === state.activePresetId);
-		if (!preset) return;
-		const newPresets = state.presets.map((p) =>
-			p.id === preset.id ? { ...p, ...changes } : p,
-		);
-		this.store.update({ presets: newPresets });
+	private updatePositions() {
+		if (!this.buttonBarEl || !this.panelsContainer) return;
+
+		const mainEl = document.querySelector(".navigator-main") as HTMLElement;
+		if (!mainEl) return;
+		const mainRect = mainEl.getBoundingClientRect();
+
+		this.buttonBarEl.style.position = "fixed";
+		this.buttonBarEl.style.top = mainRect.top + "px"; // 紧贴标签栏下方
+		this.buttonBarEl.style.zIndex = "50";
+		this.buttonBarEl.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+		this.buttonBarEl.style.opacity = "1"; // 不透明
+
+		const left = mainRect.left;
+		const width = mainRect.width;
+		this.buttonBarEl.style.left = left + "px";
+		this.buttonBarEl.style.width = width + "px";
+
+		const barRect = this.buttonBarEl.getBoundingClientRect();
+		this.panelsContainer.style.top = barRect.bottom + "px";
+		this.panelsContainer.style.left = left + "px";
+		this.panelsContainer.style.width = width + "px";
+		this.panelsContainer.style.zIndex = "49";
+		this.panelsContainer.style.opacity = "1"; // 不透明
+
+		const barHeight = this.buttonBarEl.offsetHeight;
+		const panelsHeight = this.panelsContainer.offsetHeight;
+		this.viewEl.style.paddingTop = barHeight + panelsHeight + 4 + "px";
 	}
 
-	private removeObserver() {
-		if (this.observer) {
-			this.observer.disconnect();
-			this.observer = null;
+	private removeButtonBar() {
+		if (this.buttonBarEl && this.buttonBarEl.parentNode) {
+			this.buttonBarEl.parentNode.removeChild(this.buttonBarEl);
+		}
+		this.buttonBarEl = null;
+	}
+
+	private removePanelsContainer() {
+		if (this.panelsContainer && this.panelsContainer.parentNode) {
+			this.panelsContainer.parentNode.removeChild(this.panelsContainer);
+		}
+		this.panelsContainer = null;
+		document
+			.querySelectorAll(".toolbar-panels")
+			.forEach((el) => el.remove());
+	}
+
+	private removeResizeListener() {
+		if (this.resizeHandler) {
+			window.removeEventListener("resize", this.resizeHandler);
+			this.resizeHandler = null;
 		}
 	}
 }
