@@ -1,20 +1,22 @@
-import { CONFIG } from "../../../configs/configs";
-import { tooltip } from "../tooltip/tooltip";
+import { createGroupCard } from "../cards/group-card";
 
 export function renderKanban(container: HTMLElement, tasks: any[]) {
+	container.empty();
+
+	// 仅保留有效状态的任务
+	const validStatuses = ["todo", "planned", "in-progress"];
+	const filteredTasks = tasks.filter((t) =>
+		validStatuses.includes(t._status),
+	);
+
 	const groups: Record<string, any[]> = {
 		todo: [],
 		planned: [],
 		"in-progress": [],
 	};
-	tasks.forEach((t) => {
-		const st = t._status;
-		if (groups[st]) groups[st].push(t);
-		else groups.todo.push(t);
+	filteredTasks.forEach((t) => {
+		groups[t._status].push(t);
 	});
-
-	const board = document.createElement("div");
-	board.className = "kanban-board";
 
 	const columns = [
 		{ key: "todo", label: "未开始", color: "rgba(180,180,180,0.25)" },
@@ -26,62 +28,23 @@ export function renderKanban(container: HTMLElement, tasks: any[]) {
 		},
 	];
 
+	const board = document.createElement("div");
+	board.className = "kanban-board";
+	board.style.display = "flex";
+	board.style.gap = "12px";
+	board.style.alignItems = "flex-start";
+
 	columns.forEach((col) => {
-		const colDiv = document.createElement("div");
-		colDiv.className = "view-col";
-		colDiv.style.setProperty("--quad-color", col.color);
-
-		const header = document.createElement("div");
-		header.className = "col-header";
-		header.innerHTML = `<span>${col.label}</span><span>${(groups[col.key] || []).length}</span>`;
-		colDiv.appendChild(header);
-
-		const list = document.createElement("ul");
-		list.className = "task-list";
-		(groups[col.key] || []).forEach((task) => {
-			const li = document.createElement("li");
-			li.className = "task-item";
-			li.innerHTML = `
-        <div class="task-desc">${CONFIG.STATUS_ICONS[task._status] || "🔲"} ${task._priorityIcon || ""} ${task._cleanText || task.text || ""}</div>
-        <div class="task-meta">${task._due ? "📅 " + task._due : ""}</div>
-      `;
-
-			const tipHtml = buildTooltipHtml(task);
-			li.addEventListener("mouseenter", (e) => {
-				tooltip.show(tipHtml, e.clientX, e.clientY);
-			});
-			li.addEventListener("mousemove", (e) => {
-				tooltip.move(e.clientX, e.clientY);
-			});
-			li.addEventListener("mouseleave", () => {
-				tooltip.hide();
-			});
-
-			li.addEventListener("click", () => {
-				const app = (window as any).app;
-				const file = app?.vault?.getAbstractFileByPath(task.path);
-				if (file)
-					app.workspace
-						.getLeaf()
-						.openFile(file, { eState: { line: task.line } });
-			});
-			list.appendChild(li);
+		const card = createGroupCard({
+			title: col.label,
+			count: groups[col.key].length,
+			tasks: groups[col.key],
+			color: col.color,
 		});
-		colDiv.appendChild(list);
-		board.appendChild(colDiv);
+		card.style.flex = "1";
+		card.style.minWidth = "0";
+		board.appendChild(card);
 	});
 
 	container.appendChild(board);
-}
-
-function buildTooltipHtml(task: any): string {
-	const parts: string[] = [];
-	if (task._status) parts.push("状态：" + task._status);
-	if (task._priorityIcon) parts.push("优先级：" + task._priorityIcon);
-	if (task._due) parts.push("📅 " + task._due);
-	if (task._scheduled) parts.push("⏳ " + task._scheduled);
-	if (task._id) parts.push("🆔 " + task._id);
-	if (task._forbid) parts.push("⛔ " + task._forbid);
-	if (task._tag) parts.push("🏁 " + task._tag);
-	return parts.join("<br>");
 }

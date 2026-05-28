@@ -1,4 +1,3 @@
-// src/ui/panels/view-container.ts
 import { Store } from "../../store/store";
 import { BaseTaskView } from "../views/base-view";
 
@@ -11,13 +10,10 @@ const VIEW_LOADERS: Record<
 	inbox: () => import("../views/inbox-view").then((m) => m.InboxView),
 	important: () =>
 		import("../views/important-view").then((m) => m.ImportantView),
-	recurring: () =>
-		import("../views/recurring-view").then((m) => m.RecurringView),
 	today: () => import("../views/today-view").then((m) => m.TodayView),
 	overdue: () => import("../views/overdue-view").then((m) => m.OverdueView),
 	future: () => import("../views/future-view").then((m) => m.FutureView),
-	tag: () => import("../views/tag-view").then((m) => m.TagView),
-	depends: () => import("../views/depends-view").then((m) => m.DependsView),
+	// 循环/标签/依赖视图已移除，功能合并到 AllTasksView 的通用视图中
 };
 
 export class ViewContainer {
@@ -55,7 +51,7 @@ export class ViewContainer {
 			this.currentView &&
 			(this.currentView as any)._presetId === preset.id
 		) {
-			return; // 相同预设不重建
+			return;
 		}
 
 		if (this.currentView) {

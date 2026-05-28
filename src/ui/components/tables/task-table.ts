@@ -1,3 +1,5 @@
+import { CONFIG } from "../../../configs/configs";
+
 interface TaskTableOptions {
 	onClick?: (task: any) => void;
 }
@@ -29,8 +31,13 @@ export function renderTaskTable(
 		row.className = "task-row";
 		row.addEventListener("click", () => options.onClick?.(task));
 
+		// 状态列：emoji + 中文
+		const statusKey = task._status || "todo";
+		const statusIcon = CONFIG.STATUS_ICONS[statusKey] || "🔲";
+		const statusName = CONFIG.STATUS_NAMES[statusKey] || "未开始";
+
 		row.innerHTML = `
-      <td>${task._status || ""}</td>
+      <td>${statusIcon} ${statusName}</td>
       <td>${task._cleanText || task.text || ""}</td>
       <td>${task._priorityIcon || ""}</td>
       <td>${task._scheduled || ""}</td>

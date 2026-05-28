@@ -22,7 +22,7 @@ export class TimeBar {
 			state.draftFilter ?? preset?.filter ?? getDefaultFilter();
 		const intervalMode = (preset as any)?.intervalMode ?? "scheduled-due";
 
-		// ========== 动态日期 ==========
+		// 动态日期
 		const quickRow = this.container.createDiv({ cls: "filter-row" });
 		quickRow.createSpan({ text: "动态：", cls: "filter-label" });
 		const quickDates = [
@@ -104,7 +104,7 @@ export class TimeBar {
 			};
 		});
 
-		// ========== 年份/季度/月份/周数级联 ==========
+		// 年份/季度/月份/周数级联
 		const cascadeSection = this.container.createDiv({
 			cls: "filter-section",
 		});
@@ -258,7 +258,7 @@ export class TimeBar {
 			};
 		});
 
-		// ========== 自定义日期范围 + 计划~截止切换 ==========
+		// 自定义日期范围 + 计划~截止切换
 		const customRow = this.container.createDiv({ cls: "filter-row" });
 		customRow.createSpan({ text: "自定义：", cls: "filter-label" });
 		const startInput = customRow.createEl("input", {
@@ -271,7 +271,6 @@ export class TimeBar {
 			cls: "filter-date-input",
 			attr: { placeholder: "结束日期" },
 		});
-
 		if (currentFilter.dateRange.start && currentFilter.dateRange.end) {
 			startInput.value = new Date(currentFilter.dateRange.start)
 				.toISOString()
@@ -280,7 +279,6 @@ export class TimeBar {
 				.toISOString()
 				.slice(0, 10);
 		}
-
 		const applyCustom = customRow.createEl("button", {
 			text: "应用",
 			cls: "filter-btn",
@@ -305,8 +303,6 @@ export class TimeBar {
 				}
 			}
 		};
-
-		// 计划~截止 / 开始~完成 切换按钮
 		const modeBtn = customRow.createEl("button", {
 			text:
 				intervalMode === "scheduled-due"

@@ -21,17 +21,20 @@ export function createTaskCard(task: any): HTMLElement {
 	const done = formatDisplayDate(task._done || task.done);
 	const cancel = formatDisplayDate(task._cancel || task.cancel);
 
+	// 构建第二行元数据，顺序：状态、优先级、循环、创建、计划、开始、截止、标签、ID、引用ID、文件
 	const meta = [
 		`<span>${statusIcon} ${statusName}</span>`,
 		prioIcon
 			? `<span>${prioIcon} ${prioLabel}</span>`
 			: `<span>${prioLabel}</span>`,
 		task.recurrenceLabel ? `<span>${task.recurrenceLabel}</span>` : "",
+		created ? `<span>➕ ${created}</span>` : "",
 		scheduled ? `<span>⏳ ${scheduled}</span>` : "",
 		start ? `<span>🛫 ${start}</span>` : "",
 		due ? `<span>📅 ${due}</span>` : "",
-		task.id ? `<span>🆔 ${task.id}</span>` : "",
-		task.forbid ? `<span>⛔ ${task.forbid}</span>` : "",
+		task._tag ? `<span>🏁 ${task._tag}</span>` : "",
+		task._id ? `<span>🆔 ${task._id}</span>` : "",
+		task._forbid ? `<span>⛔ ${task._forbid}</span>` : "",
 		task.tags && task.tags.length
 			? `<span>🏁 ${task.tags.join(", ")}</span>`
 			: "",

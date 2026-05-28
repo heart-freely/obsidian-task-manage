@@ -1,3 +1,4 @@
+// src/store/store.ts
 import { AppState, Preset } from "../types";
 
 type Listener = (state: AppState) => void;
@@ -17,6 +18,37 @@ export class Store {
 	}
 
 	update(partial: Partial<AppState>) {
+		const oldActiveId = this.state.activePresetId;
+		const newActiveId = partial.activePresetId;
+
+		// 切换 activePresetId 时自动保存 draftFilter 到旧预设
+		if (
+			newActiveId !== undefined &&
+			newActiveId !== oldActiveId &&
+			this.state.draftFilter
+		) {
+			const presets = partial.presets ?? this.state.presets;
+			const oldPreset = presets.find((p) => p.id === oldActiveId);
+			if (oldPreset) {
+				const newPresets = presets.map((p) =>
+					p.id === oldActiveId
+						? { ...p, filter: this.state.draftFilter! }
+						: p,
+				);
+				this.state = {
+					...this.state,
+					...partial,
+					presets: newPresets,
+					draftFilter: null,
+				};
+				this.notify();
+				this.save();
+				return;
+			} else {
+				this.state = { ...this.state, draftFilter: null };
+			}
+		}
+
 		this.state = { ...this.state, ...partial };
 		this.notify();
 		this.save();

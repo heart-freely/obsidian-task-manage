@@ -1,6 +1,6 @@
 import { Store } from "../store/store";
-import { SideBar } from "./bars/side-bar";
 import { Toolbar } from "./bars/bars";
+import { SideBar } from "./bars/side-bar";
 import { ViewContainer } from "./panels/view-container";
 
 export function createNavigatorLayout(
@@ -13,16 +13,18 @@ export function createNavigatorLayout(
 	container.style.height = "100%";
 
 	const sidebarEl = container.createDiv({ cls: "navigator-sidebar" });
-	const mainEl = container.createDiv({ cls: "navigator-main" });
+	sidebarEl.style.position = "relative";
+	sidebarEl.style.zIndex = "150"; // 高于工具栏
 
-	// 工具栏区域（所有可显隐的bar，包括ViewBar）
+	const mainEl = container.createDiv({ cls: "navigator-main" });
+	mainEl.style.position = "relative";
+	mainEl.style.zIndex = "1";
+
 	const toolbarEl = mainEl.createDiv({ cls: "navigator-toolbar" });
-	// 视图内容
 	const viewEl = mainEl.createDiv({ cls: "navigator-view" });
 
 	new SideBar(sidebarEl, store, app);
 
-	// 根据预设的 showToolbar 显示/隐藏整个工具栏
 	const renderToolbar = () => {
 		toolbarEl.empty();
 		const state = store.getState();
@@ -38,6 +40,5 @@ export function createNavigatorLayout(
 	renderToolbar();
 
 	new ViewContainer(viewEl, store, app);
-
 	return () => container.empty();
 }

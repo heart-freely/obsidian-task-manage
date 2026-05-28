@@ -50,7 +50,7 @@
 	font-size: 13px;
 	margin-bottom: 4px;
 	color: var(--text-accent);
-	margin-left: 0 !important; /* 强制左对齐 */
+	margin-left: 0 !important;
 	white-space: nowrap;
 }
 .filter-row {
@@ -694,26 +694,23 @@
 	margin-top: 16px;
 }
 
-/* ========== 工具栏分离布局 ========== */
+/* ========== 工具栏（配置栏）布局 ========== */
 .toolbar-outer {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
-/* 工具栏按钮条悬浮 */
 .toolbar-buttons {
 	display: flex;
 	flex-wrap: nowrap;
 	overflow-x: auto;
 	gap: 6px;
-	padding: 6px;
+	padding: 8px;
 	background: var(--background-secondary);
 	border-radius: 6px;
 	border: 1px solid var(--background-modifier-border);
 	margin-bottom: 8px;
 }
-
-/* 工具栏按钮项：确保眼睛在文字右侧 */
 .toolbar-btn-item {
 	flex-shrink: 0;
 	display: flex;
@@ -728,38 +725,6 @@
 	font-size: 12px;
 	white-space: nowrap;
 }
-.toolbar-eye {
-	margin-left: auto;
-	cursor: pointer;
-	font-size: 14px;
-}
-
-.toolbar-floating-panel {
-	animation: fadeIn 0.15s ease;
-}
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-		transform: translateY(-4px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-/* 眼睛图标在文字右侧 */
-.toolbar-btn-item {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 4px 8px;
-	cursor: grab;
-	border-radius: 6px;
-	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	user-select: none;
-	font-size: 12px;
-}
 .toolbar-btn-item:active {
 	cursor: grabbing;
 }
@@ -771,7 +736,7 @@
 	box-shadow: 0 0 0 2px var(--interactive-accent);
 }
 .toolbar-eye {
-	margin-left: auto; /* 推到最右 */
+	margin-left: auto;
 	cursor: pointer;
 	font-size: 14px;
 }
@@ -779,9 +744,11 @@
 	font-weight: bold;
 	color: var(--text-accent);
 }
+
 .toolbar-panels {
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
+	border-radius: 0 0 6px 6px;
 	margin-bottom: 12px;
 }
 .toolbar-panel {
@@ -789,6 +756,34 @@
 	border-radius: 6px;
 	padding: 4px;
 	background: var(--background-secondary);
+}
+
+.toolbar-floating-panel {
+	animation: fadeIn 0.15s ease;
+} /* 保留，可能用于其他悬浮 */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* 视图按钮分组布局 */
+.view-group-row {
+	margin-bottom: 8px;
+	flex-wrap: wrap;
+}
+.view-btns-container {
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+.view-btn {
+	min-width: 80px;
 }
 
 /* 输入框 */
@@ -809,8 +804,17 @@
 	color: var(--text-normal);
 	font-size: 13px;
 }
-.filter-input[style*="max-width"] {
-	width: 80px;
+.filter-input-sm {
+	width: 60px;
+	padding: 2px 6px;
+	font-size: 12px;
+	min-width: unset;
+}
+.filter-input-xs {
+	width: 50px;
+	padding: 2px 4px;
+	font-size: 12px;
+	min-width: unset;
 }
 
 /* 悬浮管理面板（旧，保留） */
@@ -857,4 +861,12 @@
 	border: none;
 	cursor: pointer;
 	font-size: 12px;
+}
+.side-icon-btn {
+	width: 100% !important; /* 填满容器，但不影响高度 */
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 6px 0;
+	font-size: 18px;
 }

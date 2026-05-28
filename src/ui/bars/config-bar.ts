@@ -1,17 +1,22 @@
 import { Store } from "../../store/store";
 import { Preset } from "../../types";
 
+// 通用视图样式列表，包含默认 Emoji
 const VIEW_STYLES = [
-	{ key: "list", label: "列表" },
-	{ key: "table", label: "表格" },
-	{ key: "timeline", label: "时间轴" },
-	{ key: "kanban", label: "看板" },
-	{ key: "matrix", label: "矩阵" },
-	{ key: "calendar", label: "日历图" },
-	{ key: "tree", label: "任务树" },
-	{ key: "gantt", label: "甘特图" },
-	{ key: "statistics", label: "基础统计" },
-	{ key: "detail", label: "详细统计" },
+	{ key: "list", label: "列表", defaultIcon: "📋" },
+	{ key: "cards", label: "卡片", defaultIcon: "🃏" },
+	{ key: "table", label: "表格", defaultIcon: "📊" },
+	{ key: "kanban", label: "看板", defaultIcon: "📌" },
+	{ key: "matrix", label: "矩阵", defaultIcon: "🧩" },
+	{ key: "recurring", label: "循环", defaultIcon: "🔄" },
+	{ key: "timeline", label: "时间轴", defaultIcon: "⏳" },
+	{ key: "tag", label: "标签", defaultIcon: "🏷️" },
+	{ key: "depends", label: "依赖", defaultIcon: "🔗" },
+	{ key: "tree", label: "任务树", defaultIcon: "🌲" },
+	{ key: "calendar", label: "日历图", defaultIcon: "📅" },
+	{ key: "gantt", label: "甘特图", defaultIcon: "📊" },
+	{ key: "statistics", label: "基础统计", defaultIcon: "📈" },
+	{ key: "detail", label: "详细统计", defaultIcon: "📉" },
 ];
 
 export class ConfigBar {
@@ -73,14 +78,15 @@ export class ConfigBar {
 			input.click();
 		};
 
-		// 侧边栏视图图标
+		// 侧边视图图标
 		const row2 = this.container.createDiv({ cls: "bar-row" });
-		row2.createSpan({ text: "视图图标：", cls: "filter-label" });
+		row2.createSpan({ text: "侧边视图图标：", cls: "filter-label" });
 		const iconInput = row2.createEl("input", {
 			type: "text",
-			cls: "filter-input",
-			attr: { style: "max-width: 80px;", placeholder: "Emoji" },
+			cls: "filter-input filter-input-sm",
+			attr: { placeholder: "Emoji" },
 		});
+		iconInput.style.maxWidth = "60px";
 		iconInput.value = preset.icon || "";
 		iconInput.addEventListener("change", () => {
 			const newIcon = iconInput.value.trim();
@@ -90,20 +96,21 @@ export class ConfigBar {
 			this.store.update({ presets: newPresets });
 		});
 
-		// 通用视图 emoji 自定义（每个样式一个文本框）
+		// 通用视图图标
 		const row3 = this.container.createDiv({ cls: "bar-row" });
-		row3.createSpan({ text: "视图图标：", cls: "filter-label" });
+		row3.createSpan({ text: "通用视图图标：", cls: "filter-label" });
+		const iconsContainer = row3.createDiv({ cls: "view-icons-container" });
 		const customIcons = preset.viewIcons || {};
 		VIEW_STYLES.forEach((style) => {
-			const input = row3.createEl("input", {
+			const input = iconsContainer.createEl("input", {
 				type: "text",
-				cls: "filter-input",
-				attr: {
-					style: "max-width: 60px; margin-right: 4px;",
-					placeholder: style.label,
-				},
+				cls: "filter-input filter-input-xs",
+				attr: { placeholder: style.label },
 			});
-			input.value = customIcons[style.key] || "";
+			input.style.maxWidth = "50px";
+			input.style.marginRight = "4px";
+			// 优先使用自定义图标，否则使用默认 Emoji
+			input.value = customIcons[style.key] || style.defaultIcon;
 			input.addEventListener("change", () => {
 				const newIcons = {
 					...preset.viewIcons,
@@ -116,7 +123,7 @@ export class ConfigBar {
 			});
 		});
 
-		// 重置/保存
+		// 重置 / 保存配置
 		const row4 = this.container.createDiv({ cls: "bar-row" });
 		const resetBtn = row4.createEl("button", {
 			text: "🔄 重置",
@@ -137,7 +144,7 @@ export class ConfigBar {
 			this.store.update({ presets: newPresets, draftFilter: null });
 		};
 
-		// 删除
+		// 删除视图
 		const row5 = this.container.createDiv({ cls: "bar-row" });
 		const delBtn = row5.createEl("button", {
 			text: "🗑️ 删除视图",

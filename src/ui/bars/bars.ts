@@ -21,6 +21,7 @@ const BAR_COMPONENTS: Record<
 	sort: SortBar,
 	hide: HideBar,
 };
+
 const BAR_LABELS: Record<string, string> = {
 	time: "任务时间",
 	excut: "任务状态",
@@ -37,8 +38,7 @@ export class Toolbar {
 	private store: Store;
 	private buttonBar: HTMLElement | null = null;
 	private panelsContainer: HTMLElement | null = null;
-	private isSticky = false;
-	private scrollHandler: (() => void) | null = null;
+	private observer: IntersectionObserver | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
@@ -47,9 +47,13 @@ export class Toolbar {
 		this.render();
 	}
 
+	handleScroll() {
+		// 悬浮切换由 IntersectionObserver 处理
+	}
+
 	render() {
 		this.container.empty();
-		this.removeScrollListener();
+		this.removeObserver();
 
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
@@ -76,19 +80,18 @@ export class Toolbar {
 			"config",
 		];
 
-		// 按钮条（普通流式布局，不换行）
 		this.buttonBar = this.container.createDiv({ cls: "toolbar-buttons" });
-		this.buttonBar.style.display = "flex";
-		this.buttonBar.style.flexWrap = "nowrap";
-		this.buttonBar.style.overflowX = "auto";
+		this.buttonBar.style.position = "relative";
+		this.buttonBar.style.transition = "box-shadow 0.2s";
 
 		let draggedKey: string | null = null;
+
 		toolbarOrder.forEach((barKey) => {
 			const btnDiv = this.buttonBar!.createDiv({
 				cls: "toolbar-btn-item",
 				attr: { "data-key": barKey, draggable: "true" },
 			});
-			btnDiv.style.flexShrink = "0";
+
 			btnDiv.createSpan({
 				cls: "toolbar-btn-label",
 				text: BAR_LABELS[barKey] || barKey,
@@ -109,89 +112,98 @@ export class Toolbar {
 				this.updatePreset({ barVisibility: newVisibility });
 			};
 
-			// 拖拽事件（完整保留，此处略）
+			btnDiv.addEventListener("dragstart", (e) => {
+				draggedKey = barKey;
+				e.dataTransfer!.effectAllowed = "move";
+				btnDiv.classList.add("dragging");
+			});
+
+			btnDiv.addEventListener("dragend", () => {
+				btnDiv.classList.remove("dragging");
+				draggedKey = null;
+				this.buttonBar
+					?.querySelectorAll(".drag-over")
+					.forEach((el) => el.classList.remove("drag-over"));
+			});
+
+			btnDiv.addEventListener("dragover", (e) => {
+				e.preventDefault();
+				e.dataTransfer!.dropEffect = "move";
+				btnDiv.classList.add("drag-over");
+			});
+
+			btnDiv.addEventListener("dragleave", () => {
+				btnDiv.classList.remove("drag-over");
+			});
+
+			btnDiv.addEventListener("drop", (e) => {
+				e.preventDefault();
+				btnDiv.classList.remove("drag-over");
+				if (draggedKey && draggedKey !== barKey) {
+					const fromIndex = toolbarOrder.indexOf(draggedKey);
+					const toIndex = toolbarOrder.indexOf(barKey);
+					const newOrder = [...toolbarOrder];
+					newOrder.splice(fromIndex, 1);
+					newOrder.splice(toIndex, 0, draggedKey);
+					this.updatePreset({ toolbarOrder: newOrder });
+				}
+			});
 		});
 
-		// 面板容器（初始显示，作为正常文档流）
 		this.panelsContainer = document.createElement("div");
 		this.panelsContainer.className = "toolbar-panels";
-		this.panelsContainer.style.display = ""; // 默认显示
 		this.container.appendChild(this.panelsContainer);
 		this.renderPanels();
 
-		// 滚动监听悬浮
-		this.scrollHandler = this.handleScroll.bind(this);
-		window.addEventListener("scroll", this.scrollHandler, {
-			passive: true,
-		});
-		this.handleScroll();
-	}
-
-	private handleScroll() {
-		if (!this.buttonBar || !this.panelsContainer) return;
-		const rect = this.buttonBar.getBoundingClientRect();
-		const shouldBeSticky = rect.top <= 0;
-
-		if (shouldBeSticky && !this.isSticky) {
-			// 变为悬浮
-			this.buttonBar.style.position = "fixed";
-			this.buttonBar.style.top = "0";
-			this.buttonBar.style.left = rect.left + "px";
-			this.buttonBar.style.width = rect.width + "px";
-			this.buttonBar.style.zIndex = "100";
-			this.buttonBar.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-
-			this.panelsContainer.style.position = "fixed";
-			this.panelsContainer.style.top = this.buttonBar.offsetHeight + "px";
-			this.panelsContainer.style.left = rect.left + "px";
-			this.panelsContainer.style.width = rect.width + "px";
-			this.panelsContainer.style.maxHeight = "50vh";
-			this.panelsContainer.style.overflowY = "auto";
-			this.panelsContainer.style.zIndex = "99";
-			this.panelsContainer.style.background = "var(--background-primary)";
-			this.panelsContainer.style.border =
-				"1px solid var(--background-modifier-border)";
-			this.panelsContainer.style.borderRadius = "0 0 6px 6px";
-			this.panelsContainer.style.padding = "8px";
-			this.panelsContainer.style.boxShadow =
-				"0 4px 12px rgba(0,0,0,0.15)";
-			this.isSticky = true;
-		} else if (!shouldBeSticky && this.isSticky) {
-			// 恢复普通流
-			this.buttonBar.style.position = "relative";
-			this.buttonBar.style.top = "";
-			this.buttonBar.style.left = "";
-			this.buttonBar.style.width = "";
-			this.buttonBar.style.zIndex = "1";
-			this.buttonBar.style.boxShadow = "";
-
-			this.panelsContainer.style.position = "";
-			this.panelsContainer.style.top = "";
-			this.panelsContainer.style.left = "";
-			this.panelsContainer.style.width = "";
-			this.panelsContainer.style.maxHeight = "";
-			this.panelsContainer.style.overflowY = "";
-			this.panelsContainer.style.zIndex = "";
-			this.panelsContainer.style.background = "";
-			this.panelsContainer.style.border = "";
-			this.panelsContainer.style.borderRadius = "";
-			this.panelsContainer.style.padding = "";
-			this.panelsContainer.style.boxShadow = "";
-			this.isSticky = false;
+		if (this.buttonBar) {
+			this.observer = new IntersectionObserver(
+				(entries) => {
+					entries.forEach((entry) => {
+						if (!this.buttonBar) return;
+						const rect = this.buttonBar.getBoundingClientRect();
+						if (!entry.isIntersecting) {
+							this.buttonBar.style.position = "fixed";
+							this.buttonBar.style.top = "0";
+							this.buttonBar.style.left = rect.left + "px";
+							this.buttonBar.style.width = rect.width + "px";
+							this.buttonBar.style.zIndex = "100";
+							this.buttonBar.style.boxShadow =
+								"0 2px 8px rgba(0,0,0,0.15)";
+						} else {
+							this.buttonBar.style.position = "relative";
+							this.buttonBar.style.top = "";
+							this.buttonBar.style.left = "";
+							this.buttonBar.style.width = "";
+							this.buttonBar.style.zIndex = "1";
+							this.buttonBar.style.boxShadow = "";
+						}
+					});
+				},
+				{ threshold: 1.0 },
+			);
+			this.observer.observe(this.buttonBar);
 		}
+
+		// 修复：侧边栏宽度变化后，如果按钮条处于悬浮状态，强制更新其水平位置
+		// 使用 requestAnimationFrame 确保布局计算完成
+		requestAnimationFrame(() => {
+			if (this.buttonBar && this.buttonBar.style.position === "fixed") {
+				const rect = this.buttonBar.getBoundingClientRect();
+				this.buttonBar.style.left = rect.left + "px";
+				this.buttonBar.style.width = rect.width + "px";
+			}
+		});
 	}
+
 	private renderPanels() {
 		if (!this.panelsContainer) return;
 		this.panelsContainer.empty();
-
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
-
 		const barVisibility = preset.barVisibility ?? {};
 		const toolbarOrder = preset.toolbarOrder ?? [];
 		const visibleBars = toolbarOrder.filter((key) => barVisibility[key]);
-
 		visibleBars.forEach((barKey) => {
 			const panel = this.panelsContainer!.createDiv({
 				cls: "toolbar-panel",
@@ -213,10 +225,10 @@ export class Toolbar {
 		this.store.update({ presets: newPresets });
 	}
 
-	private removeScrollListener() {
-		if (this.scrollHandler) {
-			window.removeEventListener("scroll", this.scrollHandler);
-			this.scrollHandler = null;
+	private removeObserver() {
+		if (this.observer) {
+			this.observer.disconnect();
+			this.observer = null;
 		}
 	}
 }

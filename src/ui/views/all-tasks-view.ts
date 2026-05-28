@@ -8,9 +8,13 @@ import { renderCalendarMonth } from "../components/calendar/month";
 import { renderCalendarQuarter } from "../components/calendar/quarter";
 import { renderCalendarWeek } from "../components/calendar/week";
 import { renderCalendarYear } from "../components/calendar/year";
+import { renderCards } from "../components/cards/task-cards";
 import { renderDetail } from "../components/charts/detail";
 import { renderStatistics } from "../components/charts/statistics";
 import { renderGantt } from "../components/gantt/gantt";
+import { renderDepends } from "../components/lists/depends-renderer";
+import { renderRecurring } from "../components/lists/recurring-renderer";
+import { renderTag } from "../components/lists/tag-renderer";
 import { renderTaskList } from "../components/lists/task-list";
 import { renderTaskTree } from "../components/lists/task-tree";
 import { renderTaskTable } from "../components/tables/task-table";
@@ -23,9 +27,7 @@ export class AllTasksView extends BaseTaskView {
 	async render() {
 		this.container.empty();
 
-		// 工具栏
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
@@ -69,14 +71,34 @@ export class AllTasksView extends BaseTaskView {
 						compact: false,
 					});
 					break;
+				case "cards":
+					renderCards(viewContainer, filtered, {
+						onClick: (t: any) => this.openTask(t),
+					});
+					break;
 				case "kanban":
 					renderKanban(viewContainer, filtered);
 					break;
 				case "matrix":
 					renderMatrix(viewContainer, filtered);
 					break;
+				case "recurring":
+					renderRecurring(viewContainer, filtered, {
+						onClick: (t: any) => this.openTask(t),
+					});
+					break;
 				case "timeline":
 					renderTimeline(viewContainer, filtered);
+					break;
+				case "tag":
+					renderTag(viewContainer, filtered, {
+						onClick: (t: any) => this.openTask(t),
+					});
+					break;
+				case "depends":
+					renderDepends(viewContainer, filtered, {
+						onClick: (t: any) => this.openTask(t),
+					});
 					break;
 				case "tree":
 					renderTaskTree(viewContainer, filtered, {
@@ -86,7 +108,7 @@ export class AllTasksView extends BaseTaskView {
 				case "gantt":
 					renderGantt(viewContainer, filtered);
 					break;
-				case "calendar":
+				case "calendar": {
 					const calendarBar = viewContainer.createDiv({
 						cls: "calendar-toolbar",
 					});
@@ -106,43 +128,36 @@ export class AllTasksView extends BaseTaskView {
 					const calContainer = viewContainer.createDiv({
 						cls: "calendar-content",
 					});
+					const intervalMode =
+						(preset as any)?.intervalMode || "scheduled-due";
 					if (this.calendarSubView === "day") {
 						renderCalendarDay(calContainer, filtered, {
 							onClick: (t: any) => this.openTask(t),
-							intervalMode:
-								(preset as any)?.intervalMode ||
-								"scheduled-due",
+							intervalMode,
 						});
 					} else if (this.calendarSubView === "week") {
 						renderCalendarWeek(calContainer, filtered, {
 							onClick: (t: any) => this.openTask(t),
-							intervalMode:
-								(preset as any)?.intervalMode ||
-								"scheduled-due",
+							intervalMode,
 						});
 					} else if (this.calendarSubView === "month") {
 						renderCalendarMonth(calContainer, filtered, {
 							onClick: (t: any) => this.openTask(t),
-							intervalMode:
-								(preset as any)?.intervalMode ||
-								"scheduled-due",
+							intervalMode,
 						});
 					} else if (this.calendarSubView === "quarter") {
 						renderCalendarQuarter(calContainer, filtered, {
 							onClick: (t: any) => this.openTask(t),
-							intervalMode:
-								(preset as any)?.intervalMode ||
-								"scheduled-due",
+							intervalMode,
 						});
 					} else if (this.calendarSubView === "year") {
 						renderCalendarYear(calContainer, filtered, {
 							onClick: (t: any) => this.openTask(t),
-							intervalMode:
-								(preset as any)?.intervalMode ||
-								"scheduled-due",
+							intervalMode,
 						});
 					}
 					break;
+				}
 				case "statistics":
 					renderStatistics(viewContainer, filtered);
 					break;

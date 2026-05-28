@@ -1,5 +1,7 @@
+// src/ui/bars/hide-bar.ts
 import { getDefaultFilter } from "../../configs/configs";
 import { Store } from "../../store/store";
+import { GlobalFilter } from "../../types";
 
 export class HideBar {
 	private container: HTMLElement;
@@ -18,8 +20,8 @@ export class HideBar {
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
 
-		const currentFilter =
-			preset?.filter ?? state.draftFilter ?? getDefaultFilter();
+		const currentFilter: GlobalFilter =
+			state.draftFilter ?? preset.filter ?? getDefaultFilter();
 
 		const row = this.container.createDiv({ cls: "bar-row" });
 		row.createSpan({ text: "隐藏：", cls: "filter-label" });
@@ -55,11 +57,32 @@ export class HideBar {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
-		const currentFilter = state.draftFilter ?? preset.filter;
-		const newFilter = { ...currentFilter, [key]: !currentFilter[key] };
-		const newPresets = state.presets.map((p) =>
-			p.id === preset.id ? { ...p, filter: newFilter } : p,
-		);
-		this.store.update({ presets: newPresets });
+		const currentFilter: GlobalFilter =
+			state.draftFilter ?? preset.filter ?? this.getDefaultFilter();
+		const newFilter = {
+			...currentFilter,
+			[key]: !(currentFilter as any)[key],
+		};
+		this.store.update({ draftFilter: newFilter });
+	}
+
+	private getDefaultFilter(): GlobalFilter {
+		return {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: [
+				"todo",
+				"planned",
+				"in-progress",
+				"completed",
+				"cancelled",
+			],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: false,
+			hideCompleted: false,
+			hideCancelled: false,
+			rootPath: null,
+			hideFolders: false,
+		};
 	}
 }

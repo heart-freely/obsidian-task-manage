@@ -15,7 +15,6 @@ export class InboxView extends BaseTaskView {
 		this.container.empty();
 
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
@@ -35,7 +34,7 @@ export class InboxView extends BaseTaskView {
 			tasks = this.applySort(tasks, sort);
 
 			if (tasks.length === 0) {
-				this.container.createDiv({ text: "📭 收集箱暂无任务" });
+				this.container.createDiv({ text: "📭 待办任务暂无任务" });
 				return;
 			}
 
@@ -112,7 +111,6 @@ export class InboxView extends BaseTaskView {
 	}
 
 	protected getDefaultFilter(): GlobalFilter {
-		// 改为 protected
 		return {
 			dateRange: { start: null, end: null, isAll: true },
 			statuses: ["todo", "planned"],
