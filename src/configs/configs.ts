@@ -272,3 +272,29 @@ export function formatDisplayDate(d: any): string {
 	if (d instanceof Date) return d.toISOString().substring(0, 10);
 	return String(d).substring(0, 10);
 }
+// 在文件末尾或合适位置添加
+export const TABLE_COLUMNS = [
+	{ key: "status", label: "状态" },
+	{ key: "content", label: "描述" }, // “内容” → “描述”
+	{ key: "priority", label: "优先级" },
+	{ key: "repeat", label: "循环" },
+	{ key: "scheduled", label: "计划" },
+	{ key: "starts", label: "开始" },
+	{ key: "due", label: "截止" },
+	{ key: "created", label: "创建" },
+	{ key: "done", label: "完成" },
+	{ key: "cancel", label: "取消" },
+];
+
+export const DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
+	status: true,
+	content: true,
+	priority: true,
+	repeat: true,
+	scheduled: true,
+	starts: true,
+	due: true,
+	created: true,
+	done: true,
+	cancel: true,
+};

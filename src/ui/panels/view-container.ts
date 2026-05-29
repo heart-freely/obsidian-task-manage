@@ -13,7 +13,8 @@ const VIEW_LOADERS: Record<
 	today: () => import("../views/today-view").then((m) => m.TodayView),
 	overdue: () => import("../views/overdue-view").then((m) => m.OverdueView),
 	future: () => import("../views/future-view").then((m) => m.FutureView),
-	// 循环/标签/依赖视图已移除，功能合并到 AllTasksView 的通用视图中
+	tag: () => import("../views/tag-view").then((m) => m.TagView),
+	depends: () => import("../views/depends-view").then((m) => m.DependsView),
 };
 
 export class ViewContainer {
@@ -47,13 +48,7 @@ export class ViewContainer {
 			return;
 		}
 
-		if (
-			this.currentView &&
-			(this.currentView as any)._presetId === preset.id
-		) {
-			return;
-		}
-
+		// 始终销毁重建视图，确保状态最新（避免因异步导致的内容未更新）
 		if (this.currentView) {
 			this.currentView.destroy();
 			this.container.empty();

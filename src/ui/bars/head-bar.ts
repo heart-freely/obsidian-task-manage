@@ -12,24 +12,34 @@ export const BAR_LABELS: Record<string, string> = {
 };
 
 export class HeadBar {
-	private container: HTMLElement; // 不再用于挂载，仅用于占位
+	private container: HTMLElement;
 	private store: Store;
 	private buttonBar: HTMLElement | null = null;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		// 初始化时创建一个 buttonBar，但不挂载到任何地方
-		this.buttonBar = document.createElement("div");
-		this.buttonBar.className = "toolbar-buttons";
+		this.unsub = store.subscribe(() => this.renderContent());
 		this.renderContent();
-		this.store.subscribe(() => this.renderContent());
 	}
 
-	/** 重新生成按钮条内容，但保留元素本身，避免外部引用丢失 */
-	private renderContent() {
-		if (!this.buttonBar) return;
-		// 清空现有内容
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
+		if (this.buttonBar && this.buttonBar.parentNode) {
+			this.buttonBar.parentNode.removeChild(this.buttonBar);
+		}
+		this.buttonBar = null;
+	}
+
+	renderContent() {
+		if (!this.buttonBar) {
+			this.buttonBar = document.createElement("div");
+			this.buttonBar.className = "toolbar-buttons";
+		}
 		this.buttonBar.innerHTML = "";
 
 		const state = this.store.getState();
@@ -48,7 +58,6 @@ export class HeadBar {
 			"config",
 		];
 
-		// 设置容器样式
 		this.buttonBar.style.paddingLeft = "0";
 		this.buttonBar.style.display = "flex";
 		this.buttonBar.style.flexWrap = "nowrap";
@@ -87,6 +96,7 @@ export class HeadBar {
 
 			eyeBtn.onclick = (e: Event) => {
 				e.stopPropagation();
+				document.dispatchEvent(new CustomEvent("toolbar-expand"));
 				const newVisibility = {
 					...barVisibility,
 					[barKey]: !isVisible,
@@ -133,7 +143,6 @@ export class HeadBar {
 		});
 	}
 
-	/** 返回当前的按钮条元素，供外部挂载到 DOM */
 	getElement(): HTMLElement | null {
 		return this.buttonBar;
 	}

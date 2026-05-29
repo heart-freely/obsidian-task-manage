@@ -101,6 +101,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	transition: width 0.15s ease; /* 添加在已有的样式规则中 */
 }
 .navigator-main {
 	flex: 1;
@@ -118,7 +119,7 @@
 .navigator-view {
 	flex: 1;
 	min-height: 800px;
-	padding: 8px;
+	padding: 0;
 }
 .sidebar-resize-handle {
 	transition: background 0.2s;

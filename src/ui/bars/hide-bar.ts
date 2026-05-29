@@ -1,5 +1,8 @@
-// src/ui/bars/hide-bar.ts
-import { getDefaultFilter } from "../../configs/configs";
+import {
+	DEFAULT_TABLE_COLUMNS,
+	getDefaultFilter,
+	TABLE_COLUMNS,
+} from "../../configs/configs";
 import { Store } from "../../store/store";
 import { GlobalFilter } from "../../types";
 
@@ -23,6 +26,7 @@ export class HideBar {
 		const currentFilter: GlobalFilter =
 			state.draftFilter ?? preset.filter ?? getDefaultFilter();
 
+		// 原有隐藏按钮：循环、已完成、已取消、文件夹
 		const row = this.container.createDiv({ cls: "bar-row" });
 		row.createSpan({ text: "隐藏：", cls: "filter-label" });
 
@@ -51,6 +55,20 @@ export class HideBar {
 			cls: "bar-btn",
 		});
 		folderBtn.onclick = () => this.toggleFilter("hideFolders");
+
+		// 新增：表格列显隐控制
+		const colRow = this.container.createDiv({ cls: "bar-row" });
+		colRow.createSpan({ text: "表格列：", cls: "filter-label" });
+		const columns = preset.tableColumns ?? DEFAULT_TABLE_COLUMNS;
+		TABLE_COLUMNS.forEach((col) => {
+			const isVisible = columns[col.key] !== false; // 默认true
+			const btn = colRow.createEl("button", {
+				text: isVisible ? col.label : `隐藏${col.label}`,
+				cls: "bar-btn",
+			});
+			if (!isVisible) btn.classList.add("active");
+			btn.onclick = () => this.toggleTableColumn(col.key);
+		});
 	}
 
 	private toggleFilter(key: string) {
@@ -64,6 +82,18 @@ export class HideBar {
 			[key]: !(currentFilter as any)[key],
 		};
 		this.store.update({ draftFilter: newFilter });
+	}
+
+	private toggleTableColumn(colKey: string) {
+		const state = this.store.getState();
+		const preset = state.presets.find((p) => p.id === state.activePresetId);
+		if (!preset) return;
+		const columns = { ...(preset.tableColumns ?? DEFAULT_TABLE_COLUMNS) };
+		columns[colKey] = !columns[colKey];
+		const newPresets = state.presets.map((p) =>
+			p.id === preset.id ? { ...p, tableColumns: columns } : p,
+		);
+		this.store.update({ presets: newPresets });
 	}
 
 	private getDefaultFilter(): GlobalFilter {

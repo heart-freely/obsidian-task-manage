@@ -1,5 +1,6 @@
+// src/ui/ui.ts
 import { Store } from "../store/store";
-import { Toolbar } from "./bars/bars";
+import { ToolbarManager } from "./bars/bars";
 import { SideBar } from "./bars/side-bar";
 import { ViewContainer } from "./panels/view-container";
 
@@ -18,9 +19,10 @@ export function createNavigatorLayout(
 	mainEl.style.display = "flex";
 	mainEl.style.flexDirection = "column";
 	mainEl.style.minHeight = "0";
+	mainEl.style.padding = "0";
+	mainEl.style.margin = "0";
 
 	const toolbarEl = mainEl.createDiv({ cls: "navigator-toolbar" });
-	// 关键：工具栏容器本身不占据任何空间，因为按钮和面板都是 fixed 定位
 	toolbarEl.style.height = "0";
 	toolbarEl.style.overflow = "visible";
 	toolbarEl.style.position = "relative";
@@ -29,24 +31,38 @@ export function createNavigatorLayout(
 	const viewEl = mainEl.createDiv({ cls: "navigator-view" });
 	viewEl.style.flex = "1";
 	viewEl.style.overflow = "auto";
+	viewEl.style.minHeight = "0";
+	viewEl.style.padding = "0";
+	viewEl.style.paddingTop = "0px";
 
 	new SideBar(sidebarEl, store, app);
 
-	const renderToolbar = () => {
-		toolbarEl.empty();
-		const state = store.getState();
-		const preset = state.presets.find((p) => p.id === state.activePresetId);
-		if (preset?.showToolbar) {
-			new Toolbar(toolbarEl, store, viewEl);
-			toolbarEl.style.display = "";
-		} else {
-			toolbarEl.style.display = "none";
-			viewEl.style.paddingTop = "0px";
+	const manager = ToolbarManager.getInstance();
+	manager.init(store, viewEl, toolbarEl);
+
+	// 标签页切换时，返回视图需要完整同步状态
+	let isViewActive = true;
+	const checkActiveLeaf = () => {
+		const activeLeaf = app.workspace.activeLeaf;
+		const view = activeLeaf?.view;
+		const isOurView = view?.getViewType() === "navigator-view";
+		if (isOurView !== isViewActive) {
+			isViewActive = isOurView;
+			if (!isOurView) {
+				manager.destroy();
+			} else {
+				// 强制从 Store 最新状态同步，恢复视图配置栏和面板状态
+				manager.syncState();
+			}
 		}
 	};
-	store.subscribe(renderToolbar);
-	renderToolbar();
+
+	app.workspace.on("active-leaf-change", checkActiveLeaf);
 
 	new ViewContainer(viewEl, store, app);
-	return () => container.empty();
+
+	return () => {
+		manager.cleanupAll();
+		container.empty();
+	};
 }

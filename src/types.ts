@@ -61,6 +61,9 @@ export interface Preset {
 	showHidden?: boolean;
 	toolbarEverShown?: boolean; // 是否已至少展开过一次工具栏
 	searchText?: string; // 任务描述搜索关键词
+	tableColumns?: Record<string, boolean>; // 表格列显隐状态，默认全显示
+	toolbarPanelsCollapsed?: boolean;
+	toolbarPanelsHeight?: number;
 }
 
 /** 方案分组 */
@@ -77,7 +80,6 @@ export interface AppState {
 	presets: Preset[];
 	presetGroups: PresetGroup[];
 	sidebarCollapsed: boolean;
-	sidebarWidth: number; // 新增：侧边栏宽度
+	sidebarWidth: number;
 	draftFilter: GlobalFilter | null;
-	toolbarHeight?: number; // 工具栏总高度（按钮条+面板），用于内容区上边距
 }

@@ -1,3 +1,4 @@
+// src/main.ts
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./commands";
 import { TaskManageSettingTab } from "./settings";
@@ -38,6 +39,8 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "📥",
 				showToolbar: false,
+				toolbarPanelsCollapsed: false,
+				toolbarPanelsHeight: 300,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -69,6 +72,8 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "⭐",
 				showToolbar: false,
+				toolbarPanelsCollapsed: false,
+				toolbarPanelsHeight: 300,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -103,6 +108,8 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "📅",
 				showToolbar: false,
+				toolbarPanelsCollapsed: false,
+				toolbarPanelsHeight: 300,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -137,6 +144,8 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "⏰",
 				showToolbar: false,
+				toolbarPanelsCollapsed: false,
+				toolbarPanelsHeight: 300,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -168,6 +177,8 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "🔜",
 				showToolbar: false,
+				toolbarPanelsCollapsed: false,
+				toolbarPanelsHeight: 300,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -199,6 +210,8 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "table",
 				icon: "📋",
 				showToolbar: false,
+				toolbarPanelsCollapsed: false,
+				toolbarPanelsHeight: 300,
 				toolbarOrder: [
 					"time",
 					"excut",
@@ -224,12 +237,53 @@ export default class TaskManagePlugin extends Plugin {
 			},
 		];
 
-		// 合并保存的预设，恢复用户之前设置的状态
-		const savedPresets = savedData.presets || [];
-		const mergedPresets = defaultPresets.map((dp) => {
-			const saved = savedPresets.find((sp: any) => sp.id === dp.id);
-			return saved ? { ...dp, ...saved } : dp;
-		});
+		// 深度合并保存的预设
+		const savedPresets: Preset[] = savedData.presets || [];
+		const mergedPresets: Preset[] = [];
+
+		for (const dp of defaultPresets) {
+			const sp = savedPresets.find((p: Preset) => p.id === dp.id);
+			if (sp) {
+				const spFilter = sp.filter || ({} as GlobalFilter);
+				const mergedFilter: GlobalFilter = {
+					dateRange: {
+						...dp.filter.dateRange,
+						...(spFilter.dateRange || {}),
+					},
+					statuses:
+						Array.isArray(spFilter.statuses) &&
+						spFilter.statuses.length > 0
+							? spFilter.statuses
+							: dp.filter.statuses,
+					includeMarks:
+						spFilter.includeMarks ?? dp.filter.includeMarks,
+					excludeMarks:
+						spFilter.excludeMarks ?? dp.filter.excludeMarks,
+					hideRepeat: spFilter.hideRepeat ?? dp.filter.hideRepeat,
+					hideCompleted:
+						spFilter.hideCompleted ?? dp.filter.hideCompleted,
+					hideCancelled:
+						spFilter.hideCancelled ?? dp.filter.hideCancelled,
+					rootPath: spFilter.rootPath ?? dp.filter.rootPath,
+					hideFolders: spFilter.hideFolders ?? dp.filter.hideFolders,
+					searchText: spFilter.searchText ?? dp.filter.searchText,
+				};
+				mergedPresets.push({
+					...dp,
+					...sp,
+					filter: mergedFilter,
+				});
+			} else {
+				mergedPresets.push(dp);
+			}
+		}
+
+		// 补充用户自定义视图
+		for (const sp of savedPresets) {
+			if (!mergedPresets.find((p) => p.id === sp.id)) {
+				mergedPresets.push(sp);
+			}
+		}
 
 		const initialState: AppState = {
 			activePresetId: savedData.activePresetId || "all-tasks",
@@ -259,12 +313,17 @@ export default class TaskManagePlugin extends Plugin {
 	}
 
 	async onunload() {
-		// 清理挂载到 body 的工具栏元素，避免重载插件时残留
+		if (this.store) {
+			await this.saveData(this.store.getState());
+		}
 		document
 			.querySelectorAll(".toolbar-buttons")
 			.forEach((el) => el.remove());
 		document
 			.querySelectorAll(".toolbar-panels")
+			.forEach((el) => el.remove());
+		document
+			.querySelectorAll(".panel-resize-handle")
 			.forEach((el) => el.remove());
 	}
 

@@ -1,7 +1,6 @@
 import { Store } from "../../store/store";
 import { Preset } from "../../types";
 
-// 通用视图样式列表，包含默认 Emoji
 const VIEW_STYLES = [
 	{ key: "list", label: "列表", defaultIcon: "📋" },
 	{ key: "cards", label: "卡片", defaultIcon: "🃏" },
@@ -96,6 +95,24 @@ export class ConfigBar {
 			this.store.update({ presets: newPresets });
 		});
 
+		// 视图名称（新增）
+		const rowName = this.container.createDiv({ cls: "bar-row" });
+		rowName.createSpan({ text: "视图名称：", cls: "filter-label" });
+		const nameInput = rowName.createEl("input", {
+			type: "text",
+			cls: "filter-input",
+			attr: { placeholder: "输入视图名称" },
+		});
+		nameInput.style.maxWidth = "150px";
+		nameInput.value = preset.name || "";
+		nameInput.addEventListener("change", () => {
+			const newName = nameInput.value.trim() || "未命名";
+			const newPresets = state.presets.map((p) =>
+				p.id === preset.id ? { ...p, name: newName } : p,
+			);
+			this.store.update({ presets: newPresets });
+		});
+
 		// 通用视图图标
 		const row3 = this.container.createDiv({ cls: "bar-row" });
 		row3.createSpan({ text: "通用视图图标：", cls: "filter-label" });
@@ -109,7 +126,6 @@ export class ConfigBar {
 			});
 			input.style.maxWidth = "50px";
 			input.style.marginRight = "4px";
-			// 优先使用自定义图标，否则使用默认 Emoji
 			input.value = customIcons[style.key] || style.defaultIcon;
 			input.addEventListener("change", () => {
 				const newIcons = {
@@ -123,15 +139,13 @@ export class ConfigBar {
 			});
 		});
 
-		// 重置 / 保存配置
+		// 重置/保存/删除
 		const row4 = this.container.createDiv({ cls: "bar-row" });
 		const resetBtn = row4.createEl("button", {
 			text: "🔄 重置",
 			cls: "bar-btn",
 		});
-		resetBtn.onclick = () => {
-			this.store.update({ draftFilter: null });
-		};
+		resetBtn.onclick = () => this.store.update({ draftFilter: null });
 		const saveBtn = row4.createEl("button", {
 			text: "💾 保存配置",
 			cls: "bar-btn",
@@ -143,10 +157,7 @@ export class ConfigBar {
 			);
 			this.store.update({ presets: newPresets, draftFilter: null });
 		};
-
-		// 删除视图
-		const row5 = this.container.createDiv({ cls: "bar-row" });
-		const delBtn = row5.createEl("button", {
+		const delBtn = row4.createEl("button", {
 			text: "🗑️ 删除视图",
 			cls: "bar-btn",
 		});

@@ -1,3 +1,4 @@
+// src/ui/bars/side-bar.ts
 import { Store } from "../../store/store";
 import { Preset } from "../../types";
 
@@ -5,6 +6,7 @@ export class SideBar {
 	private app: any;
 	private store: Store;
 	private container: HTMLElement;
+	private lastSidebarWidth: number | null = null;
 
 	constructor(container: HTMLElement, store: Store, app: any) {
 		this.container = container;
@@ -15,35 +17,17 @@ export class SideBar {
 	}
 
 	private render() {
+		const allBtns = this.container.querySelectorAll(".preset-btn");
+		allBtns.forEach((btn) => ((btn as HTMLElement).style.width = ""));
+
 		this.container.empty();
-		this.container.style.zIndex = "1";
 		const state = this.store.getState();
 		const collapsed = state.sidebarCollapsed;
 
-		this.container.style.display = "flex";
-		this.container.style.flexDirection = "column";
 		this.container.style.overflow = "hidden";
+		this.container.style.position = "relative";
+		this.container.style.zIndex = "1";
 
-		if (collapsed) {
-			this.container.style.width = "40px";
-			this.container.style.minWidth = "40px";
-			this.container.style.alignItems = "center";
-		} else {
-			// 1. 获取保存的宽度（若合理则使用，否则使用默认 90px）
-			const savedWidth = state.sidebarWidth || 90;
-			const baseWidth = savedWidth > 40 ? savedWidth : 90;
-
-			// 2. 可选：根据当前按钮最长文字自动计算最小宽度（取消注释启用）
-			// const optimalWidth = this.calculateOptimalWidth();
-			// const expandedWidth = Math.max(baseWidth, optimalWidth);
-
-			const expandedWidth = baseWidth; // 固定宽度模式
-			this.container.style.width = expandedWidth + "px";
-			this.container.style.minWidth = "48px";
-			this.container.style.alignItems = "stretch";
-		}
-
-		// 顶部按钮行
 		const topRow = this.container.createDiv({
 			cls:
 				"side-top-row" +
@@ -54,27 +38,24 @@ export class SideBar {
 
 		const toggleBtn = topRow.createEl("button", {
 			text: collapsed ? "▶" : "◀",
-			cls: "preset-btn" + (collapsed ? " side-icon-btn" : ""),
+			cls: "preset-btn",
 			title: collapsed ? "展开侧边栏" : "折叠侧边栏",
 		});
+		if (collapsed) toggleBtn.className = "preset-btn side-icon-btn";
 		toggleBtn.onclick = () => {
 			const newCollapsed = !state.sidebarCollapsed;
-			const currentWidth = state.sidebarWidth || 90;
 			this.store.update({
 				sidebarCollapsed: newCollapsed,
-				sidebarWidth: newCollapsed
-					? 40
-					: currentWidth > 40
-						? currentWidth
-						: 90,
+				sidebarWidth: newCollapsed ? 40 : state.sidebarWidth || 100,
 			});
 		};
 
 		const settingBtn = topRow.createEl("button", {
 			text: "⚙️",
-			cls: "preset-btn" + (collapsed ? " side-icon-btn" : ""),
+			cls: "preset-btn",
 			title: "视图配置栏",
 		});
+		if (collapsed) settingBtn.className = "preset-btn side-icon-btn";
 		settingBtn.onclick = () => {
 			const currentPreset = state.presets.find(
 				(p) => p.id === state.activePresetId,
@@ -89,11 +70,14 @@ export class SideBar {
 		};
 
 		const contentDiv = this.container.createDiv({ cls: "side-content" });
-		contentDiv.style.flex = "1";
 		contentDiv.style.overflowY = "auto";
+		contentDiv.style.flex = "1";
 		contentDiv.style.overflowX = "hidden";
 
 		if (collapsed) {
+			this.container.style.width = "40px";
+			this.container.style.minWidth = "40px";
+
 			const iconBar = contentDiv.createDiv({ cls: "preset-list" });
 			state.presets.forEach((preset) => {
 				const icon = preset.icon || preset.name.charAt(0);
@@ -103,25 +87,8 @@ export class SideBar {
 					title: preset.name,
 				});
 				if (state.activePresetId === preset.id) btn.addClass("active");
-				btn.onclick = () => {
-					if (!preset.toolbarEverShown) {
-						const newPresets = state.presets.map((p) =>
-							p.id === preset.id
-								? {
-										...p,
-										showToolbar: true,
-										toolbarEverShown: true,
-									}
-								: p,
-						);
-						this.store.update({
-							presets: newPresets,
-							activePresetId: preset.id,
-						});
-					} else {
-						this.store.update({ activePresetId: preset.id });
-					}
-				};
+				btn.onclick = () =>
+					this.store.update({ activePresetId: preset.id });
 			});
 
 			const newViewBtn = contentDiv.createEl("button", {
@@ -130,68 +97,33 @@ export class SideBar {
 				title: "新建视图",
 			});
 			newViewBtn.onclick = () => this.createNewPreset();
-		} else {
-			const listDiv = contentDiv.createDiv({ cls: "preset-list" });
-			state.presets.forEach((preset) => {
-				const row = listDiv.createDiv({ cls: "preset-row" });
-				const btn = row.createEl("button", {
-					text: (preset.icon || "📋") + " " + preset.name,
-					cls: "preset-btn",
-				});
-				if (state.activePresetId === preset.id) btn.addClass("active");
-				btn.onclick = () => {
-					if (!preset.toolbarEverShown) {
-						const newPresets = state.presets.map((p) =>
-							p.id === preset.id
-								? {
-										...p,
-										showToolbar: true,
-										toolbarEverShown: true,
-									}
-								: p,
-						);
-						this.store.update({
-							presets: newPresets,
-							activePresetId: preset.id,
-						});
-					} else {
-						this.store.update({ activePresetId: preset.id });
-					}
-				};
-			});
-
-			const newViewBtn = contentDiv.createEl("button", {
-				text: "➕ 新建视图",
-				cls: "preset-btn",
-				attr: { style: "margin-top: auto;" },
-			});
-			newViewBtn.onclick = () => this.createNewPreset();
+			return;
 		}
-	}
 
-	/**
-	 * 根据所有 preset-btn 的文本宽度计算最小合适宽度（+内边距）
-	 */
-	private calculateOptimalWidth(): number {
-		let maxTextWidth = 0;
-		const buttons = this.container.querySelectorAll(".preset-btn");
-		const tempSpan = document.createElement("span");
-		tempSpan.style.visibility = "hidden";
-		tempSpan.style.position = "absolute";
-		tempSpan.style.whiteSpace = "nowrap";
-		tempSpan.style.fontSize = "14px"; // 与 preset-btn 字体一致
-		document.body.appendChild(tempSpan);
+		// 展开模式
+		this.container.style.minWidth = "48px";
 
-		buttons.forEach((btn) => {
-			tempSpan.textContent = btn.textContent || "";
-			const textWidth = tempSpan.offsetWidth;
-			if (textWidth > maxTextWidth) maxTextWidth = textWidth;
+		const listDiv = contentDiv.createDiv({ cls: "preset-list" });
+		state.presets.forEach((preset) => {
+			const row = listDiv.createDiv({ cls: "preset-row" });
+			const btn = row.createEl("button", {
+				text: (preset.icon || "📋") + " " + preset.name,
+				cls: "preset-btn",
+			});
+			if (state.activePresetId === preset.id) btn.addClass("active");
+			btn.onclick = () =>
+				this.store.update({ activePresetId: preset.id });
 		});
 
-		document.body.removeChild(tempSpan);
-		// 加上左右内边距 + 滚动条余量
-		const paddingAndMargin = 24 + 12; // 约 24px padding, 12px 余量
-		return maxTextWidth + paddingAndMargin;
+		const newViewBtn = contentDiv.createEl("button", {
+			text: "➕ 新建视图",
+			cls: "preset-btn",
+			attr: { style: "margin-top: auto;" },
+		});
+		newViewBtn.onclick = () => this.createNewPreset();
+
+		// 下一帧调整宽度
+		requestAnimationFrame(() => this.adjustSidebarWidth());
 	}
 
 	private createNewPreset() {
@@ -204,8 +136,10 @@ export class SideBar {
 			businessView: "allTasks",
 			viewStyle: "table",
 			icon: "📋",
-			showToolbar: true,
-			toolbarEverShown: true,
+			showToolbar: false,
+			toolbarEverShown: false,
+			toolbarPanelsCollapsed: false,
+			toolbarPanelsHeight: 300,
 			toolbarOrder: [
 				"time",
 				"excut",
@@ -249,5 +183,58 @@ export class SideBar {
 			presets: [...state.presets, newPreset],
 			activePresetId: newPreset.id,
 		});
+	}
+
+	/**
+	 * 根据按钮内容自适应侧边栏宽度。
+	 * 按钮左右内边距各 6px，容器紧贴按钮右边缘。
+	 */
+	private adjustSidebarWidth() {
+		if (this.store.getState().sidebarCollapsed) return;
+
+		const buttons = this.container.querySelectorAll(
+			".preset-btn",
+		) as NodeListOf<HTMLElement>;
+		if (buttons.length === 0) return;
+
+		// 1. 重置按钮样式，使内容自然展开，并设置目标内边距
+		buttons.forEach((btn) => {
+			btn.style.width = "auto";
+			btn.style.boxSizing = "border-box";
+			// 左右内边距 6px，上下保持 4px
+			btn.style.padding = "4px 6px";
+		});
+
+		// 容器宽度设为 auto，以便准确测量
+		this.container.style.width = "auto";
+		// 强制回流
+		buttons[0].offsetHeight;
+
+		// 2. 测量最大按钮宽度（已包含 6px 左右内边距）
+		let maxWidth = 0;
+		buttons.forEach((btn) => {
+			const w = btn.offsetWidth;
+			if (w > maxWidth) maxWidth = w;
+		});
+
+		// 3. 统一按钮宽度，保持视觉整齐
+		buttons.forEach((btn) => {
+			btn.style.width = maxWidth + "px";
+		});
+
+		// 4. 容器右内边距清零，使按钮右边缘紧贴容器
+		this.container.style.paddingRight = "0";
+
+		// 容器宽度 = 按钮最大宽度 + 左 padding (4px)
+		const newWidth = maxWidth + 4;
+
+		// 5. 仅当宽度变化超过1px时才更新，避免抖动
+		if (
+			this.lastSidebarWidth === null ||
+			Math.abs(this.lastSidebarWidth - newWidth) > 1
+		) {
+			this.container.style.width = newWidth + "px";
+			this.lastSidebarWidth = newWidth;
+		}
 	}
 }

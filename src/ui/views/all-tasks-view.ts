@@ -1,3 +1,4 @@
+// src/ui/views/all-tasks-view.ts
 import { filterTasks } from "../../tasks/process/filter-task-process";
 import { getAllTasks } from "../../tasks/read/read-tasks";
 import { GlobalFilter } from "../../types";
@@ -26,8 +27,6 @@ export class AllTasksView extends BaseTaskView {
 
 	async render() {
 		this.container.empty();
-
-		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
@@ -58,11 +57,15 @@ export class AllTasksView extends BaseTaskView {
 			const viewContainer = this.container.createDiv({
 				cls: "view-content",
 			});
+			// 确保视图内容左对齐，无额外内边距
+			viewContainer.style.padding = "0";
+			viewContainer.style.margin = "0";
 
 			switch (currentStyle) {
 				case "table":
 					renderTaskTable(viewContainer, filtered, {
 						onClick: (t: any) => this.openTask(t),
+						columnsVisibility: preset?.tableColumns,
 					});
 					break;
 				case "list":
@@ -128,6 +131,7 @@ export class AllTasksView extends BaseTaskView {
 					const calContainer = viewContainer.createDiv({
 						cls: "calendar-content",
 					});
+					calContainer.style.padding = "0";
 					const intervalMode =
 						(preset as any)?.intervalMode || "scheduled-due";
 					if (this.calendarSubView === "day") {
