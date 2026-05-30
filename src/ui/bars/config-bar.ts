@@ -1,22 +1,273 @@
+// src/ui/bars/config-bar.ts
 import { Store } from "../../store/store";
 import { Preset } from "../../types";
 
-const VIEW_STYLES = [
-	{ key: "list", label: "列表", defaultIcon: "📋" },
-	{ key: "cards", label: "卡片", defaultIcon: "🃏" },
-	{ key: "table", label: "表格", defaultIcon: "📊" },
-	{ key: "kanban", label: "看板", defaultIcon: "📌" },
-	{ key: "matrix", label: "矩阵", defaultIcon: "🧩" },
-	{ key: "recurring", label: "循环", defaultIcon: "🔄" },
-	{ key: "timeline", label: "时间轴", defaultIcon: "⏳" },
-	{ key: "tag", label: "标签", defaultIcon: "🏷️" },
-	{ key: "depends", label: "依赖", defaultIcon: "🔗" },
-	{ key: "tree", label: "任务树", defaultIcon: "🌲" },
-	{ key: "calendar", label: "日历图", defaultIcon: "📅" },
-	{ key: "gantt", label: "甘特图", defaultIcon: "📊" },
-	{ key: "statistics", label: "基础统计", defaultIcon: "📈" },
-	{ key: "detail", label: "详细统计", defaultIcon: "📉" },
-];
+const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
+	inbox: {
+		businessView: "inbox",
+		viewStyle: "list",
+		icon: "📥",
+		showToolbar: false,
+		toolbarEverShown: false,
+		toolbarPanelsCollapsed: false,
+		toolbarPanelsHeight: 300,
+		toolbarOrder: [
+			"excut",
+			"search",
+			"mark",
+			"time",
+			"view",
+			"hide",
+			"sort",
+			"config",
+		],
+		barVisibility: {
+			time: true,
+			excut: true,
+			search: true,
+			mark: true,
+			view: true,
+			hide: true,
+			sort: true,
+			config: true,
+		},
+		filter: {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: ["todo", "planned"],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: false,
+			hideCompleted: false,
+			hideCancelled: false,
+			rootPath: null,
+			hideFolders: false,
+		},
+		sort: { type: "status", order: "asc" as "asc" },
+	},
+	important: {
+		businessView: "important",
+		viewStyle: "list",
+		icon: "⭐",
+		showToolbar: false,
+		toolbarEverShown: false,
+		toolbarPanelsCollapsed: false,
+		toolbarPanelsHeight: 300,
+		toolbarOrder: [
+			"excut",
+			"search",
+			"mark",
+			"time",
+			"view",
+			"hide",
+			"sort",
+			"config",
+		],
+		barVisibility: {
+			time: true,
+			excut: true,
+			search: true,
+			mark: true,
+			view: true,
+			hide: true,
+			sort: true,
+			config: true,
+		},
+		filter: {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: ["todo", "planned", "in-progress"],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: false,
+			hideCompleted: false,
+			hideCancelled: false,
+			rootPath: null,
+			hideFolders: false,
+		},
+		sort: { type: "priority", order: "asc" as "asc" },
+	},
+	today: {
+		businessView: "today",
+		viewStyle: "list",
+		icon: "📅",
+		showToolbar: false,
+		toolbarEverShown: false,
+		toolbarPanelsCollapsed: false,
+		toolbarPanelsHeight: 300,
+		toolbarOrder: [
+			"excut",
+			"search",
+			"mark",
+			"time",
+			"view",
+			"hide",
+			"sort",
+			"config",
+		],
+		barVisibility: {
+			time: true,
+			excut: true,
+			search: true,
+			mark: true,
+			view: true,
+			hide: true,
+			sort: true,
+			config: true,
+		},
+		filter: {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: ["todo", "planned", "in-progress"],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: false,
+			hideCompleted: false,
+			hideCancelled: false,
+			rootPath: null,
+			hideFolders: false,
+		},
+		sort: { type: "status", order: "asc" as "asc" },
+	},
+	overdue: {
+		businessView: "overdue",
+		viewStyle: "list",
+		icon: "⏰",
+		showToolbar: false,
+		toolbarEverShown: false,
+		toolbarPanelsCollapsed: false,
+		toolbarPanelsHeight: 300,
+		toolbarOrder: [
+			"excut",
+			"search",
+			"mark",
+			"time",
+			"view",
+			"hide",
+			"sort",
+			"config",
+		],
+		barVisibility: {
+			time: true,
+			excut: true,
+			search: true,
+			mark: true,
+			view: true,
+			hide: true,
+			sort: true,
+			config: true,
+		},
+		filter: {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: [
+				"todo",
+				"planned",
+				"in-progress",
+				"completed",
+				"cancelled",
+			],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: false,
+			hideCompleted: false,
+			hideCancelled: false,
+			rootPath: null,
+			hideFolders: false,
+		},
+		sort: { type: "due", order: "asc" as "asc" },
+	},
+	future: {
+		businessView: "future",
+		viewStyle: "list",
+		icon: "🔜",
+		showToolbar: false,
+		toolbarEverShown: false,
+		toolbarPanelsCollapsed: false,
+		toolbarPanelsHeight: 300,
+		toolbarOrder: [
+			"excut",
+			"search",
+			"mark",
+			"time",
+			"view",
+			"hide",
+			"sort",
+			"config",
+		],
+		barVisibility: {
+			time: true,
+			excut: true,
+			search: true,
+			mark: true,
+			view: true,
+			hide: true,
+			sort: true,
+			config: true,
+		},
+		filter: {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: [
+				"todo",
+				"planned",
+				"in-progress",
+				"completed",
+				"cancelled",
+			],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: false,
+			hideCompleted: false,
+			hideCancelled: false,
+			rootPath: null,
+			hideFolders: false,
+		},
+		sort: { type: "scheduled", order: "asc" as "asc" },
+	},
+	"all-tasks": {
+		businessView: "allTasks",
+		viewStyle: "table",
+		icon: "📋",
+		showToolbar: false,
+		toolbarEverShown: false,
+		toolbarPanelsCollapsed: false,
+		toolbarPanelsHeight: 300,
+		toolbarOrder: [
+			"excut",
+			"search",
+			"mark",
+			"time",
+			"view",
+			"hide",
+			"sort",
+			"config",
+		],
+		barVisibility: {
+			time: true,
+			excut: true,
+			search: true,
+			mark: true,
+			view: true,
+			hide: true,
+			sort: true,
+			config: true,
+		},
+		filter: {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: [
+				"todo",
+				"planned",
+				"in-progress",
+				"completed",
+				"cancelled",
+			],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: false,
+			hideCompleted: false,
+			hideCancelled: false,
+			rootPath: null,
+			hideFolders: false,
+		},
+		sort: { type: "status", order: "asc" as "asc" },
+	},
+};
 
 export class ConfigBar {
 	private container: HTMLElement;
@@ -35,69 +286,9 @@ export class ConfigBar {
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
 
-		// 导入/导出
-		const row1 = this.container.createDiv({ cls: "bar-row" });
-		row1.createSpan({ text: "配置：", cls: "filter-label" });
-		const exportBtn = row1.createEl("button", {
-			text: "📤 导出",
-			cls: "bar-btn",
-		});
-		exportBtn.onclick = () => {
-			const dataStr = JSON.stringify(preset, null, 2);
-			const blob = new Blob([dataStr], { type: "application/json" });
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement("a");
-			a.href = url;
-			a.download = `task-view-${preset.name}.json`;
-			a.click();
-			URL.revokeObjectURL(url);
-		};
-		const importBtn = row1.createEl("button", {
-			text: "📥 导入",
-			cls: "bar-btn",
-		});
-		importBtn.onclick = () => {
-			const input = document.createElement("input");
-			input.type = "file";
-			input.accept = ".json";
-			input.onchange = async () => {
-				if (!input.files?.length) return;
-				const file = input.files[0];
-				const text = await file.text();
-				try {
-					const imported = JSON.parse(text) as Partial<Preset>;
-					const newPresets = state.presets.map((p) =>
-						p.id === preset.id ? { ...p, ...imported } : p,
-					);
-					this.store.update({ presets: newPresets });
-				} catch (e) {
-					alert("导入失败：无效的 JSON 文件");
-				}
-			};
-			input.click();
-		};
-
-		// 侧边视图图标
-		const row2 = this.container.createDiv({ cls: "bar-row" });
-		row2.createSpan({ text: "侧边视图图标：", cls: "filter-label" });
-		const iconInput = row2.createEl("input", {
-			type: "text",
-			cls: "filter-input filter-input-sm",
-			attr: { placeholder: "Emoji" },
-		});
-		iconInput.style.maxWidth = "60px";
-		iconInput.value = preset.icon || "";
-		iconInput.addEventListener("change", () => {
-			const newIcon = iconInput.value.trim();
-			const newPresets = state.presets.map((p) =>
-				p.id === preset.id ? { ...p, icon: newIcon || undefined } : p,
-			);
-			this.store.update({ presets: newPresets });
-		});
-
-		// 视图名称（新增）
+		// 视图名称
 		const rowName = this.container.createDiv({ cls: "bar-row" });
-		rowName.createSpan({ text: "视图名称：", cls: "filter-label" });
+		rowName.createSpan({ text: "视图名称", cls: "filter-label" });
 		const nameInput = rowName.createEl("input", {
 			type: "text",
 			cls: "filter-input",
@@ -113,39 +304,83 @@ export class ConfigBar {
 			this.store.update({ presets: newPresets });
 		});
 
-		// 通用视图图标
-		const row3 = this.container.createDiv({ cls: "bar-row" });
-		row3.createSpan({ text: "通用视图图标：", cls: "filter-label" });
-		const iconsContainer = row3.createDiv({ cls: "view-icons-container" });
-		const customIcons = preset.viewIcons || {};
-		VIEW_STYLES.forEach((style) => {
-			const input = iconsContainer.createEl("input", {
-				type: "text",
-				cls: "filter-input filter-input-xs",
-				attr: { placeholder: style.label },
-			});
-			input.style.maxWidth = "50px";
-			input.style.marginRight = "4px";
-			input.value = customIcons[style.key] || style.defaultIcon;
-			input.addEventListener("change", () => {
-				const newIcons = {
-					...preset.viewIcons,
-					[style.key]: input.value.trim() || undefined,
-				};
-				const newPresets = state.presets.map((p) =>
-					p.id === preset.id ? { ...p, viewIcons: newIcons } : p,
-				);
-				this.store.update({ presets: newPresets });
-			});
+		// 视图图标
+		const row2 = this.container.createDiv({ cls: "bar-row" });
+		row2.createSpan({ text: "视图图标", cls: "filter-label" });
+		const iconInput = row2.createEl("input", {
+			type: "text",
+			cls: "filter-input filter-input-sm",
+			attr: { placeholder: "Emoji" },
+		});
+		iconInput.style.maxWidth = "60px";
+		iconInput.value = preset.icon || "";
+		iconInput.addEventListener("change", () => {
+			const newIcon = iconInput.value.trim();
+			const newPresets = state.presets.map((p) =>
+				p.id === preset.id ? { ...p, icon: newIcon || undefined } : p,
+			);
+			this.store.update({ presets: newPresets });
 		});
 
-		// 重置/保存/删除
+		// 配置按钮行，添加“视图配置”说明标签
 		const row4 = this.container.createDiv({ cls: "bar-row" });
-		const resetBtn = row4.createEl("button", {
-			text: "🔄 重置",
+		row4.createSpan({ text: "视图配置", cls: "filter-label" });
+		const importBtn = row4.createEl("button", {
+			text: "📥 导入配置",
 			cls: "bar-btn",
 		});
-		resetBtn.onclick = () => this.store.update({ draftFilter: null });
+		importBtn.onclick = () => {
+			const input = document.createElement("input");
+			input.type = "file";
+			input.accept = ".json";
+			input.onchange = async () => {
+				if (!input.files?.length) return;
+				const text = await input.files[0].text();
+				try {
+					const imported = JSON.parse(text) as Partial<Preset>;
+					const newPresets = state.presets.map((p) =>
+						p.id === preset.id ? { ...p, ...imported } : p,
+					);
+					this.store.update({ presets: newPresets });
+				} catch (e) {
+					alert("导入失败：无效的 JSON 文件");
+				}
+			};
+			input.click();
+		};
+		const exportBtn = row4.createEl("button", {
+			text: "📤 导出配置",
+			cls: "bar-btn",
+		});
+		exportBtn.onclick = () => {
+			const dataStr = JSON.stringify(preset, null, 2);
+			const blob = new Blob([dataStr], { type: "application/json" });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `task-view-${preset.name}.json`;
+			a.click();
+			URL.revokeObjectURL(url);
+		};
+		const resetBtn = row4.createEl("button", {
+			text: "🔄 恢复默认",
+			cls: "bar-btn",
+		});
+		resetBtn.onclick = () => {
+			const defaults = PRESET_DEFAULTS[preset.id];
+			if (!defaults) return;
+			const newPreset: Preset = {
+				...preset,
+				...defaults,
+				id: preset.id,
+				name: preset.name,
+				filter: { ...defaults.filter! } as any,
+			};
+			const newPresets = state.presets.map((p) =>
+				p.id === preset.id ? newPreset : p,
+			);
+			this.store.update({ presets: newPresets, draftFilter: null });
+		};
 		const saveBtn = row4.createEl("button", {
 			text: "💾 保存配置",
 			cls: "bar-btn",

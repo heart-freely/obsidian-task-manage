@@ -21,12 +21,15 @@ export function createNavigatorLayout(
 	mainEl.style.minHeight = "0";
 	mainEl.style.padding = "0";
 	mainEl.style.margin = "0";
+	mainEl.style.position = "relative"; // 重要：为绝对定位提供包含块
 
 	const toolbarEl = mainEl.createDiv({ cls: "navigator-toolbar" });
-	toolbarEl.style.height = "0";
-	toolbarEl.style.overflow = "visible";
-	toolbarEl.style.position = "relative";
-	toolbarEl.style.zIndex = "1";
+	toolbarEl.style.position = "absolute";
+	toolbarEl.style.top = "0";
+	toolbarEl.style.left = "0";
+	toolbarEl.style.right = "0";
+	toolbarEl.style.zIndex = "10";
+	toolbarEl.style.pointerEvents = "none"; // 穿透点击到下方视图（按钮条自身内部会开启 auto）
 
 	const viewEl = mainEl.createDiv({ cls: "navigator-view" });
 	viewEl.style.flex = "1";
@@ -39,25 +42,6 @@ export function createNavigatorLayout(
 
 	const manager = ToolbarManager.getInstance();
 	manager.init(store, viewEl, toolbarEl);
-
-	// 标签页切换时，返回视图需要完整同步状态
-	let isViewActive = true;
-	const checkActiveLeaf = () => {
-		const activeLeaf = app.workspace.activeLeaf;
-		const view = activeLeaf?.view;
-		const isOurView = view?.getViewType() === "navigator-view";
-		if (isOurView !== isViewActive) {
-			isViewActive = isOurView;
-			if (!isOurView) {
-				manager.destroy();
-			} else {
-				// 强制从 Store 最新状态同步，恢复视图配置栏和面板状态
-				manager.syncState();
-			}
-		}
-	};
-
-	app.workspace.on("active-leaf-change", checkActiveLeaf);
 
 	new ViewContainer(viewEl, store, app);
 

@@ -1,10 +1,20 @@
+// src/ui/bars/sort-bar.ts
 import { Store } from "../../store/store";
 
 const SORT_OPTIONS = [
 	{ type: "status", label: "状态" },
+	{ type: "description", label: "描述" },
 	{ type: "priority", label: "优先级" },
+	{ type: "repeat", label: "循环" },
+	{ type: "created", label: "创建" },
 	{ type: "scheduled", label: "计划" },
+	{ type: "starts", label: "开始" },
 	{ type: "due", label: "截止" },
+	{ type: "cancel", label: "取消" },
+	{ type: "done", label: "完成" },
+	{ type: "tag", label: "标签" },
+	{ type: "id", label: "唯一ID" },
+	{ type: "forbid", label: "引用ID" },
 	{ type: "filename", label: "文件名" },
 ];
 
@@ -27,7 +37,7 @@ export class SortBar {
 
 		const currentSort = preset?.sort ?? { type: "status", order: "asc" };
 		const row = this.container.createDiv({ cls: "bar-row" });
-		row.createSpan({ text: "排序：", cls: "filter-label" });
+		row.createSpan({ text: "排序", cls: "filter-label" });
 
 		SORT_OPTIONS.forEach((opt) => {
 			const btn = row.createEl("button", {

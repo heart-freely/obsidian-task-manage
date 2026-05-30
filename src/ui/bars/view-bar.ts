@@ -1,27 +1,29 @@
+// src/ui/bars/view-bar.ts
 import { Store } from "../../store/store";
 
 const VIEW_STYLES = [
-	{ key: "list", label: "列表", defaultIcon: "📋" },
-	{ key: "cards", label: "卡片", defaultIcon: "🃏" }, // 移到表格前面
-	{ key: "table", label: "表格", defaultIcon: "📊" },
-	{ key: "kanban", label: "看板", defaultIcon: "📌" },
-	{ key: "matrix", label: "矩阵", defaultIcon: "🧩" },
-	{ key: "recurring", label: "循环", defaultIcon: "🔄" },
-	{ key: "timeline", label: "时间轴", defaultIcon: "⏳" },
-	{ key: "tag", label: "标签", defaultIcon: "🏷️" },
-	{ key: "depends", label: "依赖", defaultIcon: "🔗" },
-	{ key: "tree", label: "任务树", defaultIcon: "🌲" },
-	{ key: "calendar", label: "日历图", defaultIcon: "📅" },
-	{ key: "gantt", label: "甘特图", defaultIcon: "📊" },
-	{ key: "statistics", label: "基础统计", defaultIcon: "📈" },
-	{ key: "detail", label: "详细统计", defaultIcon: "📉" },
+	{ key: "list", label: "列表" },
+	{ key: "cards", label: "卡片" },
+	{ key: "table", label: "表格" },
+	{ key: "kanban", label: "看板" },
+	{ key: "matrix", label: "矩阵" },
+	{ key: "recurring", label: "循环" },
+	{ key: "timeline", label: "时间轴" },
+	{ key: "tag", label: "标签" },
+	{ key: "uniqueId", label: "唯一ID" },
+	{ key: "depends", label: "引用ID" },
+	{ key: "tree", label: "任务树" },
+	{ key: "gantt", label: "甘特图" },
+	{ key: "calendar", label: "日历图" },
+	{ key: "statistics", label: "基础统计" },
+	{ key: "detail", label: "详细统计" },
 ];
 
 const GROUP_NAMES: Record<string, string> = {
-	基础: "基础视图：",
-	组织: "组织视图：",
-	高级: "高级视图：",
-	统计: "统计视图：",
+	基础: "基础视图",
+	组织: "组织视图",
+	高级: "高级视图",
+	统计: "统计视图",
 };
 
 export class ViewBar {
@@ -42,14 +44,15 @@ export class ViewBar {
 		if (!preset) return;
 
 		const currentStyle = preset?.viewStyle ?? "table";
-		const customIcons = preset.viewIcons || {};
 
 		const groups = new Map<string, typeof VIEW_STYLES>();
 		VIEW_STYLES.forEach((s) => {
 			const group =
 				s.key === "list" || s.key === "cards" || s.key === "table"
 					? "基础"
-					: s.key === "calendar" || s.key === "gantt"
+					: s.key === "tree" ||
+						  s.key === "gantt" ||
+						  s.key === "calendar"
 						? "高级"
 						: s.key === "statistics" || s.key === "detail"
 							? "统计"
@@ -63,16 +66,15 @@ export class ViewBar {
 				cls: "bar-row view-group-row",
 			});
 			groupRow.createSpan({
-				text: GROUP_NAMES[group] || group + "：",
+				text: GROUP_NAMES[group] || group,
 				cls: "filter-label",
 			});
 			const btnsContainer = groupRow.createDiv({
 				cls: "view-btns-container",
 			});
-			styles.forEach(({ key, label, defaultIcon }) => {
-				const icon = customIcons[key] || defaultIcon;
+			styles.forEach(({ key, label }) => {
 				const btn = btnsContainer.createEl("button", {
-					text: icon + " " + label,
+					text: label,
 					cls: "bar-btn view-btn",
 				});
 				if (key === currentStyle) btn.addClass("active");

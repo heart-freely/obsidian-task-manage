@@ -1,3 +1,4 @@
+// src/configs/configs.ts
 import { GlobalFilter } from "../types";
 
 // ========== 全局常量 ==========
@@ -41,6 +42,7 @@ export const STATUS_SYMBOL_MAP: Record<string, string> = {
 	" ": "todo",
 	"?": "planned",
 	"/": "in-progress",
+	">": "in-progress", // 新增 - [>] 视为进行中
 	x: "completed",
 	X: "completed",
 	"-": "cancelled",
@@ -101,14 +103,14 @@ export const REPEAT_LABELS: Record<string, string> = {
 	year: "每年",
 };
 
-// ========== 日期标记 ==========
+// ========== 日期标记（新顺序：创建 → 计划 → 开始 → 截止 → 取消 → 完成）==========
 export const DATE_MARK_ORDER: string[] = [
 	"created",
 	"scheduled",
 	"starts",
 	"due",
-	"done",
 	"cancel",
+	"done",
 ];
 export const DATE_MARK_ICONS: Record<string, string> = {
 	created: "➕",
@@ -128,8 +130,8 @@ export const DATE_MARK_NAMES: Record<string, string> = {
 };
 export const DATE_FIELD_SORT_ORDER: string[] = [
 	"created",
-	"starts",
 	"scheduled",
+	"starts",
 	"due",
 	"cancel",
 	"done",
@@ -148,8 +150,8 @@ export const TASK_MARK_SEQUENCE: string[] = [
 	"scheduled",
 	"starts",
 	"due",
-	"done",
 	"cancel",
+	"done",
 	"id",
 	"forbid",
 	"tag",
@@ -265,6 +267,7 @@ export function getDefaultFilter(): GlobalFilter {
 		hideFolders: false,
 	};
 }
+
 export const DATE_FORMAT = "YYYY-MM-DD";
 export function formatDisplayDate(d: any): string {
 	if (!d) return "";
@@ -272,16 +275,16 @@ export function formatDisplayDate(d: any): string {
 	if (d instanceof Date) return d.toISOString().substring(0, 10);
 	return String(d).substring(0, 10);
 }
-// 在文件末尾或合适位置添加
+
 export const TABLE_COLUMNS = [
 	{ key: "status", label: "状态" },
-	{ key: "content", label: "描述" }, // “内容” → “描述”
+	{ key: "content", label: "描述" },
 	{ key: "priority", label: "优先级" },
 	{ key: "repeat", label: "循环" },
+	{ key: "created", label: "创建" },
 	{ key: "scheduled", label: "计划" },
 	{ key: "starts", label: "开始" },
 	{ key: "due", label: "截止" },
-	{ key: "created", label: "创建" },
 	{ key: "done", label: "完成" },
 	{ key: "cancel", label: "取消" },
 ];
@@ -291,10 +294,10 @@ export const DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
 	content: true,
 	priority: true,
 	repeat: true,
+	created: true,
 	scheduled: true,
 	starts: true,
 	due: true,
-	created: true,
 	done: true,
 	cancel: true,
 };

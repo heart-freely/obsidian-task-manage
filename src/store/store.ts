@@ -21,35 +21,56 @@ export class Store {
 		const oldActiveId = this.state.activePresetId;
 		const newActiveId = partial.activePresetId;
 
-		// 切换 activePresetId 时自动保存 draftFilter 到旧预设
-		if (
-			newActiveId !== undefined &&
-			newActiveId !== oldActiveId &&
-			this.state.draftFilter
-		) {
-			const presets = partial.presets ?? this.state.presets;
-			const oldPreset = presets.find((p) => p.id === oldActiveId);
-			if (oldPreset) {
-				const newPresets = presets.map((p) =>
-					p.id === oldActiveId
-						? { ...p, filter: this.state.draftFilter! }
-						: p,
-				);
-				this.state = {
-					...this.state,
-					...partial,
-					presets: newPresets,
-					draftFilter: null,
-				};
-				this.notify();
-				this.save();
-				return;
-			} else {
-				this.state = { ...this.state, draftFilter: null };
+		// 切换预设时，自动合并草稿到旧预设，并智能继承工具栏状态
+		if (newActiveId !== undefined && newActiveId !== oldActiveId) {
+			let presets = partial.presets ?? this.state.presets;
+
+			// 1. 将草稿合并到旧预设
+			if (this.state.draftFilter) {
+				const oldPreset = presets.find((p) => p.id === oldActiveId);
+				if (oldPreset) {
+					presets = presets.map((p) =>
+						p.id === oldActiveId
+							? { ...p, filter: this.state.draftFilter! }
+							: p,
+					);
+				}
 			}
+
+			// 2. 工具栏智能继承：如果当前预设工具栏是打开的，新预设从未显示过工具栏，则自动打开
+			const currentPreset = this.state.presets.find(
+				(p) => p.id === oldActiveId,
+			);
+			const targetPreset = presets.find((p) => p.id === newActiveId);
+			if (currentPreset && targetPreset) {
+				if (
+					currentPreset.showToolbar === true &&
+					targetPreset.showToolbar === false &&
+					targetPreset.toolbarEverShown !== true
+				) {
+					presets = presets.map((p) =>
+						p.id === newActiveId
+							? {
+									...p,
+									showToolbar: true,
+									toolbarEverShown: true,
+								}
+							: p,
+					);
+				}
+			}
+
+			// 3. 清除草稿
+			this.state = {
+				...this.state,
+				...partial,
+				presets,
+				draftFilter: null,
+			};
+		} else {
+			this.state = { ...this.state, ...partial };
 		}
 
-		this.state = { ...this.state, ...partial };
 		this.notify();
 		this.save();
 	}

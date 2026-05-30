@@ -1,3 +1,4 @@
+// src/ui/bars/hide-bar.ts
 import {
 	DEFAULT_TABLE_COLUMNS,
 	getDefaultFilter,
@@ -28,7 +29,7 @@ export class HideBar {
 
 		// 原有隐藏按钮：循环、已完成、已取消、文件夹
 		const row = this.container.createDiv({ cls: "bar-row" });
-		row.createSpan({ text: "隐藏：", cls: "filter-label" });
+		row.createSpan({ text: "隐藏", cls: "filter-label" }); // 去除冒号
 
 		const repeatBtn = row.createEl("button", {
 			text: currentFilter.hideRepeat ? "显示循环" : "隐藏循环",
@@ -56,12 +57,12 @@ export class HideBar {
 		});
 		folderBtn.onclick = () => this.toggleFilter("hideFolders");
 
-		// 新增：表格列显隐控制
+		// 表格列显隐控制
 		const colRow = this.container.createDiv({ cls: "bar-row" });
-		colRow.createSpan({ text: "表格列：", cls: "filter-label" });
+		colRow.createSpan({ text: "表格列", cls: "filter-label" }); // 去除冒号
 		const columns = preset.tableColumns ?? DEFAULT_TABLE_COLUMNS;
 		TABLE_COLUMNS.forEach((col) => {
-			const isVisible = columns[col.key] !== false; // 默认true
+			const isVisible = columns[col.key] !== false;
 			const btn = colRow.createEl("button", {
 				text: isVisible ? col.label : `隐藏${col.label}`,
 				cls: "bar-btn",

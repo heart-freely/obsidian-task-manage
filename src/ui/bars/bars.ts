@@ -28,15 +28,14 @@ export class ToolbarManager {
 	private static instance: ToolbarManager;
 	private store!: Store;
 	private viewEl!: HTMLElement;
+	private toolbarHost!: HTMLElement;
 
 	private buttonBarEl: HTMLElement | null = null;
 	private panelsContainer: HTMLElement | null = null;
 	private resizeHandle: HTMLElement | null = null;
 	private headBar: HeadBar | null = null;
-
-	private resizeObserver: ResizeObserver | null = null;
-	private resizeHandler: (() => void) | null = null;
-	private expandHandler: (() => void) | null = null;
+	private barPanels: Map<string, HTMLElement> = new Map();
+	private styleEl: HTMLStyleElement | null = null;
 
 	public isVisible: boolean = false;
 	private isPanelsHidden: boolean = false;
@@ -55,27 +54,27 @@ export class ToolbarManager {
 		this.store = store;
 		this.viewEl = viewEl;
 
-		this.expandHandler = () => {
-			const preset = this.store.getActivePreset();
-			if (preset?.toolbarPanelsCollapsed) this.showPanels();
-		};
-		document.addEventListener("toolbar-expand", this.expandHandler);
+		this.toolbarHost = container.createDiv({ cls: "toolbar-host" });
+		this.toolbarHost.style.position = "absolute";
+		this.toolbarHost.style.top = "0";
+		this.toolbarHost.style.left = "0";
+		this.toolbarHost.style.right = "0";
+		this.toolbarHost.style.zIndex = "50";
+		this.toolbarHost.style.pointerEvents = "auto";
 
 		this.headBar = new HeadBar(container, store);
 		this.buttonBarEl = this.headBar.getElement();
 		if (this.buttonBarEl) {
-			document.body.appendChild(this.buttonBarEl);
+			this.buttonBarEl.style.position = "relative";
+			this.buttonBarEl.style.zIndex = "51";
+			this.toolbarHost.appendChild(this.buttonBarEl);
 		}
 
 		this.panelsContainer = document.createElement("div");
 		this.panelsContainer.className = "toolbar-panels";
-		this.panelsContainer.style.position = "fixed";
+		this.panelsContainer.style.position = "relative";
 		this.panelsContainer.style.zIndex = "49";
 		this.panelsContainer.style.background = "var(--background-primary)";
-		this.panelsContainer.style.backgroundColor =
-			"var(--background-primary)";
-		this.panelsContainer.style.opacity = "1";
-		this.panelsContainer.style.backdropFilter = "none";
 		this.panelsContainer.style.border =
 			"1px solid var(--background-modifier-border)";
 		this.panelsContainer.style.borderRadius = "0 0 6px 6px";
@@ -86,11 +85,11 @@ export class ToolbarManager {
 		this.panelsContainer.style.gap = "4px";
 		this.panelsContainer.style.overflowY = "auto";
 		this.panelsContainer.style.boxSizing = "border-box";
-		document.body.appendChild(this.panelsContainer);
+		this.toolbarHost.appendChild(this.panelsContainer);
 
 		this.resizeHandle = document.createElement("div");
 		this.resizeHandle.className = "panel-resize-handle";
-		this.resizeHandle.style.position = "fixed";
+		this.resizeHandle.style.position = "relative";
 		this.resizeHandle.style.zIndex = "60";
 		this.resizeHandle.style.height = "8px";
 		this.resizeHandle.style.cursor = "row-resize";
@@ -103,7 +102,7 @@ export class ToolbarManager {
 		this.resizeHandle.style.transition = "opacity 0.15s";
 		this.resizeHandle.title = "拖拽调整高度 / 点击中间箭头折叠";
 		this.resizeHandle.style.boxSizing = "border-box";
-		document.body.appendChild(this.resizeHandle);
+		this.toolbarHost.appendChild(this.resizeHandle);
 
 		const arrow = document.createElement("span");
 		arrow.style.cursor = "pointer";
@@ -160,34 +159,120 @@ export class ToolbarManager {
 			document.addEventListener("mouseup", onMouseUp);
 		});
 
-		this.setupObservers();
+		this.expandHandler = () => {
+			const preset = this.store.getActivePreset();
+			if (preset?.toolbarPanelsCollapsed) this.showPanels();
+		};
+		document.addEventListener("toolbar-expand", this.expandHandler);
 
-		// Store 变化时自动同步状态
+		this.injectStyles();
+
 		this.store.subscribe(() => this.syncState());
 
-		// 延迟同步，确保 ViewContainer 等其他组件已就绪，避免状态被覆盖
 		setTimeout(() => this.syncState(), 0);
 	}
 
-	private setupObservers() {
-		if (this.resizeObserver) this.resizeObserver.disconnect();
-		this.resizeObserver = new ResizeObserver(() => {
-			if (this.isVisible && !this.isPanelsHidden) {
-				this.updateViewPadding();
-				this.updateHandlePosition();
+	private injectStyles() {
+		if (this.styleEl) return;
+		this.styleEl = document.createElement("style");
+		this.styleEl.textContent = `
+			/* 面板内按钮 */
+			.toolbar-panels .filter-btn,
+			.toolbar-panels .bar-btn {
+				padding: 6px 6px !important;
+				font-family: var(--font-text) !important;
+				font-size: var(--font-ui-small) !important;
+				line-height: var(--line-height-normal) !important;
+				margin: 2px 4px 2px 0 !important;
+				text-align: left !important;
+				white-space: nowrap;
+				display: inline-flex !important;
+				align-items: center;
+				justify-content: flex-start;
+				flex-grow: 0 !important;
+				flex-shrink: 0 !important;
+				width: auto !important;
+				min-width: auto !important;
+				height: auto !important;
 			}
-			this.updatePositions();
-		});
-
-		if (this.panelsContainer)
-			this.resizeObserver.observe(this.panelsContainer);
-		if (this.buttonBarEl) this.resizeObserver.observe(this.buttonBarEl);
-
-		const sidebarEl = document.querySelector(".navigator-sidebar");
-		if (sidebarEl) this.resizeObserver.observe(sidebarEl);
-
-		this.resizeHandler = () => this.updatePositions();
-		window.addEventListener("resize", this.resizeHandler);
+			/* 说明文字 */
+			.toolbar-panels .filter-label {
+				font-family: var(--font-text) !important;
+				font-size: var(--font-ui-small) !important;
+				font-weight: normal !important;
+				color: var(--text-normal) !important;
+				text-align: justify !important;
+				text-align-last: justify !important;
+				text-justify: inter-character !important;
+				width: 4em;
+				flex-shrink: 0;
+				margin: 0 !important;
+				padding: 0 !important;
+				border: none !important;
+				box-sizing: border-box !important;
+				overflow: hidden;
+				white-space: normal !important;
+				word-break: keep-all;
+			}
+			.toolbar-panels .bar-row,
+			.toolbar-panels .filter-row {
+				display: flex;
+				align-items: center;
+				justify-content: flex-start;
+				margin-bottom: 4px;
+				flex-wrap: wrap;
+			}
+			.toolbar-panels .sub-panel {
+				margin-left: 8px;
+				gap: 4px;
+			}
+			/* 修复时间栏 section 造成的偏移 */
+			.toolbar-panels .filter-section {
+				margin: 0 !important;
+				padding: 0 !important;
+			}
+			/* 标题栏按钮 */
+			.toolbar-buttons .toolbar-btn-item {
+				padding: 6px 6px;
+				font-family: var(--font-text);
+				font-size: var(--font-ui-small);
+				line-height: var(--line-height-normal);
+				color: var(--text-normal);
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				cursor: pointer;
+				user-select: none;
+				white-space: nowrap;
+				margin: 0;
+				border-radius: 4px;
+				background: transparent;
+				border: 1px solid transparent;
+				transition: background 0.15s;
+				flex-grow: 0;
+				flex-shrink: 0;
+				width: auto;
+				min-width: auto;
+			}
+			.toolbar-buttons .toolbar-btn-item:hover {
+				background: var(--background-modifier-hover);
+			}
+			.toolbar-buttons .toolbar-btn-item.active {
+				background: var(--background-modifier-active);
+			}
+			.toolbar-buttons .toolbar-btn-label {
+				font-family: inherit;
+				font-size: inherit;
+				line-height: inherit;
+				color: inherit;
+			}
+			.toolbar-panels .view-btn {
+				flex-grow: 0 !important;
+				flex-shrink: 0 !important;
+				width: auto !important;
+			}
+		`;
+		document.head.appendChild(this.styleEl);
 	}
 
 	public syncState() {
@@ -219,13 +304,7 @@ export class ToolbarManager {
 				this.resizeHandle.style.display = "flex";
 				this.resizeHandle.style.height = "8px";
 			}
-			const barHeight = this.buttonBarEl.offsetHeight;
-			if (this.isPanelsHidden) {
-				this.viewEl.style.paddingTop = barHeight + 4 + "px";
-			} else {
-				this.viewEl.style.paddingTop =
-					barHeight + this.panelHeight + 12 + "px";
-			}
+			this.updateViewPadding();
 		} else {
 			this.buttonBarEl.style.display = "none";
 			this.panelsContainer.style.display = "none";
@@ -233,37 +312,41 @@ export class ToolbarManager {
 			this.viewEl.style.paddingTop = "0px";
 		}
 		this.updateArrow();
-		requestAnimationFrame(() => this.updatePositions());
 	}
 
 	private refreshContent() {
 		if (!this.panelsContainer) return;
-		const arrow = this.resizeHandle?.querySelector("span");
-		this.panelsContainer.innerHTML = "";
-		if (arrow && this.resizeHandle) {
-			this.resizeHandle.appendChild(arrow);
-		}
 
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
+
 		const barVisibility = preset.barVisibility ?? {};
 		const toolbarOrder = preset.toolbarOrder ?? [];
-		const visibleBars = toolbarOrder.filter((key) => barVisibility[key]);
-		visibleBars.forEach((barKey) => {
-			const panel = document.createElement("div");
-			panel.className = "toolbar-panel";
-			panel.style.background = "var(--background-secondary)";
-			panel.style.backgroundColor = "var(--background-secondary)";
-			panel.style.opacity = "1";
-			panel.style.backdropFilter = "none";
-			this.panelsContainer!.appendChild(panel);
-			if (BAR_COMPONENTS[barKey]) {
-				new BAR_COMPONENTS[barKey](panel, this.store);
-			}
-		});
+		const visibleKeys = toolbarOrder.filter((key) => barVisibility[key]);
 
-		this.updateArrow();
-		this.updatePositions();
+		for (const [key, panel] of this.barPanels) {
+			if (!visibleKeys.includes(key)) {
+				panel.remove();
+				this.barPanels.delete(key);
+			}
+		}
+
+		for (const key of visibleKeys) {
+			let panel = this.barPanels.get(key);
+			if (!panel) {
+				panel = document.createElement("div");
+				panel.className = "toolbar-panel";
+				panel.style.background = "var(--background-secondary)";
+				panel.style.opacity = "1";
+				panel.style.backdropFilter = "none";
+				this.panelsContainer!.appendChild(panel);
+				this.barPanels.set(key, panel);
+			}
+			panel.innerHTML = "";
+			if (BAR_COMPONENTS[key]) {
+				new BAR_COMPONENTS[key](panel, this.store);
+			}
+		}
 	}
 
 	private updateArrow() {
@@ -274,65 +357,15 @@ export class ToolbarManager {
 		}
 	}
 
-	private updatePositions() {
-		if (!this.buttonBarEl || !this.panelsContainer || !this.resizeHandle)
-			return;
-
-		const mainEl = document.querySelector(".navigator-main") as HTMLElement;
-		if (!mainEl) return;
-		const mainRect = mainEl.getBoundingClientRect();
-		const left = mainRect.left;
-		const width = mainRect.width;
-
-		if (this.isVisible) {
-			this.buttonBarEl.style.position = "fixed";
-			this.buttonBarEl.style.top = mainRect.top + "px";
-			this.buttonBarEl.style.left = left + "px";
-			this.buttonBarEl.style.width = width + "px";
-			this.buttonBarEl.style.zIndex = "50";
-			this.buttonBarEl.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-			this.buttonBarEl.style.opacity = "1";
-			this.buttonBarEl.style.backdropFilter = "none";
-			this.buttonBarEl.style.boxSizing = "border-box";
-
-			const barRect = this.buttonBarEl.getBoundingClientRect();
-			if (!this.isPanelsHidden) {
-				this.panelsContainer.style.top = barRect.bottom + "px";
-				this.panelsContainer.style.left = left + "px";
-				this.panelsContainer.style.width = width + "px";
-				this.panelsContainer.style.zIndex = "49";
-
-				const panelsRect = this.panelsContainer.getBoundingClientRect();
-				this.resizeHandle.style.top = panelsRect.bottom + "px";
-				this.resizeHandle.style.left = left + "px";
-				this.resizeHandle.style.width = width + "px";
-			} else {
-				this.resizeHandle.style.top = barRect.bottom + "px";
-				this.resizeHandle.style.left = left + "px";
-				this.resizeHandle.style.width = width + "px";
-			}
-
-			// 强制锁定手柄的显示状态，避免被外部样式意外修改
-			if (this.isPanelsHidden) {
-				this.resizeHandle.style.display = "flex";
-				this.resizeHandle.style.height = "10px";
-			} else {
-				this.resizeHandle.style.display = "flex";
-				this.resizeHandle.style.height = "8px";
-			}
-		}
-	}
-
 	private updateViewPadding() {
-		const barHeight = this.buttonBarEl?.offsetHeight ?? 0;
-		const panelsHeight = this.panelsContainer?.offsetHeight ?? 0;
-		this.viewEl.style.paddingTop = barHeight + panelsHeight + 12 + "px";
-	}
-
-	private updateHandlePosition() {
-		if (!this.resizeHandle || !this.panelsContainer) return;
-		const panelsRect = this.panelsContainer.getBoundingClientRect();
-		this.resizeHandle.style.top = panelsRect.bottom + "px";
+		if (!this.buttonBarEl) return;
+		const barHeight = this.buttonBarEl.offsetHeight;
+		if (this.isPanelsHidden) {
+			this.viewEl.style.paddingTop = barHeight + 4 + "px";
+		} else {
+			this.viewEl.style.paddingTop =
+				barHeight + this.panelHeight + 12 + "px";
+		}
 	}
 
 	private togglePanels() {
@@ -358,33 +391,20 @@ export class ToolbarManager {
 		this.store.update({ presets: newPresets });
 	}
 
-	destroy() {
-		this.isVisible = false;
-		this.applyVisibility();
-	}
+	destroy() {}
 
 	cleanupAll() {
-		if (this.buttonBarEl && this.buttonBarEl.parentNode) {
-			this.buttonBarEl.parentNode.removeChild(this.buttonBarEl);
-		}
-		if (this.panelsContainer && this.panelsContainer.parentNode) {
-			this.panelsContainer.parentNode.removeChild(this.panelsContainer);
-		}
-		if (this.resizeHandle && this.resizeHandle.parentNode) {
-			this.resizeHandle.parentNode.removeChild(this.resizeHandle);
-		}
-		if (this.resizeObserver) {
-			this.resizeObserver.disconnect();
-		}
-		if (this.resizeHandler) {
-			window.removeEventListener("resize", this.resizeHandler);
-		}
-		if (this.expandHandler) {
-			document.removeEventListener("toolbar-expand", this.expandHandler);
-		}
 		if (this.headBar) {
 			this.headBar.destroy();
 			this.headBar = null;
+		}
+		this.barPanels.clear();
+		if (this.expandHandler) {
+			document.removeEventListener("toolbar-expand", this.expandHandler);
+		}
+		if (this.styleEl) {
+			this.styleEl.remove();
+			this.styleEl = null;
 		}
 	}
 }

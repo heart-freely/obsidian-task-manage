@@ -13,8 +13,6 @@ const VIEW_LOADERS: Record<
 	today: () => import("../views/today-view").then((m) => m.TodayView),
 	overdue: () => import("../views/overdue-view").then((m) => m.OverdueView),
 	future: () => import("../views/future-view").then((m) => m.FutureView),
-	tag: () => import("../views/tag-view").then((m) => m.TagView),
-	depends: () => import("../views/depends-view").then((m) => m.DependsView),
 };
 
 export class ViewContainer {

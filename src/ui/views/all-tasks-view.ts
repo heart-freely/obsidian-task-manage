@@ -1,4 +1,5 @@
 // src/ui/views/all-tasks-view.ts
+import { PRIORITY_ORDER } from "../../configs/configs"; // 用于优先级排序
 import { filterTasks } from "../../tasks/process/filter-task-process";
 import { getAllTasks } from "../../tasks/read/read-tasks";
 import { GlobalFilter } from "../../types";
@@ -18,6 +19,7 @@ import { renderRecurring } from "../components/lists/recurring-renderer";
 import { renderTag } from "../components/lists/tag-renderer";
 import { renderTaskList } from "../components/lists/task-list";
 import { renderTaskTree } from "../components/lists/task-tree";
+import { renderUniqueId } from "../components/lists/uniqueId-renderer";
 import { renderTaskTable } from "../components/tables/task-table";
 import { renderTimeline } from "../components/timeline/task-timeline";
 import { BaseTaskView } from "./base-view";
@@ -57,7 +59,6 @@ export class AllTasksView extends BaseTaskView {
 			const viewContainer = this.container.createDiv({
 				cls: "view-content",
 			});
-			// 确保视图内容左对齐，无额外内边距
 			viewContainer.style.padding = "0";
 			viewContainer.style.margin = "0";
 
@@ -95,6 +96,11 @@ export class AllTasksView extends BaseTaskView {
 					break;
 				case "tag":
 					renderTag(viewContainer, filtered, {
+						onClick: (t: any) => this.openTask(t),
+					});
+					break;
+				case "uniqueId":
+					renderUniqueId(viewContainer, filtered, {
 						onClick: (t: any) => this.openTask(t),
 					});
 					break;
@@ -203,19 +209,71 @@ export class AllTasksView extends BaseTaskView {
 				};
 				return (map[a._status] ?? 5) - (map[b._status] ?? 5) * order;
 			}
+			if (sort.type === "description") {
+				const descA = (a._cleanText || a.text || "").toLowerCase();
+				const descB = (b._cleanText || b.text || "").toLowerCase();
+				if (!descA && !descB) return 0;
+				if (!descA) return 1;
+				if (!descB) return -1;
+				return descA.localeCompare(descB) * order;
+			}
 			if (sort.type === "priority") {
 				const pa = a._priorityIcon || "",
 					pb = b._priorityIcon || "";
-				return pa.localeCompare(pb) * order;
+				const ia = pa ? PRIORITY_ORDER.indexOf(pa) : -1;
+				const ib = pb ? PRIORITY_ORDER.indexOf(pb) : -1;
+				if (ia === -1 && ib === -1) return 0;
+				if (ia === -1) return 1;
+				if (ib === -1) return -1;
+				return (ia - ib) * order;
 			}
-			if (sort.type === "scheduled") {
-				return (
-					((a._scheduled || "") > (b._scheduled || "") ? 1 : -1) *
-					order
-				);
+			if (sort.type === "repeat") {
+				const repA = a._repeat || "",
+					repB = b._repeat || "";
+				if (!repA && !repB) return 0;
+				if (!repA) return 1;
+				if (!repB) return -1;
+				return repA.localeCompare(repB) * order;
 			}
-			if (sort.type === "due") {
-				return ((a._due || "") > (b._due || "") ? 1 : -1) * order;
+			const dateFields = [
+				"created",
+				"scheduled",
+				"starts",
+				"due",
+				"cancel",
+				"done",
+			];
+			if (dateFields.includes(sort.type)) {
+				const valA = a[`_${sort.type}`] || "",
+					valB = b[`_${sort.type}`] || "";
+				if (!valA && !valB) return 0;
+				if (!valA) return 1;
+				if (!valB) return -1;
+				return valA.localeCompare(valB) * order;
+			}
+			if (sort.type === "tag") {
+				const tagA = a._tag || "",
+					tagB = b._tag || "";
+				if (!tagA && !tagB) return 0;
+				if (!tagA) return 1;
+				if (!tagB) return -1;
+				return tagA.localeCompare(tagB) * order;
+			}
+			if (sort.type === "id") {
+				const idA = a._id || "",
+					idB = b._id || "";
+				if (!idA && !idB) return 0;
+				if (!idA) return 1;
+				if (!idB) return -1;
+				return idA.localeCompare(idB) * order;
+			}
+			if (sort.type === "forbid") {
+				const fA = a._forbid || "",
+					fB = b._forbid || "";
+				if (!fA && !fB) return 0;
+				if (!fA) return 1;
+				if (!fB) return -1;
+				return fA.localeCompare(fB) * order;
 			}
 			if (sort.type === "filename") {
 				const nameA = (a.path || "").split("/").pop() || "";

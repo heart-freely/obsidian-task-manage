@@ -39,13 +39,14 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "📥",
 				showToolbar: false,
+				toolbarEverShown: false,
 				toolbarPanelsCollapsed: false,
 				toolbarPanelsHeight: 300,
 				toolbarOrder: [
-					"time",
 					"excut",
 					"search",
 					"mark",
+					"time",
 					"view",
 					"hide",
 					"sort",
@@ -72,13 +73,14 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "⭐",
 				showToolbar: false,
+				toolbarEverShown: false,
 				toolbarPanelsCollapsed: false,
 				toolbarPanelsHeight: 300,
 				toolbarOrder: [
-					"time",
 					"excut",
 					"search",
 					"mark",
+					"time",
 					"view",
 					"hide",
 					"sort",
@@ -108,13 +110,14 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "📅",
 				showToolbar: false,
+				toolbarEverShown: false,
 				toolbarPanelsCollapsed: false,
 				toolbarPanelsHeight: 300,
 				toolbarOrder: [
-					"time",
 					"excut",
 					"search",
 					"mark",
+					"time",
 					"view",
 					"hide",
 					"sort",
@@ -144,13 +147,14 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "⏰",
 				showToolbar: false,
+				toolbarEverShown: false,
 				toolbarPanelsCollapsed: false,
 				toolbarPanelsHeight: 300,
 				toolbarOrder: [
-					"time",
 					"excut",
 					"search",
 					"mark",
+					"time",
 					"view",
 					"hide",
 					"sort",
@@ -177,13 +181,14 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "list",
 				icon: "🔜",
 				showToolbar: false,
+				toolbarEverShown: false,
 				toolbarPanelsCollapsed: false,
 				toolbarPanelsHeight: 300,
 				toolbarOrder: [
-					"time",
 					"excut",
 					"search",
 					"mark",
+					"time",
 					"view",
 					"hide",
 					"sort",
@@ -210,13 +215,14 @@ export default class TaskManagePlugin extends Plugin {
 				viewStyle: "table",
 				icon: "📋",
 				showToolbar: false,
+				toolbarEverShown: false,
 				toolbarPanelsCollapsed: false,
 				toolbarPanelsHeight: 300,
 				toolbarOrder: [
-					"time",
 					"excut",
 					"search",
 					"mark",
+					"time",
 					"view",
 					"hide",
 					"sort",
@@ -267,6 +273,10 @@ export default class TaskManagePlugin extends Plugin {
 					rootPath: spFilter.rootPath ?? dp.filter.rootPath,
 					hideFolders: spFilter.hideFolders ?? dp.filter.hideFolders,
 					searchText: spFilter.searchText ?? dp.filter.searchText,
+					priorityValues:
+						spFilter.priorityValues ?? dp.filter.priorityValues,
+					repeatCycles:
+						spFilter.repeatCycles ?? dp.filter.repeatCycles,
 				};
 				mergedPresets.push({
 					...dp,
@@ -310,11 +320,39 @@ export default class TaskManagePlugin extends Plugin {
 		this.addRibbonIcon("compass", "任务导航中心", () => {
 			this.activateView("navigator-view");
 		});
+
+		// 自动恢复视图（基于 wasViewOpen）
+		const wasViewOpen = savedData.wasViewOpen === true;
+		this.app.workspace.onLayoutReady(() => {
+			const leaves = this.app.workspace.getLeavesOfType("navigator-view");
+			if (leaves.length > 0) {
+				this.app.workspace.revealLeaf(leaves[0]);
+			} else if (wasViewOpen) {
+				this.activateView("navigator-view");
+			}
+		});
 	}
 
 	async onunload() {
 		if (this.store) {
-			await this.saveData(this.store.getState());
+			const state = this.store.getState();
+			// 自动将未保存的草稿合并到当前预设
+			let presets = state.presets;
+			if (state.draftFilter && state.activePresetId) {
+				presets = state.presets.map((p) =>
+					p.id === state.activePresetId
+						? { ...p, filter: state.draftFilter! }
+						: p,
+				);
+			}
+			const wasViewOpen =
+				this.app.workspace.getLeavesOfType("navigator-view").length > 0;
+			await this.saveData({
+				...state,
+				presets,
+				draftFilter: null,
+				wasViewOpen,
+			});
 		}
 		document
 			.querySelectorAll(".toolbar-buttons")

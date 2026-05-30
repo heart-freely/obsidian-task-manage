@@ -872,3 +872,11 @@
 	cursor: pointer;
 	font-size: 12px;
 }
+.sub-btn {
+	font-size: 0.85em;
+	padding: 2px 6px;
+}
+.toolbar-panels .filter-section {
+	margin: 0 !important;
+	padding: 0 !important;
+}

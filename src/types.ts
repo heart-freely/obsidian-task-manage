@@ -35,7 +35,10 @@ export interface GlobalFilter {
 	hideCompleted: boolean;
 	hideCancelled: boolean;
 	rootPath: string | null;
-	hideFolders?: boolean; // 文件夹显隐
+	hideFolders?: boolean;
+	searchText?: string;
+	priorityValues?: string[]; // 新增
+	repeatCycles?: string[]; // 新增
 }
 
 /** 方案（Preset） */

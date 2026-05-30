@@ -1,9 +1,10 @@
+// src/ui/bars/head-bar.ts
 import { Store } from "../../store/store";
 
 export const BAR_LABELS: Record<string, string> = {
 	time: "任务时间",
 	excut: "任务状态",
-	search: "任务搜索",
+	search: "任务描述",
 	mark: "任务标记",
 	view: "任务视图",
 	hide: "视图隐藏",
@@ -48,10 +49,10 @@ export class HeadBar {
 
 		const barVisibility = preset.barVisibility ?? {};
 		const toolbarOrder = preset.toolbarOrder ?? [
-			"time",
 			"excut",
 			"search",
 			"mark",
+			"time",
 			"view",
 			"hide",
 			"sort",
@@ -105,7 +106,6 @@ export class HeadBar {
 			};
 			btnDiv.appendChild(eyeBtn);
 
-			// 拖拽排序
 			btnDiv.addEventListener("dragstart", (e) => {
 				draggedKey = barKey;
 				e.dataTransfer!.effectAllowed = "move";

@@ -1,3 +1,4 @@
+// src/tasks/process/filter-task-process.ts
 import { GlobalFilter } from "../../types";
 
 export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
@@ -56,6 +57,25 @@ export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
 		result = result.filter((t: any) => {
 			const desc = (t._cleanText || t.text || "").toLowerCase();
 			return desc.includes(keyword);
+		});
+	}
+
+	// 7. 优先级具体值过滤（对应 MarkBar 子按钮）
+	if (filter.priorityValues && filter.priorityValues.length > 0) {
+		result = result.filter(
+			(t: any) =>
+				t._priorityIcon &&
+				filter.priorityValues!.includes(t._priorityIcon),
+		);
+	}
+
+	// 8. 循环周期具体值过滤（对应 MarkBar 子按钮）
+	if (filter.repeatCycles && filter.repeatCycles.length > 0) {
+		result = result.filter((t: any) => {
+			if (!t._repeat) return false;
+			return filter.repeatCycles!.some((cycle: string) =>
+				t._repeat.toLowerCase().includes(cycle),
+			);
 		});
 	}
 

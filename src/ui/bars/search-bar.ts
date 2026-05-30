@@ -1,3 +1,4 @@
+// src/ui/bars/search-bar.ts
 import { Store } from "../../store/store";
 import { GlobalFilter } from "../../types";
 
@@ -20,7 +21,7 @@ export class SearchBar {
 			state.draftFilter ?? preset?.filter ?? this.defaultFilter();
 
 		const row = this.container.createDiv({ cls: "filter-row" });
-		row.createSpan({ text: "任务内容：", cls: "filter-label" });
+		row.createSpan({ text: "任务描述", cls: "filter-label" });
 		const input = row.createEl("input", {
 			type: "text",
 			cls: "filter-input",
