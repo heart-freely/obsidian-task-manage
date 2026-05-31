@@ -1,5 +1,5 @@
 // src/ui/views/all-tasks-view.ts
-import { PRIORITY_ORDER } from "../../configs/configs"; // 用于优先级排序
+import { PRIORITY_ORDER } from "../../configs/configs";
 import { filterTasks } from "../../tasks/process/filter-task-process";
 import { getAllTasks } from "../../tasks/read/read-tasks";
 import { GlobalFilter } from "../../types";
@@ -35,6 +35,7 @@ export class AllTasksView extends BaseTaskView {
 		const activeFilter: GlobalFilter =
 			state.draftFilter ?? preset?.filter ?? this.getDefaultFilter();
 		const currentStyle = preset?.viewStyle ?? "table";
+		const intervalMode = (preset as any)?.intervalMode ?? "scheduled-due";
 
 		try {
 			const dv = this.app.plugins?.plugins?.dataview?.api;
@@ -47,7 +48,7 @@ export class AllTasksView extends BaseTaskView {
 
 			const cacheState = { cachedAllTasks: null as any };
 			const allTasks = getAllTasks(false, dv, cacheState);
-			let filtered = filterTasks(allTasks, activeFilter);
+			let filtered = filterTasks(allTasks, activeFilter, intervalMode);
 			const sort = preset?.sort ?? { type: "status", order: "asc" };
 			filtered = this.applySort(filtered, sort);
 
@@ -138,8 +139,6 @@ export class AllTasksView extends BaseTaskView {
 						cls: "calendar-content",
 					});
 					calContainer.style.padding = "0";
-					const intervalMode =
-						(preset as any)?.intervalMode || "scheduled-due";
 					if (this.calendarSubView === "day") {
 						renderCalendarDay(calContainer, filtered, {
 							onClick: (t: any) => this.openTask(t),

@@ -1,445 +1,647 @@
 // src/ui/bars/time-bar.ts
-import { YEAR_LIST, getDefaultFilter } from "../../configs/configs";
+import { getDefaultFilter } from "../../configs/configs";
 import { Store } from "../../store/store";
 import { DateUtils } from "../../tasks/process/common-process";
+import {
+	calcDynamicOffset,
+	datesFromLevel,
+	dayToDate,
+	getLevelValues,
+	getTaskTimeRange,
+	maxDynamicRange,
+	staticSliderRanges,
+} from "../../tasks/process/filter-task-process";
+import { getAllTasks } from "../../tasks/read/read-tasks";
 import { GlobalFilter } from "../../types";
 
 export class TimeBar {
 	private container: HTMLElement;
 	private store: Store;
+	private startDate = new Date();
+	private endDate = new Date();
+	private dynamicUnit = "day";
+	private useDynamic: boolean = false;
+	private taskMinYear = 2021;
+	private taskMaxYear = 2031;
+	private refs = new Map<
+		string,
+		{
+			s: HTMLElement;
+			e: HTMLElement;
+			f: HTMLElement;
+			l: HTMLElement;
+			m: HTMLElement;
+		}
+	>();
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.store.subscribe(() => this.render());
+		this.startDate.setHours(0, 0, 0, 0);
+		this.endDate.setHours(23, 59, 59, 999);
+		store.subscribe(() => this.render());
 		this.render();
 	}
 
-	// 判断是否为动态日期选中状态
-	private isDynamicSelected(filter: GlobalFilter, label: string): boolean {
-		const dr = filter.dateRange;
-		if (!dr.start || !dr.end || dr.isAll) return false;
+	private vals() {
+		return getLevelValues(this.startDate, this.endDate);
+	}
+	private ranges() {
+		return staticSliderRanges(
+			this.startDate,
+			this.endDate,
+			this.taskMinYear,
+			this.taskMaxYear,
+		);
+	}
+	private dynOffset(d: Date) {
+		return calcDynamicOffset(d, this.dynamicUnit);
+	}
+	private maxDyn() {
+		return maxDynamicRange(this.dynamicUnit);
+	}
 
-		const today = new Date();
-		const ranges: Record<string, { start: Date; end: Date }> = {
-			昨天: (() => {
-				const d = new Date();
-				d.setDate(d.getDate() - 1);
-				return DateUtils.getDayRange(d);
-			})(),
-			今天: DateUtils.getDayRange(today),
-			明天: (() => {
-				const d = new Date();
-				d.setDate(d.getDate() + 1);
-				return DateUtils.getDayRange(d);
-			})(),
-			上周: (() => {
-				const d = new Date();
-				d.setDate(d.getDate() - 7);
-				return DateUtils.getWeekRange(d);
-			})(),
-			本周: DateUtils.getWeekRange(today),
-			下周: (() => {
-				const d = new Date();
-				d.setDate(d.getDate() + 7);
-				return DateUtils.getWeekRange(d);
-			})(),
-			上月: (() => {
-				const d = new Date();
-				d.setMonth(d.getMonth() - 1);
-				return DateUtils.getMonthRange(d);
-			})(),
-			本月: DateUtils.getMonthRange(today),
-			下月: (() => {
-				const d = new Date();
-				d.setMonth(d.getMonth() + 1);
-				return DateUtils.getMonthRange(d);
-			})(),
+	private setDates(lv: string, sv: number, ev: number) {
+		const { startDate, endDate } = datesFromLevel(
+			lv,
+			sv,
+			ev,
+			this.dynamicUnit,
+		);
+
+		if (lv === "dynamic") {
+			this.startDate = startDate;
+			this.endDate = endDate;
+			if (this.useDynamic) {
+				this.updateAllUI();
+			} else {
+				this.updateDynamicUIOnly();
+			}
+		} else {
+			this.startDate = startDate;
+			this.endDate = endDate;
+			this.updateStaticUIOnly();
+			const state = this.store.getState();
+			const pre = state.presets.find(
+				(p) => p.id === state.activePresetId,
+			);
+			const cf: GlobalFilter =
+				state.draftFilter ?? pre?.filter ?? getDefaultFilter();
+			this.apply(cf);
+		}
+	}
+
+	private initRange() {
+		try {
+			const dv = (window as any).app?.plugins?.plugins?.dataview?.api;
+			if (!dv) return;
+			const tasks = getAllTasks(false, dv, {
+				cachedAllTasks: null as any,
+			});
+			const r = getTaskTimeRange(tasks);
+			if (r.minTime && r.maxTime) {
+				this.taskMinYear = new Date(r.minTime).getFullYear();
+				this.taskMaxYear = new Date(r.maxTime).getFullYear();
+			}
+		} catch (e) {
+			/* ignore */
+		}
+	}
+
+	private sync(f: GlobalFilter) {
+		if (!f.dateRange.start || !f.dateRange.end || f.dateRange.isAll) return;
+		this.startDate = new Date(f.dateRange.start);
+		this.endDate = new Date(f.dateRange.end);
+	}
+	private apply(f: GlobalFilter) {
+		this.store.update({
+			draftFilter: {
+				...f,
+				dateRange: {
+					start: this.startDate.getTime(),
+					end: this.endDate.getTime(),
+					isAll: false,
+				},
+			},
+		});
+	}
+
+	private updateDynamicUIOnly() {
+		const dr = this.refs.get("dynamic");
+		if (!dr) return;
+		const mx = this.maxDyn(),
+			mn = -mx,
+			t = mx - mn || 1;
+		const ds = this.dynOffset(this.startDate),
+			de = this.dynOffset(this.endDate);
+		dr.s.style.left = `${((Math.min(ds, de) - mn) / t) * 100}%`;
+		dr.e.style.left = `${((Math.max(ds, de) - mn) / t) * 100}%`;
+		dr.f.style.left = `${((Math.min(ds, de) - mn) / t) * 100}%`;
+		dr.f.style.width = `${((Math.max(ds, de) - Math.min(ds, de)) / t) * 100}%`;
+		dr.m.style.left = `${((0 - mn) / t) * 100}%`;
+		const fmt = (o: number) => {
+			if (o === 0) {
+				const u = this.dynamicUnit;
+				if (u === "day") return "本日";
+				if (u === "week") return "本周";
+				if (u === "month") return "本月";
+				if (u === "quarter") return "本季";
+				if (u === "year") return "本年";
+				return "今天";
+			}
+			const p = o < 0 ? "前" : "后",
+				a = Math.abs(o),
+				u = this.dynamicUnit;
+			if (u === "week") return `${p}${a}周`;
+			if (u === "month") return `${p}${a}月`;
+			if (u === "quarter") return `${p}${a}季`;
+			if (u === "year") return `${p}${a}年`;
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const target = new Date(today);
+			target.setDate(target.getDate() + o);
+			return `${target.getMonth() + 1}/${target.getDate()}`;
+		};
+		dr.l.textContent =
+			Math.min(ds, de) === Math.max(ds, de)
+				? fmt(Math.min(ds, de))
+				: `${fmt(Math.min(ds, de))} — ${fmt(Math.max(ds, de))}`;
+	}
+
+	private updateStaticUIOnly() {
+		const cy = new Date().getFullYear(),
+			today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const ranges = this.ranges(),
+			v = this.vals();
+
+		const up = (
+			lv: string,
+			s: number,
+			e: number,
+			mn: number,
+			mx: number,
+			ff: (v: number) => string,
+			mid: number,
+		) => {
+			const r = this.refs.get(lv);
+			if (!r) return;
+			const t = mx - mn || 1;
+			r.s.style.left = `${((s - mn) / t) * 100}%`;
+			r.e.style.left = `${((e - mn) / t) * 100}%`;
+			r.f.style.left = `${((s - mn) / t) * 100}%`;
+			r.f.style.width = `${((e - s) / t) * 100}%`;
+			r.m.style.left = `${((mid - mn) / t) * 100}%`;
+			r.l.textContent = s === e ? ff(s) : `${ff(s)} — ${ff(e)}`;
 		};
 
-		const range = ranges[label];
-		if (!range) return false;
-		return (
-			dr.start === range.start.getTime() && dr.end === range.end.getTime()
+		const cur = (lv: string) => {
+			if (lv === "year") return cy;
+			if (lv === "quarter") return Math.floor(today.getMonth() / 3) + 1;
+			if (lv === "month") return today.getMonth() + 1;
+			if (lv === "week") return DateUtils.getISOWeekNumber(today);
+			if (lv === "day")
+				return Math.ceil(
+					(today.getTime() - new Date(cy, 0, 0).getTime()) / 86400000,
+				);
+			return 0;
+		};
+
+		up(
+			"year",
+			Math.min(v.yearStart, v.yearEnd),
+			Math.max(v.yearStart, v.yearEnd),
+			ranges.yearMin,
+			ranges.yearMax,
+			(x) => `${x}年`,
+			cur("year"),
 		);
+		up(
+			"quarter",
+			v.quarterStart,
+			v.quarterEnd,
+			ranges.quarterMin,
+			ranges.quarterMax,
+			(x) => `${x > 4 ? x - 4 : x}季`,
+			cur("quarter"),
+		);
+		up(
+			"month",
+			v.monthStart,
+			v.monthEnd,
+			ranges.monthMin,
+			ranges.monthMax,
+			(x) => `${x > 12 ? x - 12 : x}月`,
+			cur("month"),
+		);
+		up(
+			"week",
+			v.weekStart,
+			v.weekEnd,
+			ranges.weekMin,
+			ranges.weekMax,
+			(x) => `${x > 52 ? x - 53 : x}周`,
+			cur("week"),
+		);
+		up(
+			"day",
+			v.dayStart,
+			v.dayEnd,
+			ranges.dayMin,
+			ranges.dayMax,
+			(x) => {
+				const real = x > 365 ? x - 366 : x;
+				const d = dayToDate(cy, real);
+				return `${d.getMonth() + 1}/${d.getDate()}`;
+			},
+			cur("day"),
+		);
+	}
+
+	private updateAllUI() {
+		this.updateStaticUIOnly();
+		const dr = this.refs.get("dynamic");
+		if (!dr) return;
+		const mx = this.maxDyn(),
+			mn = -mx,
+			t = mx - mn || 1;
+		const ds = this.dynOffset(this.startDate),
+			de = this.dynOffset(this.endDate);
+		dr.s.style.left = `${((Math.min(ds, de) - mn) / t) * 100}%`;
+		dr.e.style.left = `${((Math.max(ds, de) - mn) / t) * 100}%`;
+		dr.f.style.left = `${((Math.min(ds, de) - mn) / t) * 100}%`;
+		dr.f.style.width = `${((Math.max(ds, de) - Math.min(ds, de)) / t) * 100}%`;
+		dr.m.style.left = `${((0 - mn) / t) * 100}%`;
+		const fmt = (o: number) => {
+			if (o === 0) {
+				const u = this.dynamicUnit;
+				if (u === "day") return "本日";
+				if (u === "week") return "本周";
+				if (u === "month") return "本月";
+				if (u === "quarter") return "本季";
+				if (u === "year") return "本年";
+				return "今天";
+			}
+			const p = o < 0 ? "前" : "后",
+				a = Math.abs(o),
+				u = this.dynamicUnit;
+			if (u === "week") return `${p}${a}周`;
+			if (u === "month") return `${p}${a}月`;
+			if (u === "quarter") return `${p}${a}季`;
+			if (u === "year") return `${p}${a}年`;
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const target = new Date(today);
+			target.setDate(target.getDate() + o);
+			return `${target.getMonth() + 1}/${target.getDate()}`;
+		};
+		dr.l.textContent =
+			Math.min(ds, de) === Math.max(ds, de)
+				? fmt(Math.min(ds, de))
+				: `${fmt(Math.min(ds, de))} — ${fmt(Math.max(ds, de))}`;
+	}
+
+	private slider(
+		ct: HTMLElement,
+		lv: string,
+		mn: number,
+		mx: number,
+		s: number,
+		e: number,
+		ff: (v: number) => string,
+		onChange: (s: number, e: number) => void,
+		extra?: { label?: string; active?: boolean; onActivate?: () => void },
+	) {
+		const row = ct.createDiv({ cls: "filter-row" });
+		row.style.width = "100%";
+		if (extra?.label) {
+			const btn = row.createEl("button", {
+				text: extra.label,
+				cls: "filter-btn",
+			});
+			if (extra.active) btn.addClass("active");
+			btn.style.cssText = "min-width:32px;flex-shrink:0;";
+			btn.onclick = extra.onActivate || (() => {});
+		}
+		const tc = row.createDiv();
+		tc.style.cssText =
+			"flex:0.5;position:relative;height:4px;margin:0 8px;cursor:pointer;background:var(--background-modifier-border);border-radius:2px;";
+
+		const t = mx - mn || 1;
+		const totalSteps = mx - mn;
+		const maxMarks = Math.min(totalSteps, 20);
+		const stepInterval = Math.ceil(totalSteps / maxMarks);
+
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const todayVal = (() => {
+			if (lv === "dynamic") return 0;
+			const cy = today.getFullYear();
+			if (lv === "year") return cy;
+			if (lv === "quarter") return Math.floor(today.getMonth() / 3) + 1;
+			if (lv === "month") return today.getMonth() + 1;
+			if (lv === "week") return DateUtils.getISOWeekNumber(today);
+			if (lv === "day")
+				return Math.ceil(
+					(today.getTime() - new Date(cy, 0, 0).getTime()) / 86400000,
+				);
+			return 0;
+		})();
+
+		for (let v = mn; v <= mx; v += stepInterval) {
+			const mark = tc.createDiv();
+			const pct = ((v - mn) / t) * 100;
+			const isToday = v === todayVal || (lv === "dynamic" && v === 0);
+			mark.style.cssText = `position:absolute;top:${isToday ? "-4px" : "-1px"};left:${pct}%;width:${isToday ? "2px" : "1px"};height:${isToday ? "12px" : "6px"};background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
+		}
+
+		const sp = ((s - mn) / t) * 100,
+			ep = ((e - mn) / t) * 100;
+		const fl = tc.createDiv();
+		fl.style.cssText = `position:absolute;top:0;left:${sp}%;width:${Math.max(0, ep - sp)}%;height:100%;background:var(--interactive-accent);border-radius:2px;`;
+		const mid = tc.createDiv();
+		mid.style.cssText = `position:absolute;top:-2px;width:1px;height:calc(100% + 4px);background:var(--text-muted);opacity:0.5;z-index:1;`;
+		const mk = (pct: number, title: string) => {
+			const el = tc.createDiv();
+			el.style.cssText = `position:absolute;top:-6px;left:${pct}%;width:12px;height:16px;background:var(--interactive-accent);border-radius:3px;cursor:grab;transform:translateX(-50%);z-index:2;`;
+			el.title = title;
+			return el;
+		};
+		const st = mk(sp, ff(s)),
+			et = mk(ep, ff(e));
+		const rl = row.createSpan();
+		rl.style.cssText =
+			"font-size:var(--font-ui-smaller);min-width:90px;text-align:left;flex-shrink:0;color:var(--text-muted);";
+		rl.textContent = s === e ? ff(s) : `${ff(s)} — ${ff(e)}`;
+		this.refs.set(lv, { s: st, e: et, f: fl, l: rl, m: mid });
+
+		let cs = s,
+			ce = e;
+		const upUI = (ns: number, ne: number) => {
+			const minVal = Math.min(ns, ne),
+				maxVal = Math.max(ns, ne);
+			st.style.left = `${((minVal - mn) / t) * 100}%`;
+			et.style.left = `${((maxVal - mn) / t) * 100}%`;
+			fl.style.left = `${((minVal - mn) / t) * 100}%`;
+			fl.style.width = `${((maxVal - minVal) / t) * 100}%`;
+			rl.textContent =
+				minVal === maxVal
+					? ff(minVal)
+					: `${ff(minVal)} — ${ff(maxVal)}`;
+		};
+		const drag = (el: HTMLElement, isS: boolean) => {
+			let on = false;
+			el.onmousedown = (ev) => {
+				ev.preventDefault();
+				on = true;
+				el.style.cursor = "grabbing";
+				const mv = (e: MouseEvent) => {
+					if (!on) return;
+					const rawPct = Math.max(
+						0,
+						Math.min(
+							1,
+							(e.clientX - tc.getBoundingClientRect().left) /
+								tc.offsetWidth,
+						),
+					);
+					let v = Math.round(mn + rawPct * (mx - mn));
+					v = Math.max(mn, Math.min(mx, v));
+					if (isS) {
+						cs = Math.max(mn, Math.min(v, ce));
+						ce = Math.max(cs, Math.min(mx, ce));
+					} else {
+						ce = Math.min(mx, Math.max(v, cs));
+						cs = Math.max(mn, Math.min(ce, cs));
+					}
+					upUI(cs, ce);
+				};
+				const mu = () => {
+					on = false;
+					el.style.cursor = "grab";
+					document.removeEventListener("mousemove", mv);
+					document.removeEventListener("mouseup", mu);
+					onChange(cs, ce);
+				};
+				document.addEventListener("mousemove", mv);
+				document.addEventListener("mouseup", mu);
+			};
+		};
+		drag(st, true);
+		drag(et, false);
+		tc.onclick = (ev) => {
+			if (
+				ev.target !== tc &&
+				!(ev.target as HTMLElement).style.background?.includes(
+					"modifier-border",
+				)
+			)
+				return;
+			const rawPct = Math.max(
+				0,
+				Math.min(
+					1,
+					(ev.clientX - tc.getBoundingClientRect().left) /
+						tc.offsetWidth,
+				),
+			);
+			let v = Math.round(mn + rawPct * (mx - mn));
+			v = Math.max(mn, Math.min(mx, v));
+			if (Math.abs(v - cs) <= Math.abs(v - ce)) {
+				cs = Math.max(mn, Math.min(v, ce));
+				ce = Math.max(cs, Math.min(mx, ce));
+			} else {
+				ce = Math.min(mx, Math.max(v, cs));
+				cs = Math.max(mn, Math.min(ce, cs));
+			}
+			upUI(cs, ce);
+			onChange(cs, ce);
+		};
 	}
 
 	render() {
 		this.container.empty();
+		this.refs.clear();
+		this.initRange();
 		const state = this.store.getState();
-		const preset = this.store.getActivePreset();
-		const currentFilter: GlobalFilter =
-			state.draftFilter ?? preset?.filter ?? getDefaultFilter();
-		const intervalMode = (preset as any)?.intervalMode ?? "scheduled-due";
+		const pre = this.store.getActivePreset();
+		const cf: GlobalFilter =
+			state.draftFilter ?? pre?.filter ?? getDefaultFilter();
+		const im = (pre as any)?.intervalMode ?? "scheduled-due";
+		this.useDynamic = (pre as any)?.useDynamic ?? false;
+		this.sync(cf);
 
-		const isDynamicActive = !currentFilter.dateRange.isAll;
-
-		// ========== 动态日期分组 ==========
-		const quickGroups = [
-			{
-				label: "过去",
-				items: [
-					{
-						label: "昨天",
-						range: () => {
-							const d = new Date();
-							d.setDate(d.getDate() - 1);
-							return DateUtils.getDayRange(d);
-						},
-					},
-					{
-						label: "上周",
-						range: () => {
-							const d = new Date();
-							d.setDate(d.getDate() - 7);
-							return DateUtils.getWeekRange(d);
-						},
-					},
-					{
-						label: "上月",
-						range: () => {
-							const d = new Date();
-							d.setMonth(d.getMonth() - 1);
-							return DateUtils.getMonthRange(d);
-						},
-					},
-				],
-			},
-			{
-				label: "现在",
-				items: [
-					{
-						label: "今天",
-						range: () => DateUtils.getDayRange(new Date()),
-					},
-					{
-						label: "本周",
-						range: () => DateUtils.getWeekRange(new Date()),
-					},
-					{
-						label: "本月",
-						range: () => DateUtils.getMonthRange(new Date()),
-					},
-				],
-			},
-			{
-				label: "未来",
-				items: [
-					{
-						label: "明天",
-						range: () => {
-							const d = new Date();
-							d.setDate(d.getDate() + 1);
-							return DateUtils.getDayRange(d);
-						},
-					},
-					{
-						label: "下周",
-						range: () => {
-							const d = new Date();
-							d.setDate(d.getDate() + 7);
-							return DateUtils.getWeekRange(d);
-						},
-					},
-					{
-						label: "下月",
-						range: () => {
-							const d = new Date();
-							d.setMonth(d.getMonth() + 1);
-							return DateUtils.getMonthRange(d);
-						},
-					},
-				],
-			},
-			{
-				label: "全时",
-				items: [{ label: "所有", range: () => null }],
-			},
-		];
-
-		const quickSection = this.container.createDiv({
-			cls: "filter-section",
+		const mr = this.container.createDiv({ cls: "filter-row" });
+		mr.createSpan({ text: "模式", cls: "filter-label" });
+		const mb = mr.createEl("button", {
+			text: im === "scheduled-due" ? "计划~截止" : "开始~完成",
+			cls: "filter-btn",
 		});
-		quickGroups.forEach((group) => {
-			const groupRow = quickSection.createDiv({ cls: "filter-row" });
-			groupRow.createSpan({ text: group.label, cls: "filter-label" });
-			group.items.forEach(({ label, range }) => {
-				const btn = groupRow.createEl("button", {
-					text: label,
-					cls: "filter-btn",
-				});
-
-				// 高亮逻辑：动态日期匹配或"所有"按钮
-				const isAll = label === "所有";
-				const isSelected = isAll
-					? currentFilter.dateRange.isAll
-					: this.isDynamicSelected(currentFilter, label);
-				if (isSelected) btn.addClass("active");
-
-				btn.onclick = () => {
-					// 点击任意动态按钮时，清除静态日期选中状态（通过设置 isAll 实现）
-					const r = range();
-					const newFilter: GlobalFilter = { ...currentFilter };
-					if (r) {
-						newFilter.dateRange = {
-							start: r.start.getTime(),
-							end: r.end.getTime(),
-							isAll: false,
-						};
-					} else {
-						newFilter.dateRange = {
-							start: null,
-							end: null,
-							isAll: true,
-						};
-					}
-					this.store.update({ draftFilter: newFilter });
-				};
+		mb.onclick = () => {
+			if (!pre) return;
+			this.store.update({
+				presets: state.presets.map((p) =>
+					p.id === pre.id
+						? {
+								...p,
+								intervalMode:
+									im === "scheduled-due"
+										? "starts-done"
+										: "scheduled-due",
+							}
+						: p,
+				),
 			});
+		};
+		const useDynamicBtn = mr.createEl("button", {
+			text: "使用动态",
+			cls: "filter-btn",
 		});
-
-		// ========== 静态级联日期 ==========
-		const cascadeSection = this.container.createDiv({
-			cls: "filter-section",
-		});
-
-		// 年份
-		const yearRow = cascadeSection.createDiv({ cls: "filter-row" });
-		yearRow.createSpan({ text: "年份", cls: "filter-label" });
-		YEAR_LIST.forEach((year: number) => {
-			const btn = yearRow.createEl("button", {
-				text: year.toString(),
-				cls: "filter-btn",
-			});
-			// 高亮：当前日期范围的年份匹配
-			if (currentFilter.dateRange.start) {
-				const sy = new Date(
-					currentFilter.dateRange.start,
-				).getFullYear();
-				const ey = new Date(currentFilter.dateRange.end).getFullYear();
-				if (sy === year && ey === year) btn.addClass("active");
-			}
-			btn.onclick = () => {
-				const range = DateUtils.getYearRangeByYear(year);
+		if (this.useDynamic) useDynamicBtn.addClass("active");
+		useDynamicBtn.onclick = () => {
+			this.useDynamic = !this.useDynamic;
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (pr) {
 				this.store.update({
-					draftFilter: {
-						...currentFilter,
-						dateRange: {
-							start: range.start.getTime(),
-							end: range.end.getTime(),
-							isAll: false,
-						},
-					},
+					presets: st.presets.map((p) =>
+						p.id === pr.id
+							? { ...p, useDynamic: this.useDynamic }
+							: p,
+					),
 				});
+			}
+			if (this.useDynamic) this.updateAllUI();
+			this.render();
+		};
+
+		const ds = this.container.createDiv({ cls: "filter-section" });
+		const ur = ds.createDiv({ cls: "filter-row" });
+		ur.createSpan({ text: "动态", cls: "filter-label" });
+		["年", "季", "月", "周", "日"].forEach((u) => {
+			const k =
+				u === "年"
+					? "year"
+					: u === "季"
+						? "quarter"
+						: u === "月"
+							? "month"
+							: u === "周"
+								? "week"
+								: "day";
+			const b = ur.createEl("button", { text: u, cls: "filter-btn" });
+			if (this.dynamicUnit === k) b.addClass("active");
+			b.onclick = () => {
+				this.dynamicUnit = k;
+				this.render();
 			};
 		});
-
-		// 季度
-		const quarterRow = cascadeSection.createDiv({ cls: "filter-row" });
-		quarterRow.createSpan({ text: "季度", cls: "filter-label" });
-		for (let q = 1; q <= 4; q++) {
-			const btn = quarterRow.createEl("button", {
-				text: `${q}季`,
-				cls: "filter-btn",
-			});
-			if (currentFilter.dateRange.start) {
-				const sm = new Date(currentFilter.dateRange.start).getMonth();
-				const em = new Date(currentFilter.dateRange.end).getMonth();
-				const sq = Math.floor(sm / 3) + 1;
-				const eq = Math.floor(em / 3) + 1;
-				if (sq === q && eq === q) btn.addClass("active");
-			}
-			btn.onclick = () => {
-				const year = new Date().getFullYear();
-				const range = DateUtils.getQuarterRangeByYearQuarter(year, q);
-				this.store.update({
-					draftFilter: {
-						...currentFilter,
-						dateRange: {
-							start: range.start.getTime(),
-							end: range.end.getTime(),
-							isAll: false,
-						},
-					},
-				});
-			};
-		}
-
-		// 月份
-		const monthRow = cascadeSection.createDiv({ cls: "filter-row" });
-		monthRow.createSpan({ text: "月份", cls: "filter-label" });
-		for (let m = 1; m <= 12; m++) {
-			const btn = monthRow.createEl("button", {
-				text: `${m}月`,
-				cls: "filter-btn",
-			});
-			if (currentFilter.dateRange.start) {
-				const sm =
-					new Date(currentFilter.dateRange.start).getMonth() + 1;
-				const em = new Date(currentFilter.dateRange.end).getMonth() + 1;
-				if (sm === m && em === m) btn.addClass("active");
-			}
-			btn.onclick = () => {
-				const year = new Date().getFullYear();
-				const range = DateUtils.getMonthRangeByYearMonth(year, m);
-				this.store.update({
-					draftFilter: {
-						...currentFilter,
-						dateRange: {
-							start: range.start.getTime(),
-							end: range.end.getTime(),
-							isAll: false,
-						},
-					},
-				});
-			};
-		}
-
-		// 周数
-		const weekRow = cascadeSection.createDiv({ cls: "filter-row" });
-		weekRow.createSpan({ text: "周数", cls: "filter-label" });
-		const today = new Date();
-		const y = today.getFullYear();
-		const m = today.getMonth();
-		const firstDay = new Date(y, m, 1);
-		const firstDow = firstDay.getDay() || 7;
-		const mondayOffset = firstDow === 1 ? 0 : 8 - firstDow;
-		const firstMonday = new Date(firstDay);
-		firstMonday.setDate(1 + mondayOffset);
-		const lastDay = new Date(y, m + 1, 0);
-		for (let w = 1; w <= 5; w++) {
-			const start = new Date(firstMonday);
-			start.setDate(start.getDate() + (w - 1) * 7);
-			const end = new Date(start);
-			end.setDate(end.getDate() + 6);
-			if (start.getMonth() !== m && end > lastDay) break;
-			const btn = weekRow.createEl("button", {
-				text: `${w}周`,
-				cls: "filter-btn",
-			});
-			if (currentFilter.dateRange.start) {
-				const ws = DateUtils.getISOWeekNumber(
-					new Date(currentFilter.dateRange.start),
-				);
-				const we = DateUtils.getISOWeekNumber(
-					new Date(currentFilter.dateRange.end),
-				);
-				const wm = DateUtils.getISOWeekNumber(start);
-				if (ws === wm && we === wm) btn.addClass("active");
-			}
-			btn.onclick = () => {
-				const range = {
-					start: DateUtils.setStart(start),
-					end: DateUtils.setEnd(end),
-				};
-				this.store.update({
-					draftFilter: {
-						...currentFilter,
-						dateRange: {
-							start: range.start.getTime(),
-							end: range.end.getTime(),
-							isAll: false,
-						},
-					},
-				});
-			};
-		}
-
-		// 周几
-		const weekdayRow = cascadeSection.createDiv({ cls: "filter-row" });
-		weekdayRow.createSpan({ text: "周几", cls: "filter-label" });
-		const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
-		const todayDate = new Date();
-		const todayDow = todayDate.getDay() || 7;
-		const currentMonday = new Date(todayDate);
-		currentMonday.setDate(todayDate.getDate() - (todayDow - 1));
-		weekdays.forEach((wd, idx) => {
-			const d = new Date(currentMonday);
-			d.setDate(currentMonday.getDate() + idx);
-			const btn = weekdayRow.createEl("button", {
-				text: wd,
-				cls: "filter-btn",
-			});
-			if (currentFilter.dateRange.start) {
-				const dayRange = DateUtils.getDayRange(d);
-				if (
-					currentFilter.dateRange.start ===
-						dayRange.start.getTime() &&
-					currentFilter.dateRange.end === dayRange.end.getTime()
-				) {
-					btn.addClass("active");
+		const mx = this.maxDyn();
+		this.slider(
+			ds,
+			"dynamic",
+			-mx,
+			mx,
+			this.dynOffset(this.startDate),
+			this.dynOffset(this.endDate),
+			(v) => {
+				if (v === 0) {
+					const u = this.dynamicUnit;
+					if (u === "day") return "本日";
+					if (u === "week") return "本周";
+					if (u === "month") return "本月";
+					if (u === "quarter") return "本季";
+					if (u === "year") return "本年";
+					return "今天";
 				}
-			}
-			btn.onclick = () => {
-				const range = DateUtils.getDayRange(d);
-				this.store.update({
-					draftFilter: {
-						...currentFilter,
-						dateRange: {
-							start: range.start.getTime(),
-							end: range.end.getTime(),
-							isAll: false,
-						},
-					},
-				});
-			};
-		});
+				const p = v < 0 ? "前" : "后",
+					a = Math.abs(v),
+					u = this.dynamicUnit;
+				if (u === "week") return `${p}${a}周`;
+				if (u === "month") return `${p}${a}月`;
+				if (u === "quarter") return `${p}${a}季`;
+				if (u === "year") return `${p}${a}年`;
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+				const target = new Date(today);
+				target.setDate(target.getDate() + v);
+				return `${target.getMonth() + 1}/${target.getDate()}`;
+			},
+			(s, e) => this.setDates("dynamic", s, e),
+			{},
+		);
 
-		// ========== 自定义日期 + 模式切换 ==========
-		const customRow = this.container.createDiv({ cls: "filter-row" });
-		customRow.createSpan({ text: "自定义", cls: "filter-label" });
-		const startInput = customRow.createEl("input", {
-			type: "date",
-			cls: "filter-date-input",
-			attr: { placeholder: "开始日期" },
-		});
-		const endInput = customRow.createEl("input", {
-			type: "date",
-			cls: "filter-date-input",
-			attr: { placeholder: "结束日期" },
-		});
-		if (currentFilter.dateRange.start && currentFilter.dateRange.end) {
-			startInput.value = new Date(currentFilter.dateRange.start)
-				.toISOString()
-				.slice(0, 10);
-			endInput.value = new Date(currentFilter.dateRange.end)
-				.toISOString()
-				.slice(0, 10);
-		}
-		const applyBtn = customRow.createEl("button", {
-			text: "应用",
-			cls: "filter-btn",
-		});
-		applyBtn.onclick = () => {
-			const s = startInput.value;
-			const e = endInput.value;
-			if (s && e && new Date(s) <= new Date(e)) {
-				this.store.update({
-					draftFilter: {
-						...currentFilter,
-						dateRange: {
-							start: new Date(s).getTime(),
-							end: new Date(e).getTime(),
-							isAll: false,
-						},
-					},
-				});
-			}
-		};
-		const modeBtn = customRow.createEl("button", {
-			text: intervalMode === "scheduled-due" ? "计划~截止" : "开始~完成",
-			cls: "filter-btn",
-		});
-		modeBtn.onclick = () => {
-			if (!preset) return;
-			const newMode =
-				intervalMode === "scheduled-due"
-					? "starts-done"
-					: "scheduled-due";
-			const newPresets = state.presets.map((p) =>
-				p.id === preset.id ? { ...p, intervalMode: newMode } : p,
+		const ss = this.container.createDiv({ cls: "filter-section" });
+		const sr = ss.createDiv({ cls: "filter-row" });
+		sr.createSpan({ text: "静态", cls: "filter-label" });
+		const ranges = this.ranges(),
+			v = this.vals(),
+			cy = new Date().getFullYear();
+		const levels: [
+			string,
+			number,
+			number,
+			number,
+			number,
+			(x: number) => string,
+		][] = [
+			[
+				"year",
+				ranges.yearMin,
+				ranges.yearMax,
+				Math.min(v.yearStart, v.yearEnd),
+				Math.max(v.yearStart, v.yearEnd),
+				(x) => `${x}年`,
+			],
+			[
+				"quarter",
+				ranges.quarterMin,
+				ranges.quarterMax,
+				v.quarterStart,
+				v.quarterEnd,
+				(x) => `${x > 4 ? x - 4 : x}季`,
+			],
+			[
+				"month",
+				ranges.monthMin,
+				ranges.monthMax,
+				v.monthStart,
+				v.monthEnd,
+				(x) => `${x > 12 ? x - 12 : x}月`,
+			],
+			[
+				"week",
+				ranges.weekMin,
+				ranges.weekMax,
+				v.weekStart,
+				v.weekEnd,
+				(x) => `${x > 52 ? x - 53 : x}周`,
+			],
+			[
+				"day",
+				ranges.dayMin,
+				ranges.dayMax,
+				v.dayStart,
+				v.dayEnd,
+				(x) => {
+					const real = x > 365 ? x - 366 : x;
+					const d = dayToDate(cy, real);
+					return `${d.getMonth() + 1}/${d.getDate()}`;
+				},
+			],
+		];
+		levels.forEach(([lv, mn, mx, s, e, ff]) => {
+			this.slider(
+				ss,
+				lv,
+				mn,
+				mx,
+				s,
+				e,
+				ff,
+				(s, e) => this.setDates(lv, s, e),
+				{},
 			);
-			this.store.update({ presets: newPresets });
-		};
+		});
 	}
 }

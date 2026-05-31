@@ -1,3 +1,4 @@
+// src/ui/views/base-view.ts
 import { Store } from "../../store/store";
 import { filterTasks } from "../../tasks/process/filter-task-process";
 import { GlobalFilter } from "../../types";
@@ -21,8 +22,12 @@ export abstract class BaseTaskView {
 		if (this.unsub) this.unsub();
 	}
 
-	protected filterTasks(tasks: any[], filter: GlobalFilter): any[] {
-		return filterTasks(tasks, filter);
+	protected filterTasks(
+		tasks: any[],
+		filter: GlobalFilter,
+		intervalMode?: string,
+	): any[] {
+		return filterTasks(tasks, filter, intervalMode);
 	}
 
 	protected getDefaultFilter(): GlobalFilter {

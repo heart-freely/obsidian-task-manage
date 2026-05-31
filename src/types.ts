@@ -67,6 +67,7 @@ export interface Preset {
 	tableColumns?: Record<string, boolean>; // 表格列显隐状态，默认全显示
 	toolbarPanelsCollapsed?: boolean;
 	toolbarPanelsHeight?: number;
+	useDynamic?: boolean; // 是否使用动态时间
 }
 
 /** 方案分组 */

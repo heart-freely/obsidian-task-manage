@@ -1,4 +1,5 @@
 // src/ui/bars/config-bar.ts
+import { ALL_MARKS } from "../../configs/configs";
 import { Store } from "../../store/store";
 import { Preset } from "../../types";
 
@@ -34,7 +35,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		filter: {
 			dateRange: { start: null, end: null, isAll: true },
 			statuses: ["todo", "planned"],
-			includeMarks: [],
+			includeMarks: [...ALL_MARKS],
 			excludeMarks: [],
 			hideRepeat: false,
 			hideCompleted: false,
@@ -43,6 +44,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 			hideFolders: false,
 		},
 		sort: { type: "status", order: "asc" as "asc" },
+		intervalMode: "scheduled-due",
+		useDynamic: false,
 	},
 	important: {
 		businessView: "important",
@@ -75,7 +78,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		filter: {
 			dateRange: { start: null, end: null, isAll: true },
 			statuses: ["todo", "planned", "in-progress"],
-			includeMarks: [],
+			includeMarks: [...ALL_MARKS],
 			excludeMarks: [],
 			hideRepeat: false,
 			hideCompleted: false,
@@ -84,6 +87,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 			hideFolders: false,
 		},
 		sort: { type: "priority", order: "asc" as "asc" },
+		intervalMode: "scheduled-due",
+		useDynamic: false,
 	},
 	today: {
 		businessView: "today",
@@ -116,7 +121,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		filter: {
 			dateRange: { start: null, end: null, isAll: true },
 			statuses: ["todo", "planned", "in-progress"],
-			includeMarks: [],
+			includeMarks: [...ALL_MARKS],
 			excludeMarks: [],
 			hideRepeat: false,
 			hideCompleted: false,
@@ -125,6 +130,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 			hideFolders: false,
 		},
 		sort: { type: "status", order: "asc" as "asc" },
+		intervalMode: "scheduled-due",
+		useDynamic: false,
 	},
 	overdue: {
 		businessView: "overdue",
@@ -163,7 +170,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 				"completed",
 				"cancelled",
 			],
-			includeMarks: [],
+			includeMarks: [...ALL_MARKS],
 			excludeMarks: [],
 			hideRepeat: false,
 			hideCompleted: false,
@@ -172,6 +179,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 			hideFolders: false,
 		},
 		sort: { type: "due", order: "asc" as "asc" },
+		intervalMode: "scheduled-due",
+		useDynamic: false,
 	},
 	future: {
 		businessView: "future",
@@ -210,7 +219,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 				"completed",
 				"cancelled",
 			],
-			includeMarks: [],
+			includeMarks: [...ALL_MARKS],
 			excludeMarks: [],
 			hideRepeat: false,
 			hideCompleted: false,
@@ -219,6 +228,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 			hideFolders: false,
 		},
 		sort: { type: "scheduled", order: "asc" as "asc" },
+		intervalMode: "scheduled-due",
+		useDynamic: false,
 	},
 	"all-tasks": {
 		businessView: "allTasks",
@@ -257,7 +268,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 				"completed",
 				"cancelled",
 			],
-			includeMarks: [],
+			includeMarks: [...ALL_MARKS],
 			excludeMarks: [],
 			hideRepeat: false,
 			hideCompleted: false,
@@ -266,6 +277,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 			hideFolders: false,
 		},
 		sort: { type: "status", order: "asc" as "asc" },
+		intervalMode: "scheduled-due",
+		useDynamic: false,
 	},
 };
 

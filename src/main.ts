@@ -67,6 +67,8 @@ export default class TaskManagePlugin extends Plugin {
 				},
 				filter: { ...defaultFilter, statuses: ["todo", "planned"] },
 				sort: { type: "status", order: "asc" as "asc" },
+				intervalMode: "scheduled-due",
+				useDynamic: false,
 			},
 			{
 				id: "important",
@@ -104,6 +106,8 @@ export default class TaskManagePlugin extends Plugin {
 					statuses: ["todo", "planned", "in-progress"],
 				},
 				sort: { type: "priority", order: "asc" as "asc" },
+				intervalMode: "scheduled-due",
+				useDynamic: false,
 			},
 			{
 				id: "today",
@@ -141,6 +145,8 @@ export default class TaskManagePlugin extends Plugin {
 					statuses: ["todo", "planned", "in-progress"],
 				},
 				sort: { type: "status", order: "asc" as "asc" },
+				intervalMode: "scheduled-due",
+				useDynamic: false,
 			},
 			{
 				id: "overdue",
@@ -175,6 +181,8 @@ export default class TaskManagePlugin extends Plugin {
 				},
 				filter: { ...defaultFilter },
 				sort: { type: "due", order: "asc" as "asc" },
+				intervalMode: "scheduled-due",
+				useDynamic: false,
 			},
 			{
 				id: "future",
@@ -209,6 +217,8 @@ export default class TaskManagePlugin extends Plugin {
 				},
 				filter: { ...defaultFilter },
 				sort: { type: "scheduled", order: "asc" as "asc" },
+				intervalMode: "scheduled-due",
+				useDynamic: false,
 			},
 			{
 				id: "all-tasks",
@@ -243,6 +253,8 @@ export default class TaskManagePlugin extends Plugin {
 				},
 				filter: { ...defaultFilter },
 				sort: { type: "status", order: "asc" as "asc" },
+				intervalMode: "scheduled-due",
+				useDynamic: false,
 			},
 		];
 
@@ -294,6 +306,8 @@ export default class TaskManagePlugin extends Plugin {
 					...dp,
 					...sp,
 					filter: mergedFilter,
+					intervalMode: sp.intervalMode ?? dp.intervalMode,
+					useDynamic: sp.useDynamic ?? dp.useDynamic,
 				});
 			} else {
 				mergedPresets.push(dp);
