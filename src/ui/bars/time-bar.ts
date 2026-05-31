@@ -15,6 +15,55 @@ export class TimeBar {
 		this.render();
 	}
 
+	// 判断是否为动态日期选中状态
+	private isDynamicSelected(filter: GlobalFilter, label: string): boolean {
+		const dr = filter.dateRange;
+		if (!dr.start || !dr.end || dr.isAll) return false;
+
+		const today = new Date();
+		const ranges: Record<string, { start: Date; end: Date }> = {
+			昨天: (() => {
+				const d = new Date();
+				d.setDate(d.getDate() - 1);
+				return DateUtils.getDayRange(d);
+			})(),
+			今天: DateUtils.getDayRange(today),
+			明天: (() => {
+				const d = new Date();
+				d.setDate(d.getDate() + 1);
+				return DateUtils.getDayRange(d);
+			})(),
+			上周: (() => {
+				const d = new Date();
+				d.setDate(d.getDate() - 7);
+				return DateUtils.getWeekRange(d);
+			})(),
+			本周: DateUtils.getWeekRange(today),
+			下周: (() => {
+				const d = new Date();
+				d.setDate(d.getDate() + 7);
+				return DateUtils.getWeekRange(d);
+			})(),
+			上月: (() => {
+				const d = new Date();
+				d.setMonth(d.getMonth() - 1);
+				return DateUtils.getMonthRange(d);
+			})(),
+			本月: DateUtils.getMonthRange(today),
+			下月: (() => {
+				const d = new Date();
+				d.setMonth(d.getMonth() + 1);
+				return DateUtils.getMonthRange(d);
+			})(),
+		};
+
+		const range = ranges[label];
+		if (!range) return false;
+		return (
+			dr.start === range.start.getTime() && dr.end === range.end.getTime()
+		);
+	}
+
 	render() {
 		this.container.empty();
 		const state = this.store.getState();
@@ -23,6 +72,9 @@ export class TimeBar {
 			state.draftFilter ?? preset?.filter ?? getDefaultFilter();
 		const intervalMode = (preset as any)?.intervalMode ?? "scheduled-due";
 
+		const isDynamicActive = !currentFilter.dateRange.isAll;
+
+		// ========== 动态日期分组 ==========
 		const quickGroups = [
 			{
 				label: "过去",
@@ -116,7 +168,16 @@ export class TimeBar {
 					text: label,
 					cls: "filter-btn",
 				});
+
+				// 高亮逻辑：动态日期匹配或"所有"按钮
+				const isAll = label === "所有";
+				const isSelected = isAll
+					? currentFilter.dateRange.isAll
+					: this.isDynamicSelected(currentFilter, label);
+				if (isSelected) btn.addClass("active");
+
 				btn.onclick = () => {
+					// 点击任意动态按钮时，清除静态日期选中状态（通过设置 isAll 实现）
 					const r = range();
 					const newFilter: GlobalFilter = { ...currentFilter };
 					if (r) {
@@ -137,10 +198,12 @@ export class TimeBar {
 			});
 		});
 
+		// ========== 静态级联日期 ==========
 		const cascadeSection = this.container.createDiv({
 			cls: "filter-section",
 		});
 
+		// 年份
 		const yearRow = cascadeSection.createDiv({ cls: "filter-row" });
 		yearRow.createSpan({ text: "年份", cls: "filter-label" });
 		YEAR_LIST.forEach((year: number) => {
@@ -148,6 +211,14 @@ export class TimeBar {
 				text: year.toString(),
 				cls: "filter-btn",
 			});
+			// 高亮：当前日期范围的年份匹配
+			if (currentFilter.dateRange.start) {
+				const sy = new Date(
+					currentFilter.dateRange.start,
+				).getFullYear();
+				const ey = new Date(currentFilter.dateRange.end).getFullYear();
+				if (sy === year && ey === year) btn.addClass("active");
+			}
 			btn.onclick = () => {
 				const range = DateUtils.getYearRangeByYear(year);
 				this.store.update({
@@ -163,6 +234,7 @@ export class TimeBar {
 			};
 		});
 
+		// 季度
 		const quarterRow = cascadeSection.createDiv({ cls: "filter-row" });
 		quarterRow.createSpan({ text: "季度", cls: "filter-label" });
 		for (let q = 1; q <= 4; q++) {
@@ -170,9 +242,16 @@ export class TimeBar {
 				text: `${q}季`,
 				cls: "filter-btn",
 			});
+			if (currentFilter.dateRange.start) {
+				const sm = new Date(currentFilter.dateRange.start).getMonth();
+				const em = new Date(currentFilter.dateRange.end).getMonth();
+				const sq = Math.floor(sm / 3) + 1;
+				const eq = Math.floor(em / 3) + 1;
+				if (sq === q && eq === q) btn.addClass("active");
+			}
 			btn.onclick = () => {
-				const y = new Date().getFullYear();
-				const range = DateUtils.getQuarterRangeByYearQuarter(y, q);
+				const year = new Date().getFullYear();
+				const range = DateUtils.getQuarterRangeByYearQuarter(year, q);
 				this.store.update({
 					draftFilter: {
 						...currentFilter,
@@ -186,6 +265,7 @@ export class TimeBar {
 			};
 		}
 
+		// 月份
 		const monthRow = cascadeSection.createDiv({ cls: "filter-row" });
 		monthRow.createSpan({ text: "月份", cls: "filter-label" });
 		for (let m = 1; m <= 12; m++) {
@@ -193,9 +273,15 @@ export class TimeBar {
 				text: `${m}月`,
 				cls: "filter-btn",
 			});
+			if (currentFilter.dateRange.start) {
+				const sm =
+					new Date(currentFilter.dateRange.start).getMonth() + 1;
+				const em = new Date(currentFilter.dateRange.end).getMonth() + 1;
+				if (sm === m && em === m) btn.addClass("active");
+			}
 			btn.onclick = () => {
-				const y = new Date().getFullYear();
-				const range = DateUtils.getMonthRangeByYearMonth(y, m);
+				const year = new Date().getFullYear();
+				const range = DateUtils.getMonthRangeByYearMonth(year, m);
 				this.store.update({
 					draftFilter: {
 						...currentFilter,
@@ -209,6 +295,7 @@ export class TimeBar {
 			};
 		}
 
+		// 周数
 		const weekRow = cascadeSection.createDiv({ cls: "filter-row" });
 		weekRow.createSpan({ text: "周数", cls: "filter-label" });
 		const today = new Date();
@@ -230,6 +317,16 @@ export class TimeBar {
 				text: `${w}周`,
 				cls: "filter-btn",
 			});
+			if (currentFilter.dateRange.start) {
+				const ws = DateUtils.getISOWeekNumber(
+					new Date(currentFilter.dateRange.start),
+				);
+				const we = DateUtils.getISOWeekNumber(
+					new Date(currentFilter.dateRange.end),
+				);
+				const wm = DateUtils.getISOWeekNumber(start);
+				if (ws === wm && we === wm) btn.addClass("active");
+			}
 			btn.onclick = () => {
 				const range = {
 					start: DateUtils.setStart(start),
@@ -248,17 +345,10 @@ export class TimeBar {
 			};
 		}
 
+		// 周几
 		const weekdayRow = cascadeSection.createDiv({ cls: "filter-row" });
 		weekdayRow.createSpan({ text: "周几", cls: "filter-label" });
-		const weekdays = [
-			"周一",
-			"周二",
-			"周三",
-			"周四",
-			"周五",
-			"周六",
-			"周日",
-		];
+		const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
 		const todayDate = new Date();
 		const todayDow = todayDate.getDay() || 7;
 		const currentMonday = new Date(todayDate);
@@ -270,6 +360,16 @@ export class TimeBar {
 				text: wd,
 				cls: "filter-btn",
 			});
+			if (currentFilter.dateRange.start) {
+				const dayRange = DateUtils.getDayRange(d);
+				if (
+					currentFilter.dateRange.start ===
+						dayRange.start.getTime() &&
+					currentFilter.dateRange.end === dayRange.end.getTime()
+				) {
+					btn.addClass("active");
+				}
+			}
 			btn.onclick = () => {
 				const range = DateUtils.getDayRange(d);
 				this.store.update({
@@ -285,6 +385,7 @@ export class TimeBar {
 			};
 		});
 
+		// ========== 自定义日期 + 模式切换 ==========
 		const customRow = this.container.createDiv({ cls: "filter-row" });
 		customRow.createSpan({ text: "自定义", cls: "filter-label" });
 		const startInput = customRow.createEl("input", {
@@ -310,8 +411,8 @@ export class TimeBar {
 			cls: "filter-btn",
 		});
 		applyBtn.onclick = () => {
-			const s = startInput.value,
-				e = endInput.value;
+			const s = startInput.value;
+			const e = endInput.value;
 			if (s && e && new Date(s) <= new Date(e)) {
 				this.store.update({
 					draftFilter: {

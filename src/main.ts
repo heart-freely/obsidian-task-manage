@@ -1,6 +1,7 @@
 // src/main.ts
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./commands";
+import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "./configs/configs";
 import { TaskManageSettingTab } from "./settings";
 import { Store } from "./store/store";
 import { AppState, GlobalFilter, Preset } from "./types";
@@ -21,13 +22,15 @@ export default class TaskManagePlugin extends Plugin {
 				"completed",
 				"cancelled",
 			],
-			includeMarks: [],
+			includeMarks: [...ALL_MARKS],
 			excludeMarks: [],
-			hideRepeat: false,
-			hideCompleted: false,
-			hideCancelled: false,
+			hideRepeat: true,
+			hideCompleted: true,
+			hideCancelled: true,
 			rootPath: null,
-			hideFolders: false,
+			hideFolders: true,
+			priorityValues: [...PRIORITY_ORDER],
+			repeatCycles: [...REPEAT_ORDER],
 		};
 
 		const defaultPresets: Preset[] = [
@@ -262,7 +265,10 @@ export default class TaskManagePlugin extends Plugin {
 							? spFilter.statuses
 							: dp.filter.statuses,
 					includeMarks:
-						spFilter.includeMarks ?? dp.filter.includeMarks,
+						spFilter.includeMarks &&
+						spFilter.includeMarks.length > 0
+							? spFilter.includeMarks
+							: [...ALL_MARKS],
 					excludeMarks:
 						spFilter.excludeMarks ?? dp.filter.excludeMarks,
 					hideRepeat: spFilter.hideRepeat ?? dp.filter.hideRepeat,
@@ -274,9 +280,15 @@ export default class TaskManagePlugin extends Plugin {
 					hideFolders: spFilter.hideFolders ?? dp.filter.hideFolders,
 					searchText: spFilter.searchText ?? dp.filter.searchText,
 					priorityValues:
-						spFilter.priorityValues ?? dp.filter.priorityValues,
+						spFilter.priorityValues &&
+						spFilter.priorityValues.length > 0
+							? spFilter.priorityValues
+							: [...PRIORITY_ORDER],
 					repeatCycles:
-						spFilter.repeatCycles ?? dp.filter.repeatCycles,
+						spFilter.repeatCycles &&
+						spFilter.repeatCycles.length > 0
+							? spFilter.repeatCycles
+							: [...REPEAT_ORDER],
 				};
 				mergedPresets.push({
 					...dp,
@@ -321,7 +333,7 @@ export default class TaskManagePlugin extends Plugin {
 			this.activateView("navigator-view");
 		});
 
-		// 自动恢复视图（基于 wasViewOpen）
+		// 自动恢复之前打开的视图
 		const wasViewOpen = savedData.wasViewOpen === true;
 		this.app.workspace.onLayoutReady(() => {
 			const leaves = this.app.workspace.getLeavesOfType("navigator-view");

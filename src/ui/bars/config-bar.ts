@@ -322,7 +322,7 @@ export class ConfigBar {
 			this.store.update({ presets: newPresets });
 		});
 
-		// 配置按钮行，添加“视图配置”说明标签
+		// 操作按钮行
 		const row4 = this.container.createDiv({ cls: "bar-row" });
 		row4.createSpan({ text: "视图配置", cls: "filter-label" });
 		const importBtn = row4.createEl("button", {

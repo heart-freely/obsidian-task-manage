@@ -324,13 +324,44 @@ export class ToolbarManager {
 		const toolbarOrder = preset.toolbarOrder ?? [];
 		const visibleKeys = toolbarOrder.filter((key) => barVisibility[key]);
 
+		// 检查当前是否有输入框聚焦，若有则跳过面板内容重建
+		// 避免因 store 更新导致面板重建而触发滚动或输入中断
+		const activeEl = document.activeElement;
+		const isInputFocused =
+			activeEl &&
+			(activeEl.tagName === "INPUT" ||
+				activeEl.tagName === "TEXTAREA" ||
+				(activeEl as HTMLElement).isContentEditable);
+
+		// 移除不再需要的面板
+		const newKeys = new Set(visibleKeys);
 		for (const [key, panel] of this.barPanels) {
-			if (!visibleKeys.includes(key)) {
+			if (!newKeys.has(key)) {
 				panel.remove();
 				this.barPanels.delete(key);
 			}
 		}
 
+		// 若输入框聚焦中，仅保证面板容器存在，不刷新内容
+		if (isInputFocused) {
+			for (const key of visibleKeys) {
+				if (!this.barPanels.has(key)) {
+					const panel = document.createElement("div");
+					panel.className = "toolbar-panel";
+					panel.style.background = "var(--background-secondary)";
+					panel.style.opacity = "1";
+					panel.style.backdropFilter = "none";
+					this.panelsContainer!.appendChild(panel);
+					this.barPanels.set(key, panel);
+					if (BAR_COMPONENTS[key]) {
+						new BAR_COMPONENTS[key](panel, this.store);
+					}
+				}
+			}
+			return;
+		}
+
+		// 正常情况：重建所有可见面板的内容
 		for (const key of visibleKeys) {
 			let panel = this.barPanels.get(key);
 			if (!panel) {
@@ -348,7 +379,6 @@ export class ToolbarManager {
 			}
 		}
 	}
-
 	private updateArrow() {
 		const arrow = this.resizeHandle?.querySelector("span");
 		if (arrow) {

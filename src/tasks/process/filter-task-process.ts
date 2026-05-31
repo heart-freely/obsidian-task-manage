@@ -1,4 +1,5 @@
 // src/tasks/process/filter-task-process.ts
+import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "../../configs/configs";
 import { GlobalFilter } from "../../types";
 
 export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
@@ -26,10 +27,16 @@ export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
 		result = result.filter((t: any) => filter.statuses.includes(t._status));
 	}
 
-	// 3. 标记筛选（选中参与过滤）
-	if (filter.includeMarks && filter.includeMarks.length > 0) {
+	// 3. 标记筛选（"或"逻辑）
+	// 仅当未全选时过滤；全选时允许无标记任务通过
+	const allMarksList = [...ALL_MARKS];
+	if (
+		filter.includeMarks &&
+		filter.includeMarks.length > 0 &&
+		filter.includeMarks.length < allMarksList.length
+	) {
 		result = result.filter((t: any) =>
-			filter.includeMarks!.every((m: string) => t._marks?.[m]),
+			filter.includeMarks!.some((m: string) => t._marks?.[m]),
 		);
 	}
 
@@ -51,17 +58,29 @@ export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
 		);
 	}
 
-	// 6. 搜索文本过滤（匹配 _cleanText 或 text）
+	// 6. 搜索文本过滤（多段关键字，空格分隔，逻辑为"且"）
 	if (filter.searchText) {
-		const keyword = filter.searchText.toLowerCase();
-		result = result.filter((t: any) => {
-			const desc = (t._cleanText || t.text || "").toLowerCase();
-			return desc.includes(keyword);
-		});
+		const keywords = filter.searchText
+			.toLowerCase()
+			.split(/\s+/)
+			.filter((k) => k.length > 0);
+
+		if (keywords.length > 0) {
+			result = result.filter((t: any) => {
+				const desc = (t._cleanText || t.text || "").toLowerCase();
+				return keywords.every((kw) => desc.includes(kw));
+			});
+		}
 	}
 
-	// 7. 优先级具体值过滤（对应 MarkBar 子按钮）
-	if (filter.priorityValues && filter.priorityValues.length > 0) {
+	// 7. 优先级具体值过滤
+	// 仅当未全选时过滤；全选时允许无优先级任务通过
+	const allPriorityIcons = [...PRIORITY_ORDER];
+	if (
+		filter.priorityValues &&
+		filter.priorityValues.length > 0 &&
+		filter.priorityValues.length < allPriorityIcons.length
+	) {
 		result = result.filter(
 			(t: any) =>
 				t._priorityIcon &&
@@ -69,8 +88,14 @@ export function filterTasks(tasks: any[], filter: GlobalFilter): any[] {
 		);
 	}
 
-	// 8. 循环周期具体值过滤（对应 MarkBar 子按钮）
-	if (filter.repeatCycles && filter.repeatCycles.length > 0) {
+	// 8. 循环周期具体值过滤
+	// 仅当未全选时过滤；全选时允许无循环任务通过
+	const allRepeatCycles = [...REPEAT_ORDER];
+	if (
+		filter.repeatCycles &&
+		filter.repeatCycles.length > 0 &&
+		filter.repeatCycles.length < allRepeatCycles.length
+	) {
 		result = result.filter((t: any) => {
 			if (!t._repeat) return false;
 			return filter.repeatCycles!.some((cycle: string) =>

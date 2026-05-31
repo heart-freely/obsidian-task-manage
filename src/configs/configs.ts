@@ -42,7 +42,7 @@ export const STATUS_SYMBOL_MAP: Record<string, string> = {
 	" ": "todo",
 	"?": "planned",
 	"/": "in-progress",
-	">": "in-progress", // 新增 - [>] 视为进行中
+	">": "in-progress",
 	x: "completed",
 	X: "completed",
 	"-": "cancelled",
@@ -103,7 +103,7 @@ export const REPEAT_LABELS: Record<string, string> = {
 	year: "每年",
 };
 
-// ========== 日期标记（新顺序：创建 → 计划 → 开始 → 截止 → 取消 → 完成）==========
+// ========== 日期标记 ==========
 export const DATE_MARK_ORDER: string[] = [
 	"created",
 	"scheduled",
@@ -177,7 +177,7 @@ export const YEAR_LIST: number[] = [
 	2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031,
 ];
 
-// ========== CONFIG 对象（保留向后兼容） ==========
+// ========== CONFIG 对象 ==========
 export const CONFIG = {
 	TASK_FOLDERS,
 	FILE_NAME_PATTERN,
@@ -221,6 +221,7 @@ export const CONFIG = {
 		hideCompletedTasks: true,
 		hideCancelledTasks: true,
 		hideFolders: true,
+		includeMarks: [...ALL_MARKS],
 		leftSort: { type: "status", order: "asc" },
 		chartScale: 1,
 		leftPanelWidth: 300,
@@ -258,13 +259,15 @@ export function getDefaultFilter(): GlobalFilter {
 	return {
 		dateRange: { start: null, end: null, isAll: true },
 		statuses: ALLOWED_STATUSES,
-		includeMarks: [],
+		includeMarks: [...ALL_MARKS],
 		excludeMarks: [],
-		hideRepeat: false,
-		hideCompleted: false,
-		hideCancelled: false,
+		hideRepeat: true,
+		hideCompleted: true,
+		hideCancelled: true,
 		rootPath: null,
-		hideFolders: false,
+		hideFolders: true,
+		priorityValues: [...PRIORITY_ORDER],
+		repeatCycles: [...REPEAT_ORDER],
 	};
 }
 
@@ -276,6 +279,7 @@ export function formatDisplayDate(d: any): string {
 	return String(d).substring(0, 10);
 }
 
+// ========== 表格列（扩展版，含标签、唯一ID、引用ID） ==========
 export const TABLE_COLUMNS = [
 	{ key: "status", label: "状态" },
 	{ key: "content", label: "描述" },
@@ -287,17 +291,23 @@ export const TABLE_COLUMNS = [
 	{ key: "due", label: "截止" },
 	{ key: "done", label: "完成" },
 	{ key: "cancel", label: "取消" },
+	{ key: "tag", label: "标签" },
+	{ key: "id", label: "唯一ID" },
+	{ key: "forbid", label: "引用ID" },
 ];
 
 export const DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
 	status: true,
 	content: true,
 	priority: true,
-	repeat: true,
-	created: true,
+	repeat: false,
+	created: false,
 	scheduled: true,
 	starts: true,
 	due: true,
 	done: true,
-	cancel: true,
+	cancel: false,
+	tag: true,
+	id: true,
+	forbid: true,
 };

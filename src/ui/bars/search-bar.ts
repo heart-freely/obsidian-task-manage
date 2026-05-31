@@ -5,6 +5,7 @@ import { GlobalFilter } from "../../types";
 export class SearchBar {
 	private container: HTMLElement;
 	private store: Store;
+	private currentValue: string = "";
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
@@ -14,21 +15,36 @@ export class SearchBar {
 	}
 
 	render() {
-		this.container.empty();
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		const currentFilter: GlobalFilter =
 			state.draftFilter ?? preset?.filter ?? this.defaultFilter();
 
+		// 若已存在输入框，仅同步值，不重新创建
+		const existingInput = this.container.querySelector(
+			"input",
+		) as HTMLInputElement;
+		if (existingInput) {
+			existingInput.value =
+				this.currentValue || currentFilter.searchText || "";
+			return;
+		}
+
+		this.container.empty();
 		const row = this.container.createDiv({ cls: "filter-row" });
 		row.createSpan({ text: "任务描述", cls: "filter-label" });
 		const input = row.createEl("input", {
 			type: "text",
 			cls: "filter-input",
-			attr: { placeholder: "输入任务描述关键词…" },
+			attr: {
+				placeholder: "输入任务描述关键词，多个用空格分隔，如：xxx xxx",
+				size: "40",
+			},
 		});
-		input.value = currentFilter.searchText || "";
+		input.style.width = "320px";
+		input.value = this.currentValue || currentFilter.searchText || "";
 		input.addEventListener("input", () => {
+			this.currentValue = input.value;
 			const val = input.value.trim();
 			const newFilter = {
 				...currentFilter,
