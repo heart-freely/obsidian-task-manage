@@ -2,21 +2,23 @@
 import { Store } from "../../store/store";
 
 const VIEW_STYLES = [
-	{ key: "list", label: "列表" },
-	{ key: "cards", label: "卡片" },
-	{ key: "table", label: "表格" },
-	{ key: "kanban", label: "看板" },
-	{ key: "matrix", label: "矩阵" },
-	{ key: "recurring", label: "循环" },
-	{ key: "timeline", label: "时间轴" },
-	{ key: "tag", label: "标签" },
-	{ key: "uniqueId", label: "唯一ID" },
-	{ key: "depends", label: "引用ID" },
-	{ key: "tree", label: "任务树" },
-	{ key: "gantt", label: "甘特图" },
-	{ key: "calendar", label: "日历图" },
-	{ key: "statistics", label: "基础统计" },
-	{ key: "detail", label: "详细统计" },
+	{ key: "list", label: "列表", group: "基础" },
+	{ key: "cards", label: "卡片", group: "基础" },
+	{ key: "table", label: "表格", group: "基础" },
+	{ key: "status", label: "状态", group: "组织" },
+	{ key: "priority", label: "优先级", group: "组织" },
+	{ key: "recurring", label: "循环", group: "组织" },
+	{ key: "timeline", label: "时间轴", group: "组织" },
+	{ key: "tag", label: "标签", group: "组织" },
+	{ key: "uniqueId", label: "唯一ID", group: "组织" },
+	{ key: "depends", label: "引用ID", group: "组织" },
+	{ key: "kanban", label: "看板", group: "高级" },
+	{ key: "matrix", label: "矩阵", group: "高级" },
+	{ key: "tree", label: "任务树", group: "高级" },
+	{ key: "gantt", label: "甘特图", group: "高级" },
+	{ key: "calendar", label: "日历图", group: "高级" },
+	{ key: "statistics", label: "基础统计", group: "统计" },
+	{ key: "detail", label: "详细统计", group: "统计" },
 ];
 
 const GROUP_NAMES: Record<string, string> = {
@@ -47,18 +49,8 @@ export class ViewBar {
 
 		const groups = new Map<string, typeof VIEW_STYLES>();
 		VIEW_STYLES.forEach((s) => {
-			const group =
-				s.key === "list" || s.key === "cards" || s.key === "table"
-					? "基础"
-					: s.key === "tree" ||
-						  s.key === "gantt" ||
-						  s.key === "calendar"
-						? "高级"
-						: s.key === "statistics" || s.key === "detail"
-							? "统计"
-							: "组织";
-			if (!groups.has(group)) groups.set(group, []);
-			groups.get(group)!.push(s);
+			if (!groups.has(s.group)) groups.set(s.group, []);
+			groups.get(s.group)!.push(s);
 		});
 
 		groups.forEach((styles, group) => {

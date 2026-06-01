@@ -15,7 +15,9 @@ import { renderDetail } from "../components/charts/detail";
 import { renderStatistics } from "../components/charts/statistics";
 import { renderGantt } from "../components/gantt/gantt";
 import { renderDepends } from "../components/lists/depends-renderer";
+import { renderPriority } from "../components/lists/priority-renderer";
 import { renderRecurring } from "../components/lists/recurring-renderer";
+import { renderStatus } from "../components/lists/status-renderer";
 import { renderTag } from "../components/lists/tag-renderer";
 import { renderTaskList } from "../components/lists/task-list";
 import { renderTaskTree } from "../components/lists/task-tree";
@@ -78,6 +80,16 @@ export class AllTasksView extends BaseTaskView {
 					break;
 				case "cards":
 					renderCards(viewContainer, filtered, {
+						onClick: (t: any) => this.openTask(t),
+					});
+					break;
+				case "status":
+					renderStatus(viewContainer, filtered, {
+						onClick: (t: any) => this.openTask(t),
+					});
+					break;
+				case "priority":
+					renderPriority(viewContainer, filtered, {
 						onClick: (t: any) => this.openTask(t),
 					});
 					break;

@@ -59,13 +59,15 @@ export function getLevelValues(startDate: Date, endDate: Date) {
 			((tmp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
 		);
 	};
-	const dayOfYear = (d: Date) =>
-		Math.ceil(
-			(d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) /
+
+	const dayOfYear = (d: Date) => {
+		const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+		return Math.ceil(
+			(start.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) /
 				86400000,
 		);
+	};
 
-	const sameYear = startDate.getFullYear() === endDate.getFullYear();
 	const ws = isoWeek(startDate),
 		we = isoWeek(endDate);
 	const qs = Math.floor(startDate.getMonth() / 3) + 1,
@@ -75,42 +77,50 @@ export function getLevelValues(startDate: Date, endDate: Date) {
 	const ds = dayOfYear(startDate),
 		de = dayOfYear(endDate);
 
-	let weekStart = ws,
-		weekEnd = we;
-	let quarterStart = qs,
-		quarterEnd = qe;
-	let monthStart = ms,
-		monthEnd = me;
-	let dayStart = ds,
-		dayEnd = de;
+	const sameYear = startDate.getFullYear() === endDate.getFullYear();
 
-	if (!sameYear) {
-		const startYear = startDate.getFullYear();
-		const endYear = endDate.getFullYear();
-		if (startYear < endYear) {
-			weekEnd = we + 53;
-			quarterEnd = qe + 4;
-			monthEnd = me + 12;
-			dayEnd = de + 366;
-		} else {
-			weekStart = ws + 53;
-			quarterStart = qs + 4;
-			monthStart = ms + 12;
-			dayStart = ds + 366;
-		}
+	if (sameYear) {
+		return {
+			yearStart: startDate.getFullYear(),
+			yearEnd: endDate.getFullYear(),
+			quarterStart: qs,
+			quarterEnd: qe,
+			monthStart: ms,
+			monthEnd: me,
+			weekStart: ws,
+			weekEnd: we,
+			dayStart: ds,
+			dayEnd: de,
+		};
 	}
+
+	const minYear = Math.min(startDate.getFullYear(), endDate.getFullYear());
+	const maxYear = Math.max(startDate.getFullYear(), endDate.getFullYear());
+
+	let quarterOffset = 0,
+		monthOffset = 0,
+		weekOffset = 0,
+		dayOffset = 0;
+	for (let y = minYear; y < maxYear; y++) {
+		quarterOffset += 4;
+		monthOffset += 12;
+		weekOffset += weeksInYear(y);
+		dayOffset += daysInYear(y);
+	}
+
+	const startIsMin = startDate.getFullYear() === minYear;
 
 	return {
 		yearStart: startDate.getFullYear(),
 		yearEnd: endDate.getFullYear(),
-		quarterStart,
-		quarterEnd,
-		monthStart,
-		monthEnd,
-		weekStart,
-		weekEnd,
-		dayStart,
-		dayEnd,
+		quarterStart: startIsMin ? qs : qs + quarterOffset,
+		quarterEnd: startIsMin ? qe + quarterOffset : qe,
+		monthStart: startIsMin ? ms : ms + monthOffset,
+		monthEnd: startIsMin ? me + monthOffset : me,
+		weekStart: startIsMin ? ws : ws + weekOffset,
+		weekEnd: startIsMin ? we + weekOffset : we,
+		dayStart: startIsMin ? ds : ds + dayOffset,
+		dayEnd: startIsMin ? de + dayOffset : de,
 	};
 }
 
@@ -123,27 +133,36 @@ export function datesFromLevel(
 	const y = new Date().getFullYear();
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
-	let startDate = new Date();
-	let endDate = new Date();
+	let startDate = new Date(),
+		endDate = new Date();
 
 	const addOffset = (d: Date, o: number, u: string) => {
 		const nd = new Date(d);
 		if (u === "week") nd.setDate(nd.getDate() + o * 7);
 		else if (u === "month") nd.setMonth(nd.getMonth() + o);
 		else if (u === "quarter") {
-			const currentQuarter = Math.floor(d.getMonth() / 3);
-			const targetQuarter = currentQuarter + o;
-			nd.setMonth(targetQuarter * 3, 1);
+			const cq = Math.floor(d.getMonth() / 3);
+			nd.setMonth((cq + o) * 3, 1);
 		} else if (u === "year") nd.setFullYear(nd.getFullYear() + o);
 		else nd.setDate(nd.getDate() + o);
 		return nd;
 	};
 
-	const real = (lv: string, v: number) => {
+	const determineYear = (v: number): number => {
+		if (lv === "quarter" && v > 4) return y + 1;
+		if (lv === "month" && v > 12) return y + 1;
+		if (lv === "week" && v > weeksInYear(y)) return y + 1;
+		if (lv === "day" && v > daysInYear(y)) return y + 1;
+		return y;
+	};
+
+	const real = (v: number, year: number): number => {
 		if (lv === "quarter" && v > 4) return Math.max(1, v - 4);
 		if (lv === "month" && v > 12) return Math.max(1, v - 12);
-		if (lv === "week" && v > 52) return Math.max(1, v - 53);
-		if (lv === "day" && v > 365) return Math.max(1, v - 366);
+		if (lv === "week" && v > weeksInYear(year))
+			return Math.max(1, v - weeksInYear(year));
+		if (lv === "day" && v > daysInYear(year))
+			return Math.max(1, v - daysInYear(year));
 		return v;
 	};
 
@@ -152,53 +171,65 @@ export function datesFromLevel(
 			startDate = new Date(sv, 0, 1);
 			endDate = new Date(ev, 11, 31);
 			break;
-		case "quarter":
-			startDate = new Date(y, (real(lv, sv) - 1) * 3, 1);
-			endDate = new Date(y, real(lv, ev) * 3, 0);
+		case "quarter": {
+			const sy = determineYear(sv),
+				ey = determineYear(ev);
+			startDate = new Date(sy, (real(sv, sy) - 1) * 3, 1);
+			endDate = new Date(ey, real(ev, ey) * 3, 0);
 			break;
-		case "month":
-			startDate = new Date(y, real(lv, sv) - 1, 1);
-			endDate = new Date(y, real(lv, ev), 0);
+		}
+		case "month": {
+			const sy = determineYear(sv),
+				ey = determineYear(ev);
+			startDate = new Date(sy, real(sv, sy) - 1, 1);
+			endDate = new Date(ey, real(ev, ey), 0);
 			break;
+		}
 		case "week": {
-			const rsv = real(lv, sv),
-				rev = real(lv, ev);
-			const fd = new Date(y, 0, 1);
+			const sy = determineYear(sv),
+				ey = determineYear(ev);
+			const rsv = real(sv, sy),
+				rev = real(ev, ey);
+			const fd = new Date(sy, 0, 1);
 			const dow = fd.getDay() || 7;
-			const mon = new Date(y, 0, 1 - (dow === 1 ? 0 : dow - 1));
+			const mon = new Date(sy, 0, 1 - (dow === 1 ? 0 : dow - 1));
 			startDate = new Date(mon);
 			startDate.setDate(startDate.getDate() + (rsv - 1) * 7);
-			endDate = new Date(startDate);
-			endDate.setDate(endDate.getDate() + (rev - rsv) * 7 + 6);
+			if (sy === ey) {
+				endDate = new Date(startDate);
+				endDate.setDate(endDate.getDate() + (rev - rsv) * 7 + 6);
+			} else {
+				const fd2 = new Date(ey, 0, 1);
+				const dow2 = fd2.getDay() || 7;
+				const mon2 = new Date(ey, 0, 1 - (dow2 === 1 ? 0 : dow2 - 1));
+				endDate = new Date(mon2);
+				endDate.setDate(endDate.getDate() + (rev - 1) * 7 + 6);
+			}
 			break;
 		}
 		case "day": {
-			const rsv = real(lv, sv),
-				rev = real(lv, ev);
-			startDate = dayToDate(y, rsv);
-			endDate = dayToDate(y, rev);
+			const sy = determineYear(sv),
+				ey = determineYear(ev);
+			startDate = dayToDate(sy, real(sv, sy));
+			endDate = dayToDate(ey, real(ev, ey));
 			break;
 		}
 		case "dynamic": {
 			const unit = dynamicUnit || "day";
 			startDate = addOffset(today, sv, unit);
 			endDate = addOffset(today, ev, unit);
-
 			if (unit !== "year") {
-				const thisYear = today.getFullYear();
-				if (startDate.getFullYear() < thisYear)
-					startDate = new Date(thisYear, 0, 1);
-				else if (startDate.getFullYear() > thisYear)
-					startDate = new Date(thisYear, 11, 31);
-				if (endDate.getFullYear() < thisYear)
-					endDate = new Date(thisYear, 0, 1);
-				else if (endDate.getFullYear() > thisYear)
-					endDate = new Date(thisYear, 11, 31);
+				const ty = today.getFullYear();
+				if (startDate.getFullYear() < ty)
+					startDate = new Date(ty, 0, 1);
+				else if (startDate.getFullYear() > ty)
+					startDate = new Date(ty, 11, 31);
+				if (endDate.getFullYear() < ty) endDate = new Date(ty, 0, 1);
+				else if (endDate.getFullYear() > ty)
+					endDate = new Date(ty, 11, 31);
 			}
-
 			if (startDate.getTime() > endDate.getTime())
 				[startDate, endDate] = [endDate, startDate];
-
 			if (unit === "week") {
 				endDate.setDate(endDate.getDate() + 6);
 				if (
@@ -206,21 +237,20 @@ export function datesFromLevel(
 					endDate.getFullYear() > today.getFullYear()
 				)
 					endDate = new Date(today.getFullYear(), 11, 31);
-			} else if (unit === "month") {
+			} else if (unit === "month")
 				endDate = new Date(
 					endDate.getFullYear(),
 					endDate.getMonth() + 1,
 					0,
 				);
-			} else if (unit === "quarter") {
+			else if (unit === "quarter")
 				endDate = new Date(
 					endDate.getFullYear(),
 					endDate.getMonth() + 3,
 					0,
 				);
-			} else if (unit === "year") {
+			else if (unit === "year")
 				endDate = new Date(endDate.getFullYear(), 11, 31);
-			}
 			break;
 		}
 	}
@@ -235,21 +265,22 @@ export function datesFromLevel(
 export function calcDynamicOffset(date: Date, unit: string): number {
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
-	const diffDays = Math.round((date.getTime() - today.getTime()) / 86400000);
-	if (unit === "week") return Math.floor(diffDays / 7);
+	const diffDays = (date.getTime() - today.getTime()) / 86400000;
+	const floorDays = Math.floor(diffDays);
+	if (unit === "week") return Math.floor(floorDays / 7);
 	if (unit === "month")
 		return (
 			(date.getFullYear() - today.getFullYear()) * 12 +
 			(date.getMonth() - today.getMonth())
 		);
 	if (unit === "quarter") {
-		const monthDiff =
+		const md =
 			(date.getFullYear() - today.getFullYear()) * 12 +
 			(date.getMonth() - today.getMonth());
-		return Math.floor(monthDiff / 3);
+		return Math.floor(md / 3);
 	}
 	if (unit === "year") return date.getFullYear() - today.getFullYear();
-	return diffDays;
+	return floorDays;
 }
 
 export function maxDynamicRange(unit: string): number {
@@ -259,28 +290,23 @@ export function maxDynamicRange(unit: string): number {
 		(today.getTime() - new Date(y, 0, 0).getTime()) / 86400000,
 	);
 	const total = daysInYear(y);
-
 	if (unit === "day") {
-		const before = doy - 1;
-		const after = total - doy;
-		return Math.max(before, after);
+		const b = doy - 1,
+			a = total - doy;
+		return Math.max(b, a);
 	}
 	if (unit === "week") {
-		const before = Math.floor((doy - 1) / 7);
-		const after = Math.floor((total - doy) / 7);
-		return Math.max(before, after);
+		const b = Math.floor((doy - 1) / 7),
+			a = Math.floor((total - doy) / 7);
+		return Math.max(b, a);
 	}
 	if (unit === "month") {
-		const currentMonth = today.getMonth();
-		const monthsBefore = currentMonth;
-		const monthsAfter = 11 - currentMonth;
-		return Math.max(monthsBefore, monthsAfter);
+		const cm = today.getMonth();
+		return Math.max(cm, 11 - cm);
 	}
 	if (unit === "quarter") {
-		const currentQuarter = Math.floor(today.getMonth() / 3);
-		const quartersBefore = currentQuarter;
-		const quartersAfter = 3 - currentQuarter;
-		return Math.max(quartersBefore, quartersAfter);
+		const cq = Math.floor(today.getMonth() / 3);
+		return Math.max(cq, 3 - cq);
 	}
 	if (unit === "year") return 5;
 	return 365;
@@ -293,24 +319,52 @@ export function staticSliderRanges(
 	taskMaxYear: number,
 ) {
 	const cy = new Date().getFullYear();
-	const tw = weeksInYear(cy);
-	const td = daysInYear(cy);
 	const vals = getLevelValues(startDate, endDate);
 	const sameYear = vals.yearStart === vals.yearEnd;
+
+	if (sameYear) {
+		return {
+			yearMin: cy - 5,
+			yearMax: cy + 5,
+			quarterMin: 1,
+			quarterMax: 4,
+			monthMin: 1,
+			monthMax: 12,
+			weekMin: 1,
+			weekMax: weeksInYear(cy),
+			dayMin: 1,
+			dayMax: daysInYear(cy),
+			tw: weeksInYear(cy),
+			td: daysInYear(cy),
+		};
+	}
+
+	const minY = Math.min(vals.yearStart, vals.yearEnd);
+	const maxY = Math.max(vals.yearStart, vals.yearEnd);
+	let totalQuarters = 0,
+		totalMonths = 0,
+		totalWeeks = 0,
+		totalDays = 0;
+	for (let y = minY; y <= maxY; y++) {
+		totalQuarters += 4;
+		totalMonths += 12;
+		totalWeeks += weeksInYear(y);
+		totalDays += daysInYear(y);
+	}
 
 	return {
 		yearMin: cy - 5,
 		yearMax: cy + 5,
 		quarterMin: 1,
-		quarterMax: sameYear ? 4 : Math.max(vals.quarterStart, vals.quarterEnd),
+		quarterMax: totalQuarters,
 		monthMin: 1,
-		monthMax: sameYear ? 12 : Math.max(vals.monthStart, vals.monthEnd),
+		monthMax: totalMonths,
 		weekMin: 1,
-		weekMax: sameYear ? tw : Math.max(vals.weekStart, vals.weekEnd),
+		weekMax: totalWeeks,
 		dayMin: 1,
-		dayMax: sameYear ? td : Math.max(vals.dayStart, vals.dayEnd),
-		tw,
-		td,
+		dayMax: totalDays,
+		tw: weeksInYear(cy),
+		td: daysInYear(cy),
 	};
 }
 
@@ -320,114 +374,89 @@ export function filterTasks(
 	intervalMode?: string,
 ): any[] {
 	let result = tasks;
-
-	// 1. 日期范围筛选
 	if (
 		!filter.dateRange.isAll &&
 		filter.dateRange.start != null &&
 		filter.dateRange.end != null
 	) {
-		const start = filter.dateRange.start;
-		const end = filter.dateRange.end;
+		const start = filter.dateRange.start,
+			end = filter.dateRange.end;
 		const mode = intervalMode || "scheduled-due";
-
 		result = result.filter((t: any) => {
-			let tStart: number | null = null;
-			let tEnd: number | null = null;
-
+			let tStart: number | null = null,
+				tEnd: number | null = null;
 			if (mode === "starts-done") {
 				tStart = t._starts ? new Date(t._starts).getTime() : null;
-				if (t._done) {
-					tEnd = new Date(t._done).getTime();
-				} else if (t._due) {
-					tEnd = new Date(t._due).getTime();
-				}
+				tEnd = t._done
+					? new Date(t._done).getTime()
+					: t._due
+						? new Date(t._due).getTime()
+						: null;
 			} else {
 				tStart = t._scheduled ? new Date(t._scheduled).getTime() : null;
-				if (t._due) {
-					tEnd = new Date(t._due).getTime();
-				} else if (t._done) {
-					tEnd = new Date(t._done).getTime();
-				}
+				tEnd = t._due
+					? new Date(t._due).getTime()
+					: t._done
+						? new Date(t._done).getTime()
+						: null;
 			}
-
 			if (!tStart || !tEnd) return false;
 			return tStart <= end && tEnd >= start;
 		});
 	}
-
-	// 2. 状态筛选
-	if (filter.statuses && filter.statuses.length > 0) {
+	if (filter.statuses && filter.statuses.length > 0)
 		result = result.filter((t: any) => filter.statuses.includes(t._status));
-	}
-
-	// 3. 标记筛选（"或"逻辑）
 	const allMarksList = [...ALL_MARKS];
 	if (
 		filter.includeMarks &&
 		filter.includeMarks.length > 0 &&
 		filter.includeMarks.length < allMarksList.length
-	) {
+	)
 		result = result.filter((t: any) =>
 			filter.includeMarks!.some((m: string) => t._marks?.[m]),
 		);
-	}
-
-	// 4. 显示/隐藏切换
 	if (filter.hideRepeat) result = result.filter((t: any) => !t._repeat);
 	if (filter.hideCompleted)
 		result = result.filter((t: any) => t._status !== "completed");
 	if (filter.hideCancelled)
 		result = result.filter((t: any) => t._status !== "cancelled");
-
-	// 5. 文件夹路径过滤
 	if (filter.rootPath)
 		result = result.filter((t: any) =>
 			t.path?.startsWith(filter.rootPath!),
 		);
-
-	// 6. 搜索文本过滤
 	if (filter.searchText) {
-		const keywords = filter.searchText
+		const kw = filter.searchText
 			.toLowerCase()
 			.split(/\s+/)
 			.filter((k) => k.length > 0);
-		if (keywords.length > 0) {
+		if (kw.length > 0)
 			result = result.filter((t: any) => {
-				const desc = (t._cleanText || t.text || "").toLowerCase();
-				return keywords.every((kw) => desc.includes(kw));
+				const d = (t._cleanText || t.text || "").toLowerCase();
+				return kw.every((k) => d.includes(k));
 			});
-		}
 	}
-
-	// 7. 优先级具体值过滤
 	const allPriorityIcons = [...PRIORITY_ORDER];
 	if (
 		filter.priorityValues &&
 		filter.priorityValues.length > 0 &&
 		filter.priorityValues.length < allPriorityIcons.length
-	) {
+	)
 		result = result.filter(
 			(t: any) =>
 				t._priorityIcon &&
 				filter.priorityValues!.includes(t._priorityIcon),
 		);
-	}
-
-	// 8. 循环周期具体值过滤
 	const allRepeatCycles = [...REPEAT_ORDER];
 	if (
 		filter.repeatCycles &&
 		filter.repeatCycles.length > 0 &&
 		filter.repeatCycles.length < allRepeatCycles.length
-	) {
+	)
 		result = result.filter((t: any) => {
 			if (!t._repeat) return false;
-			return filter.repeatCycles!.some((cycle: string) =>
-				t._repeat.toLowerCase().includes(cycle),
+			return filter.repeatCycles!.some((c: string) =>
+				t._repeat.toLowerCase().includes(c),
 			);
 		});
-	}
-
 	return result;
 }

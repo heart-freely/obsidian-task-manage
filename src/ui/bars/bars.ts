@@ -1,4 +1,5 @@
 // src/ui/bars/bars.ts
+
 import { Store } from "../../store/store";
 import { ConfigBar } from "./config-bar";
 import { ExcutBar } from "./excut-bar";
@@ -35,6 +36,8 @@ export class ToolbarManager {
 	private resizeHandle: HTMLElement | null = null;
 	private headBar: HeadBar | null = null;
 	private barPanels: Map<string, HTMLElement> = new Map();
+	// 缓存已创建的 Bar 组件实例，避免重复创建
+	private barInstances: Map<string, any> = new Map();
 	private styleEl: HTMLStyleElement | null = null;
 
 	public isVisible: boolean = false;
@@ -176,7 +179,6 @@ export class ToolbarManager {
 		if (this.styleEl) return;
 		this.styleEl = document.createElement("style");
 		this.styleEl.textContent = `
-			/* 面板内按钮 */
 			.toolbar-panels .filter-btn,
 			.toolbar-panels .bar-btn {
 				padding: 6px 6px !important;
@@ -195,7 +197,6 @@ export class ToolbarManager {
 				min-width: auto !important;
 				height: auto !important;
 			}
-			/* 说明文字 */
 			.toolbar-panels .filter-label {
 				font-family: var(--font-text) !important;
 				font-size: var(--font-ui-small) !important;
@@ -226,12 +227,10 @@ export class ToolbarManager {
 				margin-left: 8px;
 				gap: 4px;
 			}
-			/* 修复时间栏 section 造成的偏移 */
 			.toolbar-panels .filter-section {
 				margin: 0 !important;
 				padding: 0 !important;
 			}
-			/* 标题栏按钮 */
 			.toolbar-buttons .toolbar-btn-item {
 				padding: 6px 6px;
 				font-family: var(--font-text);
@@ -324,8 +323,6 @@ export class ToolbarManager {
 		const toolbarOrder = preset.toolbarOrder ?? [];
 		const visibleKeys = toolbarOrder.filter((key) => barVisibility[key]);
 
-		// 检查当前是否有输入框聚焦，若有则跳过面板内容重建
-		// 避免因 store 更新导致面板重建而触发滚动或输入中断
 		const activeEl = document.activeElement;
 		const isInputFocused =
 			activeEl &&
@@ -339,10 +336,15 @@ export class ToolbarManager {
 			if (!newKeys.has(key)) {
 				panel.remove();
 				this.barPanels.delete(key);
+				// 销毁对应的 Bar 实例
+				const instance = this.barInstances.get(key);
+				if (instance && typeof instance.destroy === "function") {
+					instance.destroy();
+				}
+				this.barInstances.delete(key);
 			}
 		}
 
-		// 若输入框聚焦中，仅保证面板容器存在，不刷新内容
 		if (isInputFocused) {
 			for (const key of visibleKeys) {
 				if (!this.barPanels.has(key)) {
@@ -354,31 +356,36 @@ export class ToolbarManager {
 					this.panelsContainer!.appendChild(panel);
 					this.barPanels.set(key, panel);
 					if (BAR_COMPONENTS[key]) {
-						new BAR_COMPONENTS[key](panel, this.store);
+						const instance = new BAR_COMPONENTS[key](
+							panel,
+							this.store,
+						);
+						this.barInstances.set(key, instance);
 					}
 				}
 			}
 			return;
 		}
 
-		// 正常情况：重建所有可见面板的内容
+		// 只为新出现的面板创建实例，已存在的面板保持不动
 		for (const key of visibleKeys) {
-			let panel = this.barPanels.get(key);
-			if (!panel) {
-				panel = document.createElement("div");
+			if (!this.barPanels.has(key)) {
+				const panel = document.createElement("div");
 				panel.className = "toolbar-panel";
 				panel.style.background = "var(--background-secondary)";
 				panel.style.opacity = "1";
 				panel.style.backdropFilter = "none";
 				this.panelsContainer!.appendChild(panel);
 				this.barPanels.set(key, panel);
+				if (BAR_COMPONENTS[key]) {
+					const instance = new BAR_COMPONENTS[key](panel, this.store);
+					this.barInstances.set(key, instance);
+				}
 			}
-			panel.innerHTML = "";
-			if (BAR_COMPONENTS[key]) {
-				new BAR_COMPONENTS[key](panel, this.store);
-			}
+			// 已存在的面板不重新创建，Bar 组件通过 store.subscribe 自行更新
 		}
 	}
+
 	private updateArrow() {
 		const arrow = this.resizeHandle?.querySelector("span");
 		if (arrow) {
@@ -424,6 +431,14 @@ export class ToolbarManager {
 	destroy() {}
 
 	cleanupAll() {
+		// 销毁所有 Bar 实例
+		for (const [, instance] of this.barInstances) {
+			if (instance && typeof instance.destroy === "function") {
+				instance.destroy();
+			}
+		}
+		this.barInstances.clear();
+
 		if (this.headBar) {
 			this.headBar.destroy();
 			this.headBar = null;
