@@ -1,6 +1,6 @@
 // src/ui/views/base-view.ts
+import { filterTasks } from "../../process/bars/bars-process";
 import { Store } from "../../store/store";
-import { filterTasks } from "../../tasks/process/filter-task-process";
 import { GlobalFilter } from "../../types";
 
 export abstract class BaseTaskView {

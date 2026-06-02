@@ -1,7 +1,7 @@
-import { filterTasks } from "../../tasks/process/filter-task-process";
-import { fetchTodayTasksGrouped } from "../../tasks/process/task-query-process";
+import { filterTasks } from "../../process/bars/bars-process";
+import { fetchTodayTasksGrouped } from "../../process/views/task-query-process";
 import { GlobalFilter } from "../../types";
-import { renderTaskList } from "../components/lists/task-list";
+import { renderTaskList } from "../components/lists/list";
 import { BaseTaskView } from "./base-view";
 
 export class TodayView extends BaseTaskView {

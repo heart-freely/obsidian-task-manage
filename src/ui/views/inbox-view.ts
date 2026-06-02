@@ -1,13 +1,13 @@
 // src/ui/views/inbox-view.ts
-import { filterTasks } from "../../tasks/process/filter-task-process";
+import { filterTasks } from "../../process/bars/bars-process";
 import {
 	fetchInboxTasks,
 	processInboxTasks,
-} from "../../tasks/process/inbox-task-process";
+} from "../../process/views/inbox-task-process";
 import { GlobalFilter } from "../../types";
-import { renderKanban } from "../components/boards/kanban";
-import { renderTaskList } from "../components/lists/task-list";
-import { renderTaskTable } from "../components/tables/task-table";
+import { renderKanban } from "../components/boards/kanban-board";
+import { renderTaskList } from "../components/lists/list";
+import { renderTaskTable } from "../components/tables/table";
 import { BaseTaskView } from "./base-view";
 
 export class InboxView extends BaseTaskView {

@@ -2,7 +2,7 @@
 import { Store } from "../store/store";
 import { ToolbarManager } from "./bars/bars";
 import { SideBar } from "./bars/side-bar";
-import { ViewContainer } from "./panels/view-container";
+import { ViewContainer } from "./panels/panel";
 
 export function createNavigatorLayout(
 	container: HTMLElement,

@@ -1,5 +1,5 @@
 import { CONFIG } from "../../../configs/configs";
-import { DateUtils } from "../../../tasks/process/common-process";
+import { DateUtils } from "../../../process/process";
 import { tooltip } from "../tooltip/tooltip";
 
 const gs = {

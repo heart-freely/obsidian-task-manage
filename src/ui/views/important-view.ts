@@ -1,11 +1,11 @@
-import { filterTasks } from "../../tasks/process/filter-task-process";
-import { fetchImportantTasksByStatus } from "../../tasks/process/task-query-process";
+import { filterTasks } from "../../process/bars/bars-process";
+import { fetchImportantTasksByStatus } from "../../process/views/task-query-process";
 import { GlobalFilter } from "../../types";
 // 修改1
-import { renderKanban } from "../components/boards/kanban";
-import { renderMatrix } from "../components/boards/matrix";
-import { renderTaskList } from "../components/lists/task-list";
-import { renderTaskTable } from "../components/tables/task-table";
+import { renderKanban } from "../components/boards/kanban-board";
+import { renderMatrix } from "../components/boards/matrix-board";
+import { renderTaskList } from "../components/lists/list";
+import { renderTaskTable } from "../components/tables/table";
 import { BaseTaskView } from "./base-view";
 
 export class ImportantView extends BaseTaskView {
@@ -13,7 +13,6 @@ export class ImportantView extends BaseTaskView {
 		this.container.empty();
 
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();

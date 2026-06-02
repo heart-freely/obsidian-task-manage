@@ -1,8 +1,6 @@
 // src/ui/bars/time-bar.ts
 
 import { getDefaultFilter } from "../../configs/configs";
-import { Store } from "../../store/store";
-import { DateUtils } from "../../tasks/process/common-process";
 import {
 	calcDynamicOffset,
 	datesFromLevel,
@@ -13,8 +11,10 @@ import {
 	maxDynamicRange,
 	staticSliderRanges,
 	weeksInYear,
-} from "../../tasks/process/filter-task-process";
-import { getAllTasks } from "../../tasks/read/read-tasks";
+} from "../../process/bars/bars-process";
+import { DateUtils } from "../../process/process";
+import { getAllTasks } from "../../process/tasks/read-process";
+import { Store } from "../../store/store";
 import { GlobalFilter } from "../../types";
 
 export class TimeBar {
@@ -45,6 +45,9 @@ export class TimeBar {
 	>();
 	private unsub: (() => void) | null = null;
 	private initialRender = true;
+	private dateCheckInterval: number | null = null;
+	private pendingDateCheck: number | null = null;
+	private lastCheckedDate: string = "";
 
 	private useDynamicBtn: HTMLElement | null = null;
 	private modeBtn: HTMLElement | null = null;
@@ -58,15 +61,71 @@ export class TimeBar {
 		this.dynamicEnd = DateUtils.setStart(today);
 		this.staticStart = DateUtils.setStart(today);
 		this.staticEnd = DateUtils.setStart(today);
+		this.lastCheckedDate = DateUtils.formatDate(today);
 		this.unsub = store.subscribe(() => this.onStoreChange());
 		this.render();
+
+		// 每 60 秒检查日期是否变化
+		this.dateCheckInterval = window.setInterval(() => {
+			this.checkDateChange();
+		}, 60000);
+
+		// 监听 Obsidian 工作区事件（切换标签页/视图时触发）
+		this.registerWorkspaceEvent();
 	}
 
 	destroy() {
+		if (this.dateCheckInterval !== null) {
+			clearInterval(this.dateCheckInterval);
+			this.dateCheckInterval = null;
+		}
+		if (this.pendingDateCheck !== null) {
+			cancelAnimationFrame(this.pendingDateCheck);
+			this.pendingDateCheck = null;
+		}
 		this.unsub?.();
 		this.unsub = null;
 	}
 
+	// ========== 工作区事件 ==========
+	private registerWorkspaceEvent() {
+		const app = (window as any).app;
+		if (!app) return;
+
+		app.workspace.on("active-leaf-change", () => {
+			this.checkDateChange();
+		});
+
+		app.workspace.on("layout-change", () => {
+			this.checkDateChange();
+		});
+	}
+
+	// ========== 日期变化检测（防抖） ==========
+	private checkDateChange() {
+		if (this.pendingDateCheck !== null) {
+			cancelAnimationFrame(this.pendingDateCheck);
+		}
+		this.pendingDateCheck = requestAnimationFrame(() => {
+			this.pendingDateCheck = null;
+			this.doCheckDateChange();
+		});
+	}
+
+	private doCheckDateChange() {
+		const today = new Date();
+		const dateStr = DateUtils.formatDate(today);
+
+		if (this.lastCheckedDate !== dateStr) {
+			this.lastCheckedDate = dateStr;
+			this.refreshAllStaticSliders();
+			if (!this.useDynamic) {
+				this.refreshDynamicUI();
+			}
+		}
+	}
+
+	// ========== Store 变化 ==========
 	private onStoreChange() {
 		const state = this.store.getState();
 		const pre = this.store.getActivePreset();
@@ -397,31 +456,15 @@ export class TimeBar {
 		mid.style.cssText =
 			"position:absolute;top:-2px;width:1px;height:calc(100% + 4px);background:var(--text-muted);opacity:0.5;z-index:1;";
 
-		// 对称手柄：起始手柄向右突出，结束手柄向左突出
-		// 在 slider 方法中，修改手柄创建函数
-
-		// 起始手柄：向左突出（左圆角）
 		const mkStart = (pct: number, title: string) => {
 			const el = tc.createDiv();
-			el.style.cssText =
-				`position:absolute;top:-6px;left:${pct}%;` +
-				`width:6px;height:16px;` +
-				`background:var(--interactive-accent);` +
-				`border-radius:3px 0 0 3px;` + // 左圆角，向左突出
-				`cursor:grab;transform:translateX(-100%);z-index:2;`; // 向左偏移自身宽度
+			el.style.cssText = `position:absolute;top:-6px;left:${pct}%;width:6px;height:16px;background:var(--interactive-accent);border-radius:3px 0 0 3px;cursor:grab;transform:translateX(-100%);z-index:2;`;
 			el.title = title;
 			return el;
 		};
-
-		// 结束手柄：向右突出（右圆角）
 		const mkEnd = (pct: number, title: string) => {
 			const el = tc.createDiv();
-			el.style.cssText =
-				`position:absolute;top:-6px;left:${pct}%;` +
-				`width:6px;height:16px;` +
-				`background:var(--interactive-accent);` +
-				`border-radius:0 3px 3px 0;` + // 右圆角，向右突出
-				`cursor:grab;transform:translateX(0);z-index:2;`; // 不偏移，向右延伸
+			el.style.cssText = `position:absolute;top:-6px;left:${pct}%;width:6px;height:16px;background:var(--interactive-accent);border-radius:0 3px 3px 0;cursor:grab;transform:translateX(0);z-index:2;`;
 			el.title = title;
 			return el;
 		};
@@ -447,7 +490,6 @@ export class TimeBar {
 			fl.style.width = `${((mxv - mnv) / t) * 100}%`;
 			rl.textContent = mnv === mxv ? ff(mnv) : `${ff(mnv)}~${ff(mxv)}`;
 		};
-
 		const dragHandle = (el: HTMLElement, isStart: boolean) => {
 			el.onmousedown = (ev: MouseEvent) => {
 				ev.preventDefault();
@@ -483,7 +525,6 @@ export class TimeBar {
 		};
 		dragHandle(st, true);
 		dragHandle(et, false);
-
 		let isDraggingRange = false;
 		tc.onmousedown = (ev: MouseEvent) => {
 			const target = ev.target as HTMLElement;
@@ -531,7 +572,6 @@ export class TimeBar {
 				document.addEventListener("mouseup", mu);
 			}
 		};
-
 		tc.onclick = (ev: MouseEvent) => {
 			if (isDraggingHandle || isDraggingRange) return;
 			if (ev.target === st || ev.target === et) return;

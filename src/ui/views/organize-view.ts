@@ -1,11 +1,11 @@
-import { filterTasks } from "../../tasks/process/filter-task-process";
+import { filterTasks } from "../../process/bars/bars-process";
 import {
 	addSnapshot,
 	loadSnapshots,
 	Op,
 	writeToFiles,
-} from "../../tasks/process/organize-task-process";
-import { getAllTasks } from "../../tasks/read/read-tasks";
+} from "../../process/edits/edits-process";
+import { getAllTasks } from "../../process/tasks/read-process";
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 
@@ -49,7 +49,6 @@ export class OrganizeView extends BaseTaskView {
 
 		// 工具栏（使用通用视图工具栏）
 		const toolbar = this.container.createDiv({ cls: "view-toolbar" });
-		
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();

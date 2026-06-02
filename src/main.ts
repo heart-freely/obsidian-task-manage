@@ -5,7 +5,7 @@ import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "./configs/configs";
 import { TaskManageSettingTab } from "./settings";
 import { Store } from "./store/store";
 import { AppState, GlobalFilter, Preset } from "./types";
-import { NavigatorView } from "./ui/layout/navigator-layout";
+import { NavigatorView } from "./ui/layout/layout";
 
 export default class TaskManagePlugin extends Plugin {
 	store!: Store;

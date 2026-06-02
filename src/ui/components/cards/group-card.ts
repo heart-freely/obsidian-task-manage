@@ -1,4 +1,4 @@
-import { createTaskCard } from "./task-card";
+import { createTaskCard } from "./card";
 
 export interface GroupCardOptions {
 	title: string;
