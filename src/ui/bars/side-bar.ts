@@ -19,11 +19,9 @@ export class SideBar {
 	private render() {
 		const allBtns = this.container.querySelectorAll(".preset-btn");
 		allBtns.forEach((btn) => ((btn as HTMLElement).style.width = ""));
-
 		this.container.empty();
 		const state = this.store.getState();
 		const collapsed = state.sidebarCollapsed;
-
 		this.container.style.overflow = "hidden";
 		this.container.style.position = "relative";
 		this.container.style.zIndex = "1";
@@ -35,7 +33,6 @@ export class SideBar {
 					? " side-top-row-collapsed"
 					: " side-top-row-vertical"),
 		});
-
 		const toggleBtn = topRow.createEl("button", {
 			text: collapsed ? "▶" : "◀",
 			cls: "preset-btn",
@@ -43,10 +40,11 @@ export class SideBar {
 		});
 		if (collapsed) toggleBtn.className = "preset-btn side-icon-btn";
 		toggleBtn.onclick = () => {
-			const newCollapsed = !state.sidebarCollapsed;
+			const st = this.store.getState();
+			const nc = !st.sidebarCollapsed;
 			this.store.update({
-				sidebarCollapsed: newCollapsed,
-				sidebarWidth: newCollapsed ? 40 : state.sidebarWidth || 100,
+				sidebarCollapsed: nc,
+				sidebarWidth: nc ? 40 : st.sidebarWidth || 100,
 			});
 		};
 
@@ -60,10 +58,11 @@ export class SideBar {
 			const st = this.store.getState();
 			const cp = st.presets.find((p) => p.id === st.activePresetId);
 			if (!cp) return;
-			const newPresets = st.presets.map((p) =>
-				p.id === cp.id ? { ...p, showToolbar: !p.showToolbar } : p,
-			);
-			this.store.update({ presets: newPresets });
+			this.store.update({
+				presets: st.presets.map((p) =>
+					p.id === cp.id ? { ...p, showToolbar: !p.showToolbar } : p,
+				),
+			});
 		};
 
 		const contentDiv = this.container.createDiv({ cls: "side-content" });
@@ -117,57 +116,14 @@ export class SideBar {
 
 	private createNewPreset() {
 		const state = this.store.getState();
+		const template = state.presets.find((p) => p.id === "all-tasks");
 		const now = Date.now().toString();
 		const newPreset: Preset = {
+			...(template || {}),
 			id: now,
 			name: "新视图",
-			groupId: "basic",
-			businessView: "allTasks",
-			viewStyle: "table",
 			icon: "📋",
-			showToolbar: false,
-			toolbarEverShown: false,
-			toolbarPanelsCollapsed: false,
-			toolbarPanelsHeight: 300,
-			toolbarOrder: [
-				"time",
-				"excut",
-				"search",
-				"mark",
-				"view",
-				"hide",
-				"sort",
-				"config",
-			],
-			barVisibility: {
-				time: true,
-				excut: true,
-				search: true,
-				mark: true,
-				view: true,
-				hide: true,
-				sort: true,
-				config: true,
-			},
-			filter: {
-				dateRange: { start: null, end: null, isAll: true },
-				statuses: [
-					"todo",
-					"planned",
-					"in-progress",
-					"completed",
-					"cancelled",
-				],
-				includeMarks: [],
-				excludeMarks: [],
-				hideRepeat: false,
-				hideCompleted: false,
-				hideCancelled: false,
-				rootPath: null,
-				hideFolders: false,
-			},
-			sort: { type: "status", order: "asc" },
-		};
+		} as Preset;
 		this.store.update({
 			presets: [...state.presets, newPreset],
 			activePresetId: newPreset.id,

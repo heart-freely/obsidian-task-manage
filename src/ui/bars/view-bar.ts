@@ -8,12 +8,14 @@ const VIEW_STYLES = [
 	{ key: "status", label: "状态", group: "标记" },
 	{ key: "priority", label: "优先级", group: "标记" },
 	{ key: "recurring", label: "循环", group: "标记" },
-	{ key: "timeline", label: "时间轴", group: "标记" },
+	{ key: "time", label: "日期", group: "标记" },
 	{ key: "tag", label: "标签", group: "标记" },
 	{ key: "uniqueId", label: "唯一ID", group: "标记" },
 	{ key: "depends", label: "引用ID", group: "标记" },
 	{ key: "kanban", label: "看板", group: "管理" },
 	{ key: "matrix", label: "矩阵", group: "管理" },
+	{ key: "overdue", label: "逾期", group: "管理" },
+	{ key: "timeline", label: "时间轴", group: "管理" },
 	{ key: "tree", label: "任务树", group: "管理" },
 	{ key: "gantt", label: "甘特图", group: "管理" },
 	{ key: "calendar", label: "日历图", group: "管理" },
@@ -71,11 +73,11 @@ export class ViewBar {
 				});
 				if (key === currentStyle) btn.addClass("active");
 				btn.onclick = () => {
-					const state = this.store.getState();
-					const preset = this.store.getActivePreset();
-					if (!preset) return;
-					const newPresets = state.presets.map((p) =>
-						p.id === preset.id ? { ...p, viewStyle: key } : p,
+					const st = this.store.getState();
+					const pr = this.store.getActivePreset();
+					if (!pr) return;
+					const newPresets = st.presets.map((p) =>
+						p.id === pr.id ? { ...p, viewStyle: key } : p,
 					);
 					this.store.update({ presets: newPresets });
 				};

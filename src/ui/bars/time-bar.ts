@@ -1,25 +1,16 @@
 // src/ui/bars/time-bar.ts
 
 import {
-	absoluteValueToYear,
 	calcDynamicOffset,
 	datesFromLevel,
-	dayToDate,
 	daysInYear,
-	formatDayValue,
-	formatDynamicLabel,
-	formatDynamicValue,
-	formatMonthValue,
-	formatQuarterValue,
-	formatWeekValue,
-	formatYearValue,
+	dayToDate,
 	getLevelValues,
 	getTaskTimeRange,
-	getTodayAbsoluteValue,
 	maxDynamicRange,
 	staticSliderRanges,
 	weeksInYear,
-} from "../../process/bars/bars-process";
+} from "../../process/bars/set-bar";
 import { DateUtils } from "../../process/process";
 import { getAllTasks } from "../../process/tasks/read-task";
 import { Store } from "../../store/store";
@@ -50,9 +41,14 @@ export class TimeBar {
 	private currentMaxYear: number = new Date().getFullYear();
 	private childSlidersDrivenByYear: boolean = true;
 
+	private savedStaticStart: Date | null = null;
+	private savedStaticEnd: Date | null = null;
+	private savedCurrentMinYear: number = new Date().getFullYear();
+	private savedCurrentMaxYear: number = new Date().getFullYear();
+	private savedChildSlidersDrivenByYear: boolean = true;
+
 	private enhancedSliders = new Map<string, EnhancedSliderRef>();
 	private updateMidLines = new Map<string, (v: number) => void>();
-	private unsub: (() => void) | null = null;
 	private initialRender = true;
 	private dateCheckInterval: number | null = null;
 	private pendingDateCheck: number | null = null;
@@ -66,9 +62,6 @@ export class TimeBar {
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		const pre = store.getActivePreset();
-		this.intervalMode = pre?.intervalMode ?? "scheduled-due";
-		this.useDynamic = pre?.useDynamic ?? false;
 		const today = new Date();
 		this.dynamicStart = DateUtils.setStart(today);
 		this.dynamicEnd = DateUtils.setStart(today);
@@ -77,7 +70,6 @@ export class TimeBar {
 		this.lastCheckedDate = DateUtils.formatDate(today);
 		this.currentMinYear = today.getFullYear();
 		this.currentMaxYear = today.getFullYear();
-		this.unsub = store.subscribe(() => this.onStoreChange());
 		this.render();
 		this.dateCheckInterval = window.setInterval(
 			() => this.checkDateChange(),
@@ -98,11 +90,7 @@ export class TimeBar {
 		this.enhancedSliders.forEach((s) => s.destroy());
 		this.enhancedSliders.clear();
 		this.updateMidLines.clear();
-		this.unsub?.();
-		this.unsub = null;
 	}
-
-	// ========== 事件 ==========
 
 	private registerWorkspaceEvent() {
 		const app = (window as any).app;
@@ -130,46 +118,6 @@ export class TimeBar {
 		}
 	}
 
-	private onStoreChange() {
-		const pre = this.store.getActivePreset();
-		if (!pre) return;
-		const newMode = pre.intervalMode ?? "scheduled-due";
-		const newUseDynamic = pre.useDynamic ?? false;
-		const newFilter = pre.filter;
-
-		if (this.intervalMode !== newMode) {
-			this.intervalMode = newMode;
-			if (this.modeBtn)
-				this.modeBtn.setText(
-					newMode === "scheduled-due" ? "计划~截止" : "开始~完成",
-				);
-		}
-		if (this.useDynamic !== newUseDynamic) {
-			this.useDynamic = newUseDynamic;
-			this.useDynamicBtn?.toggleClass("active", this.useDynamic);
-		}
-
-		if (newFilter.dateRange.isAll && this.initialRender === false) {
-			const today = new Date();
-			const cy = today.getFullYear();
-			this.staticStart = new Date(cy, 0, 1);
-			this.staticEnd = new Date(cy, 11, 31);
-			this.currentMinYear = cy;
-			this.currentMaxYear = cy;
-			this.childSlidersDrivenByYear = true;
-			this.dynamicStart = DateUtils.setStart(today);
-			this.dynamicEnd = DateUtils.setStart(today);
-			this.dynamicUnit = "day";
-			this.useDynamic = false;
-			this.intervalMode = "scheduled-due";
-			this.rebuildStaticSliders();
-			this.rebuildDynamicSlider();
-			return;
-		}
-	}
-
-	// ========== 工具 ==========
-
 	private clamp(v: number, min: number, max: number): number {
 		return Math.max(min, Math.min(max, v));
 	}
@@ -179,39 +127,38 @@ export class TimeBar {
 		return { min: cy - YEAR_RANGE_OFFSET, max: cy + YEAR_RANGE_OFFSET };
 	}
 
-	private savePreset(changes: Partial<any>) {
+	private updatePreset(changes: { dateRange?: boolean } & Partial<any>) {
 		const state = this.store.getState();
 		const pre = state.presets.find((p) => p.id === state.activePresetId);
 		if (!pre) return;
+		const updates: any = {};
+		for (const key of Object.keys(changes)) {
+			if (key !== "dateRange") updates[key] = changes[key];
+		}
+		if (changes.dateRange) {
+			updates.filter = {
+				...pre.filter,
+				dateRange: {
+					start: this.staticStart.getTime(),
+					end: this.staticEnd.getTime(),
+					isAll: false,
+				},
+			};
+		}
 		const newPresets = state.presets.map((p) =>
-			p.id === pre.id ? { ...p, ...changes } : p,
+			p.id === pre.id ? { ...p, ...updates } : p,
 		);
 		this.store.update({ presets: newPresets });
 	}
 
-	private updateDateRange() {
-		const state = this.store.getState();
-		const pre = state.presets.find((p) => p.id === state.activePresetId);
-		if (!pre) return;
-		const newPresets = state.presets.map((p) =>
-			p.id === pre.id
-				? {
-						...p,
-						filter: {
-							...p.filter,
-							dateRange: {
-								start: this.staticStart.getTime(),
-								end: this.staticEnd.getTime(),
-								isAll: false,
-							},
-						},
-					}
-				: p,
-		);
-		this.store.update({ presets: newPresets });
+	private syncDynamicToStatic(startDate: Date, endDate: Date) {
+		this.staticStart = DateUtils.setStart(new Date(startDate));
+		this.staticEnd = DateUtils.setEnd(new Date(endDate));
+		this.currentMinYear = startDate.getFullYear();
+		this.currentMaxYear = endDate.getFullYear();
+		this.childSlidersDrivenByYear = false;
+		this.refreshAllStaticSliders();
 	}
-
-	// ========== 回调 ==========
 
 	private onDynamicChange(sv: number, ev: number) {
 		const { startDate, endDate } = datesFromLevel(
@@ -223,17 +170,14 @@ export class TimeBar {
 		this.dynamicStart = startDate;
 		this.dynamicEnd = endDate;
 		if (this.useDynamic) {
-			this.staticStart = DateUtils.setStart(new Date(startDate));
-			this.staticEnd = DateUtils.setEnd(new Date(endDate));
-			this.refreshAllStaticSliders();
-			this.updateDateRange();
+			this.syncDynamicToStatic(startDate, endDate);
+			this.updatePreset({ dateRange: true });
 		}
 	}
 
 	private onStaticChange(lv: string, sv: number, ev: number) {
 		const minV = Math.min(sv, ev);
 		const maxV = Math.max(sv, ev);
-
 		if (lv === "year") {
 			this.currentMinYear = minV;
 			this.currentMaxYear = maxV;
@@ -241,7 +185,6 @@ export class TimeBar {
 			const { startDate, endDate } = datesFromLevel("year", minV, maxV);
 			this.staticStart = DateUtils.setStart(startDate);
 			this.staticEnd = DateUtils.setEnd(endDate);
-			this.rebuildStaticSliders();
 		} else {
 			const { startDate, endDate } = datesFromLevel(
 				lv,
@@ -258,22 +201,41 @@ export class TimeBar {
 			);
 			if (this.childSlidersDrivenByYear)
 				this.childSlidersDrivenByYear = false;
-			this.refreshAllStaticSliders();
 		}
-
-		this.updateDateRange();
+		this.rebuildStaticSliders();
+		this.updatePreset({ dateRange: true });
 	}
 
 	private onToggleDynamic() {
 		this.useDynamic = !this.useDynamic;
-		this.useDynamicBtn?.toggleClass("active", this.useDynamic);
 		if (this.useDynamic) {
-			this.staticStart = DateUtils.setStart(new Date(this.dynamicStart));
-			this.staticEnd = DateUtils.setEnd(new Date(this.dynamicEnd));
-			this.refreshAllStaticSliders();
-			this.updateDateRange();
+			this.savedStaticStart = new Date(this.staticStart);
+			this.savedStaticEnd = new Date(this.staticEnd);
+			this.savedCurrentMinYear = this.currentMinYear;
+			this.savedCurrentMaxYear = this.currentMaxYear;
+			this.savedChildSlidersDrivenByYear = this.childSlidersDrivenByYear;
+			this.syncDynamicToStatic(this.dynamicStart, this.dynamicEnd);
+		} else {
+			if (this.savedStaticStart && this.savedStaticEnd) {
+				this.staticStart = this.savedStaticStart;
+				this.staticEnd = this.savedStaticEnd;
+				this.currentMinYear = this.savedCurrentMinYear;
+				this.currentMaxYear = this.savedCurrentMaxYear;
+				this.childSlidersDrivenByYear =
+					this.savedChildSlidersDrivenByYear;
+			} else {
+				const today = new Date();
+				const cy = today.getFullYear();
+				this.staticStart = new Date(cy, 0, 1);
+				this.staticEnd = new Date(cy, 11, 31);
+				this.currentMinYear = cy;
+				this.currentMaxYear = cy;
+				this.childSlidersDrivenByYear = true;
+			}
+			this.rebuildStaticSliders();
 		}
-		this.savePreset({ useDynamic: this.useDynamic });
+		this.syncUseDynamicButton();
+		this.updatePreset({ dateRange: true, useDynamic: this.useDynamic });
 	}
 
 	private onToggleMode() {
@@ -287,7 +249,7 @@ export class TimeBar {
 					? "计划~截止"
 					: "开始~完成",
 			);
-		this.savePreset({ intervalMode: this.intervalMode });
+		this.updatePreset({ intervalMode: this.intervalMode });
 	}
 
 	private onSwitchUnit(k: "day" | "week" | "month" | "quarter" | "year") {
@@ -301,10 +263,8 @@ export class TimeBar {
 			this.dynamicStart = new Date(t);
 			this.dynamicEnd = new Date(t);
 			if (this.useDynamic) {
-				this.staticStart = new Date(this.dynamicStart);
-				this.staticEnd = new Date(this.dynamicEnd);
-				this.refreshAllStaticSliders();
-				this.updateDateRange();
+				this.syncDynamicToStatic(this.dynamicStart, this.dynamicEnd);
+				this.updatePreset({ dateRange: true });
 			}
 		}
 		this.dynamicUnit = k;
@@ -314,50 +274,117 @@ export class TimeBar {
 		this.rebuildDynamicSlider();
 	}
 
-	// ========== 格式化 ==========
+	private syncUseDynamicButton() {
+		if (!this.useDynamicBtn) return;
+		if (this.useDynamic) this.useDynamicBtn.addClass("active");
+		else this.useDynamicBtn.removeClass("active");
+	}
 
 	private fmtYear(x: number): string {
-		return formatYearValue(x);
+		return `${x}`;
 	}
 	private fmtQuarter(x: number): string {
-		return formatQuarterValue(x, this.currentMinYear);
+		const y = this.currentMinYear + Math.floor((x - 1) / 4);
+		return `${y}/${((x - 1) % 4) + 1}`;
 	}
 	private fmtMonth(x: number): string {
-		return formatMonthValue(x, this.currentMinYear);
+		const y = this.currentMinYear + Math.floor((x - 1) / 12);
+		return `${y}/${((x - 1) % 12) + 1}`;
 	}
 	private fmtWeek(x: number): string {
-		return formatWeekValue(x, this.currentMinYear);
+		let r = x,
+			y = this.currentMinYear;
+		while (r > weeksInYear(y)) {
+			r -= weeksInYear(y);
+			y++;
+		}
+		return `${y}/${r}`;
 	}
 	private fmtDay(x: number): string {
-		return formatDayValue(x, this.currentMinYear);
+		let r = x,
+			y = this.currentMinYear;
+		while (r > daysInYear(y)) {
+			r -= daysInYear(y);
+			y++;
+		}
+		const d = dayToDate(y, Math.max(1, r));
+		return `${y}/${d.getMonth() + 1}/${d.getDate()}`;
 	}
+
 	private fmtDynamicValue(v: number): string {
-		return formatDynamicValue(v, this.dynamicUnit);
+		if (v === 0) {
+			const u = this.dynamicUnit;
+			if (u === "day") return "本日";
+			if (u === "week") return "本周";
+			if (u === "month") return "本月";
+			if (u === "quarter") return "本季";
+			if (u === "year") return "本年";
+		}
+		const p = v < 0 ? "前" : "后";
+		const abs = Math.abs(v);
+		const u = this.dynamicUnit;
+		if (u === "week") return `${p}${abs}周`;
+		if (u === "month") return `${p}${abs}月`;
+		if (u === "quarter") return `${p}${abs}季`;
+		if (u === "year") return `${p}${abs}年`;
+		return `${p}${abs}日`;
 	}
+
 	private fmtDynamicLabel(a: number, b: number): string {
-		return formatDynamicLabel(a, b, this.dynamicUnit);
+		return a === b
+			? this.fmtDynamicValue(a)
+			: `${this.fmtDynamicValue(a)}~${this.fmtDynamicValue(b)}`;
 	}
 
 	private getTodayValue(lv: string): number {
-		return getTodayAbsoluteValue(
-			lv,
-			this.currentMinYear,
-			DateUtils.getISOWeekNumber,
-		);
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const cy = today.getFullYear();
+		let offset = 0;
+		for (let y = this.currentMinYear; y < cy; y++) {
+			switch (lv) {
+				case "quarter":
+					offset += 4;
+					break;
+				case "month":
+					offset += 12;
+					break;
+				case "week":
+					offset += weeksInYear(y);
+					break;
+				case "day":
+					offset += daysInYear(y);
+					break;
+			}
+		}
+		switch (lv) {
+			case "year":
+				return cy;
+			case "quarter":
+				return Math.floor(today.getMonth() / 3) + 1 + offset;
+			case "month":
+				return today.getMonth() + 1 + offset;
+			case "week":
+				return DateUtils.getISOWeekNumber(today) + offset;
+			case "day":
+				return (
+					Math.ceil(
+						(today.getTime() - new Date(cy, 0, 0).getTime()) /
+							86400000,
+					) + offset
+				);
+		}
+		return 0;
 	}
-
-	// ========== 动态滑块 ==========
 
 	private rebuildDynamicSlider() {
 		this.enhancedSliders.get("dynamic")?.destroy();
 		this.enhancedSliders.delete("dynamic");
 		this.updateMidLines.delete("dynamic");
-
 		const dSec = this.container.querySelector(
 			".filter-section",
 		) as HTMLElement;
 		if (!dSec) return;
-
 		const dmx = this.maxDyn();
 		const dsVal = this.clamp(
 			calcDynamicOffset(this.dynamicStart, this.dynamicUnit),
@@ -369,9 +396,8 @@ export class TimeBar {
 			-dmx,
 			dmx,
 		);
-		const minV = Math.min(dsVal, deVal);
-		const maxV = Math.max(dsVal, deVal);
-
+		const minV = Math.min(dsVal, deVal),
+			maxV = Math.max(dsVal, deVal);
 		const result = createEnhancedSlider({
 			container: dSec,
 			min: -dmx,
@@ -383,18 +409,13 @@ export class TimeBar {
 			todayValue: 0,
 			midValue: 0,
 		});
-
 		result.refs.labelSpan.textContent = this.fmtDynamicLabel(minV, maxV);
-
 		this.enhancedSliders.set("dynamic", result.refs);
 		this.updateMidLines.set("dynamic", result.updateMidLine);
 	}
 
-	// ========== 静态滑块 ==========
-
 	private rebuildStaticSliders() {
 		if (!this.staticSection) return;
-
 		["year", "quarter", "month", "week", "day"].forEach((key) => {
 			this.enhancedSliders.get(key)?.destroy();
 			this.enhancedSliders.delete(key);
@@ -402,11 +423,11 @@ export class TimeBar {
 		});
 
 		const { min: yearMin, max: yearMax } = this.yearRange();
-		const isSingle = this.currentMinYear === this.currentMaxYear;
+		const isSingle =
+			this.currentMinYear === this.currentMaxYear &&
+			this.childSlidersDrivenByYear;
 
 		let ranges: any;
-		let vals: any;
-
 		if (isSingle) {
 			const y = this.currentMinYear;
 			ranges = {
@@ -423,18 +444,6 @@ export class TimeBar {
 				minYear: y,
 				maxYear: y,
 			};
-			vals = {
-				yearStart: y,
-				yearEnd: y,
-				quarterStart: 1,
-				quarterEnd: 4,
-				monthStart: 1,
-				monthEnd: 12,
-				weekStart: 1,
-				weekEnd: weeksInYear(y),
-				dayStart: 1,
-				dayEnd: daysInYear(y),
-			};
 		} else {
 			ranges = staticSliderRanges(
 				this.staticStart,
@@ -445,13 +454,14 @@ export class TimeBar {
 			ranges.yearMin = yearMin;
 			ranges.yearMax = yearMax;
 			this.currentMinYear = ranges.minYear;
-			vals = getLevelValues(
-				this.staticStart,
-				this.staticEnd,
-				this.currentMinYear,
-			);
 		}
 
+		// 始终从实际日期计算手柄位置
+		const vals = getLevelValues(
+			this.staticStart,
+			this.staticEnd,
+			this.currentMinYear,
+		);
 		const cur = (lv: string) => this.getTodayValue(lv);
 		const sv = (lv: string) =>
 			lv === "year"
@@ -546,18 +556,16 @@ export class TimeBar {
 		this.updateMidLines.set(key, result.updateMidLine);
 	}
 
-	// ========== UI 更新 ==========
-
 	private refreshDynamicUI() {
-		const ref = this.enhancedSliders.get("dynamic");
-		const updateMid = this.updateMidLines.get("dynamic");
+		const ref = this.enhancedSliders.get("dynamic"),
+			updateMid = this.updateMidLines.get("dynamic");
 		if (!ref || !updateMid) return;
-		const mx = this.maxDyn();
-		const mn = -mx;
-		const ds = calcDynamicOffset(this.dynamicStart, this.dynamicUnit);
-		const de = calcDynamicOffset(this.dynamicEnd, this.dynamicUnit);
-		const minV = this.clamp(Math.min(ds, de), mn, mx);
-		const maxV = this.clamp(Math.max(ds, de), mn, mx);
+		const mx = this.maxDyn(),
+			mn = -mx;
+		const ds = calcDynamicOffset(this.dynamicStart, this.dynamicUnit),
+			de = calcDynamicOffset(this.dynamicEnd, this.dynamicUnit);
+		const minV = this.clamp(Math.min(ds, de), mn, mx),
+			maxV = this.clamp(Math.max(ds, de), mn, mx);
 		ref.update(minV, maxV);
 		ref.labelSpan.textContent = this.fmtDynamicLabel(minV, maxV);
 		updateMid(0);
@@ -565,7 +573,6 @@ export class TimeBar {
 
 	private refreshAllStaticSliders() {
 		const { min: yearMin, max: yearMax } = this.yearRange();
-
 		if (
 			this.childSlidersDrivenByYear &&
 			this.currentMinYear === this.currentMaxYear
@@ -580,8 +587,8 @@ export class TimeBar {
 				mx: number,
 				midV: number,
 			) => {
-				const ref = this.enhancedSliders.get(key);
-				const updateMid = this.updateMidLines.get(key);
+				const ref = this.enhancedSliders.get(key),
+					updateMid = this.updateMidLines.get(key);
 				if (!ref) return;
 				ref.update(
 					this.clamp(Math.min(s, e), mn, mx),
@@ -596,7 +603,6 @@ export class TimeBar {
 			up("day", 1, daysInYear(y), 1, daysInYear(y), cur("day"));
 			return;
 		}
-
 		const ranges = staticSliderRanges(
 			this.staticStart,
 			this.staticEnd,
@@ -610,7 +616,6 @@ export class TimeBar {
 			this.currentMinYear,
 		);
 		const cur = (lv: string) => this.getTodayValue(lv);
-
 		const up = (
 			key: string,
 			s: number,
@@ -619,8 +624,8 @@ export class TimeBar {
 			mx: number,
 			midV: number,
 		) => {
-			const ref = this.enhancedSliders.get(key);
-			const updateMid = this.updateMidLines.get(key);
+			const ref = this.enhancedSliders.get(key),
+				updateMid = this.updateMidLines.get(key);
 			if (!ref) return;
 			ref.update(
 				this.clamp(Math.min(s, e), mn, mx),
@@ -628,7 +633,6 @@ export class TimeBar {
 			);
 			if (updateMid) updateMid(midV);
 		};
-
 		up(
 			"year",
 			Math.min(vals.yearStart, vals.yearEnd),

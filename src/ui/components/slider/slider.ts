@@ -1,8 +1,6 @@
 // src/ui/components/slider/slider.ts
 // 通用双滑块组件
 
-// ========== 类型定义 ==========
-
 export interface SliderOptions {
 	container: HTMLElement;
 	min: number;
@@ -38,8 +36,6 @@ export interface EnhancedSliderRef {
 	destroy: () => void;
 }
 
-// ========== 工具 ==========
-
 function clamp(v: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, v));
 }
@@ -60,9 +56,11 @@ export function createSlider(options: SliderOptions): {
 	track.style.cssText =
 		"flex:0.5;position:relative;height:4px;margin:0 8px;cursor:pointer;background:var(--background-modifier-border);border-radius:2px;min-width:60px;";
 
-	const initS = clamp(Math.min(start, end), min, max);
-	const initE = clamp(Math.max(start, end), min, max);
+	const step = Math.max(1, Math.ceil((max - min) / 20));
 	const range = max - min || 1;
+
+	const initS = clamp(Math.round(Math.min(start, end)), min, max);
+	const initE = clamp(Math.round(Math.max(start, end)), min, max);
 
 	const sp = ((initS - min) / range) * 100;
 	const ep = ((initE - min) / range) * 100;
@@ -80,10 +78,10 @@ export function createSlider(options: SliderOptions): {
 	const startHandle = createHandle(sp, true);
 	const endHandle = createHandle(ep, false);
 
-	let cs = initS,
-		ce = initE;
-	let isDraggingHandle = false,
-		isDraggingRange = false;
+	let cs = initS;
+	let ce = initE;
+	let isDraggingHandle = false;
+	let isDraggingRange = false;
 
 	const updateHandles = (ns: number, ne: number) => {
 		const mnv = clamp(Math.min(ns, ne), min, max);
@@ -95,8 +93,8 @@ export function createSlider(options: SliderOptions): {
 	};
 
 	const commitChange = (ns: number, ne: number) => {
-		const mnv = clamp(Math.min(ns, ne), min, max);
-		const mxv = clamp(Math.max(ns, ne), min, max);
+		const mnv = clamp(Math.round(Math.min(ns, ne)), min, max);
+		const mxv = clamp(Math.round(Math.max(ns, ne)), min, max);
 		cs = mnv;
 		ce = mxv;
 		updateHandles(cs, ce);
@@ -109,6 +107,7 @@ export function createSlider(options: SliderOptions): {
 			ev.stopPropagation();
 			isDraggingHandle = true;
 			el.style.cursor = "grabbing";
+
 			const onMove = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
 				const rect = track.getBoundingClientRect();
@@ -118,10 +117,14 @@ export function createSlider(options: SliderOptions): {
 				);
 				let v = Math.round(min + raw * range);
 				v = clamp(v, min, max);
-				if (isStart) cs = clamp(Math.min(v, ce), min, max);
-				else ce = clamp(Math.max(v, cs), min, max);
+				if (isStart) {
+					cs = clamp(Math.min(v, ce), min, max);
+				} else {
+					ce = clamp(Math.max(v, cs), min, max);
+				}
 				updateHandles(cs, ce);
 			};
+
 			const onUp = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
 				isDraggingHandle = false;
@@ -132,6 +135,7 @@ export function createSlider(options: SliderOptions): {
 				e.stopPropagation();
 				commitChange(cs, ce);
 			};
+
 			document.addEventListener("mousemove", onMove);
 			document.addEventListener("mouseup", onUp);
 		};
@@ -149,18 +153,19 @@ export function createSlider(options: SliderOptions): {
 			Math.min(1, (ev.clientX - rect.left) / rect.width),
 		);
 		const clickVal = Math.round(min + raw * range);
-		if (clickVal >= cs && clickVal <= ce && cs !== ce) {
+		if (clickVal >= cs && clickVal <= ce && ce - cs >= step) {
 			ev.preventDefault();
 			isDraggingRange = true;
-			const startCs = cs,
-				startCe = ce,
-				startX = ev.clientX;
+			const startCs = cs;
+			const startCe = ce;
+			const startX = ev.clientX;
+
 			const onMove = (e: MouseEvent) => {
 				if (!isDraggingRange) return;
 				const dx = e.clientX - startX;
 				const rawDx = Math.round((dx / track.offsetWidth) * range);
-				let newCs = startCs + rawDx,
-					newCe = startCe + rawDx;
+				let newCs = startCs + rawDx;
+				let newCe = startCe + rawDx;
 				if (newCs < min) {
 					newCe = min + (startCe - startCs);
 					newCs = min;
@@ -175,6 +180,7 @@ export function createSlider(options: SliderOptions): {
 				ce = newCe;
 				updateHandles(cs, ce);
 			};
+
 			const onUp = () => {
 				if (!isDraggingRange) return;
 				isDraggingRange = false;
@@ -182,6 +188,7 @@ export function createSlider(options: SliderOptions): {
 				document.removeEventListener("mouseup", onUp);
 				commitChange(cs, ce);
 			};
+
 			document.addEventListener("mousemove", onMove);
 			document.addEventListener("mouseup", onUp);
 		}
@@ -198,15 +205,23 @@ export function createSlider(options: SliderOptions): {
 		let v = Math.round(min + raw * range);
 		v = clamp(v, min, max);
 		if (v >= cs && v <= ce && cs !== ce) return;
-		if (Math.abs(v - cs) <= Math.abs(v - ce))
+		if (Math.abs(v - cs) <= Math.abs(v - ce)) {
 			cs = clamp(Math.min(v, ce), min, max);
-		else ce = clamp(Math.max(v, cs), min, max);
+		} else {
+			ce = clamp(Math.max(v, cs), min, max);
+		}
 		commitChange(cs, ce);
 	};
 
 	return {
 		refs: { track, row, startHandle, endHandle, fill },
-		update: updateHandles,
+		update: (ns: number, ne: number) => {
+			const mnv = clamp(Math.round(Math.min(ns, ne)), min, max);
+			const mxv = clamp(Math.round(Math.max(ns, ne)), min, max);
+			cs = mnv;
+			ce = mxv;
+			updateHandles(cs, ce);
+		},
 		destroy: () => row.remove(),
 	};
 }
@@ -242,25 +257,21 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	const trackWrapper = outerRow.createDiv();
 	trackWrapper.style.cssText = "flex:0.5;position:relative;min-width:60px;";
 
-	// 刻度
-	if (step > 0) {
-		for (let v = min; v <= max; v += step) {
-			const isToday = todayValue !== undefined && v === todayValue;
-			const mark = trackWrapper.createDiv();
-			mark.style.cssText = `position:absolute;top:0;left:${((v - min) / range) * 100}%;transform:translateX(-50%);width:${isToday ? "2px" : "1px"};height:${isToday ? "16px" : "8px"};background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
-		}
-		if (
-			todayValue !== undefined &&
-			todayValue >= min &&
-			todayValue <= max &&
-			(todayValue - min) % step !== 0
-		) {
-			const mark = trackWrapper.createDiv();
-			mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:16px;background:var(--text-accent);opacity:1;z-index:1;`;
-		}
+	for (let v = min; v <= max; v += step) {
+		const isToday = todayValue !== undefined && v === todayValue;
+		const mark = trackWrapper.createDiv();
+		mark.style.cssText = `position:absolute;top:0;left:${((v - min) / range) * 100}%;transform:translateX(-50%);width:${isToday ? "2px" : "1px"};height:${isToday ? "16px" : "8px"};background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
+	}
+	if (
+		todayValue !== undefined &&
+		todayValue >= min &&
+		todayValue <= max &&
+		(todayValue - min) % step !== 0
+	) {
+		const mark = trackWrapper.createDiv();
+		mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:16px;background:var(--text-accent);opacity:1;z-index:1;`;
 	}
 
-	// 中位线
 	const midLine = trackWrapper.createDiv();
 	midLine.style.cssText =
 		"position:absolute;top:-2px;width:1px;height:8px;background:var(--text-muted);opacity:0.5;z-index:1;";
@@ -270,7 +281,6 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		midLine.style.display = "none";
 	}
 
-	// 右侧文字
 	const labelSpan = outerRow.createSpan();
 	labelSpan.style.cssText = `font-size:var(--font-ui-smaller);width:${labelWidth || "160px"};min-width:${labelWidth || "160px"};max-width:${labelWidth || "160px"};text-align:left;flex-shrink:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
 
@@ -279,7 +289,6 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	labelSpan.textContent =
 		initS === initE ? format(initS) : `${format(initS)}~${format(initE)}`;
 
-	// 包装 onChange：拖动时自动更新文字
 	const wrappedOnChange = (s: number, e: number) => {
 		const cs = clamp(Math.min(s, e), min, max);
 		const ce = clamp(Math.max(s, e), min, max);
@@ -288,7 +297,6 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		onChange(cs, ce);
 	};
 
-	// 纯滑动条（使用包装后的 onChange）
 	const slider = createSlider({
 		container: trackWrapper,
 		min,
