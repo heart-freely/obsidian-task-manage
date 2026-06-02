@@ -1,7 +1,7 @@
 // src/ui/views/all-tasks-view.ts
 import { PRIORITY_ORDER } from "../../configs/configs";
 import { filterTasks } from "../../process/bars/bars-process";
-import { getAllTasks } from "../../process/tasks/read-process";
+import { getAllTasks } from "../../process/tasks/read-task";
 import { GlobalFilter } from "../../types";
 import { renderKanban } from "../components/boards/kanban-board";
 import { renderMatrix } from "../components/boards/matrix-board";
@@ -35,7 +35,7 @@ export class AllTasksView extends BaseTaskView {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		const activeFilter: GlobalFilter =
-			state.draftFilter ?? preset?.filter ?? this.getDefaultFilter();
+			preset?.filter ?? this.getDefaultFilter();
 		const currentStyle = preset?.viewStyle ?? "table";
 		const intervalMode = (preset as any)?.intervalMode ?? "scheduled-due";
 

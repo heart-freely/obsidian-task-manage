@@ -1,9 +1,6 @@
 // src/ui/bars/hide-bar.ts
-import { getDefaultFilter } from "../../configs/configs";
 import { Store } from "../../store/store";
-import { GlobalFilter } from "../../types";
 
-// 扩展后的表格列定义
 const EXTENDED_TABLE_COLUMNS = [
 	{ key: "status", label: "状态" },
 	{ key: "content", label: "描述" },
@@ -20,7 +17,6 @@ const EXTENDED_TABLE_COLUMNS = [
 	{ key: "forbid", label: "引用ID" },
 ];
 
-// 扩展后的默认列显隐状态（true=显示，false=隐藏）
 const EXTENDED_DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
 	status: true,
 	content: true,
@@ -54,10 +50,22 @@ export class HideBar {
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
 
-		const currentFilter: GlobalFilter =
-			state.draftFilter ?? preset.filter ?? getDefaultFilter();
+		const currentFilter = preset.filter;
 
-		// 隐藏控制行
+		const updateFilter = (key: string) => {
+			const state = this.store.getState();
+			const preset = this.store.getActivePreset();
+			if (!preset) return;
+			const newFilter = {
+				...preset.filter,
+				[key]: !(preset.filter as any)[key],
+			};
+			const newPresets = state.presets.map((p) =>
+				p.id === preset.id ? { ...p, filter: newFilter } : p,
+			);
+			this.store.update({ presets: newPresets });
+		};
+
 		const row = this.container.createDiv({ cls: "bar-row" });
 		row.createSpan({ text: "隐藏", cls: "filter-label" });
 
@@ -67,7 +75,7 @@ export class HideBar {
 			cls: "bar-btn",
 		});
 		if (hideRepeat) repeatBtn.addClass("active");
-		repeatBtn.onclick = () => this.toggleFilter("hideRepeat");
+		repeatBtn.onclick = () => updateFilter("hideRepeat");
 
 		const hideCompleted = currentFilter.hideCompleted === true;
 		const completedBtn = row.createEl("button", {
@@ -75,7 +83,7 @@ export class HideBar {
 			cls: "bar-btn",
 		});
 		if (hideCompleted) completedBtn.addClass("active");
-		completedBtn.onclick = () => this.toggleFilter("hideCompleted");
+		completedBtn.onclick = () => updateFilter("hideCompleted");
 
 		const hideCancelled = currentFilter.hideCancelled === true;
 		const cancelledBtn = row.createEl("button", {
@@ -83,7 +91,7 @@ export class HideBar {
 			cls: "bar-btn",
 		});
 		if (hideCancelled) cancelledBtn.addClass("active");
-		cancelledBtn.onclick = () => this.toggleFilter("hideCancelled");
+		cancelledBtn.onclick = () => updateFilter("hideCancelled");
 
 		const hideFolders = (currentFilter as any).hideFolders === true;
 		const folderBtn = row.createEl("button", {
@@ -91,9 +99,8 @@ export class HideBar {
 			cls: "bar-btn",
 		});
 		if (hideFolders) folderBtn.addClass("active");
-		folderBtn.onclick = () => this.toggleFilter("hideFolders");
+		folderBtn.onclick = () => updateFilter("hideFolders");
 
-		// 表格列控制行
 		const colRow = this.container.createDiv({ cls: "bar-row" });
 		colRow.createSpan({ text: "表格列", cls: "filter-label" });
 		const columns = preset.tableColumns ?? EXTENDED_DEFAULT_TABLE_COLUMNS;
@@ -104,54 +111,21 @@ export class HideBar {
 				cls: "bar-btn",
 			});
 			if (isHidden) btn.addClass("active");
-			btn.onclick = () => this.toggleTableColumn(col.key);
+			btn.onclick = () => {
+				const state = this.store.getState();
+				const preset = this.store.getActivePreset();
+				if (!preset) return;
+				const currentColumns =
+					preset.tableColumns ?? EXTENDED_DEFAULT_TABLE_COLUMNS;
+				const newColumns = {
+					...currentColumns,
+					[col.key]: !currentColumns[col.key],
+				};
+				const newPresets = state.presets.map((p) =>
+					p.id === preset.id ? { ...p, tableColumns: newColumns } : p,
+				);
+				this.store.update({ presets: newPresets });
+			};
 		});
-	}
-
-	private toggleFilter(key: string) {
-		const state = this.store.getState();
-		const preset = this.store.getActivePreset();
-		if (!preset) return;
-		const currentFilter: GlobalFilter =
-			state.draftFilter ?? preset.filter ?? this.getDefaultFilter();
-		const newFilter = {
-			...currentFilter,
-			[key]: !(currentFilter as any)[key],
-		};
-		this.store.update({ draftFilter: newFilter });
-	}
-
-	private toggleTableColumn(colKey: string) {
-		const state = this.store.getState();
-		const preset = state.presets.find((p) => p.id === state.activePresetId);
-		if (!preset) return;
-		const columns = {
-			...(preset.tableColumns ?? EXTENDED_DEFAULT_TABLE_COLUMNS),
-		};
-		columns[colKey] = !columns[colKey];
-		const newPresets = state.presets.map((p) =>
-			p.id === preset.id ? { ...p, tableColumns: columns } : p,
-		);
-		this.store.update({ presets: newPresets });
-	}
-
-	private getDefaultFilter(): GlobalFilter {
-		return {
-			dateRange: { start: null, end: null, isAll: true },
-			statuses: [
-				"todo",
-				"planned",
-				"in-progress",
-				"completed",
-				"cancelled",
-			],
-			includeMarks: [],
-			excludeMarks: [],
-			hideRepeat: true,
-			hideCompleted: true,
-			hideCancelled: true,
-			rootPath: null,
-			hideFolders: true,
-		};
 	}
 }

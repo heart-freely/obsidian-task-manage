@@ -1,5 +1,5 @@
 import { filterTasks } from "../../process/bars/bars-process";
-import { fetchTodayTasksGrouped } from "../../process/views/task-query-process";
+import { fetchTodayTasksGrouped } from "../../process/tasks/query-task";
 import { GlobalFilter } from "../../types";
 import { renderTaskList } from "../components/lists/list";
 import { BaseTaskView } from "./base-view";
@@ -12,17 +12,16 @@ export class TodayView extends BaseTaskView {
 		// 获取当前筛选条件：优先使用 draftFilter，否则使用当前方案的 filter
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
-		const activeFilter: GlobalFilter = state.draftFilter ??
-			preset?.filter ?? {
-				dateRange: { start: null, end: null, isAll: true },
-				statuses: ["todo", "planned", "in-progress"],
-				includeMarks: [],
-				excludeMarks: [],
-				hideRepeat: true,
-				hideCompleted: true,
-				hideCancelled: true,
-				rootPath: null,
-			};
+		const activeFilter: GlobalFilter = preset?.filter ?? {
+			dateRange: { start: null, end: null, isAll: true },
+			statuses: ["todo", "planned", "in-progress"],
+			includeMarks: [],
+			excludeMarks: [],
+			hideRepeat: true,
+			hideCompleted: true,
+			hideCancelled: true,
+			rootPath: null,
+		};
 
 		try {
 			const { groups } = await fetchTodayTasksGrouped(this.app);

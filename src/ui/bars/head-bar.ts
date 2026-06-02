@@ -1,7 +1,7 @@
 // src/ui/bars/head-bar.ts
 import { Store } from "../../store/store";
 
-export const BAR_LABELS: Record<string, string> = {
+const BAR_LABELS: Record<string, string> = {
 	time: "任务时间",
 	excut: "任务状态",
 	search: "任务描述",
@@ -26,13 +26,10 @@ export class HeadBar {
 	}
 
 	destroy() {
-		if (this.unsub) {
-			this.unsub();
-			this.unsub = null;
-		}
-		if (this.buttonBar && this.buttonBar.parentNode) {
+		this.unsub?.();
+		this.unsub = null;
+		if (this.buttonBar?.parentNode)
 			this.buttonBar.parentNode.removeChild(this.buttonBar);
-		}
 		this.buttonBar = null;
 	}
 
@@ -42,7 +39,6 @@ export class HeadBar {
 			this.buttonBar.className = "toolbar-buttons";
 		}
 		this.buttonBar.innerHTML = "";
-
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
@@ -59,16 +55,17 @@ export class HeadBar {
 			"config",
 		];
 
-		this.buttonBar.style.paddingLeft = "0";
-		this.buttonBar.style.display = "flex";
-		this.buttonBar.style.flexWrap = "nowrap";
-		this.buttonBar.style.overflowX = "auto";
-		this.buttonBar.style.background = "var(--background-secondary)";
-		this.buttonBar.style.border =
-			"1px solid var(--background-modifier-border)";
-		this.buttonBar.style.borderRadius = "6px";
-		this.buttonBar.style.boxSizing = "border-box";
-		this.buttonBar.style.gap = "0";
+		Object.assign(this.buttonBar.style, {
+			paddingLeft: "0",
+			display: "flex",
+			flexWrap: "nowrap",
+			overflowX: "auto",
+			background: "var(--background-secondary)",
+			border: "1px solid var(--background-modifier-border)",
+			borderRadius: "6px",
+			boxSizing: "border-box",
+			gap: "0",
+		});
 
 		let draggedKey: string | null = null;
 
@@ -77,10 +74,7 @@ export class HeadBar {
 			btnDiv.className = "toolbar-btn-item";
 			btnDiv.setAttribute("data-key", barKey);
 			btnDiv.draggable = true;
-
-			if (index < arr.length - 1) {
-				btnDiv.style.marginRight = "6px";
-			}
+			if (index < arr.length - 1) btnDiv.style.marginRight = "6px";
 
 			const label = document.createElement("span");
 			label.className = "toolbar-btn-label";
@@ -94,15 +88,23 @@ export class HeadBar {
 			eyeBtn.style.opacity = isVisible ? "1" : "0.4";
 			if (isVisible) btnDiv.classList.add("active");
 			eyeBtn.title = isVisible ? "隐藏面板" : "显示面板";
-
 			eyeBtn.onclick = (e: Event) => {
 				e.stopPropagation();
 				document.dispatchEvent(new CustomEvent("toolbar-expand"));
+				const st = this.store.getState();
+				const pr = st.presets.find((p) => p.id === st.activePresetId);
+				if (!pr) return;
 				const newVisibility = {
-					...barVisibility,
+					...pr.barVisibility,
 					[barKey]: !isVisible,
 				};
-				this.updatePreset({ barVisibility: newVisibility });
+				this.store.update({
+					presets: st.presets.map((p) =>
+						p.id === pr.id
+							? { ...p, barVisibility: newVisibility }
+							: p,
+					),
+				});
 			};
 			btnDiv.appendChild(eyeBtn);
 
@@ -130,12 +132,24 @@ export class HeadBar {
 				e.preventDefault();
 				btnDiv.classList.remove("drag-over");
 				if (draggedKey && draggedKey !== barKey) {
-					const fromIndex = toolbarOrder.indexOf(draggedKey);
-					const toIndex = toolbarOrder.indexOf(barKey);
-					const newOrder = [...toolbarOrder];
+					const st = this.store.getState();
+					const pr = st.presets.find(
+						(p) => p.id === st.activePresetId,
+					);
+					if (!pr) return;
+					const order = pr.toolbarOrder ?? toolbarOrder;
+					const fromIndex = order.indexOf(draggedKey);
+					const toIndex = order.indexOf(barKey);
+					const newOrder = [...order];
 					newOrder.splice(fromIndex, 1);
 					newOrder.splice(toIndex, 0, draggedKey);
-					this.updatePreset({ toolbarOrder: newOrder });
+					this.store.update({
+						presets: st.presets.map((p) =>
+							p.id === pr.id
+								? { ...p, toolbarOrder: newOrder }
+								: p,
+						),
+					});
 				}
 			});
 
@@ -145,15 +159,5 @@ export class HeadBar {
 
 	getElement(): HTMLElement | null {
 		return this.buttonBar;
-	}
-
-	private updatePreset(changes: Partial<any>) {
-		const state = this.store.getState();
-		const preset = state.presets.find((p) => p.id === state.activePresetId);
-		if (!preset) return;
-		const newPresets = state.presets.map((p) =>
-			p.id === preset.id ? { ...p, ...changes } : p,
-		);
-		this.store.update({ presets: newPresets });
 	}
 }

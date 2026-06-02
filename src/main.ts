@@ -5,7 +5,7 @@ import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "./configs/configs";
 import { TaskManageSettingTab } from "./settings";
 import { Store } from "./store/store";
 import { AppState, GlobalFilter, Preset } from "./types";
-import { NavigatorView } from "./ui/layout/layout";
+import { NavigatorView } from "./ui/ui";
 
 export default class TaskManagePlugin extends Plugin {
 	store!: Store;
@@ -66,7 +66,7 @@ export default class TaskManagePlugin extends Plugin {
 					config: true,
 				},
 				filter: { ...defaultFilter, statuses: ["todo", "planned"] },
-				sort: { type: "status", order: "asc" as "asc" },
+				sort: { type: "status", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
 			},
@@ -105,7 +105,7 @@ export default class TaskManagePlugin extends Plugin {
 					...defaultFilter,
 					statuses: ["todo", "planned", "in-progress"],
 				},
-				sort: { type: "priority", order: "asc" as "asc" },
+				sort: { type: "priority", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
 			},
@@ -144,7 +144,7 @@ export default class TaskManagePlugin extends Plugin {
 					...defaultFilter,
 					statuses: ["todo", "planned", "in-progress"],
 				},
-				sort: { type: "status", order: "asc" as "asc" },
+				sort: { type: "status", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
 			},
@@ -180,7 +180,7 @@ export default class TaskManagePlugin extends Plugin {
 					config: true,
 				},
 				filter: { ...defaultFilter },
-				sort: { type: "due", order: "asc" as "asc" },
+				sort: { type: "due", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
 			},
@@ -216,7 +216,7 @@ export default class TaskManagePlugin extends Plugin {
 					config: true,
 				},
 				filter: { ...defaultFilter },
-				sort: { type: "scheduled", order: "asc" as "asc" },
+				sort: { type: "scheduled", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
 			},
@@ -252,13 +252,12 @@ export default class TaskManagePlugin extends Plugin {
 					config: true,
 				},
 				filter: { ...defaultFilter },
-				sort: { type: "status", order: "asc" as "asc" },
+				sort: { type: "status", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
 			},
 		];
 
-		// 深度合并保存的预设
 		const savedPresets: Preset[] = savedData.presets || [];
 		const mergedPresets: Preset[] = [];
 
@@ -314,7 +313,6 @@ export default class TaskManagePlugin extends Plugin {
 			}
 		}
 
-		// 补充用户自定义视图
 		for (const sp of savedPresets) {
 			if (!mergedPresets.find((p) => p.id === sp.id)) {
 				mergedPresets.push(sp);
@@ -327,7 +325,6 @@ export default class TaskManagePlugin extends Plugin {
 			presetGroups: [{ id: "basic", name: "任务视图", order: 0 }],
 			sidebarCollapsed: savedData.sidebarCollapsed ?? false,
 			sidebarWidth: savedData.sidebarWidth || 100,
-			draftFilter: null,
 		};
 
 		this.store = new Store(initialState);
@@ -347,7 +344,6 @@ export default class TaskManagePlugin extends Plugin {
 			this.activateView("navigator-view");
 		});
 
-		// 自动恢复之前打开的视图
 		const wasViewOpen = savedData.wasViewOpen === true;
 		this.app.workspace.onLayoutReady(() => {
 			const leaves = this.app.workspace.getLeavesOfType("navigator-view");
@@ -362,23 +358,9 @@ export default class TaskManagePlugin extends Plugin {
 	async onunload() {
 		if (this.store) {
 			const state = this.store.getState();
-			// 自动将未保存的草稿合并到当前预设
-			let presets = state.presets;
-			if (state.draftFilter && state.activePresetId) {
-				presets = state.presets.map((p) =>
-					p.id === state.activePresetId
-						? { ...p, filter: state.draftFilter! }
-						: p,
-				);
-			}
 			const wasViewOpen =
 				this.app.workspace.getLeavesOfType("navigator-view").length > 0;
-			await this.saveData({
-				...state,
-				presets,
-				draftFilter: null,
-				wasViewOpen,
-			});
+			await this.saveData({ ...state, wasViewOpen });
 		}
 		document
 			.querySelectorAll(".toolbar-buttons")

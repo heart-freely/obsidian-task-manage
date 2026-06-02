@@ -4,8 +4,8 @@ import {
 	loadSnapshots,
 	Op,
 	writeToFiles,
-} from "../../process/edits/edits-process";
-import { getAllTasks } from "../../process/tasks/read-process";
+} from "../../process/tasks/edits-task";
+import { getAllTasks } from "../../process/tasks/read-task";
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 
@@ -53,7 +53,7 @@ export class OrganizeView extends BaseTaskView {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		const activeFilter: GlobalFilter =
-			state.draftFilter ?? preset?.filter ?? this.getDefaultFilter();
+			preset?.filter ?? this.getDefaultFilter();
 
 		try {
 			const dv = this.app.plugins?.plugins?.dataview?.api;

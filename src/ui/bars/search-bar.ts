@@ -1,6 +1,5 @@
 // src/ui/bars/search-bar.ts
 import { Store } from "../../store/store";
-import { GlobalFilter } from "../../types";
 
 export class SearchBar {
 	private container: HTMLElement;
@@ -17,10 +16,10 @@ export class SearchBar {
 	render() {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
-		const currentFilter: GlobalFilter =
-			state.draftFilter ?? preset?.filter ?? this.defaultFilter();
+		if (!preset) return;
 
-		// 若已存在输入框，仅同步值，不重新创建
+		const currentFilter = preset.filter;
+
 		const existingInput = this.container.querySelector(
 			"input",
 		) as HTMLInputElement;
@@ -37,7 +36,7 @@ export class SearchBar {
 			type: "text",
 			cls: "filter-input",
 			attr: {
-				placeholder: "输入任务描述关键词，多个用空格分隔，如：xxx xxx",
+				placeholder: "输入任务描述关键词，多个用空格分隔",
 				size: "40",
 			},
 		});
@@ -46,31 +45,17 @@ export class SearchBar {
 		input.addEventListener("input", () => {
 			this.currentValue = input.value;
 			const val = input.value.trim();
+			const state = this.store.getState();
+			const preset = this.store.getActivePreset();
+			if (!preset) return;
 			const newFilter = {
-				...currentFilter,
+				...preset.filter,
 				searchText: val || undefined,
 			};
-			this.store.update({ draftFilter: newFilter });
+			const newPresets = state.presets.map((p) =>
+				p.id === preset.id ? { ...p, filter: newFilter } : p,
+			);
+			this.store.update({ presets: newPresets });
 		});
-	}
-
-	private defaultFilter(): GlobalFilter {
-		return {
-			dateRange: { start: null, end: null, isAll: true },
-			statuses: [
-				"todo",
-				"planned",
-				"in-progress",
-				"completed",
-				"cancelled",
-			],
-			includeMarks: [],
-			excludeMarks: [],
-			hideRepeat: false,
-			hideCompleted: false,
-			hideCancelled: false,
-			rootPath: null,
-			hideFolders: false,
-		};
 	}
 }

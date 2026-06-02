@@ -71,6 +71,9 @@ export class ViewBar {
 				});
 				if (key === currentStyle) btn.addClass("active");
 				btn.onclick = () => {
+					const state = this.store.getState();
+					const preset = this.store.getActivePreset();
+					if (!preset) return;
 					const newPresets = state.presets.map((p) =>
 						p.id === preset.id ? { ...p, viewStyle: key } : p,
 					);

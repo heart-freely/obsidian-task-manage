@@ -37,11 +37,11 @@ export interface GlobalFilter {
 	rootPath: string | null;
 	hideFolders?: boolean;
 	searchText?: string;
-	priorityValues?: string[]; // 新增
-	repeatCycles?: string[]; // 新增
+	priorityValues?: string[];
+	repeatCycles?: string[];
 }
 
-/** 方案（Preset） */
+/** 方案 */
 export interface Preset {
 	id: string;
 	name: string;
@@ -51,23 +51,17 @@ export interface Preset {
 	icon?: string;
 	filter: GlobalFilter;
 	sort: { type: string; order: "asc" | "desc" };
-	showManagePanel?: boolean; // 是否显示配置管理面板
-	manageBars?: {
-		// 各子栏显示状态
-		time: boolean;
-		mark: boolean;
-		excut: boolean;
-	};
-	showToolbar?: boolean; // 是否显示工具栏
-	toolbarOrder?: string[]; // 工具栏各栏排序 ['time','mark','excut','view']
-	barVisibility?: Record<string, boolean>; // 各栏显隐状态
+	showToolbar?: boolean;
+	toolbarOrder?: string[];
+	barVisibility?: Record<string, boolean>;
 	showHidden?: boolean;
-	toolbarEverShown?: boolean; // 是否已至少展开过一次工具栏
-	searchText?: string; // 任务描述搜索关键词
-	tableColumns?: Record<string, boolean>; // 表格列显隐状态，默认全显示
+	toolbarEverShown?: boolean;
+	searchText?: string;
+	tableColumns?: Record<string, boolean>;
 	toolbarPanelsCollapsed?: boolean;
 	toolbarPanelsHeight?: number;
-	useDynamic?: boolean; // 是否使用动态时间
+	useDynamic?: boolean;
+	intervalMode?: string;
 }
 
 /** 方案分组 */
@@ -85,5 +79,4 @@ export interface AppState {
 	presetGroups: PresetGroup[];
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
-	draftFilter: GlobalFilter | null;
 }

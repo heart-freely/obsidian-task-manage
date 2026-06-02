@@ -3,7 +3,7 @@ import { filterTasks } from "../../process/bars/bars-process";
 import {
 	fetchInboxTasks,
 	processInboxTasks,
-} from "../../process/views/inbox-task-process";
+} from "../../process/components/inbox-task-process";
 import { GlobalFilter } from "../../types";
 import { renderKanban } from "../components/boards/kanban-board";
 import { renderTaskList } from "../components/lists/list";
@@ -19,7 +19,7 @@ export class InboxView extends BaseTaskView {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		const activeFilter: GlobalFilter =
-			state.draftFilter ?? preset?.filter ?? this.getDefaultFilter();
+			preset?.filter ?? this.getDefaultFilter();
 		const currentStyle = preset?.viewStyle ?? "list";
 
 		try {

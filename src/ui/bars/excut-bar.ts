@@ -1,60 +1,57 @@
+// src/ui/bars/excut-bar.ts
 import { ALLOWED_STATUSES } from "../../configs/configs";
 import { Store } from "../../store/store";
-import { GlobalFilter } from "../../types";
 
 export class ExcutBar {
+	private container: HTMLElement;
+	private store: Store;
+
 	constructor(container: HTMLElement, store: Store) {
-		const render = () => {
-			container.empty();
-			const state = store.getState();
-			const preset = store.getActivePreset();
-			const currentFilter: GlobalFilter =
-				state.draftFilter ?? preset?.filter ?? this.defaultFilter();
-
-			const row = container.createDiv({ cls: "filter-row" });
-			row.createSpan({ text: "执行状态", cls: "filter-label" });
-			const statusLabels: Record<string, string> = {
-				todo: "未开始",
-				planned: "计划中",
-				"in-progress": "进行中",
-				completed: "已完成",
-				cancelled: "已取消",
-			};
-			ALLOWED_STATUSES.forEach((st) => {
-				const btn = row.createEl("button", {
-					text: statusLabels[st] || st,
-					cls: "filter-btn",
-				});
-				if (currentFilter.statuses.includes(st)) btn.addClass("active");
-				btn.onclick = () => {
-					const newStatuses = currentFilter.statuses.includes(st)
-						? currentFilter.statuses.filter((s) => s !== st)
-						: [...currentFilter.statuses, st];
-					store.update({
-						draftFilter: {
-							...currentFilter,
-							statuses: newStatuses,
-						},
-					});
-				};
-			});
-		};
-
-		store.subscribe(render);
-		render();
+		this.container = container;
+		this.store = store;
+		this.store.subscribe(() => this.render());
+		this.render();
 	}
 
-	private defaultFilter(): GlobalFilter {
-		return {
-			dateRange: { start: null, end: null, isAll: true },
-			statuses: ALLOWED_STATUSES,
-			includeMarks: [],
-			excludeMarks: [],
-			hideRepeat: false,
-			hideCompleted: false,
-			hideCancelled: false,
-			rootPath: null,
-			hideFolders: false,
+	render() {
+		this.container.empty();
+		const state = this.store.getState();
+		const preset = this.store.getActivePreset();
+		if (!preset) return;
+
+		const currentFilter = preset.filter;
+		const row = this.container.createDiv({ cls: "filter-row" });
+		row.createSpan({ text: "执行状态", cls: "filter-label" });
+
+		const statusLabels: Record<string, string> = {
+			todo: "未开始",
+			planned: "计划中",
+			"in-progress": "进行中",
+			completed: "已完成",
+			cancelled: "已取消",
 		};
+
+		ALLOWED_STATUSES.forEach((st) => {
+			const btn = row.createEl("button", {
+				text: statusLabels[st] || st,
+				cls: "filter-btn",
+			});
+			if (currentFilter.statuses.includes(st)) btn.addClass("active");
+			btn.onclick = () => {
+				const state = this.store.getState();
+				const preset = this.store.getActivePreset();
+				if (!preset) return;
+				const filter = preset.filter;
+				const newStatuses = filter.statuses.includes(st)
+					? filter.statuses.filter((s) => s !== st)
+					: [...filter.statuses, st];
+				const newPresets = state.presets.map((p) =>
+					p.id === preset.id
+						? { ...p, filter: { ...filter, statuses: newStatuses } }
+						: p,
+				);
+				this.store.update({ presets: newPresets });
+			};
+		});
 	}
 }

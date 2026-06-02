@@ -51,6 +51,9 @@ export class SortBar {
 				btn.addClass("active");
 			}
 			btn.onclick = () => {
+				const state = this.store.getState();
+				const preset = this.store.getActivePreset();
+				if (!preset) return;
 				const newOrder =
 					currentSort.type === opt.type
 						? currentSort.order === "asc"

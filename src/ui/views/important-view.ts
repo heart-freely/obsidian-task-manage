@@ -1,5 +1,5 @@
 import { filterTasks } from "../../process/bars/bars-process";
-import { fetchImportantTasksByStatus } from "../../process/views/task-query-process";
+import { fetchImportantTasksByStatus } from "../../process/tasks/query-task";
 import { GlobalFilter } from "../../types";
 // 修改1
 import { renderKanban } from "../components/boards/kanban-board";
@@ -17,7 +17,7 @@ export class ImportantView extends BaseTaskView {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		const activeFilter: GlobalFilter =
-			state.draftFilter ?? preset?.filter ?? this.getDefaultFilter();
+			preset?.filter ?? this.getDefaultFilter();
 		const currentStyle = preset?.viewStyle ?? "list";
 
 		try {
