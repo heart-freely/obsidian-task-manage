@@ -2,6 +2,7 @@
 import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "../../configs/configs";
 import { Store } from "../../store/store";
 import { GlobalFilter, Preset } from "../../types";
+import { ToolbarManager } from "./bars";
 
 const DEFAULT_FILTER: GlobalFilter = {
 	dateRange: { start: null, end: null, isAll: true },
@@ -82,6 +83,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		filter: {
 			...DEFAULT_FILTER,
 			statuses: ["todo", "planned", "in-progress"],
+			priorityValues: ["🔺", "⏫", "🔼"],
 		},
 		sort: { type: "priority", order: "asc" as const },
 		intervalMode: "scheduled-due",
@@ -121,40 +123,7 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		},
 		sort: { type: "status", order: "asc" as const },
 		intervalMode: "scheduled-due",
-		useDynamic: false,
-	},
-	overdue: {
-		businessView: "overdue",
-		viewStyle: "list",
-		icon: "⏰",
-		showToolbar: false,
-		toolbarEverShown: false,
-		toolbarPanelsCollapsed: false,
-		toolbarPanelsHeight: 300,
-		toolbarOrder: [
-			"excut",
-			"search",
-			"mark",
-			"time",
-			"view",
-			"hide",
-			"sort",
-			"config",
-		],
-		barVisibility: {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-		},
-		filter: { ...DEFAULT_FILTER },
-		sort: { type: "due", order: "asc" as const },
-		intervalMode: "scheduled-due",
-		useDynamic: false,
+		useDynamic: true,
 	},
 	future: {
 		businessView: "future",
@@ -184,10 +153,13 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 			sort: true,
 			config: true,
 		},
-		filter: { ...DEFAULT_FILTER },
+		filter: {
+			...DEFAULT_FILTER,
+			statuses: ["todo", "planned", "in-progress"],
+		},
 		sort: { type: "scheduled", order: "asc" as const },
 		intervalMode: "scheduled-due",
-		useDynamic: false,
+		useDynamic: true,
 	},
 	"all-tasks": {
 		businessView: "allTasks",
@@ -242,13 +214,11 @@ export class ConfigBar {
 		if (!preset) return;
 
 		const updatePreset = (changes: Partial<Preset>) => {
-			const state = this.store.getState();
-			const preset = state.presets.find(
-				(p) => p.id === state.activePresetId,
-			);
-			if (!preset) return;
-			const newPresets = state.presets.map((p) =>
-				p.id === preset.id ? { ...p, ...changes } : p,
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const newPresets = st.presets.map((p) =>
+				p.id === pr.id ? { ...p, ...changes } : p,
 			);
 			this.store.update({ presets: newPresets });
 		};
@@ -292,9 +262,12 @@ export class ConfigBar {
 			input.accept = ".json";
 			input.onchange = async () => {
 				if (!input.files?.length) return;
-				const text = await input.files[0].text();
 				try {
-					updatePreset(JSON.parse(text) as Partial<Preset>);
+					updatePreset(
+						JSON.parse(
+							await input.files[0].text(),
+						) as Partial<Preset>,
+					);
 				} catch (e) {
 					alert("导入失败");
 				}
@@ -307,17 +280,15 @@ export class ConfigBar {
 			cls: "bar-btn",
 		});
 		exportBtn.onclick = () => {
-			const state = this.store.getState();
-			const preset = state.presets.find(
-				(p) => p.id === state.activePresetId,
-			);
-			if (!preset) return;
-			const blob = new Blob([JSON.stringify(preset, null, 2)], {
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const blob = new Blob([JSON.stringify(pr, null, 2)], {
 				type: "application/json",
 			});
 			const a = document.createElement("a");
 			a.href = URL.createObjectURL(blob);
-			a.download = `task-view-${preset.name}.json`;
+			a.download = `task-view-${pr.name}.json`;
 			a.click();
 		};
 
@@ -326,18 +297,13 @@ export class ConfigBar {
 			cls: "bar-btn",
 		});
 		resetBtn.onclick = () => {
-			const state = this.store.getState();
-			const preset = state.presets.find(
-				(p) => p.id === state.activePresetId,
-			);
-			if (!preset) return;
-			const defaults = PRESET_DEFAULTS[preset.id];
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const defaults = PRESET_DEFAULTS[pr.id];
 			if (!defaults) return;
-			updatePreset({
-				...defaults,
-				id: preset.id,
-				name: preset.name,
-			} as any);
+			updatePreset({ ...defaults, id: pr.id, name: pr.name } as any);
+			ToolbarManager.getInstance().refreshTimeBar();
 		};
 
 		const delBtn = row4.createEl("button", {
@@ -345,12 +311,10 @@ export class ConfigBar {
 			cls: "bar-btn",
 		});
 		delBtn.onclick = () => {
-			const state = this.store.getState();
-			const preset = state.presets.find(
-				(p) => p.id === state.activePresetId,
-			);
-			if (!preset) return;
-			const newPresets = state.presets.filter((p) => p.id !== preset.id);
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const newPresets = st.presets.filter((p) => p.id !== pr.id);
 			const newActive = newPresets.length > 0 ? newPresets[0].id : null;
 			this.store.update({
 				presets: newPresets,

@@ -257,10 +257,11 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	const trackWrapper = outerRow.createDiv();
 	trackWrapper.style.cssText = "flex:0.5;position:relative;min-width:60px;";
 
+	// 刻度标记
 	for (let v = min; v <= max; v += step) {
 		const isToday = todayValue !== undefined && v === todayValue;
 		const mark = trackWrapper.createDiv();
-		mark.style.cssText = `position:absolute;top:0;left:${((v - min) / range) * 100}%;transform:translateX(-50%);width:${isToday ? "2px" : "1px"};height:${isToday ? "16px" : "8px"};background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
+		mark.style.cssText = `position:absolute;top:0;left:${((v - min) / range) * 100}%;transform:translateX(-50%);width:${isToday ? "2px" : "1px"};height:8px;background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
 	}
 	if (
 		todayValue !== undefined &&
@@ -269,9 +270,10 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		(todayValue - min) % step !== 0
 	) {
 		const mark = trackWrapper.createDiv();
-		mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:16px;background:var(--text-accent);opacity:1;z-index:1;`;
+		mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:8px;background:var(--text-accent);opacity:1;z-index:1;`;
 	}
 
+	// 中位线
 	const midLine = trackWrapper.createDiv();
 	midLine.style.cssText =
 		"position:absolute;top:-2px;width:1px;height:8px;background:var(--text-muted);opacity:0.5;z-index:1;";
@@ -281,6 +283,7 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		midLine.style.display = "none";
 	}
 
+	// 右侧文字
 	const labelSpan = outerRow.createSpan();
 	labelSpan.style.cssText = `font-size:var(--font-ui-smaller);width:${labelWidth || "160px"};min-width:${labelWidth || "160px"};max-width:${labelWidth || "160px"};text-align:left;flex-shrink:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
 

@@ -57,6 +57,7 @@ export class TimeBar {
 	private useDynamicBtn: HTMLElement | null = null;
 	private modeBtn: HTMLElement | null = null;
 	private unitBtns = new Map<string, HTMLElement>();
+	private dynamicSection: HTMLElement | null = null;
 	private staticSection: HTMLElement | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
@@ -70,6 +71,7 @@ export class TimeBar {
 		this.lastCheckedDate = DateUtils.formatDate(today);
 		this.currentMinYear = today.getFullYear();
 		this.currentMaxYear = today.getFullYear();
+
 		this.render();
 		this.dateCheckInterval = window.setInterval(
 			() => this.checkDateChange(),
@@ -91,6 +93,62 @@ export class TimeBar {
 		this.enhancedSliders.clear();
 		this.updateMidLines.clear();
 	}
+
+	/**
+	 * 预设切换时由 ToolbarManager 调用，更新状态而不重建 DOM
+	 */
+	public onPresetChanged() {
+		const pre = this.store.getActivePreset();
+		if (!pre) return;
+
+		this.intervalMode = pre.intervalMode ?? "scheduled-due";
+		this.useDynamic = pre.useDynamic ?? false;
+
+		const cf = pre.filter;
+		if (
+			cf &&
+			!cf.dateRange.isAll &&
+			cf.dateRange.start &&
+			cf.dateRange.end
+		) {
+			this.staticStart = DateUtils.setStart(new Date(cf.dateRange.start));
+			this.staticEnd = DateUtils.setEnd(new Date(cf.dateRange.end));
+			this.currentMinYear = this.staticStart.getFullYear();
+			this.currentMaxYear = this.staticEnd.getFullYear();
+			if (this.useDynamic) {
+				this.dynamicStart = DateUtils.setStart(
+					new Date(cf.dateRange.start),
+				);
+				this.dynamicEnd = DateUtils.setStart(
+					new Date(cf.dateRange.end),
+				);
+			}
+		} else if (!this.useDynamic) {
+			const today = new Date();
+			const cy = today.getFullYear();
+			this.staticStart = new Date(cy, 0, 1);
+			this.staticEnd = new Date(cy, 11, 31);
+			this.currentMinYear = cy;
+			this.currentMaxYear = cy;
+			this.childSlidersDrivenByYear = true;
+			this.dynamicStart = DateUtils.setStart(today);
+			this.dynamicEnd = DateUtils.setStart(today);
+			this.dynamicUnit = "day";
+		}
+
+		if (this.modeBtn) {
+			this.modeBtn.setText(
+				this.intervalMode === "scheduled-due"
+					? "计划~截止"
+					: "开始~完成",
+			);
+		}
+		this.syncUseDynamicButton();
+		this.rebuildStaticSliders();
+		this.rebuildDynamicSlider();
+	}
+
+	// ========== 事件 ==========
 
 	private registerWorkspaceEvent() {
 		const app = (window as any).app;
@@ -117,6 +175,8 @@ export class TimeBar {
 			if (!this.useDynamic) this.refreshDynamicUI();
 		}
 	}
+
+	// ========== 工具 ==========
 
 	private clamp(v: number, min: number, max: number): number {
 		return Math.max(min, Math.min(max, v));
@@ -160,6 +220,8 @@ export class TimeBar {
 		this.refreshAllStaticSliders();
 	}
 
+	// ========== 回调 ==========
+
 	private onDynamicChange(sv: number, ev: number) {
 		const { startDate, endDate } = datesFromLevel(
 			"dynamic",
@@ -176,8 +238,8 @@ export class TimeBar {
 	}
 
 	private onStaticChange(lv: string, sv: number, ev: number) {
-		const minV = Math.min(sv, ev);
-		const maxV = Math.max(sv, ev);
+		const minV = Math.min(sv, ev),
+			maxV = Math.max(sv, ev);
 		if (lv === "year") {
 			this.currentMinYear = minV;
 			this.currentMaxYear = maxV;
@@ -280,6 +342,8 @@ export class TimeBar {
 		else this.useDynamicBtn.removeClass("active");
 	}
 
+	// ========== 格式化 ==========
+
 	private fmtYear(x: number): string {
 		return `${x}`;
 	}
@@ -377,14 +441,13 @@ export class TimeBar {
 		return 0;
 	}
 
+	// ========== 动态滑块 ==========
+
 	private rebuildDynamicSlider() {
+		if (!this.dynamicSection?.parentNode) return;
 		this.enhancedSliders.get("dynamic")?.destroy();
 		this.enhancedSliders.delete("dynamic");
 		this.updateMidLines.delete("dynamic");
-		const dSec = this.container.querySelector(
-			".filter-section",
-		) as HTMLElement;
-		if (!dSec) return;
 		const dmx = this.maxDyn();
 		const dsVal = this.clamp(
 			calcDynamicOffset(this.dynamicStart, this.dynamicUnit),
@@ -399,7 +462,7 @@ export class TimeBar {
 		const minV = Math.min(dsVal, deVal),
 			maxV = Math.max(dsVal, deVal);
 		const result = createEnhancedSlider({
-			container: dSec,
+			container: this.dynamicSection,
 			min: -dmx,
 			max: dmx,
 			start: minV,
@@ -414,6 +477,8 @@ export class TimeBar {
 		this.updateMidLines.set("dynamic", result.updateMidLine);
 	}
 
+	// ========== 静态滑块 ==========
+
 	private rebuildStaticSliders() {
 		if (!this.staticSection) return;
 		["year", "quarter", "month", "week", "day"].forEach((key) => {
@@ -421,12 +486,10 @@ export class TimeBar {
 			this.enhancedSliders.delete(key);
 			this.updateMidLines.delete(key);
 		});
-
 		const { min: yearMin, max: yearMax } = this.yearRange();
 		const isSingle =
 			this.currentMinYear === this.currentMaxYear &&
 			this.childSlidersDrivenByYear;
-
 		let ranges: any;
 		if (isSingle) {
 			const y = this.currentMinYear;
@@ -455,8 +518,6 @@ export class TimeBar {
 			ranges.yearMax = yearMax;
 			this.currentMinYear = ranges.minYear;
 		}
-
-		// 始终从实际日期计算手柄位置
 		const vals = getLevelValues(
 			this.staticStart,
 			this.staticEnd,
@@ -483,7 +544,6 @@ export class TimeBar {
 						: lv === "week"
 							? vals.weekEnd
 							: vals.dayEnd;
-
 		this.createSlider(
 			"year",
 			ranges.yearMin,
@@ -555,6 +615,8 @@ export class TimeBar {
 		this.enhancedSliders.set(key, result.refs);
 		this.updateMidLines.set(key, result.updateMidLine);
 	}
+
+	// ========== UI 更新 ==========
 
 	private refreshDynamicUI() {
 		const ref = this.enhancedSliders.get("dynamic"),
@@ -702,6 +764,7 @@ export class TimeBar {
 		this.unitBtns.clear();
 		this.useDynamicBtn = null;
 		this.modeBtn = null;
+		this.dynamicSection = null;
 		this.staticSection = null;
 		this.initRange();
 
@@ -722,13 +785,18 @@ export class TimeBar {
 					new Date(cf.dateRange.start),
 				);
 				this.staticEnd = DateUtils.setEnd(new Date(cf.dateRange.end));
+				this.dynamicStart = DateUtils.setStart(
+					new Date(cf.dateRange.start),
+				);
+				this.dynamicEnd = DateUtils.setStart(
+					new Date(cf.dateRange.end),
+				);
 			}
 			this.currentMinYear = this.staticStart.getFullYear();
 			this.currentMaxYear = this.staticEnd.getFullYear();
 			this.childSlidersDrivenByYear = true;
 		}
 
-		// 模式
 		const mr = this.container.createDiv({ cls: "filter-row" });
 		mr.createSpan({ text: "模式", cls: "filter-label" });
 		this.modeBtn = mr.createEl("button", {
@@ -740,9 +808,10 @@ export class TimeBar {
 		});
 		this.modeBtn.onclick = () => this.onToggleMode();
 
-		// 动态
-		const dSec = this.container.createDiv({ cls: "filter-section" });
-		const uRow = dSec.createDiv({ cls: "filter-row" });
+		this.dynamicSection = this.container.createDiv({
+			cls: "filter-section",
+		});
+		const uRow = this.dynamicSection.createDiv({ cls: "filter-row" });
 		uRow.createSpan({ text: "动态", cls: "filter-label" });
 		(["年", "季", "月", "周", "日"] as const).forEach((u) => {
 			const k =
@@ -768,7 +837,6 @@ export class TimeBar {
 		this.useDynamicBtn.onclick = () => this.onToggleDynamic();
 		this.rebuildDynamicSlider();
 
-		// 静态
 		this.staticSection = this.container.createDiv({
 			cls: "filter-section",
 		});

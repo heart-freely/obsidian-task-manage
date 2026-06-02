@@ -36,7 +36,6 @@ export class ToolbarManager {
 	private resizeHandle: HTMLElement | null = null;
 	private headBar: HeadBar | null = null;
 	private barPanels: Map<string, HTMLElement> = new Map();
-	// 缓存已创建的 Bar 组件实例，避免重复创建
 	private barInstances: Map<string, any> = new Map();
 	private styleEl: HTMLStyleElement | null = null;
 
@@ -279,12 +278,28 @@ export class ToolbarManager {
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
 
+		const prevPresetId = (this as any)._prevPresetId;
+		if (prevPresetId && prevPresetId !== state.activePresetId) {
+			const instance = this.barInstances.get("time");
+			if (instance && typeof instance.onPresetChanged === "function") {
+				instance.onPresetChanged();
+			}
+		}
+		(this as any)._prevPresetId = state.activePresetId;
+
 		this.isVisible = preset.showToolbar === true;
 		this.isPanelsHidden = preset.toolbarPanelsCollapsed ?? false;
 		this.panelHeight = preset.toolbarPanelsHeight ?? 300;
 
 		this.applyVisibility();
 		this.refreshContent();
+	}
+
+	public refreshTimeBar() {
+		const instance = this.barInstances.get("time");
+		if (instance && typeof instance.onPresetChanged === "function") {
+			instance.onPresetChanged();
+		}
 	}
 
 	public applyVisibility() {
@@ -330,13 +345,11 @@ export class ToolbarManager {
 				activeEl.tagName === "TEXTAREA" ||
 				(activeEl as HTMLElement).isContentEditable);
 
-		// 移除不再需要的面板
 		const newKeys = new Set(visibleKeys);
 		for (const [key, panel] of this.barPanels) {
 			if (!newKeys.has(key)) {
 				panel.remove();
 				this.barPanels.delete(key);
-				// 销毁对应的 Bar 实例
 				const instance = this.barInstances.get(key);
 				if (instance && typeof instance.destroy === "function") {
 					instance.destroy();
@@ -367,7 +380,6 @@ export class ToolbarManager {
 			return;
 		}
 
-		// 只为新出现的面板创建实例，已存在的面板保持不动
 		for (const key of visibleKeys) {
 			if (!this.barPanels.has(key)) {
 				const panel = document.createElement("div");
@@ -382,7 +394,6 @@ export class ToolbarManager {
 					this.barInstances.set(key, instance);
 				}
 			}
-			// 已存在的面板不重新创建，Bar 组件通过 store.subscribe 自行更新
 		}
 	}
 
@@ -431,7 +442,6 @@ export class ToolbarManager {
 	destroy() {}
 
 	cleanupAll() {
-		// 销毁所有 Bar 实例
 		for (const [, instance] of this.barInstances) {
 			if (instance && typeof instance.destroy === "function") {
 				instance.destroy();

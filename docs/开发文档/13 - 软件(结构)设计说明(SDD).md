@@ -3540,7 +3540,6 @@ new BarComponent(container: HTMLElement, store: Store)
 
 在查询面板中设置为默认的筛选器组合，
 
-- 指定路径 `pages/A 系统/A 任务系统`，指定文件名包含“任务”。
 - 查询未开始、计划中、进行中的任务。查询优先级为 🔺、⏫、🔼 的任务。
 - 按任务优先级分组升序，再按状态名称分组排序（未开始→计划中→进行中→已放弃→已完成→非任务），最后按截止时间从小到大排列。
 
@@ -3567,9 +3566,7 @@ new BarComponent(container: HTMLElement, store: Store)
     - 重要任务过滤函数
 ```
 
-#### 新架构下的业务视图
 
-上述业务视图均已实现为独立的类（`InboxView`、`TodayView`、`ImportantView` 等），它们继承 `BaseTaskView`，根据侧边栏视图方案中的 `businessView` 加载。每个业务视图通过 `render` 方法获取数据、应用筛选、按 `viewStyle` 选择通用组件渲染，并可由工具栏中的“任务视图”栏切换展示样式。
 
 ## 持久化设计
 

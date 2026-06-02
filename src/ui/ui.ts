@@ -7,7 +7,7 @@ import { ToolbarManager } from "./bars/bars";
 import { SideBar } from "./bars/side-bar";
 import { BaseTaskView } from "./views/base-view";
 
-// ========== NavigatorView（原 layout.ts） ==========
+// ========== NavigatorView ==========
 
 export class NavigatorView extends ItemView {
 	protected store: Store;
@@ -21,11 +21,9 @@ export class NavigatorView extends ItemView {
 	getViewType(): string {
 		return "navigator-view";
 	}
-
 	getDisplayText(): string {
 		return "任务导航中心";
 	}
-
 	getIcon(): string {
 		return "compass";
 	}
@@ -33,7 +31,6 @@ export class NavigatorView extends ItemView {
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
-
 		const viewHeader = this.containerEl.querySelector(".view-header");
 		if (viewHeader) {
 			(viewHeader as HTMLElement).style.setProperty(
@@ -42,7 +39,6 @@ export class NavigatorView extends ItemView {
 				"important",
 			);
 		}
-
 		this.cleanup = createNavigatorLayout(container, this.store, this.app);
 	}
 
@@ -52,7 +48,7 @@ export class NavigatorView extends ItemView {
 	}
 }
 
-// ========== ViewContainer（原 panel.ts） ==========
+// ========== ViewContainer ==========
 
 const VIEW_LOADERS: Record<
 	string,
@@ -63,7 +59,6 @@ const VIEW_LOADERS: Record<
 	important: () =>
 		import("./views/important-view").then((m) => m.ImportantView),
 	today: () => import("./views/today-view").then((m) => m.TodayView),
-	overdue: () => import("./views/overdue-view").then((m) => m.OverdueView),
 	future: () => import("./views/future-view").then((m) => m.FutureView),
 };
 
@@ -123,28 +118,16 @@ export function createNavigatorLayout(
 
 	const sidebarEl = container.createDiv({ cls: "navigator-sidebar" });
 	const mainEl = container.createDiv({ cls: "navigator-main" });
-	mainEl.style.flex = "1";
-	mainEl.style.display = "flex";
-	mainEl.style.flexDirection = "column";
-	mainEl.style.minHeight = "0";
-	mainEl.style.padding = "0";
-	mainEl.style.margin = "0";
-	mainEl.style.position = "relative";
+	mainEl.style.cssText =
+		"flex:1;display:flex;flex-direction:column;min-height:0;padding:0;margin:0;position:relative;";
 
 	const toolbarEl = mainEl.createDiv({ cls: "navigator-toolbar" });
-	toolbarEl.style.position = "absolute";
-	toolbarEl.style.top = "0";
-	toolbarEl.style.left = "0";
-	toolbarEl.style.right = "0";
-	toolbarEl.style.zIndex = "10";
-	toolbarEl.style.pointerEvents = "none";
+	toolbarEl.style.cssText =
+		"position:absolute;top:0;left:0;right:0;z-index:10;pointer-events:none;";
 
 	const viewEl = mainEl.createDiv({ cls: "navigator-view" });
-	viewEl.style.flex = "1";
-	viewEl.style.overflow = "auto";
-	viewEl.style.minHeight = "0";
-	viewEl.style.padding = "0";
-	viewEl.style.paddingTop = "0px";
+	viewEl.style.cssText =
+		"flex:1;overflow:auto;min-height:0;padding:0;padding-top:0px;";
 
 	new SideBar(sidebarEl, store, app);
 
