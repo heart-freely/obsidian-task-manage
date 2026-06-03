@@ -11,7 +11,7 @@ const MARK_GROUPS: { label: string; keys: string[] }[] = [
 	{ label: "循环", keys: ["repeat"] },
 	{
 		label: "日期",
-		keys: ["created", "scheduled", "starts", "due", "done", "cancel"],
+		keys: ["created", "scheduled", "starts", "cancel", "done", "due"],
 	},
 	{ label: "标签", keys: ["tag"] },
 	{ label: "依赖", keys: ["id", "forbid"] },
@@ -39,12 +39,12 @@ export class MarkBar {
 		const currentFilter = preset.filter;
 
 		const updateFilter = (changes: Partial<typeof currentFilter>) => {
-			const state = this.store.getState();
-			const preset = this.store.getActivePreset();
-			if (!preset) return;
-			const newPresets = state.presets.map((p) =>
-				p.id === preset.id
-					? { ...p, filter: { ...preset.filter, ...changes } }
+			const st = this.store.getState();
+			const pr = this.store.getActivePreset();
+			if (!pr) return;
+			const newPresets = st.presets.map((p) =>
+				p.id === pr.id
+					? { ...p, filter: { ...pr.filter, ...changes } }
 					: p,
 			);
 			this.store.update({ presets: newPresets });

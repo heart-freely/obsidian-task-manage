@@ -1,13 +1,17 @@
-import { CONFIG, DEFAULT_SETTINGS } from "../../../configs/configs";
+// src/ui/components/charts/detailc-charts.ts
+import {
+	ALLOWED_STATUSES,
+	STATUS_COLORS,
+	STATUS_NAMES,
+} from "../../../configs/configs";
 import { DateUtils } from "../../../process/process";
 import { echarts } from "./echarts";
 
 export function renderDetail(container: HTMLElement, tasks: any[]) {
 	container.empty();
-
 	const today = new Date();
-	let minDate = new Date(today);
-	let maxDate = new Date(today);
+	let minDate = new Date(today),
+		maxDate = new Date(today);
 	tasks.forEach((task) => {
 		if (task._scheduled) {
 			const d = new Date(task._scheduled);
@@ -15,7 +19,6 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 			if (d > maxDate) maxDate = d;
 		}
 	});
-
 	const dates: string[] = [];
 	let cur = DateUtils.setStart(minDate);
 	const endTime = DateUtils.setEnd(maxDate).getTime();
@@ -23,12 +26,10 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 		dates.push(DateUtils.formatDate(cur));
 		cur.setDate(cur.getDate() + 1);
 	}
-
 	const seriesData: Record<string, number[]> = {};
-	CONFIG.ALLOWED_STATUSES.forEach((st) => {
+	ALLOWED_STATUSES.forEach((st) => {
 		seriesData[st] = new Array(dates.length).fill(0);
 	});
-
 	tasks.forEach((task) => {
 		const idx = dates.indexOf(task._scheduled || "");
 		if (idx >= 0) {
@@ -42,31 +43,18 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 	wrapper.style.width = "100%";
 	wrapper.style.minHeight = "400px";
 	wrapper.style.position = "relative";
-
 	const chartDiv = document.createElement("div");
 	chartDiv.style.width = "100%";
 	chartDiv.style.height = "500px";
 	wrapper.appendChild(chartDiv);
-
 	const zoomBtn = document.createElement("button");
 	zoomBtn.className = "zoom-btn";
 	zoomBtn.textContent = "🔍";
-	zoomBtn.style.position = "absolute";
-	zoomBtn.style.top = "8px";
-	zoomBtn.style.right = "8px";
-	zoomBtn.style.background = "none";
-	zoomBtn.style.border = "none";
-	zoomBtn.style.cursor = "pointer";
-	zoomBtn.style.fontSize = "16px";
+	zoomBtn.style.cssText =
+		"position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:16px;";
 	wrapper.appendChild(zoomBtn);
-
 	container.appendChild(wrapper);
-
 	const chart = echarts.init(chartDiv);
-
-	const statusNames: any = CONFIG.STATUS_NAMES || {};
-	const statusColors: any = DEFAULT_SETTINGS.STATUS_COLORS || {};
-
 	const option = {
 		tooltip: { trigger: "axis" },
 		xAxis: {
@@ -75,19 +63,17 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 			axisLabel: { rotate: 30, fontSize: 10 },
 		},
 		yAxis: { type: "value" },
-		series: CONFIG.ALLOWED_STATUSES.map((st) => ({
-			name: statusNames[st] || st,
+		series: ALLOWED_STATUSES.map((st) => ({
+			name: STATUS_NAMES[st] || st,
 			type: "bar",
 			stack: "total",
 			data: seriesData[st],
-			itemStyle: { color: statusColors[st] || undefined },
+			itemStyle: { color: STATUS_COLORS[st] || undefined },
 		})),
 		grid: { left: "8%", right: "5%", top: "15%", bottom: "25%" },
 		legend: { bottom: 0, textStyle: { fontSize: 10 } },
 	};
-
 	chart.setOption(option);
-
 	zoomBtn.onclick = () => {
 		const modal = document.createElement("div");
 		modal.style.cssText =
@@ -102,10 +88,8 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 		modal.appendChild(bigChartDiv);
 		modal.appendChild(closeBtn);
 		document.body.appendChild(modal);
-
 		const bigChart = echarts.init(bigChartDiv);
 		bigChart.setOption(option);
-
 		const closeModal = () => {
 			bigChart.dispose();
 			modal.remove();

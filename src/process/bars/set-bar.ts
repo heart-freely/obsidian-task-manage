@@ -1,9 +1,9 @@
-// src/process/bars/bars-process.ts
+// src/process/bars/set-bar.ts
 // 图表数据计算、任务计算、滑动条计算、格式化函数（纯函数）
 
 import {
 	ALL_MARKS,
-	CONFIG,
+	ALLOWED_STATUSES,
 	PRIORITY_ORDER,
 	REPEAT_ORDER,
 } from "../../configs/configs";
@@ -267,7 +267,7 @@ export function calcTotalSpanHours(
 	fieldEnd: string,
 ): number {
 	const days = computeTotalSpanDays(tasks, fieldStart, fieldEnd);
-	return days * CONFIG.WORK_HOURS_PER_DAY;
+	return days * 12;
 }
 
 export function prepareDailyStatusStack(
@@ -319,10 +319,10 @@ export function prepareDailyStatusStack(
 		.map((k) => [k, dayMap[k]]);
 	const dates = sorted.map((e) => e[0]);
 	const seriesData: Record<string, number[]> = {};
-	CONFIG.ALLOWED_STATUSES.forEach((s) => {
+	ALLOWED_STATUSES.forEach((s) => {
 		seriesData[s] = sorted.map((e) => (e[1] as any)[s]);
 	});
-	return { dates, seriesData, statusOrder: CONFIG.ALLOWED_STATUSES };
+	return { dates, seriesData, statusOrder: ALLOWED_STATUSES };
 }
 
 // ========== 通用筛选函数 ==========
@@ -358,12 +358,7 @@ export function getTaskTimeRange(tasks: any[]): {
 function calcYearOffset(
 	baseYear: number,
 	targetYear: number,
-): {
-	quarter: number;
-	month: number;
-	week: number;
-	day: number;
-} {
+): { quarter: number; month: number; week: number; day: number } {
 	let quarter = 0,
 		month = 0,
 		week = 0,
@@ -418,10 +413,7 @@ function absoluteToYearValue(
 	lv: string,
 	absValue: number,
 	baseYear: number,
-): {
-	year: number;
-	valueInYear: number;
-} {
+): { year: number; valueInYear: number } {
 	let remaining = absValue;
 	let year = baseYear;
 	switch (lv) {
@@ -453,8 +445,6 @@ function absoluteToYearValue(
 	return { year, valueInYear: remaining };
 }
 
-// ========== 核心函数 ==========
-
 export function getLevelValues(
 	startDate: Date,
 	endDate: Date,
@@ -463,13 +453,10 @@ export function getLevelValues(
 	const startYear = startDate.getFullYear();
 	const endYear = endDate.getFullYear();
 	const baseYear = minYear ?? Math.min(startYear, endYear);
-
 	for (let y = baseYear; y <= Math.max(startYear, endYear); y++)
 		ensureYearCache(y);
-
 	const isYearStart = startDate.getMonth() === 0 && startDate.getDate() === 1;
 	const isYearEnd = endDate.getMonth() === 11 && endDate.getDate() === 31;
-
 	const ws = isYearStart ? 1 : isoWeek(startDate);
 	const we = isYearEnd ? weeksInYear(endYear) : isoWeek(endDate);
 	const qs = isYearStart ? 1 : Math.floor(startDate.getMonth() / 3) + 1;
@@ -478,10 +465,8 @@ export function getLevelValues(
 	const me = isYearEnd ? 12 : endDate.getMonth() + 1;
 	const ds = isYearStart ? 1 : dayOfYear(startDate);
 	const de = isYearEnd ? daysInYear(endYear) : dayOfYear(endDate);
-
 	const startOff = calcYearOffset(baseYear, startYear);
 	const endOff = calcYearOffset(baseYear, endYear);
-
 	return {
 		yearStart: startYear,
 		yearEnd: endYear,
@@ -506,9 +491,8 @@ export function datesFromLevel(
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
 	let startDate: Date, endDate: Date;
-	const minV = Math.min(sv, ev);
-	const maxV = Math.max(sv, ev);
-
+	const minV = Math.min(sv, ev),
+		maxV = Math.max(sv, ev);
 	const addOffset = (d: Date, o: number, u: string) => {
 		const nd = new Date(d);
 		if (u === "week") nd.setDate(nd.getDate() + o * 7);
@@ -519,13 +503,12 @@ export function datesFromLevel(
 		else nd.setDate(nd.getDate() + o);
 		return nd;
 	};
-
 	switch (lv) {
 		case "year":
 			startDate = getFirstDayOfYear(minV);
 			endDate = getLastDayOfYear(maxV);
 			break;
-		case "quarter": {
+		case "quarter":
 			if (baseYear !== undefined) {
 				const s = absoluteToYearValue("quarter", minV, baseYear);
 				const e = absoluteToYearValue("quarter", maxV, baseYear);
@@ -561,8 +544,7 @@ export function datesFromLevel(
 				);
 			}
 			break;
-		}
-		case "month": {
+		case "month":
 			if (baseYear !== undefined) {
 				const s = absoluteToYearValue("month", minV, baseYear);
 				const e = absoluteToYearValue("month", maxV, baseYear);
@@ -582,8 +564,7 @@ export function datesFromLevel(
 				);
 			}
 			break;
-		}
-		case "week": {
+		case "week":
 			if (baseYear !== undefined) {
 				const s = absoluteToYearValue("week", minV, baseYear);
 				const e = absoluteToYearValue("week", maxV, baseYear);
@@ -606,8 +587,7 @@ export function datesFromLevel(
 				endDate.setHours(23, 59, 59, 999);
 			}
 			break;
-		}
-		case "day": {
+		case "day":
 			if (baseYear !== undefined) {
 				const s = absoluteToYearValue("day", minV, baseYear);
 				const e = absoluteToYearValue("day", maxV, baseYear);
@@ -621,7 +601,6 @@ export function datesFromLevel(
 				endDate.setHours(23, 59, 59, 999);
 			}
 			break;
-		}
 		case "dynamic": {
 			const unit = dynamicUnit || "day";
 			startDate = addOffset(today, minV, unit);
@@ -667,7 +646,6 @@ export function datesFromLevel(
 			break;
 		}
 	}
-
 	if (startDate.getTime() > endDate.getTime())
 		[startDate, endDate] = [endDate, startDate];
 	startDate.setHours(0, 0, 0, 0);
@@ -727,7 +705,6 @@ export function staticSliderRanges(
 	const cy = new Date().getFullYear();
 	const vals = getLevelValues(startDate, endDate);
 	const sameYear = vals.yearStart === vals.yearEnd;
-
 	if (sameYear) {
 		ensureYearCache(cy);
 		return {
@@ -745,7 +722,6 @@ export function staticSliderRanges(
 			maxYear: vals.yearEnd,
 		};
 	}
-
 	const minY = Math.min(vals.yearStart, vals.yearEnd);
 	const maxY = Math.max(vals.yearStart, vals.yearEnd);
 	let totalQuarters = 0,
@@ -759,7 +735,6 @@ export function staticSliderRanges(
 		totalWeeks += WEEKS_IN_YEAR_CACHE[y];
 		totalDays += DAYS_IN_YEAR_CACHE[y];
 	}
-
 	return {
 		yearMin: cy - 10,
 		yearMax: cy + 10,

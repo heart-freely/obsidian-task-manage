@@ -9,9 +9,9 @@ const SORT_OPTIONS = [
 	{ type: "created", label: "创建" },
 	{ type: "scheduled", label: "计划" },
 	{ type: "starts", label: "开始" },
-	{ type: "due", label: "截止" },
 	{ type: "cancel", label: "取消" },
 	{ type: "done", label: "完成" },
+	{ type: "due", label: "截止" },
 	{ type: "tag", label: "标签" },
 	{ type: "id", label: "唯一ID" },
 	{ type: "forbid", label: "引用ID" },
@@ -51,9 +51,9 @@ export class SortBar {
 				btn.addClass("active");
 			}
 			btn.onclick = () => {
-				const state = this.store.getState();
-				const preset = this.store.getActivePreset();
-				if (!preset) return;
+				const st = this.store.getState();
+				const pr = this.store.getActivePreset();
+				if (!pr) return;
 				const newOrder =
 					currentSort.type === opt.type
 						? currentSort.order === "asc"
@@ -64,8 +64,8 @@ export class SortBar {
 					type: opt.type,
 					order: newOrder as "asc" | "desc",
 				};
-				const newPresets = state.presets.map((p) =>
-					p.id === preset.id ? { ...p, sort: newSort } : p,
+				const newPresets = st.presets.map((p) =>
+					p.id === pr.id ? { ...p, sort: newSort } : p,
 				);
 				this.store.update({ presets: newPresets });
 			};

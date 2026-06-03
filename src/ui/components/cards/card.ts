@@ -1,17 +1,28 @@
-import { CONFIG, formatDisplayDate } from "../../../configs/configs";
+// src/ui/components/cards/card.ts
+import {
+	PRIORITY_ICONS,
+	STATUS_ICONS,
+	STATUS_NAMES,
+	STATUS_SYMBOL_MAP,
+	formatDisplayDate,
+	getPriorityLabel,
+} from "../../../configs/configs";
 import { tooltip } from "../tooltip/tooltip";
 
 export function createTaskCard(task: any): HTMLElement {
-	const prio = task.priority || "none";
-	const prioIcon = CONFIG.PRIORITY_ICONS[prio] || "";
-	const prioLabel = CONFIG.PRIORITY_LABELS[prio] || "None|无";
+	const prioIcon = task._priorityIcon || PRIORITY_ICONS[task.priority] || "";
+	const zhName = getPriorityLabel(prioIcon);
 
 	let statusIcon = task.statusIcon;
 	let statusName = task.statusName || task.statusText;
 	if (!statusIcon || !statusName) {
-		const statusKey = task.status || task._status || "todo";
-		statusIcon = CONFIG.STATUS_ICONS[statusKey] || "🔲";
-		statusName = CONFIG.STATUS_NAMES[statusKey] || "未开始";
+		let statusKey = task._status;
+		if (!statusKey && task.status) {
+			statusKey = STATUS_SYMBOL_MAP[task.status] || "todo";
+		}
+		statusKey = statusKey || "todo";
+		statusIcon = STATUS_ICONS[statusKey] || "🔲";
+		statusName = STATUS_NAMES[statusKey] || "未开始";
 	}
 
 	const due = formatDisplayDate(task._due || task.due);
@@ -21,16 +32,17 @@ export function createTaskCard(task: any): HTMLElement {
 	const done = formatDisplayDate(task._done || task.done);
 	const cancel = formatDisplayDate(task._cancel || task.cancel);
 
-	// 构建第二行元数据，顺序：状态、优先级、循环、创建、计划、开始、截止、标签、ID、引用ID、文件
 	const meta = [
 		`<span>${statusIcon} ${statusName}</span>`,
 		prioIcon
-			? `<span>${prioIcon} ${prioLabel}</span>`
-			: `<span>${prioLabel}</span>`,
+			? `<span>${prioIcon} ${zhName}</span>`
+			: `<span>${zhName}</span>`,
 		task.recurrenceLabel ? `<span>${task.recurrenceLabel}</span>` : "",
 		created ? `<span>➕ ${created}</span>` : "",
 		scheduled ? `<span>⏳ ${scheduled}</span>` : "",
 		start ? `<span>🛫 ${start}</span>` : "",
+		cancel ? `<span>❌ ${cancel}</span>` : "",
+		done ? `<span>✅ ${done}</span>` : "",
 		due ? `<span>📅 ${due}</span>` : "",
 		task._tag ? `<span>🏁 ${task._tag}</span>` : "",
 		task._id ? `<span>🆔 ${task._id}</span>` : "",
@@ -48,32 +60,36 @@ export function createTaskCard(task: any): HTMLElement {
 	li.setAttribute("data-path", task.path);
 	li.setAttribute("data-line", task.lineNumber ?? task.line);
 	li.style.cssText =
-		"margin:6px 0; padding:8px 10px; background:var(--background-primary); " +
-		"border-radius:8px; font-size:0.9em; cursor:pointer; " +
-		"border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; " +
-		"color: var(--text-normal);";
+		"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color: var(--text-normal);";
 
-	const descHtml = `${statusIcon} <span class="prio-icon">${prioIcon}</span> ${task.description || task._cleanText || "（无描述）"}`;
-	li.innerHTML = `
-    <div class="task-desc" style="font-weight:500; margin-bottom:4px;">${descHtml}</div>
-    <div class="task-meta" style="font-size:0.8em; color:var(--text-muted); display:flex; gap:8px; flex-wrap:wrap;">${meta}</div>
-  `;
+	const descHtml = task.description || task._cleanText || "（无描述）";
+	li.innerHTML = `<div class="task-desc" style="font-weight:500; margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em; color:var(--text-muted); display:flex; gap:8px; flex-wrap:wrap;">${meta}</div>`;
 
-	// 悬停提示
-	if (!task._tooltipHtml) {
-		const parts = [];
-		if (task._status) parts.push("状态：" + task._status);
-		if (task._priorityIcon) parts.push("优先级：" + task._priorityIcon);
-		if (due) parts.push("📅 " + due);
-		if (scheduled) parts.push("⏳ " + scheduled);
-		if (task._id) parts.push("🆔 " + task._id);
-		if (task._forbid) parts.push("⛔ " + task._forbid);
-		if (task._tag) parts.push("🏁 " + task._tag);
-		task._tooltipHtml = parts.join("<br>");
+	const tipParts: string[] = [];
+	if (task._status) {
+		tipParts.push(
+			statusIcon + " " + (STATUS_NAMES[task._status] || task._status),
+		);
 	}
+	if (prioIcon) {
+		tipParts.push(prioIcon + " " + zhName);
+	} else {
+		tipParts.push(zhName);
+	}
+	if (task._repeat) tipParts.push("🔁 " + task._repeat);
+	if (created) tipParts.push("➕ " + created);
+	if (scheduled) tipParts.push("⏳ " + scheduled);
+	if (start) tipParts.push("🛫 " + start);
+	if (due) tipParts.push("📅 " + due);
+	if (done) tipParts.push("✅ " + done);
+	if (cancel) tipParts.push("❌ " + cancel);
+	if (task._id) tipParts.push("🆔 " + task._id);
+	if (task._forbid) tipParts.push("⛔ " + task._forbid);
+	if (task._tag) tipParts.push("🏁 " + task._tag);
+	const tooltipHtml = tipParts.join("<br>");
 
 	li.addEventListener("mouseenter", (e) => {
-		tooltip.show(task._tooltipHtml, e.clientX, e.clientY);
+		tooltip.show(tooltipHtml, e.clientX, e.clientY);
 	});
 	li.addEventListener("mousemove", (e) => {
 		tooltip.move(e.clientX, e.clientY);
@@ -81,7 +97,6 @@ export function createTaskCard(task: any): HTMLElement {
 	li.addEventListener("mouseleave", () => {
 		tooltip.hide();
 	});
-
 	li.addEventListener("click", async () => {
 		const app = (window as any).app;
 		const file = app?.vault.getAbstractFileByPath(task.path);
@@ -98,6 +113,5 @@ export function createTaskCard(task: any): HTMLElement {
 			);
 		}
 	});
-
 	return li;
 }

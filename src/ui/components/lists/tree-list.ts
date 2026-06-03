@@ -1,4 +1,5 @@
-import { CONFIG } from "../../../configs/configs";
+import { STATUS_ICONS } from "../../../configs/configs";
+
 import { tooltip } from "../tooltip/tooltip";
 
 export function renderTaskTree(
@@ -39,7 +40,7 @@ export function renderTaskTree(
 			// 简洁样式：只显示状态图标、优先级图标、任务描述，不换行
 			const item = document.createElement("div");
 			item.className = "tree-task";
-			const statusIcon = CONFIG.STATUS_ICONS[task._status] || "🔲";
+			const statusIcon = STATUS_ICONS[task._status] || "🔲";
 			const priorityIcon = task._priorityIcon || "";
 			const desc = task._cleanText || task.text || "无描述";
 			item.textContent = `${statusIcon} ${priorityIcon} ${desc}`;

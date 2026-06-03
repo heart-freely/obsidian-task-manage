@@ -1,21 +1,7 @@
-// src/tasks/read/read-tasks.ts
-import { CONFIG } from "../../configs/configs";
+// src/process/tasks/read-task.ts
+import { FILE_NAME_PATTERN, RX, TASK_FOLDERS } from "../../configs/configs";
 import logger from "../../utils/logger";
 import { DateUtils } from "../process";
-
-export const RX = {
-	priority: /⏬|🔽|🔼|⏫|🔺/g,
-	repeat: /🔁\s*(every\s+(day|week|month|year))/i,
-	created: /➕\s*(\d{4}-\d{2}-\d{2})/,
-	scheduled: /⏳\s*(\d{4}-\d{2}-\d{2})/,
-	starts: /🛫\s*(\d{4}-\d{2}-\d{2})/,
-	due: /📅\s*(\d{4}-\d{2}-\d{2})/,
-	done: /✅\s*(\d{4}-\d{2}-\d{2})/,
-	cancel: /❌\s*(\d{4}-\d{2}-\d{2})?/,
-	tag: /🏁\s*(\S+)/,
-	id: /🆔\s*(\S+)/,
-	forbid: /⛔\s*([^\s,]+(?:\s*,\s*[^\s,]+)*)/,
-};
 
 export function getTaskStatus(line: string) {
 	const m = line.match(/^\s*- \[(.)\]\s*/);
@@ -25,7 +11,7 @@ export function getTaskStatus(line: string) {
 				X: "completed",
 				"-": "cancelled",
 				"/": "in-progress",
-				">": "in-progress", // 新增：- [>] 视为进行中
+				">": "in-progress",
 				"?": "planned",
 			}[m[1]] || "todo"
 		: "todo";
@@ -117,13 +103,12 @@ export function ensureTaskProperties(task: any) {
 export function getAllTasks(force: boolean, dv: any, state: any) {
 	if (!state) throw new Error("Global state context is required");
 	if (state.cachedAllTasks && !force) return state.cachedAllTasks;
-
 	const tasks: any[] = [];
-	for (const folder of CONFIG.TASK_FOLDERS) {
+	for (const folder of TASK_FOLDERS) {
 		const pages = dv.pages(folder);
 		if (!pages || !pages.length) continue;
 		for (const page of pages) {
-			if (!CONFIG.FILE_NAME_PATTERN.test(page.file.name)) continue;
+			if (!FILE_NAME_PATTERN.test(page.file.name)) continue;
 			if (!page.file.tasks) continue;
 			for (const task of page.file.tasks) {
 				try {

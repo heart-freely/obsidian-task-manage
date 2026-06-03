@@ -1,10 +1,11 @@
-// src/tasks/process/calcul-chart-process.js
-// 图表数据计算及任务计算（纯函数）
+// src/process/components/calcul-chart-process.ts
+import { ALLOWED_STATUSES } from "../../configs/configs";
 
-import { CONFIG } from "../../configs/configs";
-
-// ========== 原 calcul-echarts 计算 ==========
-export function computeTotalSpanDays(tasks, fieldStart, fieldEnd) {
+export function computeTotalSpanDays(
+	tasks: any[],
+	fieldStart: string,
+	fieldEnd: string,
+): number {
 	if (!tasks.length) return 0;
 	let min = Infinity,
 		max = -Infinity;
@@ -20,44 +21,51 @@ export function computeTotalSpanDays(tasks, fieldStart, fieldEnd) {
 	return Math.ceil((max - min) / (1000 * 60 * 60 * 24)) + 1;
 }
 
-export function calcPlannedDuration(tasks) {
+export function calcPlannedDuration(tasks: any[]): number {
 	let total = 0;
 	tasks.forEach((t) => {
 		if (t._scheduled && t._due)
 			total += Math.max(
 				0,
-				(new Date(t._due) - new Date(t._scheduled)) / 86400000,
+				(new Date(t._due).getTime() -
+					new Date(t._scheduled).getTime()) /
+					86400000,
 			);
 	});
 	return Math.round(total);
 }
 
-export function calcActualDuration(tasks) {
+export function calcActualDuration(tasks: any[]): number {
 	let total = 0;
 	tasks.forEach((t) => {
 		if (t._starts && t._done)
 			total += Math.max(
 				0,
-				(new Date(t._done) - new Date(t._starts)) / 86400000,
+				(new Date(t._done).getTime() - new Date(t._starts).getTime()) /
+					86400000,
 			);
 	});
 	return Math.round(total);
 }
 
-export function calcTotalSpanHours(tasks, fieldStart, fieldEnd) {
+export function calcTotalSpanHours(
+	tasks: any[],
+	fieldStart: string,
+	fieldEnd: string,
+): number {
 	const days = computeTotalSpanDays(tasks, fieldStart, fieldEnd);
-	return days * CONFIG.WORK_HOURS_PER_DAY;
+	return days * 12;
 }
 
 export function prepareDailyStatusStack(
-	tasks,
-	dateRange,
-	formatDate,
-	setStart,
-	setEnd,
+	tasks: any[],
+	dateRange: any,
+	formatDate: (d: Date) => string,
+	setStart: (d: Date) => Date,
+	setEnd: (d: Date) => Date,
 ) {
-	const dayMap = {};
-	function keyOf(d) {
+	const dayMap: Record<string, any> = {};
+	function keyOf(d: Date) {
 		return formatDate(d);
 	}
 	function initDay() {
@@ -97,13 +105,9 @@ export function prepareDailyStatusStack(
 		.sort()
 		.map((k) => [k, dayMap[k]]);
 	const dates = sorted.map((e) => e[0]);
-	const seriesData = {};
-	CONFIG.ALLOWED_STATUSES.forEach((s) => {
-		seriesData[s] = sorted.map((e) => e[1][s]);
+	const seriesData: Record<string, number[]> = {};
+	ALLOWED_STATUSES.forEach((s) => {
+		seriesData[s] = sorted.map((e) => (e[1] as any)[s]);
 	});
-	return { dates, seriesData, statusOrder: CONFIG.ALLOWED_STATUSES };
+	return { dates, seriesData, statusOrder: ALLOWED_STATUSES };
 }
-
-// ========== 原 calcul-task-process 中的函数（如有）直接追加此处 ==========
-// 若原文件为空，则无需添加。如果已有一些任务级别计算，请直接粘贴于此。
-// 为了安全，检查是否有被其他模块引用的符号，若无则忽略。

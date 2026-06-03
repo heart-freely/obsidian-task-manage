@@ -1,4 +1,4 @@
-import { CONFIG } from "../../../configs/configs";
+import { STATUS_ICONS } from "../../../configs/configs";
 import { DateUtils } from "../../../process/process";
 import { tooltip } from "../tooltip/tooltip";
 
@@ -149,7 +149,7 @@ function draw() {
 			x += 12;
 			ctx.fillStyle = theme.text;
 			ctx.font = theme.font;
-			const icon = CONFIG.STATUS_ICONS[task._status] || "🔲";
+			const icon = STATUS_ICONS[task._status] || "🔲";
 			ctx.fillText(icon + " " + (task._cleanText || task.text), x, y);
 		}
 	}

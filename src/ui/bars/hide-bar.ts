@@ -1,37 +1,6 @@
 // src/ui/bars/hide-bar.ts
+import { DEFAULT_TABLE_COLUMNS, TABLE_COLUMNS } from "../../configs/configs";
 import { Store } from "../../store/store";
-
-const EXTENDED_TABLE_COLUMNS = [
-	{ key: "status", label: "状态" },
-	{ key: "content", label: "描述" },
-	{ key: "priority", label: "优先级" },
-	{ key: "repeat", label: "循环" },
-	{ key: "created", label: "创建" },
-	{ key: "scheduled", label: "计划" },
-	{ key: "starts", label: "开始" },
-	{ key: "due", label: "截止" },
-	{ key: "done", label: "完成" },
-	{ key: "cancel", label: "取消" },
-	{ key: "tag", label: "标签" },
-	{ key: "id", label: "唯一ID" },
-	{ key: "forbid", label: "引用ID" },
-];
-
-const EXTENDED_DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
-	status: true,
-	content: true,
-	priority: true,
-	repeat: false,
-	created: false,
-	scheduled: true,
-	starts: true,
-	due: true,
-	done: true,
-	cancel: false,
-	tag: false,
-	id: false,
-	forbid: false,
-};
 
 export class HideBar {
 	private container: HTMLElement;
@@ -53,15 +22,12 @@ export class HideBar {
 		const currentFilter = preset.filter;
 
 		const updateFilter = (key: string) => {
-			const state = this.store.getState();
-			const preset = this.store.getActivePreset();
-			if (!preset) return;
-			const newFilter = {
-				...preset.filter,
-				[key]: !(preset.filter as any)[key],
-			};
-			const newPresets = state.presets.map((p) =>
-				p.id === preset.id ? { ...p, filter: newFilter } : p,
+			const st = this.store.getState();
+			const pr = this.store.getActivePreset();
+			if (!pr) return;
+			const newFilter = { ...pr.filter, [key]: !(pr.filter as any)[key] };
+			const newPresets = st.presets.map((p) =>
+				p.id === pr.id ? { ...p, filter: newFilter } : p,
 			);
 			this.store.update({ presets: newPresets });
 		};
@@ -103,8 +69,8 @@ export class HideBar {
 
 		const colRow = this.container.createDiv({ cls: "bar-row" });
 		colRow.createSpan({ text: "表格列", cls: "filter-label" });
-		const columns = preset.tableColumns ?? EXTENDED_DEFAULT_TABLE_COLUMNS;
-		EXTENDED_TABLE_COLUMNS.forEach((col) => {
+		const columns = preset.tableColumns ?? DEFAULT_TABLE_COLUMNS;
+		TABLE_COLUMNS.forEach((col) => {
 			const isHidden = columns[col.key] === false;
 			const btn = colRow.createEl("button", {
 				text: isHidden ? `显示${col.label}` : `隐藏${col.label}`,
@@ -112,17 +78,16 @@ export class HideBar {
 			});
 			if (isHidden) btn.addClass("active");
 			btn.onclick = () => {
-				const state = this.store.getState();
-				const preset = this.store.getActivePreset();
-				if (!preset) return;
-				const currentColumns =
-					preset.tableColumns ?? EXTENDED_DEFAULT_TABLE_COLUMNS;
+				const st = this.store.getState();
+				const pr = this.store.getActivePreset();
+				if (!pr) return;
+				const currentColumns = pr.tableColumns ?? DEFAULT_TABLE_COLUMNS;
 				const newColumns = {
 					...currentColumns,
 					[col.key]: !currentColumns[col.key],
 				};
-				const newPresets = state.presets.map((p) =>
-					p.id === preset.id ? { ...p, tableColumns: newColumns } : p,
+				const newPresets = st.presets.map((p) =>
+					p.id === pr.id ? { ...p, tableColumns: newColumns } : p,
 				);
 				this.store.update({ presets: newPresets });
 			};

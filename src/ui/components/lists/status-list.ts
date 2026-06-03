@@ -1,5 +1,5 @@
 // src/ui/components/lists/status-renderer.ts
-import { CONFIG } from "../../../configs/configs";
+import { STATUS_ICONS } from "../../../configs/configs";
 import { createGroupCard } from "../cards/group-card";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -47,7 +47,7 @@ export function renderStatus(
 
 	statusOrder.forEach((status) => {
 		const card = createGroupCard({
-			title: `${CONFIG.STATUS_ICONS[status] || "🔲"} ${labelMap[status] || status}`,
+			title: `${STATUS_ICONS[status] || "🔲"} ${labelMap[status] || status}`,
 			count: groups[status].length,
 			tasks: groups[status],
 			onClick: options?.onClick,
