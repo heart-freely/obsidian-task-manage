@@ -13,8 +13,8 @@ const MARK_GROUPS: { label: string; keys: string[] }[] = [
 		label: "日期",
 		keys: ["created", "scheduled", "starts", "cancel", "done", "due"],
 	},
-	{ label: "标签", keys: ["tag"] },
 	{ label: "依赖", keys: ["id", "forbid"] },
+	{ label: "标签", keys: ["tag"] },
 ];
 
 const PRIORITY_ICONS = [...PRIORITY_ORDER].reverse();

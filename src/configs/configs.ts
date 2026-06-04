@@ -15,9 +15,9 @@ export const TASK_ELEMENT_ORDER = [
 	"cancel",
 	"done",
 	"due",
-	"tag",
 	"id",
 	"forbid",
+	"tag",
 ] as const;
 
 interface TaskElementChild {
@@ -37,6 +37,7 @@ interface TaskElementDef {
 	pattern?: string;
 	inMarkSequence: boolean;
 	children?: TaskElementChild[];
+	yaName?: string;
 }
 
 export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
@@ -46,6 +47,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		enName: "Status",
 		icon: "",
 		inMarkSequence: true,
+		yaName: "任务状态",
 		children: [
 			{
 				key: "todo",
@@ -69,7 +71,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 				enName: "In Progress",
 				icon: "⏩",
 				color: "#7fb8f0",
-				markdownSymbol: "/",
+				markdownSymbol: ">",
 			},
 			{
 				key: "completed",
@@ -95,6 +97,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		enName: "Description",
 		icon: "",
 		inMarkSequence: false,
+		yaName: "任务名称",
 	},
 	priority: {
 		key: "priority",
@@ -103,6 +106,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "",
 		pattern: "⏬|🔽|🔼|⏫|🔺",
 		inMarkSequence: true,
+		yaName: "任务优先级",
 		children: [
 			{
 				key: "4",
@@ -148,6 +152,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "🔁",
 		pattern: "🔁\\s*(every\\s+(day|week|month|year))",
 		inMarkSequence: true,
+		yaName: "任务周期",
 		children: [
 			{
 				key: "every day",
@@ -182,6 +187,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "➕",
 		pattern: "➕\\s*(\\d{4}-\\d{2}-\\d{2})",
 		inMarkSequence: true,
+		yaName: "任务创建",
 	},
 	scheduled: {
 		key: "scheduled",
@@ -190,6 +196,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "⏳",
 		pattern: "⏳\\s*(\\d{4}-\\d{2}-\\d{2})",
 		inMarkSequence: true,
+		yaName: "任务计划",
 	},
 	starts: {
 		key: "starts",
@@ -198,6 +205,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "🛫",
 		pattern: "🛫\\s*(\\d{4}-\\d{2}-\\d{2})",
 		inMarkSequence: true,
+		yaName: "任务开始",
 	},
 	cancel: {
 		key: "cancel",
@@ -206,6 +214,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "❌",
 		pattern: "❌\\s*(\\d{4}-\\d{2}-\\d{2})?",
 		inMarkSequence: true,
+		yaName: "任务取消",
 	},
 	done: {
 		key: "done",
@@ -214,6 +223,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "✅",
 		pattern: "✅\\s*(\\d{4}-\\d{2}-\\d{2})",
 		inMarkSequence: true,
+		yaName: "任务完成",
 	},
 	due: {
 		key: "due",
@@ -222,6 +232,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "📅",
 		pattern: "📅\\s*(\\d{4}-\\d{2}-\\d{2})",
 		inMarkSequence: true,
+		yaName: "任务截止",
 	},
 	tag: {
 		key: "tag",
@@ -230,6 +241,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "🏁",
 		pattern: "🏁\\s*(\\S+)",
 		inMarkSequence: true,
+		yaName: "任务标签",
 	},
 	id: {
 		key: "id",
@@ -238,6 +250,7 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "🆔",
 		pattern: "🆔\\s*(\\S+)",
 		inMarkSequence: true,
+		yaName: "任务唯一ID",
 	},
 	forbid: {
 		key: "forbid",
@@ -246,8 +259,28 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		icon: "⛔",
 		pattern: "⛔\\s*([^\\s,]+(?:\\s*,\\s*[^\\s,]+)*)",
 		inMarkSequence: true,
+		yaName: "任务引用ID",
 	},
 };
+
+// ========== 执行状态所有 Markdown 符号映射 ==========
+
+export const STATUS_ALL_SYMBOLS: Record<string, string[]> = {
+	todo: [" "],
+	planned: ["?"],
+	"in-progress": [">", "/", "\\"],
+	completed: ["x", "X"],
+	cancelled: ["-"],
+};
+
+// ========== Markdown 符号 → 状态 key 映射 ==========
+
+export const SYMBOL_TO_STATUS: Record<string, string> = {};
+for (const [statusKey, symbols] of Object.entries(STATUS_ALL_SYMBOLS)) {
+	for (const s of symbols) {
+		SYMBOL_TO_STATUS[s] = statusKey;
+	}
+}
 
 // ========== 从 TASK_ELEMENTS 派生 RX 正则 ==========
 
@@ -283,7 +316,8 @@ export const STATUS_SYMBOL_MAP: Record<string, string> = {};
 TASK_ELEMENTS.status.children!.forEach((c) => {
 	if (c.markdownSymbol) STATUS_SYMBOL_MAP[c.markdownSymbol] = c.key;
 });
-STATUS_SYMBOL_MAP[">"] = "in-progress";
+STATUS_SYMBOL_MAP["/"] = "in-progress";
+STATUS_SYMBOL_MAP["\\"] = "in-progress";
 STATUS_SYMBOL_MAP["X"] = "completed";
 
 export const STATUS_COLORS: Record<string, string> = {};
@@ -389,6 +423,44 @@ export const DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
 	forbid: false,
 };
 
+// ========== 从 TASK_ELEMENTS 派生 YAML 字段映射 ==========
+
+export const YAML_NAME_TO_KEY: Record<string, string> = {};
+TASK_ELEMENT_ORDER.forEach((k) => {
+	const el = TASK_ELEMENTS[k];
+	if (el.yaName) {
+		YAML_NAME_TO_KEY[el.yaName] = k;
+	}
+});
+
+export const YAML_NAME_TO_ICON: Record<string, string> = {};
+TASK_ELEMENT_ORDER.forEach((k) => {
+	const el = TASK_ELEMENTS[k];
+	if (el.yaName && el.icon) {
+		YAML_NAME_TO_ICON[el.yaName] = el.icon;
+	}
+});
+
+export const YAML_NAME_TO_ZHNAME: Record<string, string> = {};
+TASK_ELEMENT_ORDER.forEach((k) => {
+	const el = TASK_ELEMENTS[k];
+	if (el.yaName) {
+		YAML_NAME_TO_ZHNAME[el.yaName] = el.zhName;
+	}
+});
+
+export const YAML_DATE_FIELDS: string[] = TASK_ELEMENT_ORDER.filter((k) => {
+	const el = TASK_ELEMENTS[k];
+	return (
+		el.yaName &&
+		["created", "scheduled", "starts", "due", "done", "cancel"].includes(k)
+	);
+}).map((k) => TASK_ELEMENTS[k].yaName!);
+
+export const YAML_DISPLAY_ORDER: string[] = TASK_ELEMENT_ORDER.filter(
+	(k) => TASK_ELEMENTS[k].yaName,
+).map((k) => TASK_ELEMENTS[k].yaName!);
+
 // ========== 工具函数 ==========
 
 export function getPriorityLabel(icon: string): string {
@@ -401,10 +473,9 @@ export function getPriorityLabel(icon: string): string {
 
 // ========== 路径配置 ==========
 
-export const TASK_FOLDERS: string[] = ['"pages/A 系统/A 任务系统"'];
-export const FILE_NAME_PATTERN: RegExp = /任务$/;
-export const ROOT_PATH: string = "pages/A 系统/A 任务系统/";
 export const TASK_FOLDER_PATH: string = "pages/A 系统/A 任务系统";
+export const TASK_FOLDERS: string[] = [`"${TASK_FOLDER_PATH}"`];
+export const FILE_NAME_PATTERN: RegExp = /任务$/;
 
 // ========== 筛选默认值 ==========
 

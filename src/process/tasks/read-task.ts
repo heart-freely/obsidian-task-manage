@@ -63,24 +63,24 @@ export function computeTaskTimeRange(task: any) {
 }
 
 export function ensureTaskProperties(task: any) {
-	if (!task.hasOwnProperty("_cleanText")) {
-		task._cleanText =
-			task.text
-				.replace(/⏬|🔽|🔼|⏫|🔺/g, "")
-				.replace(/🔁\s*every\s+(day|week|month|year)/gi, "")
-				.replace(/➕\s*\d{4}-\d{2}-\d{2}/g, "")
-				.replace(/⏳\s*\d{4}-\d{2}-\d{2}/g, "")
-				.replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, "")
-				.replace(/📅\s*\d{4}-\d{2}-\d{2}/g, "")
-				.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "")
-				.replace(/❌\s*\d{4}-\d{2}-\d{2}?/g, "")
-				.replace(/❌/g, "")
-				.replace(/🏁\s*\S+/g, "")
-				.replace(/🆔\s*\S+/g, "")
-				.replace(/⛔\s*[^\s,]+(?:\s*,\s*[^\s,]+)*/g, "")
-				.replace(/⛔[\s\S]*?(?=\s*$|🏁|🆔|🔁|➕|⏳|🛫|📅|✅|❌|$)/g, "")
-				.trim() || task.text;
-	}
+	// 始终强制生成 _cleanText，确保标记被清理
+	task._cleanText =
+		task.text
+			.replace(/⏬|🔽|🔼|⏫|🔺/g, "")
+			.replace(/🔁\s*every\s+(day|week|month|year)/gi, "")
+			.replace(/➕\s*\d{4}-\d{2}-\d{2}/g, "")
+			.replace(/⏳\s*\d{4}-\d{2}-\d{2}/g, "")
+			.replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, "")
+			.replace(/📅\s*\d{4}-\d{2}-\d{2}/g, "")
+			.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "")
+			.replace(/❌\s*(\d{4}-\d{2}-\d{2})?/g, "")
+			.replace(/🏁\s*\S+/g, "")
+			.replace(/🆔\s*\S+/g, "")
+			.replace(/⛔\s*[^\s,]+(?:\s*,\s*[^\s,]+)*/g, "")
+			.replace(/<[^>]+>/g, "")
+			.replace(/\s{2,}/g, " ")
+			.trim() || task.text;
+
 	if (!task.hasOwnProperty("_tooltip")) {
 		const parts = [];
 		parts.push(getStatusIcon(task) + " " + task._cleanText);
@@ -103,6 +103,7 @@ export function ensureTaskProperties(task: any) {
 export function getAllTasks(force: boolean, dv: any, state: any) {
 	if (!state) throw new Error("Global state context is required");
 	if (state.cachedAllTasks && !force) return state.cachedAllTasks;
+
 	const tasks: any[] = [];
 	for (const folder of TASK_FOLDERS) {
 		const pages = dv.pages(folder);

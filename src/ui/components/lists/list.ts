@@ -1,8 +1,9 @@
+// src/ui/components/lists/list.ts
 import { createTaskCard } from "../cards/card";
 
 interface TaskListOptions {
 	onClick?: (task: any) => void;
-	compact?: boolean; // true=简洁单行，false/undefined=详细两行
+	compact?: boolean;
 }
 
 export function renderTaskList(
@@ -12,7 +13,9 @@ export function renderTaskList(
 ) {
 	const ul = container.createEl("ul", { cls: "task-list" });
 	tasks.forEach((task) => {
-		const card = createTaskCard(task);
+		const card = createTaskCard(task, {
+			showTooltip: options.compact ?? false,
+		});
 		if (options.compact) {
 			card.classList.add("task-item-compact");
 			const meta = card.querySelector(".task-meta");

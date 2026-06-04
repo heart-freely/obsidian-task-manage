@@ -1,4 +1,6 @@
 // src/ui/views/base-view.ts
+// 业务视图基类
+
 import { PRIORITY_ORDER } from "../../configs/configs";
 import { filterTasks } from "../../process/bars/set-bar";
 import { getAllTasks } from "../../process/tasks/read-task";
@@ -54,11 +56,11 @@ export abstract class BaseTaskView {
 			],
 			includeMarks: [],
 			excludeMarks: [],
-			hideRepeat: false,
-			hideCompleted: false,
-			hideCancelled: false,
+			hideRepeat: true,
+			hideCompleted: true,
+			hideCancelled: true,
 			rootPath: null,
-			hideFolders: false,
+			hideFolders: true,
 			priorityValues: ["⏬", "🔽", "🔼", "⏫", "🔺"],
 			repeatCycles: [
 				"every day",
@@ -71,6 +73,7 @@ export abstract class BaseTaskView {
 
 	async render() {
 		this.container.empty();
+
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		const activeFilter: GlobalFilter =
@@ -91,6 +94,9 @@ export abstract class BaseTaskView {
 			let filtered = filterTasks(allTasks, activeFilter, intervalMode);
 			const sort = preset?.sort ?? { type: "status", order: "asc" };
 			filtered = this.applySort(filtered, sort);
+
+			const taskPages = await this.loadTaskPages();
+
 			if (filtered.length === 0) {
 				this.renderEmpty();
 				return;
@@ -106,11 +112,51 @@ export abstract class BaseTaskView {
 				currentStyle,
 				activeFilter,
 				intervalMode,
+				dv,
+				taskPages,
 			);
 		} catch (e) {
 			this.container.createDiv({
 				text: "加载失败：" + (e as Error).message,
 			});
+		}
+	}
+
+	private async loadTaskPages(): Promise<any[]> {
+		try {
+			const files = this.app.vault
+				.getFiles()
+				.filter(
+					(f: any) =>
+						f.path.startsWith("pages/A 系统/A 任务系统") &&
+						f.name.endsWith("任务.md"),
+				);
+
+			const pages: any[] = [];
+			for (const f of files) {
+				try {
+					const content = await this.app.vault.cachedRead(f);
+					pages.push({
+						file: {
+							path: f.path,
+							name: f.name,
+							content: content,
+						},
+					});
+				} catch (e) {
+					pages.push({
+						file: {
+							path: f.path,
+							name: f.name,
+							content: "",
+						},
+					});
+				}
+			}
+			return pages;
+		} catch (e) {
+			console.warn("加载任务文件列表失败:", e);
+			return [];
 		}
 	}
 
@@ -124,6 +170,8 @@ export abstract class BaseTaskView {
 		style: string,
 		filter: GlobalFilter,
 		intervalMode: string,
+		dv?: any,
+		pages?: any[],
 	) {
 		const preset = this.store.getActivePreset();
 		switch (style) {
@@ -196,6 +244,8 @@ export abstract class BaseTaskView {
 			case "tree":
 				renderTaskTree(container, tasks, {
 					hideFolders: filter.hideFolders ?? false,
+					dv,
+					pages,
 				});
 				break;
 			case "gantt":

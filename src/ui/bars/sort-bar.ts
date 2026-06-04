@@ -12,9 +12,9 @@ const SORT_OPTIONS = [
 	{ type: "cancel", label: "取消" },
 	{ type: "done", label: "完成" },
 	{ type: "due", label: "截止" },
-	{ type: "tag", label: "标签" },
 	{ type: "id", label: "唯一ID" },
 	{ type: "forbid", label: "引用ID" },
+	{ type: "tag", label: "标签" },
 	{ type: "filename", label: "文件名" },
 ];
 

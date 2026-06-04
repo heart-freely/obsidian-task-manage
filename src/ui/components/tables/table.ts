@@ -2,6 +2,8 @@
 import {
 	DEFAULT_TABLE_COLUMNS,
 	getPriorityLabel,
+	STATUS_ICONS,
+	STATUS_NAMES,
 } from "../../../configs/configs";
 
 interface TaskTableOptions {
@@ -33,9 +35,9 @@ export function renderTaskTable(
 	if (visibility.cancel) headerRow.appendChild(createTh("取消", "nowrap"));
 	if (visibility.done) headerRow.appendChild(createTh("完成", "nowrap"));
 	if (visibility.due) headerRow.appendChild(createTh("截止", "nowrap"));
-	if (visibility.tag) headerRow.appendChild(createTh("标签", "nowrap"));
 	if (visibility.id) headerRow.appendChild(createTh("唯一ID", "nowrap"));
 	if (visibility.forbid) headerRow.appendChild(createTh("引用ID", "nowrap"));
+	if (visibility.tag) headerRow.appendChild(createTh("标签", "nowrap"));
 	thead.appendChild(headerRow);
 	table.appendChild(thead);
 
@@ -65,33 +67,20 @@ export function renderTaskTable(
 			const text = task._repeat ? `🔁 ${task._repeat}` : "";
 			row.appendChild(createTd(text, false));
 		}
-		if (visibility.created) {
+		if (visibility.created)
 			row.appendChild(createTd(task._created || "", false));
-		}
-		if (visibility.scheduled) {
+		if (visibility.scheduled)
 			row.appendChild(createTd(task._scheduled || "", false));
-		}
-		if (visibility.starts) {
+		if (visibility.starts)
 			row.appendChild(createTd(task._starts || "", false));
-		}
-		if (visibility.cancel) {
+		if (visibility.cancel)
 			row.appendChild(createTd(task._cancel || "", false));
-		}
-		if (visibility.done) {
-			row.appendChild(createTd(task._done || "", false));
-		}
-		if (visibility.due) {
-			row.appendChild(createTd(task._due || "", false));
-		}
-		if (visibility.tag) {
-			row.appendChild(createTd(task._tag || "", false));
-		}
-		if (visibility.id) {
-			row.appendChild(createTd(task._id || "", false));
-		}
-		if (visibility.forbid) {
+		if (visibility.done) row.appendChild(createTd(task._done || "", false));
+		if (visibility.due) row.appendChild(createTd(task._due || "", false));
+		if (visibility.id) row.appendChild(createTd(task._id || "", false));
+		if (visibility.forbid)
 			row.appendChild(createTd(task._forbid || "", false));
-		}
+		if (visibility.tag) row.appendChild(createTd(task._tag || "", false));
 		tbody.appendChild(row);
 	});
 	table.appendChild(tbody);

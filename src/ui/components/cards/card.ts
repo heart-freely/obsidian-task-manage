@@ -1,4 +1,6 @@
 // src/ui/components/cards/card.ts
+// 统一任务卡片组件
+
 import {
 	PRIORITY_ICONS,
 	STATUS_ICONS,
@@ -9,7 +11,17 @@ import {
 } from "../../../configs/configs";
 import { tooltip } from "../tooltip/tooltip";
 
-export function createTaskCard(task: any): HTMLElement {
+function hasValue(val: any): boolean {
+	if (val === null || val === undefined) return false;
+	if (typeof val === "string" && val.trim() === "") return false;
+	return true;
+}
+
+export function createTaskCard(
+	task: any,
+	options?: { showTooltip?: boolean },
+): HTMLElement {
+	const showTooltip = options?.showTooltip ?? false;
 	const prioIcon = task._priorityIcon || PRIORITY_ICONS[task.priority] || "";
 	const zhName = getPriorityLabel(prioIcon);
 
@@ -44,9 +56,9 @@ export function createTaskCard(task: any): HTMLElement {
 		cancel ? `<span>❌ ${cancel}</span>` : "",
 		done ? `<span>✅ ${done}</span>` : "",
 		due ? `<span>📅 ${due}</span>` : "",
-		task._tag ? `<span>🏁 ${task._tag}</span>` : "",
 		task._id ? `<span>🆔 ${task._id}</span>` : "",
 		task._forbid ? `<span>⛔ ${task._forbid}</span>` : "",
+		task._tag ? `<span>🏁 ${task._tag}</span>` : "",
 		task.tags && task.tags.length
 			? `<span>🏁 ${task.tags.join(", ")}</span>`
 			: "",
@@ -62,41 +74,62 @@ export function createTaskCard(task: any): HTMLElement {
 	li.style.cssText =
 		"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color: var(--text-normal);";
 
-	const descHtml = task.description || task._cleanText || "（无描述）";
+	const descHtml = task._cleanText || task.description || "（无描述）";
 	li.innerHTML = `<div class="task-desc" style="font-weight:500; margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em; color:var(--text-muted); display:flex; gap:8px; flex-wrap:wrap;">${meta}</div>`;
 
-	const tipParts: string[] = [];
-	if (task._status) {
-		tipParts.push(
-			statusIcon + " " + (STATUS_NAMES[task._status] || task._status),
-		);
-	}
-	if (prioIcon) {
-		tipParts.push(prioIcon + " " + zhName);
-	} else {
-		tipParts.push(zhName);
-	}
-	if (task._repeat) tipParts.push("🔁 " + task._repeat);
-	if (created) tipParts.push("➕ " + created);
-	if (scheduled) tipParts.push("⏳ " + scheduled);
-	if (start) tipParts.push("🛫 " + start);
-	if (due) tipParts.push("📅 " + due);
-	if (done) tipParts.push("✅ " + done);
-	if (cancel) tipParts.push("❌ " + cancel);
-	if (task._id) tipParts.push("🆔 " + task._id);
-	if (task._forbid) tipParts.push("⛔ " + task._forbid);
-	if (task._tag) tipParts.push("🏁 " + task._tag);
-	const tooltipHtml = tipParts.join("<br>");
+	if (showTooltip) {
+		const tipParts: string[] = [];
 
-	li.addEventListener("mouseenter", (e) => {
-		tooltip.show(tooltipHtml, e.clientX, e.clientY);
-	});
-	li.addEventListener("mousemove", (e) => {
-		tooltip.move(e.clientX, e.clientY);
-	});
-	li.addEventListener("mouseleave", () => {
-		tooltip.hide();
-	});
+		const statusKey = task._status || "todo";
+		tipParts.push(
+			statusIcon +
+				" " +
+				(STATUS_NAMES[statusKey] || statusKey || "未开始"),
+		);
+
+		if (hasValue(prioIcon)) {
+			tipParts.push(prioIcon + " " + zhName);
+		}
+
+		if (hasValue(task._repeat)) {
+			tipParts.push("🔁 " + task._repeat);
+		}
+		if (hasValue(task.recurrenceLabel)) tipParts.push(task.recurrenceLabel);
+
+		const dateFields: Array<{ emoji: string; val: any }> = [
+			{ emoji: "➕", val: task._created || created },
+			{ emoji: "⏳", val: task._scheduled || scheduled },
+			{ emoji: "🛫", val: task._starts || start },
+			{ emoji: "📅", val: task._due || due },
+			{ emoji: "✅", val: task._done || done },
+			{ emoji: "❌", val: task._cancel || cancel },
+		];
+
+		for (const { emoji, val } of dateFields) {
+			if (hasValue(val)) {
+				tipParts.push(emoji + " " + val);
+			}
+		}
+
+		if (hasValue(task._id)) tipParts.push("🆔 " + task._id);
+		if (hasValue(task._forbid)) tipParts.push("⛔ " + task._forbid);
+		if (hasValue(task._tag)) tipParts.push("🏁 " + task._tag);
+
+		const tooltipHtml = tipParts.join("<br>");
+
+		if (tooltipHtml) {
+			li.addEventListener("mouseenter", (e) => {
+				tooltip.show(tooltipHtml, e.clientX, e.clientY);
+			});
+			li.addEventListener("mousemove", (e) => {
+				tooltip.move(e.clientX, e.clientY);
+			});
+			li.addEventListener("mouseleave", () => {
+				tooltip.hide();
+			});
+		}
+	}
+
 	li.addEventListener("click", async () => {
 		const app = (window as any).app;
 		const file = app?.vault.getAbstractFileByPath(task.path);

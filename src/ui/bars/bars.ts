@@ -69,6 +69,7 @@ export class ToolbarManager {
 		if (this.buttonBarEl) {
 			this.buttonBarEl.style.position = "relative";
 			this.buttonBarEl.style.zIndex = "51";
+			this.buttonBarEl.style.marginBottom = "0";
 			this.toolbarHost.appendChild(this.buttonBarEl);
 		}
 
@@ -79,9 +80,12 @@ export class ToolbarManager {
 		this.panelsContainer.style.background = "var(--background-primary)";
 		this.panelsContainer.style.border =
 			"1px solid var(--background-modifier-border)";
+		this.panelsContainer.style.borderTop = "none";
 		this.panelsContainer.style.borderRadius = "0 0 6px 6px";
 		this.panelsContainer.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
-		this.panelsContainer.style.padding = "4px 4px 16px 4px";
+		this.panelsContainer.style.padding = "4px 4px 0 4px";
+		this.panelsContainer.style.marginBottom = "0";
+		this.panelsContainer.style.marginTop = "0";
 		this.panelsContainer.style.display = "none";
 		this.panelsContainer.style.flexDirection = "column";
 		this.panelsContainer.style.gap = "4px";
@@ -89,28 +93,18 @@ export class ToolbarManager {
 		this.panelsContainer.style.boxSizing = "border-box";
 		this.toolbarHost.appendChild(this.panelsContainer);
 
+		// 拖动条放在 panelsContainer 之后
 		this.resizeHandle = document.createElement("div");
 		this.resizeHandle.className = "panel-resize-handle";
-		this.resizeHandle.style.position = "relative";
-		this.resizeHandle.style.zIndex = "60";
-		this.resizeHandle.style.height = "8px";
-		this.resizeHandle.style.cursor = "row-resize";
-		this.resizeHandle.style.background = "rgba(128,128,128,0.4)";
-		this.resizeHandle.style.borderRadius = "0 0 4px 4px";
-		this.resizeHandle.style.display = "none";
-		this.resizeHandle.style.alignItems = "center";
-		this.resizeHandle.style.justifyContent = "center";
-		this.resizeHandle.style.opacity = "0";
-		this.resizeHandle.style.transition = "opacity 0.15s";
+		this.resizeHandle.style.cssText =
+			"height:8px;min-height:8px;cursor:row-resize;background:rgba(128,128,128,0.4);border-radius:0 0 4px 4px;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;box-sizing:border-box;position:relative;z-index:60;flex-shrink:0;margin-top:0;";
 		this.resizeHandle.title = "拖拽调整高度 / 点击中间箭头折叠";
-		this.resizeHandle.style.boxSizing = "border-box";
 		this.toolbarHost.appendChild(this.resizeHandle);
 
 		const arrow = document.createElement("span");
-		arrow.style.cursor = "pointer";
-		arrow.style.fontSize = "10px";
-		arrow.style.color = "rgba(255,255,255,0.8)";
-		arrow.style.lineHeight = "1";
+		arrow.style.cssText =
+			"cursor:pointer;font-size:10px;color:rgba(255,255,255,0.8);line-height:1;";
+		arrow.textContent = "▲";
 		arrow.addEventListener("mousedown", (e) => {
 			e.stopPropagation();
 			e.preventDefault();
@@ -171,7 +165,10 @@ export class ToolbarManager {
 
 		this.store.subscribe(() => this.syncState());
 
-		setTimeout(() => this.syncState(), 0);
+		// 使用 requestAnimationFrame 确保布局完成后再同步
+		requestAnimationFrame(() => {
+			this.syncState();
+		});
 	}
 
 	private injectStyles() {
@@ -293,6 +290,11 @@ export class ToolbarManager {
 
 		this.applyVisibility();
 		this.refreshContent();
+
+		// 延迟更新 padding，确保布局完成
+		requestAnimationFrame(() => {
+			this.updateViewPadding();
+		});
 	}
 
 	public refreshTimeBar() {
@@ -308,15 +310,23 @@ export class ToolbarManager {
 
 		if (this.isVisible) {
 			this.buttonBarEl.style.display = "flex";
+			this.buttonBarEl.style.marginBottom = "0";
+			this.resizeHandle.style.display = "flex";
 			if (this.isPanelsHidden) {
 				this.panelsContainer.style.display = "none";
-				this.resizeHandle.style.display = "flex";
-				this.resizeHandle.style.height = "10px";
+				this.panelsContainer.style.height = "0px";
+				this.panelsContainer.style.padding = "0";
+				this.panelsContainer.style.border = "none";
+				this.panelsContainer.style.borderTop = "none";
 			} else {
 				this.panelsContainer.style.display = "flex";
 				this.panelsContainer.style.height = this.panelHeight + "px";
-				this.resizeHandle.style.display = "flex";
-				this.resizeHandle.style.height = "8px";
+				this.panelsContainer.style.padding = "4px 4px 0 4px";
+				this.panelsContainer.style.border =
+					"1px solid var(--background-modifier-border)";
+				this.panelsContainer.style.borderTop = "none";
+				this.panelsContainer.style.marginTop = "0";
+				this.panelsContainer.style.marginBottom = "0";
 			}
 			this.updateViewPadding();
 		} else {
@@ -408,11 +418,12 @@ export class ToolbarManager {
 	private updateViewPadding() {
 		if (!this.buttonBarEl) return;
 		const barHeight = this.buttonBarEl.offsetHeight;
+		const handleHeight = 8;
 		if (this.isPanelsHidden) {
-			this.viewEl.style.paddingTop = barHeight + 4 + "px";
+			this.viewEl.style.paddingTop = barHeight + handleHeight + "px";
 		} else {
 			this.viewEl.style.paddingTop =
-				barHeight + this.panelHeight + 12 + "px";
+				barHeight + this.panelHeight + handleHeight + "px";
 		}
 	}
 
