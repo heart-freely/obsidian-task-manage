@@ -60,6 +60,7 @@ const VIEW_LOADERS: Record<
 		import("./views/important-view").then((m) => m.ImportantView),
 	today: () => import("./views/today-view").then((m) => m.TodayView),
 	future: () => import("./views/future-view").then((m) => m.FutureView),
+	organize: () => import("./views/organize-view").then((m) => m.OrganizeView),
 };
 
 export class ViewContainer {
@@ -127,7 +128,7 @@ export function createNavigatorLayout(
 
 	const viewEl = mainEl.createDiv({ cls: "navigator-view" });
 	viewEl.style.cssText =
-		"flex:1;overflow:auto;min-height:0;padding:0;padding-top:0px;";
+		"flex:1;overflow:hidden;min-height:0;padding:0;padding-top:0px;position:relative;";
 
 	new SideBar(sidebarEl, store, app);
 

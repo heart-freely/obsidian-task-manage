@@ -20,6 +20,10 @@ export interface TaskItem {
 	_cachedTimeRange?: { start: number; end: number };
 	_tooltip?: string;
 	_tooltipHtml?: string;
+	_isHeadingTask?: boolean;
+	_isFileTask?: boolean;
+	_headingLevel?: number;
+	_headingText?: string;
 	path: string;
 	line: number;
 	[key: string]: any;
@@ -62,6 +66,10 @@ export interface Preset {
 	toolbarPanelsHeight?: number;
 	useDynamic?: boolean;
 	intervalMode?: string;
+	/** 任务树导航面板是否折叠（viewStyle !== 'tree' 时生效） */
+	taskTreeNavCollapsed?: boolean;
+	/** 任务树导航面板宽度（viewStyle !== 'tree' 时生效） */
+	taskTreeNavWidth?: number;
 }
 
 /** 方案分组 */

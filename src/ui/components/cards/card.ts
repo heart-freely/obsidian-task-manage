@@ -1,5 +1,5 @@
 // src/ui/components/cards/card.ts
-// 统一任务卡片组件
+// 统一任务卡片组件——纯展示，不包含跳转逻辑
 
 import {
 	PRIORITY_ICONS,
@@ -17,11 +17,16 @@ function hasValue(val: any): boolean {
 	return true;
 }
 
+export interface TaskCardOptions {
+	/** 是否显示 tooltip，默认 true */
+	showTooltip?: boolean;
+}
+
 export function createTaskCard(
 	task: any,
-	options?: { showTooltip?: boolean },
+	options?: TaskCardOptions,
 ): HTMLElement {
-	const showTooltip = options?.showTooltip ?? false;
+	const showTooltip = options?.showTooltip ?? true;
 	const prioIcon = task._priorityIcon || PRIORITY_ICONS[task.priority] || "";
 	const zhName = getPriorityLabel(prioIcon);
 
@@ -72,30 +77,31 @@ export function createTaskCard(
 	li.setAttribute("data-path", task.path);
 	li.setAttribute("data-line", task.lineNumber ?? task.line);
 	li.style.cssText =
-		"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color: var(--text-normal);";
+		"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color: var(--text-normal); transition: background 0.1s;";
 
 	const descHtml = task._cleanText || task.description || "（无描述）";
 	li.innerHTML = `<div class="task-desc" style="font-weight:500; margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em; color:var(--text-muted); display:flex; gap:8px; flex-wrap:wrap;">${meta}</div>`;
 
+	// 统一 hover 效果
+	li.addEventListener("mouseenter", () => {
+		li.style.backgroundColor = "var(--background-modifier-hover)";
+	});
+	li.addEventListener("mouseleave", () => {
+		li.style.backgroundColor = "var(--background-primary)";
+	});
+
+	// tooltip
 	if (showTooltip) {
 		const tipParts: string[] = [];
-
 		const statusKey = task._status || "todo";
 		tipParts.push(
 			statusIcon +
 				" " +
 				(STATUS_NAMES[statusKey] || statusKey || "未开始"),
 		);
-
-		if (hasValue(prioIcon)) {
-			tipParts.push(prioIcon + " " + zhName);
-		}
-
-		if (hasValue(task._repeat)) {
-			tipParts.push("🔁 " + task._repeat);
-		}
+		if (hasValue(prioIcon)) tipParts.push(prioIcon + " " + zhName);
+		if (hasValue(task._repeat)) tipParts.push("🔁 " + task._repeat);
 		if (hasValue(task.recurrenceLabel)) tipParts.push(task.recurrenceLabel);
-
 		const dateFields: Array<{ emoji: string; val: any }> = [
 			{ emoji: "➕", val: task._created || created },
 			{ emoji: "⏳", val: task._scheduled || scheduled },
@@ -104,47 +110,23 @@ export function createTaskCard(
 			{ emoji: "✅", val: task._done || done },
 			{ emoji: "❌", val: task._cancel || cancel },
 		];
-
 		for (const { emoji, val } of dateFields) {
-			if (hasValue(val)) {
-				tipParts.push(emoji + " " + val);
-			}
+			if (hasValue(val)) tipParts.push(emoji + " " + val);
 		}
-
 		if (hasValue(task._id)) tipParts.push("🆔 " + task._id);
 		if (hasValue(task._forbid)) tipParts.push("⛔ " + task._forbid);
 		if (hasValue(task._tag)) tipParts.push("🏁 " + task._tag);
-
 		const tooltipHtml = tipParts.join("<br>");
-
 		if (tooltipHtml) {
-			li.addEventListener("mouseenter", (e) => {
-				tooltip.show(tooltipHtml, e.clientX, e.clientY);
-			});
-			li.addEventListener("mousemove", (e) => {
-				tooltip.move(e.clientX, e.clientY);
-			});
-			li.addEventListener("mouseleave", () => {
-				tooltip.hide();
-			});
+			li.addEventListener("mouseenter", (e) =>
+				tooltip.show(tooltipHtml, e.clientX, e.clientY),
+			);
+			li.addEventListener("mousemove", (e) =>
+				tooltip.move(e.clientX, e.clientY),
+			);
+			li.addEventListener("mouseleave", () => tooltip.hide());
 		}
 	}
 
-	li.addEventListener("click", async () => {
-		const app = (window as any).app;
-		const file = app?.vault.getAbstractFileByPath(task.path);
-		if (file) {
-			const leaf = app.workspace.getLeaf(false);
-			await leaf.openFile(file);
-			setTimeout(
-				() =>
-					leaf.view?.editor?.setCursor({
-						line: parseInt(task.lineNumber ?? task.line),
-						ch: 0,
-					}),
-				30,
-			);
-		}
-	});
 	return li;
 }

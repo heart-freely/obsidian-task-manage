@@ -69,6 +69,8 @@ export default class TaskManagePlugin extends Plugin {
 				sort: { type: "status", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
+				taskTreeNavCollapsed: false,
+				taskTreeNavWidth: 280,
 			},
 			{
 				id: "important",
@@ -109,6 +111,8 @@ export default class TaskManagePlugin extends Plugin {
 				sort: { type: "priority", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
+				taskTreeNavCollapsed: false,
+				taskTreeNavWidth: 280,
 			},
 			{
 				id: "today",
@@ -165,6 +169,8 @@ export default class TaskManagePlugin extends Plugin {
 				sort: { type: "status", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: true,
+				taskTreeNavCollapsed: false,
+				taskTreeNavWidth: 280,
 			},
 			{
 				id: "future",
@@ -221,6 +227,8 @@ export default class TaskManagePlugin extends Plugin {
 				sort: { type: "scheduled", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: true,
+				taskTreeNavCollapsed: false,
+				taskTreeNavWidth: 280,
 			},
 			{
 				id: "all-tasks",
@@ -257,6 +265,8 @@ export default class TaskManagePlugin extends Plugin {
 				sort: { type: "status", order: "asc" },
 				intervalMode: "scheduled-due",
 				useDynamic: false,
+				taskTreeNavCollapsed: false,
+				taskTreeNavWidth: 280,
 			},
 		];
 
@@ -309,6 +319,10 @@ export default class TaskManagePlugin extends Plugin {
 					filter: mergedFilter,
 					intervalMode: sp.intervalMode ?? dp.intervalMode,
 					useDynamic: sp.useDynamic ?? dp.useDynamic,
+					taskTreeNavCollapsed:
+						sp.taskTreeNavCollapsed ?? dp.taskTreeNavCollapsed,
+					taskTreeNavWidth:
+						sp.taskTreeNavWidth ?? dp.taskTreeNavWidth,
 				});
 			} else {
 				mergedPresets.push(dp);

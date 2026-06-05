@@ -1,5 +1,5 @@
 // src/tasks/process/organize-task-process.js
-import { RX } from "./read-task";
+import { RX } from "../../configs/configs";
 
 const AUTOCOMPLETE_DAYS = 3;
 const MAX_SNAPSHOTS = 5;
