@@ -1,5 +1,5 @@
-// src/ui/component/cards/card.ts
-// 统一任务卡片组件——纯展示，不包含跳转逻辑
+// src/ui/component/view/card/card.ts
+// 统一任务卡片组件——纯展示
 
 import {
 	PRIORITY_ICONS,
@@ -18,7 +18,6 @@ function hasValue(val: any): boolean {
 }
 
 export interface TaskCardOptions {
-	/** 是否显示 tooltip，默认 true */
 	showTooltip?: boolean;
 }
 
@@ -64,9 +63,7 @@ export function createTaskCard(
 		task._id ? `<span>🆔 ${task._id}</span>` : "",
 		task._forbid ? `<span>⛔ ${task._forbid}</span>` : "",
 		task._tag ? `<span>🏁 ${task._tag}</span>` : "",
-		task.tags && task.tags.length
-			? `<span>🏁 ${task.tags.join(", ")}</span>`
-			: "",
+		task.tags?.length ? `<span>🏁 ${task.tags.join(", ")}</span>` : "",
 		`<span>📄 ${task.fileName || (task.path ? task.path.split("/").pop()?.replace(".md", "") : "")}</span>`,
 	]
 		.filter(Boolean)
@@ -75,14 +72,13 @@ export function createTaskCard(
 	const li = document.createElement("li");
 	li.className = "task-item";
 	li.setAttribute("data-path", task.path);
-	li.setAttribute("data-line", task.lineNumber ?? task.line);
+	li.setAttribute("data-line-number", task.lineNumber ?? 0);
 	li.style.cssText =
-		"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color: var(--text-normal); transition: background 0.1s;";
+		"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color:var(--text-normal); transition:background 0.1s;";
 
 	const descHtml = task._cleanText || task.description || "（无描述）";
-	li.innerHTML = `<div class="task-desc" style="font-weight:500; margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em; color:var(--text-muted); display:flex; gap:8px; flex-wrap:wrap;">${meta}</div>`;
+	li.innerHTML = `<div class="task-desc" style="font-weight:500;margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;">${meta}</div>`;
 
-	// 统一 hover 效果
 	li.addEventListener("mouseenter", () => {
 		li.style.backgroundColor = "var(--background-modifier-hover)";
 	});
@@ -90,7 +86,6 @@ export function createTaskCard(
 		li.style.backgroundColor = "var(--background-primary)";
 	});
 
-	// tooltip
 	if (showTooltip) {
 		const tipParts: string[] = [];
 		const statusKey = task._status || "todo";

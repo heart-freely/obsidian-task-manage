@@ -1,4 +1,4 @@
-// src/ui/panels/hide-panel.ts
+// src/ui/panel/hide-panel.ts
 // 视图隐藏面板
 
 import {
@@ -10,12 +10,20 @@ import { Store } from "../../process/store/store";
 export class HidePanel {
 	private container: HTMLElement;
 	private store: Store;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
+	}
+
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
 	}
 
 	render() {

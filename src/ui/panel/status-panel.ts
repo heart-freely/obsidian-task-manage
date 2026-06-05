@@ -1,4 +1,4 @@
-// src/ui/panels/status-panel.ts
+// src/ui/panel/status-panel.ts
 // 任务状态面板
 
 import { ALLOWED_STATUSES } from "../../process/config/config";
@@ -7,12 +7,20 @@ import { Store } from "../../process/store/store";
 export class StatusPanel {
 	private container: HTMLElement;
 	private store: Store;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
+	}
+
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
 	}
 
 	render() {

@@ -14,8 +14,6 @@ import {
 import { DateUtils } from "../process";
 import { ContentNode, parseFileContent } from "./task-tree";
 
-// ========== 任务行解析 ==========
-
 export function parseTaskLine(
 	fullLine: string,
 	filePath: string,
@@ -61,7 +59,7 @@ export function parseTaskLine(
 		_forbid: m(RX.forbid) ? m(RX.forbid).replace(/\s/g, "") : "",
 		_repeat: m(RX.repeat),
 		path: filePath,
-		line,
+		line: line,
 		lineNumber: line,
 		text: cleanText,
 		description: cleanText,
@@ -92,8 +90,6 @@ export function parseTaskLine(
 	return task;
 }
 
-// ========== 文件内容解析 ==========
-
 export interface ParsedFileData {
 	path: string;
 	name: string;
@@ -120,7 +116,6 @@ export function parseFile(
 	const contentRoots = content
 		? parseFileContent(content, filePath)
 		: undefined;
-
 	const tasks: any[] = [];
 	const headingTasks: ParsedFileData["headingTasks"] = [];
 
@@ -128,15 +123,13 @@ export function parseFile(
 		for (const node of nodes) {
 			if (node.type === "task" && node._task) tasks.push(node._task);
 			if (node.type === "heading") {
-				if (node._task) {
-					headingTasks.push({
-						line: node.line,
-						level: node.level || 1,
-						text: node.text,
-						yamlData: null,
-						task: node._task,
-					});
-				}
+				headingTasks.push({
+					line: node.line,
+					level: node.level || 1,
+					text: node.text,
+					yamlData: null,
+					task: node._task || null,
+				});
 			}
 			if (node.children.length > 0) collectFromContent(node.children);
 		}
@@ -154,8 +147,6 @@ export function parseFile(
 		headingTasks,
 	};
 }
-
-// ========== YAML 解析 ==========
 
 function parseFrontmatter(content: string): Record<string, any> {
 	if (!content) return {};
@@ -179,8 +170,6 @@ function parseFrontmatter(content: string): Record<string, any> {
 	}
 	return result;
 }
-
-// ========== 从 YAML 构建任务数据 ==========
 
 function buildFileTaskFromYaml(
 	yamlData: Record<string, any>,
@@ -284,7 +273,7 @@ function buildTaskFromYaml(
 		_forbid: yamlData["任务引用ID"] || "",
 		_repeat: yamlData["任务周期"] || "",
 		path: filePath,
-		line,
+		line: line,
 		lineNumber: line,
 		text: description,
 		description,
@@ -313,8 +302,6 @@ function buildTaskFromYaml(
 	ensureTaskTooltip(task);
 	return task;
 }
-
-// ========== 工具函数 ==========
 
 function computeTaskTimeRange(
 	task: any,
@@ -374,8 +361,6 @@ function getStatusIconForTooltip(status: string): string {
 	return map[status] || "🔲";
 }
 
-// ========== 全部文件解析（入口） ==========
-
 export async function loadAllTaskFiles(app: any): Promise<ParsedFileData[]> {
 	const files = app.vault
 		.getMarkdownFiles()
@@ -383,7 +368,6 @@ export async function loadAllTaskFiles(app: any): Promise<ParsedFileData[]> {
 			(f: any) =>
 				f.path.startsWith(TASK_ROOT_PATH) && f.name.endsWith(".md"),
 		);
-
 	const results: ParsedFileData[] = [];
 	for (const file of files) {
 		if (isBlacklisted(file.path)) continue;
@@ -391,12 +375,11 @@ export async function loadAllTaskFiles(app: any): Promise<ParsedFileData[]> {
 		try {
 			const content = await app.vault.cachedRead(file);
 			const parsed = parseFile(file.path, file.name, content);
-
 			if (isTaskFile(file.name, parsed.tasks.length > 0)) {
 				results.push(parsed);
 			}
 		} catch (e) {
-			// 跳过读取失败的文件
+			/* skip */
 		}
 	}
 	return results;

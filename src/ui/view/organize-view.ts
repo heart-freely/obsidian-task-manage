@@ -114,13 +114,12 @@ export class OrganizeView extends BaseTaskView {
 
 	protected renderModeSwitch() {
 		const row = this.container.createDiv({ cls: "organize-mode-row" });
-		const modes = [
+		[
 			{ key: "incomplete-missing", label: "未完成&缺失" },
 			{ key: "incomplete-complete", label: "未完成&完整" },
 			{ key: "complete-missing", label: "已完成&缺失" },
 			{ key: "complete-complete", label: "已完成&完整" },
-		];
-		modes.forEach((m) => {
+		].forEach((m) => {
 			const btn = row.createEl("button", {
 				text: m.label,
 				cls: "filter-btn",
@@ -146,7 +145,7 @@ export class OrganizeView extends BaseTaskView {
 				this.selectedTasks.clear();
 			else
 				tasks.forEach((t) =>
-					this.selectedTasks.add(t.path + "|" + t.line),
+					this.selectedTasks.add(t.path + "|" + t.lineNumber),
 				);
 			this.render();
 		};
@@ -171,11 +170,13 @@ export class OrganizeView extends BaseTaskView {
 		autoBtn.onclick = () => {
 			this.selectedTasks.forEach((taskId) => {
 				const task = tasks.find(
-					(t) => t.path + "|" + t.line === taskId,
+					(t) => t.path + "|" + t.lineNumber === taskId,
 				);
-				if (task && task._done) {
-					const newLine = Op.autoComplete(task._fullLine, 3);
-					this.previews.set(taskId, newLine);
+				if (task?._done) {
+					this.previews.set(
+						taskId,
+						Op.autoComplete(task._fullLine, 3),
+					);
 				}
 			});
 			this.render();
@@ -187,11 +188,10 @@ export class OrganizeView extends BaseTaskView {
 		sortBtn.onclick = () => {
 			this.selectedTasks.forEach((taskId) => {
 				const task = tasks.find(
-					(t) => t.path + "|" + t.line === taskId,
+					(t) => t.path + "|" + t.lineNumber === taskId,
 				);
 				if (task) {
-					const sorted = Op.sortTags(task._fullLine);
-					this.previews.set(taskId, sorted);
+					this.previews.set(taskId, Op.sortTags(task._fullLine));
 				}
 			});
 			this.render();
@@ -245,8 +245,10 @@ export class OrganizeView extends BaseTaskView {
 		const fn = opMap[markKey];
 		if (!fn) return;
 		this.selectedTasks.forEach((taskId) => {
-			const currentLine = this.previews.get(taskId) || "";
-			this.previews.set(taskId, fn(currentLine, option));
+			this.previews.set(
+				taskId,
+				fn(this.previews.get(taskId) || "", option),
+			);
 		});
 		this.render();
 	}
@@ -256,7 +258,7 @@ export class OrganizeView extends BaseTaskView {
 			cls: "organize-task-list",
 		});
 		tasks.forEach((task) => {
-			const taskId = task.path + "|" + task.line;
+			const taskId = task.path + "|" + task.lineNumber;
 			const isSelected = this.selectedTasks.has(taskId);
 			const isConfirmed = this.confirmedTasks.has(taskId);
 			const previewLine = this.previews.get(taskId);
@@ -318,7 +320,9 @@ export class OrganizeView extends BaseTaskView {
 			});
 			const snapshot: Record<string, string> = {};
 			taskIds.forEach((id) => {
-				const task = tasks.find((t) => t.path + "|" + t.line === id);
+				const task = tasks.find(
+					(t) => t.path + "|" + t.lineNumber === id,
+				);
 				if (task) snapshot[id] = task._fullLine;
 			});
 			const snapshots = loadSnapshots();

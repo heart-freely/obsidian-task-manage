@@ -1,4 +1,4 @@
-// src/ui/panels/mark-panel.ts
+// src/ui/panel/mark-panel.ts
 // 任务标记面板
 
 import {
@@ -24,12 +24,20 @@ const PRIORITY_ICONS = [...PRIORITY_ORDER].reverse();
 export class MarkPanel {
 	private container: HTMLElement;
 	private store: Store;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
+	}
+
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
 	}
 
 	render() {

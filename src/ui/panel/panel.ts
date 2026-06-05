@@ -139,9 +139,8 @@ export class Panels {
 					window.innerHeight * 0.85,
 					Math.max(30, newHeight),
 				);
-				if (this.panelsContainer) {
+				if (this.panelsContainer)
 					this.panelsContainer.style.height = newHeight + "px";
-				}
 				this.panelHeight = newHeight;
 				this.updatePreset({ toolbarPanelsHeight: newHeight });
 				this.updateViewPadding();
@@ -156,8 +155,8 @@ export class Panels {
 		});
 
 		this.expandHandler = () => {
-			const preset = this.store.getActivePreset();
-			if (preset?.toolbarPanelsCollapsed) this.showPanels();
+			const p = this.store.getActivePreset();
+			if (p?.toolbarPanelsCollapsed) this.showPanels();
 		};
 		document.addEventListener("panel-expand", this.expandHandler);
 
@@ -170,89 +169,20 @@ export class Panels {
 		if (this.styleEl) return;
 		this.styleEl = document.createElement("style");
 		this.styleEl.textContent = `
-        .panel-btn {
-            padding: 3px 6px !important;
-            font-family: var(--font-text) !important;
-            font-size: var(--font-ui-small) !important;
-            line-height: var(--line-height-normal) !important;
-            margin: 2px 4px 2px 0 !important;
-            text-align: left !important;
-            white-space: nowrap;
-            display: inline-flex !important;
-            align-items: center;
-            justify-content: flex-start;
-            flex-grow: 0 !important;
-            flex-shrink: 0 !important;
-            width: auto !important;
-            min-width: auto !important;
-            height: auto !important;
-            border-radius: 16px;
-            background: var(--interactive-normal);
-            border: none;
-            cursor: pointer;
-        }
-        .panel-btn.active {
-            background: var(--interactive-accent) !important;
-            color: white !important;
-        }
-        .panel-label {
-            font-family: var(--font-text) !important;
-            font-size: var(--font-ui-small) !important;
-            font-weight: normal !important;
-            color: var(--text-normal) !important;
-            text-align: justify !important;
-            text-align-last: justify !important;
-            text-justify: inter-character !important;
-            width: 4em;
-            flex-shrink: 0;
-            margin: 0 !important;
-            margin-right: 6px !important;
-            padding: 0 !important;
-            border: none !important;
-            box-sizing: border-box !important;
-            overflow: hidden;
-            white-space: normal !important;
-            word-break: keep-all;
-        }
-        .panel-row {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            margin-bottom: 4px;
-            flex-wrap: wrap;
-        }
-        .panel-sub { margin-left: 8px; gap: 4px; }
-        .panel-section { margin: 0 !important; padding: 0 !important; }
-        .panel-header-btn {
-            flex-shrink: 0; display: flex; align-items: center; gap: 4px;
-            cursor: grab; padding: 4px 8px; border-radius: 6px;
-            background: var(--background-primary);
-            border: 1px solid var(--background-modifier-border);
-            user-select: none; font-size: 12px; white-space: nowrap;
-        }
-        .panel-header-btn:hover { background: var(--background-modifier-hover); }
-        .panel-header-btn.active { background: var(--background-modifier-active); }
-        .panel-header-label {
-            font-family: inherit;
-            font-size: inherit;
-            line-height: inherit;
-            color: inherit;
-        }
-        .panel-view-btn { min-width: 80px; }
-        .panel-input {
-            padding: 4px 8px; border-radius: 12px;
-            border: 1px solid var(--background-modifier-border);
-            background: var(--background-primary);
-            color: var(--text-normal); font-size: 13px; min-width: 200px;
-        }
-        .panel-input-sm {
-            width: 48px;
-            min-width: 48px;
-            padding: 3px 4px;
-            font-size: 14px;
-            text-align: center;
-        }
-    `;
+			.panel-btn{padding:3px 6px!important;font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;line-height:var(--line-height-normal)!important;margin:2px 4px 2px 0!important;text-align:left!important;white-space:nowrap;display:inline-flex!important;align-items:center;justify-content:flex-start;flex-grow:0!important;flex-shrink:0!important;width:auto!important;min-width:auto!important;height:auto!important;border-radius:16px;background:var(--interactive-normal);border:none;cursor:pointer}
+			.panel-btn.active{background:var(--interactive-accent)!important;color:white!important}
+			.panel-label{font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;font-weight:normal!important;color:var(--text-normal)!important;text-align:justify!important;text-align-last:justify!important;text-justify:inter-character!important;width:4em;flex-shrink:0;margin:0!important;margin-right:6px!important;padding:0!important;border:none!important;box-sizing:border-box!important;overflow:hidden;white-space:normal!important;word-break:keep-all}
+			.panel-row{display:flex;align-items:center;justify-content:flex-start;margin-bottom:4px;flex-wrap:wrap}
+			.panel-sub{margin-left:8px;gap:4px}
+			.panel-section{margin:0!important;padding:0!important}
+			.panel-header-btn{flex-shrink:0;display:flex;align-items:center;gap:4px;cursor:grab;padding:4px 8px;border-radius:6px;background:var(--background-primary);border:1px solid var(--background-modifier-border);user-select:none;font-size:12px;white-space:nowrap}
+			.panel-header-btn:hover{background:var(--background-modifier-hover)}
+			.panel-header-btn.active{background:var(--background-modifier-active)}
+			.panel-header-label{font-family:inherit;font-size:inherit;line-height:inherit;color:inherit}
+			.panel-view-btn{min-width:80px}
+			.panel-input{padding:4px 8px;border-radius:12px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);font-size:13px;min-width:200px}
+			.panel-input-sm{width:48px;min-width:48px;padding:3px 4px;font-size:14px;text-align:center}
+		`;
 		document.head.appendChild(this.styleEl);
 	}
 
@@ -321,13 +251,20 @@ export class Panels {
 		const barVisibility = preset.barVisibility ?? {};
 		const toolbarOrder = preset.toolbarOrder ?? [];
 		const visibleKeys = toolbarOrder.filter((key) => barVisibility[key]);
+
 		const activeEl = document.activeElement;
 		const isInputFocused =
 			activeEl &&
 			(activeEl.tagName === "INPUT" ||
 				activeEl.tagName === "TEXTAREA" ||
 				(activeEl as HTMLElement).isContentEditable);
+
+		// 如果输入框聚焦，跳过面板内容重建
+		if (isInputFocused) return;
+
 		const newKeys = new Set(visibleKeys);
+
+		// 移除不可见的面板
 		for (const [key, panel] of this.panelEls) {
 			if (!newKeys.has(key)) {
 				panel.remove();
@@ -338,25 +275,8 @@ export class Panels {
 				this.panelInstances.delete(key);
 			}
 		}
-		if (isInputFocused) {
-			for (const key of visibleKeys) {
-				if (!this.panelEls.has(key)) {
-					const panel = document.createElement("div");
-					panel.className = "panel-content";
-					panel.style.background = "var(--background-secondary)";
-					panel.style.opacity = "1";
-					panel.style.backdropFilter = "none";
-					this.panelsContainer!.appendChild(panel);
-					this.panelEls.set(key, panel);
-					if (PANEL_COMPONENTS[key])
-						this.panelInstances.set(
-							key,
-							new PANEL_COMPONENTS[key](panel, this.store),
-						);
-				}
-			}
-			return;
-		}
+
+		// 只为新增的面板创建 DOM 和实例（已存在的面板通过 store.subscribe 自动更新）
 		for (const key of visibleKeys) {
 			if (!this.panelEls.has(key)) {
 				const panel = document.createElement("div");
@@ -364,14 +284,40 @@ export class Panels {
 				panel.style.background = "var(--background-secondary)";
 				panel.style.opacity = "1";
 				panel.style.backdropFilter = "none";
-				this.panelsContainer!.appendChild(panel);
+				panel.setAttribute("data-panel-key", key);
 				this.panelEls.set(key, panel);
-				if (PANEL_COMPONENTS[key])
-					this.panelInstances.set(
-						key,
-						new PANEL_COMPONENTS[key](panel, this.store),
+				if (PANEL_COMPONENTS[key]) {
+					const instance = new PANEL_COMPONENTS[key](
+						panel,
+						this.store,
 					);
+					this.panelInstances.set(key, instance);
+				}
 			}
+		}
+
+		// 按 toolbarOrder 顺序重新排列面板 DOM（不重建内容）
+		const currentChildren = Array.from(this.panelsContainer.children);
+		const expectedOrder = visibleKeys
+			.map((key) => this.panelEls.get(key))
+			.filter(Boolean);
+
+		// 检查顺序是否需要调整
+		let needReorder = false;
+		for (let i = 0; i < expectedOrder.length; i++) {
+			if (currentChildren[i] !== expectedOrder[i]) {
+				needReorder = true;
+				break;
+			}
+		}
+
+		if (needReorder) {
+			// 使用 DocumentFragment 批量操作减少回流
+			const fragment = document.createDocumentFragment();
+			for (const panel of expectedOrder) {
+				fragment.appendChild(panel!);
+			}
+			this.panelsContainer.appendChild(fragment);
 		}
 	}
 
@@ -386,7 +332,10 @@ export class Panels {
 	}
 
 	private updateViewPadding() {
-		if (!this.buttonBarEl) return;
+		if (!this.buttonBarEl || !this.isVisible) {
+			this.viewEl.style.paddingTop = "0px";
+			return;
+		}
 		const barHeight = this.buttonBarEl.offsetHeight;
 		const handleHeight = 8;
 		this.viewEl.style.paddingTop = this.isPanelsCollapsed
@@ -400,7 +349,6 @@ export class Panels {
 		this.applyVisibility();
 		this.refreshContent();
 	}
-
 	private showPanels() {
 		if (this.isPanelsCollapsed) this.togglePanels();
 	}

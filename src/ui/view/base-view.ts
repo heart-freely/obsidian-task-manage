@@ -1,10 +1,15 @@
 // src/ui/view/base-view.ts
-// 业务视图基类 — 纯布局 + 渲染，数据从 DataManager 获取
+// 业务视图基类 — 面板筛选 → 节点筛选 → 扁平化 → 排序 → 渲染
 
 import { PRIORITY_ORDER } from "../../process/config/config";
 import { DataManager } from "../../process/core/data-manager";
 import { Store } from "../../process/store/store";
-import { flattenTree, TreeNode } from "../../process/task/task-tree";
+import {
+	filterTree,
+	flattenTree,
+	TreeFilterOptions,
+	TreeNode,
+} from "../../process/task/task-tree";
 import { GlobalFilter } from "../../types";
 import { renderKanban } from "../component/view/board/kanban-board";
 import { renderMatrix } from "../component/view/board/matrix-board";
@@ -44,6 +49,8 @@ export abstract class BaseTaskView {
 	private isResizing: boolean = false;
 	private onResizeBound: ((e: MouseEvent) => void) | null = null;
 	private stopResizeBound: (() => void) | null = null;
+
+	protected selectedTreeNode: any = null;
 
 	constructor(container: HTMLElement, store: Store, app: any) {
 		this.container = container;
@@ -95,15 +102,29 @@ export abstract class BaseTaskView {
 
 		try {
 			const { tasks } = await this.dataManager.loadData(this.app);
-			if (tasks.length === 0) {
+			const validTasks = tasks.filter((t) => t != null);
+			if (validTasks.length === 0) {
 				this.renderEmpty();
 				return;
 			}
 
 			const fullTree = this.dataManager.getFullTree();
-			let flatTasks = flattenTree(fullTree);
 
-			flatTasks = this.applyFilters(flatTasks, activeFilter);
+			const panelOptions: TreeFilterOptions = {
+				statuses: activeFilter.statuses,
+				searchText: activeFilter.searchText,
+				priorityValues: activeFilter.priorityValues,
+				repeatCycles: activeFilter.repeatCycles,
+			};
+			const panelFilteredTree = filterTree(fullTree, panelOptions);
+
+			let flatTasks: any[];
+			if (this.selectedTreeNode) {
+				flatTasks = this.collectNodeTasksDeep(this.selectedTreeNode);
+				flatTasks = this.applyPanelFilter(flatTasks, activeFilter);
+			} else {
+				flatTasks = flattenTree(panelFilteredTree);
+			}
 
 			if (flatTasks.length === 0) {
 				this.renderEmpty();
@@ -120,17 +141,17 @@ export abstract class BaseTaskView {
 				viewContainer.style.padding = "0";
 				viewContainer.style.margin = "0";
 				renderTaskTree(viewContainer, {
-					roots: fullTree,
+					roots: panelFilteredTree,
 					hideFolders: activeFilter.hideFolders ?? true,
 					onClick: (node: any) => {
-						const task = this.extractTaskFromNode(node);
-						if (task) this.openTaskAtLine(task);
+						const t = this.extractTaskFromNode(node);
+						if (t) this.openTaskAtLine(t);
 					},
 					sort,
 				});
 			} else {
 				this.renderSplitLayout(
-					fullTree,
+					panelFilteredTree,
 					currentStyle,
 					activeFilter,
 					intervalMode,
@@ -145,8 +166,9 @@ export abstract class BaseTaskView {
 		}
 	}
 
-	private applyFilters(tasks: any[], filter: GlobalFilter): any[] {
+	private applyPanelFilter(tasks: any[], filter: GlobalFilter): any[] {
 		return tasks.filter((t: any) => {
+			if (!t) return false;
 			if (
 				filter.statuses?.length > 0 &&
 				!filter.statuses.includes(t._status)
@@ -162,27 +184,76 @@ export abstract class BaseTaskView {
 					return false;
 			}
 			if (filter.priorityValues?.length > 0) {
-				if (
-					!t._priorityIcon ||
-					!filter.priorityValues.includes(t._priorityIcon)
-				)
-					return false;
+				const allPriorities = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+				const isAllSelected = allPriorities.every((p) =>
+					filter.priorityValues!.includes(p),
+				);
+				if (!isAllSelected) {
+					const icon = t._priorityIcon;
+					if (icon && !filter.priorityValues!.includes(icon))
+						return false;
+				}
 			}
 			if (filter.repeatCycles?.length > 0) {
-				if (!t._repeat) return false;
-				if (
-					!filter.repeatCycles.some((c: string) =>
-						t._repeat.toLowerCase().includes(c),
+				const allCycles = [
+					"every day",
+					"every week",
+					"every month",
+					"every year",
+				];
+				const isAllSelected = allCycles.every((c) =>
+					filter.repeatCycles!.includes(c),
+				);
+				if (!isAllSelected) {
+					if (!t._repeat) return false;
+					if (
+						!filter.repeatCycles!.some((c: string) =>
+							t._repeat.toLowerCase().includes(c),
+						)
 					)
-				)
-					return false;
+						return false;
+				}
 			}
 			return true;
 		});
 	}
 
+	private collectNodeTasksDeep(node: any): any[] {
+		const tasks: any[] = [];
+		const seen = new Set<string>();
+		function add(t: any) {
+			if (!t?.path) return;
+			const k = t.path + ":" + (t.lineNumber ?? 0);
+			if (!seen.has(k)) {
+				seen.add(k);
+				tasks.push(t);
+			}
+		}
+		function collectFromContentNode(cn: any) {
+			if (cn._task?.path) add(cn._task);
+			if (Array.isArray(cn.children))
+				cn.children.forEach((c: any) => collectFromContentNode(c));
+		}
+		function collectFromTreeNode(tn: any) {
+			if (Array.isArray(tn.contentRoots))
+				tn.contentRoots.forEach((c: any) => collectFromContentNode(c));
+			if (Array.isArray(tn.children))
+				tn.children.forEach((c: any) => collectFromTreeNode(c));
+		}
+		if (
+			node.contentRoots !== undefined ||
+			(node.children !== undefined && !node.type)
+		) {
+			collectFromTreeNode(node);
+		} else if (node.type === "heading" || node.type === "task") {
+			collectFromContentNode(node);
+		}
+		if (tasks.length === 0 && node._task?.path) add(node._task);
+		return tasks;
+	}
+
 	private renderSplitLayout(
-		roots: TreeNode[],
+		panelFilteredTree: TreeNode[],
 		viewStyle: string,
 		filter: GlobalFilter,
 		intervalMode: string,
@@ -237,7 +308,7 @@ export abstract class BaseTaskView {
 			treeContent.style.cssText =
 				"flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0;";
 			renderTaskTree(treeContent, {
-				roots,
+				roots: panelFilteredTree,
 				hideFolders: filter.hideFolders ?? true,
 				onClick: (node: any) =>
 					this.onTaskTreeNavClick(node, viewStyle),
@@ -275,7 +346,6 @@ export abstract class BaseTaskView {
 			filter,
 			intervalMode,
 		);
-
 		document.addEventListener("mousemove", this.onResizeBound!);
 		document.addEventListener("mouseup", this.stopResizeBound!);
 	}
@@ -286,63 +356,33 @@ export abstract class BaseTaskView {
 			if (task) this.openTaskAtLine(task);
 			return;
 		}
-		if (!this.rightContentContainer) return;
-		const preset = this.store.getActivePreset();
-		if (!preset) return;
-
-		let childTasks = this.collectNodeTasksDeep(node);
-		if (childTasks.length === 0) return;
-
-		childTasks = this.applyFilters(childTasks, preset.filter);
-
-		const sort = preset.sort ?? { type: "status", order: "asc" };
-		const sorted = this.applySort(childTasks, sort);
-		this.rightContentContainer.empty();
-		this.renderByStyle(
-			this.rightContentContainer,
-			sorted,
-			currentViewStyle,
-			preset.filter,
-			preset.intervalMode ?? "scheduled-due",
-		);
-	}
-
-	private collectNodeTasksDeep(node: any): any[] {
-		const tasks: any[] = [];
-		const seen = new Set<string>();
-		function add(t: any) {
-			if (t?.path) {
-				const k = t.path + ":" + (t.lineNumber ?? t.line ?? 0);
-				if (!seen.has(k)) {
-					seen.add(k);
-					tasks.push(t);
-				}
-			}
-		}
-		function collect(n: any) {
-			if (Array.isArray(n.tasks)) n.tasks.forEach((t: any) => add(t));
-			if (Array.isArray(n.children))
-				n.children.forEach((c: any) => collect(c));
-			if (Array.isArray(n.contentRoots))
-				n.contentRoots.forEach((c: any) => collect(c));
-		}
-		collect(node);
-		if (tasks.length === 0 && node._task?.path) add(node._task);
-		return tasks;
+		this.selectedTreeNode = this.selectedTreeNode === node ? null : node;
+		this.render();
 	}
 
 	private extractTaskFromNode(node: any): any | null {
+		const filePath = node.path || node._filePath || node._task?.path || "";
 		if (node._task?.path) return node._task;
-		if (node.type === "file" && node.path)
+		if (node._task)
+			return {
+				...node._task,
+				path: node._task.path || filePath,
+				lineNumber: node._task.lineNumber ?? 0,
+			};
+		if (node.path)
 			return {
 				path: node.path,
-				line: 0,
 				lineNumber: 0,
 				_status: "todo",
 				_cleanText: node.name || "",
 			};
-		if (node.type === "heading" && node._task?.path) return node._task;
-		if (node.type === "task" && node._task?.path) return node._task;
+		if (node.type === "heading" || node.type === "task")
+			return {
+				path: filePath,
+				lineNumber: node.line ?? 0,
+				_status: "todo",
+				_cleanText: node.text || "",
+			};
 		return null;
 	}
 
@@ -350,21 +390,62 @@ export abstract class BaseTaskView {
 		if (!task?.path) return;
 		const file = this.app.vault.getAbstractFileByPath(task.path);
 		if (!file) return;
+
+		const targetLine = task.line ?? task.lineNumber ?? 0;
+
 		const leaf = this.app.workspace.getLeaf(false);
-		leaf.openFile(file, {
-			eState: { line: task.lineNumber ?? task.line ?? 0 },
-		}).then(() => {
+		leaf.openFile(file, { eState: { line: targetLine } }).then(() => {
 			setTimeout(() => {
-				const e = leaf.view?.editor;
-				if (e) {
-					const l = task.lineNumber ?? task.line ?? 0;
-					e.setCursor({ line: l, ch: 0 });
-					e.scrollIntoView(
-						{ from: { line: l, ch: 0 }, to: { line: l, ch: 0 } },
+				const view = leaf.view as any;
+				const editor = view?.editor;
+
+				if (editor) {
+					// 设置光标
+					editor.setCursor({ line: targetLine, ch: 0 });
+
+					// 方法1: 使用 editor 的 scrollIntoView
+					editor.scrollIntoView(
+						{
+							from: { line: targetLine, ch: 0 },
+							to: {
+								line: Math.min(
+									targetLine + 10,
+									editor.lineCount() - 1,
+								),
+								ch: 0,
+							},
+						},
 						true,
 					);
+
+					// 方法2: 使用 CM6 的滚动容器
+					const cm = editor.cm;
+					if (cm && cm.scrollDOM) {
+						const coords = cm.charCoords(
+							{ line: targetLine, ch: 0 },
+							"local",
+						);
+						cm.scrollDOM.scrollTop =
+							coords.top - cm.scrollDOM.clientHeight / 3;
+					}
+
+					// 方法3: 使用 previewMode 的滚动
+					const previewEl = view?.containerEl?.querySelector(
+						".markdown-preview-view",
+					);
+					if (previewEl) {
+						const targetEl = previewEl.querySelector(
+							`[data-line="${targetLine}"]`,
+						);
+						if (targetEl) {
+							targetEl.scrollIntoView({
+								behavior: "auto",
+								block: "start",
+							});
+						}
+					}
 				}
-			}, 100);
+			}, 300);
 		});
 	}
 
@@ -382,7 +463,6 @@ export abstract class BaseTaskView {
 		});
 		this.render();
 	}
-
 	private startResize(e: MouseEvent) {
 		e.preventDefault();
 		this.isResizing = true;

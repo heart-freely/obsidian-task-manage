@@ -186,12 +186,12 @@ export function addSnapshot(snapshots, map) {
 export async function writeToFiles(app, tasks, taskIds, linesMap) {
 	const groups = {};
 	for (const id of taskIds) {
-		const task = tasks.find((t) => t.path + "|" + t.line === id);
+		const task = tasks.find((t) => t.path + "|" + t.lineNumber === id);
 		if (!task) continue;
 		const newLine = linesMap[id];
 		if (!newLine || newLine === task._fullLine) continue;
 		if (!groups[task.path]) groups[task.path] = [];
-		groups[task.path].push({ line: task.line, newLine });
+		groups[task.path].push({ line: task.lineNumber, newLine });
 	}
 	let count = 0;
 	for (const [path, items] of Object.entries(groups)) {

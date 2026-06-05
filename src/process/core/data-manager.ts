@@ -64,9 +64,11 @@ export class DataManager {
 				taskIdMap: this.cache.taskIdMap,
 			};
 		}
+
 		const files = await loadAllTaskFiles(app);
 		const allTasks: any[] = [];
 		const taskIdMap = new Map<string, any>();
+
 		for (const file of files) {
 			if (file.fileTask) {
 				allTasks.push(file.fileTask);
@@ -80,17 +82,29 @@ export class DataManager {
 				}
 			}
 			for (const task of file.tasks) {
-				allTasks.push(task);
-				if (task._id) taskIdMap.set(task._id, task);
+				if (task) {
+					allTasks.push(task);
+					if (task._id) taskIdMap.set(task._id, task);
+				}
 			}
 		}
+
+		// 过滤 undefined
+		const validTasks = allTasks.filter((t) => t != null);
+
 		this.cache.files = files;
-		this.cache.allTasks = allTasks;
+		this.cache.allTasks = validTasks;
 		this.cache.taskIdMap = taskIdMap;
-		this.cache.fullTree = buildTreeFromParsedFiles(files, allTasks);
+		this.cache.fullTree = buildTreeFromParsedFiles(files, validTasks);
 		this.cache.filteredTree = null;
 		this.cache.flatTasks = null;
-		return { files, tasks: allTasks, taskIdMap };
+
+		// 释放文件原始内容
+		for (const file of files) {
+			file.content = "";
+		}
+
+		return { files, tasks: validTasks, taskIdMap };
 	}
 
 	getFullTree(): TreeNode[] {
@@ -102,8 +116,9 @@ export class DataManager {
 		if (
 			this.cache.filteredTree &&
 			this.cache.filteredTree.fingerprint === fp
-		)
+		) {
 			return this.cache.filteredTree.roots;
+		}
 		const fullTree = this.cache.fullTree || [];
 		const options: TreeFilterOptions = {
 			statuses: filter.statuses,
@@ -128,9 +143,10 @@ export class DataManager {
 	getTaskTimeRange(): { minTime: number | null; maxTime: number | null } {
 		const tasks = this.cache.allTasks;
 		if (!tasks) return { minTime: null, maxTime: null };
-		let minTime: number | null = null,
-			maxTime: number | null = null;
+		let minTime: number | null = null;
+		let maxTime: number | null = null;
 		for (const task of tasks) {
+			if (!task) continue;
 			const dates = [
 				task._created,
 				task._scheduled,
@@ -164,6 +180,7 @@ export class DataManager {
 			flatTasks: null,
 		};
 	}
+
 	invalidateFilterCache() {
 		this.cache.filteredTree = null;
 		this.cache.flatTasks = null;

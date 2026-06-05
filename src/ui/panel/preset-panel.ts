@@ -1,4 +1,4 @@
-// src/ui/panels/preset-panel.ts
+// src/ui/panel/preset-panel.ts
 // 视图配置面板
 
 import {
@@ -24,6 +24,27 @@ const DEFAULT_FILTER: GlobalFilter = {
 	repeatCycles: [...REPEAT_ORDER],
 };
 
+const DEFAULT_BAR_VISIBILITY = {
+	time: true,
+	excut: true,
+	search: true,
+	mark: true,
+	view: true,
+	hide: true,
+	sort: true,
+	config: true,
+};
+const DEFAULT_TOOLBAR_ORDER = [
+	"excut",
+	"search",
+	"mark",
+	"time",
+	"view",
+	"hide",
+	"sort",
+	"config",
+];
+
 const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 	inbox: {
 		businessView: "inbox",
@@ -33,26 +54,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		toolbarEverShown: false,
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
-		toolbarOrder: [
-			"excut",
-			"search",
-			"mark",
-			"time",
-			"view",
-			"hide",
-			"sort",
-			"config",
-		],
-		barVisibility: {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-		},
+		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
+		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
 		filter: { ...DEFAULT_FILTER, statuses: ["todo", "planned"] },
 		sort: { type: "status", order: "asc" as const },
 		intervalMode: "scheduled-due",
@@ -66,26 +69,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		toolbarEverShown: false,
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
-		toolbarOrder: [
-			"excut",
-			"search",
-			"mark",
-			"time",
-			"view",
-			"hide",
-			"sort",
-			"config",
-		],
-		barVisibility: {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-		},
+		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
+		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
 		filter: {
 			...DEFAULT_FILTER,
 			statuses: ["todo", "planned", "in-progress"],
@@ -103,26 +88,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		toolbarEverShown: false,
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
-		toolbarOrder: [
-			"excut",
-			"search",
-			"mark",
-			"time",
-			"view",
-			"hide",
-			"sort",
-			"config",
-		],
-		barVisibility: {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-		},
+		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
+		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
 		filter: {
 			...DEFAULT_FILTER,
 			statuses: ["todo", "planned", "in-progress"],
@@ -139,26 +106,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		toolbarEverShown: false,
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
-		toolbarOrder: [
-			"excut",
-			"search",
-			"mark",
-			"time",
-			"view",
-			"hide",
-			"sort",
-			"config",
-		],
-		barVisibility: {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-		},
+		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
+		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
 		filter: {
 			...DEFAULT_FILTER,
 			statuses: ["todo", "planned", "in-progress"],
@@ -175,26 +124,8 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 		toolbarEverShown: false,
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
-		toolbarOrder: [
-			"excut",
-			"search",
-			"mark",
-			"time",
-			"view",
-			"hide",
-			"sort",
-			"config",
-		],
-		barVisibility: {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-		},
+		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
+		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
 		filter: { ...DEFAULT_FILTER },
 		sort: { type: "status", order: "asc" as const },
 		intervalMode: "scheduled-due",
@@ -205,12 +136,20 @@ const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
 export class PresetPanel {
 	private container: HTMLElement;
 	private store: Store;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
+	}
+
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
 	}
 
 	render() {
@@ -249,7 +188,6 @@ export class PresetPanel {
 			cls: "panel-input panel-input-sm",
 			attr: { placeholder: "Emoji" },
 		});
-		iconInput.style.maxWidth = "60px";
 		iconInput.value = preset.icon || "";
 		iconInput.addEventListener("change", () =>
 			updatePreset({ icon: iconInput.value.trim() || undefined }),
@@ -306,7 +244,14 @@ export class PresetPanel {
 			if (!pr) return;
 			const def = PRESET_DEFAULTS[pr.id];
 			if (!def) return;
-			updatePreset({ ...def, id: pr.id, name: pr.name } as any);
+			updatePreset({
+				...def,
+				id: pr.id,
+				name: pr.name,
+				filter: { ...DEFAULT_FILTER, ...(def.filter || {}) },
+				barVisibility: { ...DEFAULT_BAR_VISIBILITY },
+				toolbarOrder: [...DEFAULT_TOOLBAR_ORDER],
+			} as any);
 			Panels.getInstance().refreshTimePanel();
 		};
 

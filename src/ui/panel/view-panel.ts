@@ -1,4 +1,4 @@
-// src/ui/panels/view-panel.ts
+// src/ui/panel/view-panel.ts
 // 任务视图面板
 
 import { Store } from "../../process/store/store";
@@ -35,12 +35,20 @@ const GROUP_NAMES: Record<string, string> = {
 export class ViewPanel {
 	private container: HTMLElement;
 	private store: Store;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
+	}
+
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
 	}
 
 	render() {
@@ -62,7 +70,7 @@ export class ViewPanel {
 				cls: "panel-label",
 			});
 			const btnsContainer = groupRow.createDiv({
-				cls: "panel-view-btns-container",
+				cls: "view-btns-container",
 			});
 			styles.forEach(({ key, label }) => {
 				const btn = btnsContainer.createEl("button", {

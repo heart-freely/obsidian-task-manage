@@ -1,11 +1,14 @@
 // src/ui/component/view/list/tree-list.ts
-// 任务树列表渲染组件
+// 任务树列表渲染组件（支持虚拟滚动，保持完整交互）
 
 import { ContentNode, TreeNode } from "../../../../process/task/task-tree";
 import { countTaskStatuses, createProgressBar } from "../../progress/progress";
 import { createTaskCard } from "../card/card";
 
 const INDENT_WIDTH = 24;
+const VIRTUAL_SCROLL_THRESHOLD = 100;
+const VISIBLE_BUFFER = 15;
+const ROW_HEIGHT = 28;
 
 export interface TreeListOptions {
 	hideFolders?: boolean;
@@ -59,6 +62,8 @@ function collectAllTasksFromNode(node: TreeNode): any[] {
 		node.contentRoots.forEach((cn) => collectNodeTasks(cn).forEach(add));
 	return all;
 }
+
+// ========== 排序 ==========
 
 function getNodeGroupOrder(node: ContentNode): number {
 	if (node.type === "task") return 0;
@@ -130,15 +135,124 @@ function sortContentNodes(
 		if (!tb) return -1;
 		return compareTasks(ta, tb, sort?.type, order);
 	});
+	for (const node of sorted) {
+		if (node.children.length > 0) {
+			node.children = sortContentNodes(node.children, sort);
+		}
+	}
 	return sorted;
 }
 
+function sortFileNodes(
+	nodes: TreeNode[],
+	sort?: { type: string; order: "asc" | "desc" },
+): TreeNode[] {
+	if (!nodes || nodes.length === 0) return nodes;
+	const sorted = [...nodes];
+	const order = sort?.order === "asc" ? 1 : -1;
+	sorted.sort((a, b) => {
+		const ta = a._task,
+			tb = b._task;
+		if (!ta && !tb) return 0;
+		if (!ta) return 1;
+		if (!tb) return -1;
+		return compareTasks(ta, tb, sort?.type, order);
+	});
+	for (const node of sorted) {
+		if (node.contentRoots?.length > 0) {
+			node.contentRoots = sortContentNodes(node.contentRoots, sort);
+		}
+		if (node.children.length > 0) {
+			node.children = sortFileNodes(node.children, sort);
+		}
+	}
+	return sorted;
+}
+
+// ========== 节点扁平化（虚拟滚动用） ==========
+
+interface FlatNode {
+	type: "file" | "heading" | "task";
+	node: TreeNode | ContentNode;
+	depth: number;
+	parentPath?: string;
+	expanded: boolean;
+	hasChildren: boolean;
+}
+
+function flattenTreeForVirtual(
+	nodes: TreeNode[],
+	collapsedPaths: Set<string>,
+	depth: number,
+): FlatNode[] {
+	const result: FlatNode[] = [];
+	for (const node of nodes) {
+		const hasChildren =
+			(node.contentRoots?.length || 0) > 0 || node.children.length > 0;
+		const expanded = !collapsedPaths.has(node.path);
+		result.push({ type: "file", node, depth, hasChildren, expanded });
+		if (expanded) {
+			if (node.contentRoots?.length > 0) {
+				flattenContentNodes(
+					node.contentRoots,
+					collapsedPaths,
+					depth + 1,
+					node.path,
+					result,
+				);
+			}
+			if (node.children.length > 0) {
+				const childNodes = flattenTreeForVirtual(
+					node.children,
+					collapsedPaths,
+					depth + 1,
+				);
+				result.push(...childNodes);
+			}
+		}
+	}
+	return result;
+}
+
+function flattenContentNodes(
+	nodes: ContentNode[],
+	collapsedPaths: Set<string>,
+	depth: number,
+	parentPath: string,
+	result: FlatNode[],
+) {
+	for (const node of nodes) {
+		const nodeKey = `${parentPath}:${node.line}`;
+		const hasChildren = node.children.length > 0;
+		const expanded = !collapsedPaths.has(nodeKey);
+		result.push({
+			type: node.type,
+			node,
+			depth,
+			parentPath,
+			hasChildren,
+			expanded,
+		});
+		if (expanded && hasChildren) {
+			flattenContentNodes(
+				node.children,
+				collapsedPaths,
+				depth + 1,
+				nodeKey,
+				result,
+			);
+		}
+	}
+}
+
 // ========== DOM 工具 ==========
+
 function createRowWrapper(depth: number): HTMLElement {
 	const w = document.createElement("div");
 	w.style.cssText = `margin-left:${depth * INDENT_WIDTH}px;display:flex;align-items:center;gap:0;`;
 	return w;
 }
+
 function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	const b = document.createElement("span");
 	b.className = "tree-toggle-btn";
@@ -158,11 +272,13 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	});
 	return b;
 }
+
 function createSpacer(): HTMLElement {
 	const s = document.createElement("span");
 	s.style.cssText = "display:inline-flex;width:16px;flex-shrink:0;";
 	return s;
 }
+
 function addProgressBadge(
 	container: HTMLElement,
 	counts: Record<string, number>,
@@ -234,28 +350,288 @@ function createTreeCard(
 	return card;
 }
 
+// ========== 虚拟滚动行渲染 ==========
+
+function renderFlatNodeRow(
+	item: FlatNode,
+	options: TreeListOptions,
+): HTMLElement {
+	const { type, node, depth, hasChildren, expanded } = item;
+	const onClick = options.onClick;
+
+	if (type === "file") {
+		const treeNode = node as TreeNode;
+		const rowWrapper = createRowWrapper(depth);
+		const childContainer = document.createElement("div");
+		if (hasChildren) {
+			const tb = createToggleBtn(childContainer);
+			tb.textContent = expanded ? "▼" : "▶";
+			rowWrapper.appendChild(tb);
+		} else {
+			rowWrapper.appendChild(createSpacer());
+		}
+		const contentContainer = document.createElement("div");
+		contentContainer.style.cssText =
+			"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
+		const task = treeNode._task;
+		if (task) {
+			const originalCleanText = task._cleanText;
+			task._cleanText = "📄 " + (originalCleanText || treeNode.name);
+			const card = createTreeCard(task, onClick, treeNode);
+			card.style.cssText +=
+				"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+			contentContainer.appendChild(card);
+			if (hasChildren) {
+				const allTasks = collectAllTasksFromNode(treeNode);
+				const { counts, total } = countTaskStatuses(allTasks);
+				if (total > 0)
+					addProgressBadge(contentContainer, counts, total);
+			}
+			task._cleanText = originalCleanText;
+		}
+		rowWrapper.appendChild(contentContainer);
+		rowWrapper.appendChild(document.createElement("div")).style.cssText =
+			"flex:1;";
+		return rowWrapper;
+	}
+
+	if (type === "heading") {
+		const contentNode = node as ContentNode;
+		const wrappedNode = {
+			...contentNode,
+			_filePath: item.parentPath || "",
+		};
+		const rowWrapper = createRowWrapper(depth);
+		const childContainer = document.createElement("div");
+		if (hasChildren) {
+			const tb = createToggleBtn(childContainer);
+			tb.textContent = expanded ? "▼" : "▶";
+			rowWrapper.appendChild(tb);
+		} else {
+			rowWrapper.appendChild(createSpacer());
+		}
+		const contentContainer = document.createElement("div");
+		contentContainer.style.cssText =
+			"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
+		const task = (contentNode as any)._task;
+		const level = contentNode.level || 1;
+		const cleanTitle = removeHeadingNumber(contentNode.text);
+		if (task) {
+			const originalCleanText = task._cleanText;
+			task._cleanText = `H${level} ` + cleanTitle;
+			const card = createTreeCard(task, onClick, wrappedNode);
+			card.style.cssText +=
+				"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+			contentContainer.appendChild(card);
+			if (hasChildren) {
+				const childTasks = collectNodeTasks(contentNode);
+				const { counts, total } = countTaskStatuses(childTasks);
+				if (total > 0)
+					addProgressBadge(contentContainer, counts, total);
+			}
+			task._cleanText = originalCleanText;
+		} else {
+			const pseudoTask = {
+				_status: "todo",
+				_cleanText: `H${level} ` + cleanTitle,
+				path: "",
+				line: contentNode.line,
+				lineNumber: contentNode.line,
+				_priorityIcon: "",
+				_tag: "",
+				_id: "",
+				_forbid: "",
+				_repeat: "",
+				_created: "",
+				_scheduled: "",
+				_starts: "",
+				_due: "",
+				_done: "",
+				_cancel: "",
+				status: " ",
+				priority: "none",
+				fileName: "",
+			};
+			const card = createTreeCard(pseudoTask, onClick, wrappedNode);
+			card.style.cssText +=
+				"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+			contentContainer.appendChild(card);
+		}
+		rowWrapper.appendChild(contentContainer);
+		rowWrapper.appendChild(document.createElement("div")).style.cssText =
+			"flex:1;";
+		return rowWrapper;
+	}
+
+	// type === "task"
+	const contentNode = node as ContentNode;
+	const wrappedNode = { ...contentNode, _filePath: item.parentPath || "" };
+	const rowWrapper = createRowWrapper(depth);
+	const childContainer = document.createElement("div");
+	if (hasChildren) {
+		const tb = createToggleBtn(childContainer);
+		tb.textContent = expanded ? "▼" : "▶";
+		rowWrapper.appendChild(tb);
+	} else {
+		rowWrapper.appendChild(createSpacer());
+	}
+	const contentContainer = document.createElement("div");
+	contentContainer.style.cssText =
+		"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
+	const task = (contentNode as any)._task;
+	const taskData = task || {
+		_status: "todo",
+		_cleanText: contentNode.text,
+		path: "",
+		line: contentNode.line,
+		lineNumber: contentNode.line,
+		_priorityIcon: "",
+		_tag: "",
+		_id: "",
+		_forbid: "",
+		_repeat: "",
+		_created: "",
+		_scheduled: "",
+		_starts: "",
+		_due: "",
+		_done: "",
+		_cancel: "",
+		status: " ",
+		priority: "none",
+	};
+	const originalText = taskData._cleanText;
+	if (!originalText.startsWith("● "))
+		taskData._cleanText = "● " + originalText;
+	const card = createTreeCard(taskData, onClick, wrappedNode);
+	card.style.cssText +=
+		"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+	contentContainer.appendChild(card);
+	if (hasChildren) {
+		const childTasks = collectNodeTasks(contentNode);
+		const { counts, total } = countTaskStatuses(childTasks);
+		if (total > 0) addProgressBadge(contentContainer, counts, total);
+	}
+	taskData._cleanText = originalText;
+	rowWrapper.appendChild(contentContainer);
+	rowWrapper.appendChild(document.createElement("div")).style.cssText =
+		"flex:1;";
+	return rowWrapper;
+}
+
+function getFlatNodePath(item: FlatNode): string {
+	if (item.type === "file") return (item.node as TreeNode).path;
+	return `${item.parentPath}:${(item.node as ContentNode).line}`;
+}
+
 // ========== 主渲染 ==========
+
 export function renderTaskTree(
 	container: HTMLElement,
 	options: TreeListOptions,
 ) {
 	container.empty();
-	const roots = options.roots;
-	const tree = document.createElement("div");
-	tree.className = "task-tree";
-	if (roots.length > 0) {
-		roots.forEach((root) => renderFileNodeInline(root, 0, tree, options));
-	} else {
-		const dr = document.createElement("div");
-		dr.style.cssText =
-			"padding:2px 4px;font-size:var(--font-ui-small);color:var(--text-muted);";
-		dr.textContent = "📄 任务系统";
-		tree.appendChild(dr);
+	let roots = options.roots;
+	const sort = options.sort;
+	if (sort) {
+		roots = sortFileNodes(roots, sort);
 	}
-	container.appendChild(tree);
+
+	const collapsedPaths = new Set<string>();
+	const flatNodes = flattenTreeForVirtual(roots, collapsedPaths, 0);
+	const totalRows = flatNodes.length;
+
+	if (totalRows <= VIRTUAL_SCROLL_THRESHOLD) {
+		const tree = document.createElement("div");
+		tree.className = "task-tree";
+		if (roots.length > 0) {
+			roots.forEach((root) =>
+				renderFileNodeInline(root, 0, tree, options),
+			);
+		} else {
+			const dr = document.createElement("div");
+			dr.style.cssText =
+				"padding:2px 4px;font-size:var(--font-ui-small);color:var(--text-muted);";
+			dr.textContent = "📄 任务系统";
+			tree.appendChild(dr);
+		}
+		container.appendChild(tree);
+	} else {
+		renderVirtualTree(container, roots, options, collapsedPaths);
+	}
 }
 
-// ========== 文件节点 ==========
+function renderVirtualTree(
+	container: HTMLElement,
+	roots: TreeNode[],
+	options: TreeListOptions,
+	collapsedPaths: Set<string>,
+) {
+	const wrapper = document.createElement("div");
+	wrapper.className = "task-tree-virtual";
+	wrapper.style.cssText =
+		"height:100%;overflow-y:auto;overflow-x:hidden;position:relative;";
+
+	const viewport = document.createElement("div");
+	viewport.className = "task-tree-viewport";
+	viewport.style.cssText = "position:absolute;top:0;left:0;right:0;";
+	wrapper.appendChild(viewport);
+
+	let flatNodes = flattenTreeForVirtual(roots, collapsedPaths, 0);
+	let totalHeight = flatNodes.length * ROW_HEIGHT;
+	const spacer = document.createElement("div");
+	spacer.style.cssText = `height:${totalHeight}px;width:1px;`;
+	wrapper.appendChild(spacer);
+
+	function renderRange() {
+		const scrollTop = wrapper.scrollTop;
+		const viewH = wrapper.clientHeight;
+		const start = Math.max(
+			0,
+			Math.floor(scrollTop / ROW_HEIGHT) - VISIBLE_BUFFER,
+		);
+		const end = Math.min(
+			flatNodes.length,
+			Math.ceil((scrollTop + viewH) / ROW_HEIGHT) + VISIBLE_BUFFER,
+		);
+		viewport.style.top = `${start * ROW_HEIGHT}px`;
+		viewport.innerHTML = "";
+		const fragment = document.createDocumentFragment();
+		for (let i = start; i < end; i++) {
+			const item = flatNodes[i];
+			const row = renderFlatNodeRow(item, options);
+			row.style.height = `${ROW_HEIGHT}px`;
+			row.style.overflow = "hidden";
+			const toggleBtn = row.querySelector(".tree-toggle-btn");
+			if (toggleBtn) {
+				toggleBtn.addEventListener("click", (e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					const path = getFlatNodePath(item);
+					if (collapsedPaths.has(path)) {
+						collapsedPaths.delete(path);
+					} else {
+						collapsedPaths.add(path);
+					}
+					flatNodes = flattenTreeForVirtual(roots, collapsedPaths, 0);
+					totalHeight = flatNodes.length * ROW_HEIGHT;
+					spacer.style.height = `${totalHeight}px`;
+					renderRange();
+				});
+			}
+			fragment.appendChild(row);
+		}
+		viewport.appendChild(fragment);
+	}
+
+	wrapper.addEventListener("scroll", () => {
+		requestAnimationFrame(() => renderRange());
+	});
+	container.appendChild(wrapper);
+	requestAnimationFrame(() => renderRange());
+}
+
+// ========== 普通渲染 ==========
+
 function renderFileNodeInline(
 	node: TreeNode,
 	depth: number,
@@ -344,7 +720,6 @@ function renderFileNodeInline(
 	parentEl.appendChild(childContainer);
 }
 
-// ========== 内容节点 ==========
 function renderContentNode(
 	node: ContentNode,
 	depth: number,
@@ -356,6 +731,7 @@ function renderContentNode(
 	const sort = options?.sort;
 	const childContainer = document.createElement("div");
 	const hasChildren = node.children.length > 0;
+	const wrappedNode = { ...node, _filePath: filePath };
 
 	if (node.type === "heading") {
 		const task = (node as any)._task;
@@ -375,7 +751,7 @@ function renderContentNode(
 		if (task) {
 			const originalCleanText = task._cleanText;
 			task._cleanText = hTag + " " + cleanTitle;
-			const card = createTreeCard(task, onClick, node);
+			const card = createTreeCard(task, onClick, wrappedNode);
 			card.style.cssText +=
 				"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
 			contentContainer.appendChild(card);
@@ -406,7 +782,7 @@ function renderContentNode(
 					? filePath.split("/").pop()?.replace(".md", "")
 					: "",
 			};
-			const card = createTreeCard(pseudoTask, onClick, node);
+			const card = createTreeCard(pseudoTask, onClick, wrappedNode);
 			card.style.cssText +=
 				"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
 			contentContainer.appendChild(card);
@@ -468,7 +844,7 @@ function renderContentNode(
 			const originalText = taskData._cleanText;
 			if (!originalText.startsWith("● "))
 				taskData._cleanText = "● " + originalText;
-			const card = createTreeCard(taskData, onClick, node);
+			const card = createTreeCard(taskData, onClick, wrappedNode);
 			card.style.cssText +=
 				"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
 			contentContainer.appendChild(card);
@@ -479,7 +855,7 @@ function renderContentNode(
 			const originalText = taskData._cleanText;
 			if (!originalText.startsWith("● "))
 				taskData._cleanText = "● " + originalText;
-			const card = createTreeCard(taskData, onClick, node);
+			const card = createTreeCard(taskData, onClick, wrappedNode);
 			card.style.cssText +=
 				"flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
 			contentContainer.appendChild(card);

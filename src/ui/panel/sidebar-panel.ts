@@ -1,4 +1,4 @@
-// src/ui/panels/sidebar-panel.ts
+// src/ui/panel/sidebar-panel.ts
 // 侧边栏面板
 
 import { Store } from "../../process/store/store";
@@ -9,13 +9,21 @@ export class SidebarPanel {
 	private store: Store;
 	private container: HTMLElement;
 	private lastSidebarWidth: number | null = null;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store, app: any) {
 		this.container = container;
 		this.store = store;
 		this.app = app;
-		this.store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
+	}
+
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
 	}
 
 	private render() {

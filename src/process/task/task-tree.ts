@@ -82,6 +82,11 @@ export function extractAllLinks(content: string): string[] {
 		const name = normalizeFileName(match[1].trim());
 		if (name.endsWith("任务")) links.push(name);
 	}
+	const mdRegex = /\[([^\]]*)\]\(([^)]+\.md)\)/g;
+	while ((match = mdRegex.exec(content)) !== null) {
+		const name = normalizeFileName(match[2].trim());
+		if (name.endsWith("任务")) links.push(name);
+	}
 	return [...new Set(links)];
 }
 
@@ -154,7 +159,7 @@ export function parseTaskLine(
 		_forbid: m(RX_FORBID) ? m(RX_FORBID).replace(/\s/g, "") : "",
 		_repeat: m(RX_REPEAT),
 		path,
-		line,
+		line: line,
 		lineNumber: line,
 		text: cleanText,
 		description: cleanText,
@@ -169,15 +174,12 @@ export function parseTaskLine(
 	};
 }
 
-// ========== 文件内容解析（新规则） ==========
-
 export function parseFileContent(
 	content: string,
 	filePath?: string,
 ): ContentNode[] {
 	if (!content) return [];
 
-	// 移除 YAML frontmatter
 	let body = content;
 	if (body.startsWith("---")) {
 		const endIdx = body.indexOf("---", 3);
@@ -188,13 +190,19 @@ export function parseFileContent(
 	const roots: ContentNode[] = [];
 	const headingStack: ContentNode[] = [];
 	const indentStack: { indent: number; node: ContentNode }[] = [];
+	let inCodeBlock = false;
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 		const trimmed = line.trim();
+
+		if (trimmed.startsWith("```")) {
+			inCodeBlock = !inCodeBlock;
+			continue;
+		}
+		if (inCodeBlock) continue;
 		if (trimmed === "") continue;
 
-		// 检测标题
 		const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)/);
 		if (headingMatch) {
 			const level = headingMatch[1].length;
@@ -241,11 +249,9 @@ export function parseFileContent(
 				indentStack.length = 0;
 				continue;
 			}
-			// 非"任务"结尾的标题：跳过
 			continue;
 		}
 
-		// 跳过标题任务下的 YAML 代码块
 		const currentHeading =
 			headingStack.length > 0
 				? headingStack[headingStack.length - 1]
@@ -259,7 +265,6 @@ export function parseFileContent(
 			continue;
 		}
 
-		// 检测列表任务
 		const taskMatch = trimmed.match(TASK_REGEX);
 		if (!taskMatch) continue;
 
@@ -412,8 +417,6 @@ function getIndentLevel(line: string): number {
 	return tabCount + Math.floor((leading - tabCount) / 4);
 }
 
-// ========== 过滤与文件任务同名的列表任务 ==========
-
 function filterDuplicateListTasks(
 	roots: ContentNode[],
 	fileTaskName: string,
@@ -442,8 +445,6 @@ function filterDuplicateListTasks(
 			return true;
 		});
 }
-
-// ========== 从 ParsedFileData 构建 TreeNode ==========
 
 export function buildTreeFromParsedFiles(
 	files: ParsedFileData[],
@@ -510,6 +511,7 @@ export function buildTreeFromParsedFiles(
 			const endIdx = body.indexOf("---", 3);
 			if (endIdx !== -1) body = body.substring(endIdx + 3);
 		}
+		body = body.replace(/```[\s\S]*?```/g, "");
 		return extractAllLinks(body);
 	};
 
@@ -521,8 +523,9 @@ export function buildTreeFromParsedFiles(
 		for (const linkName of allLinks) {
 			if (linkName === normalizedSelfName) continue;
 			const child = findNodeByName(map, linkName);
-			if (child && !child.metaParent && !child.linkParent)
+			if (child && !child.metaParent) {
 				child.linkParent = normalizeFileName(node.name);
+			}
 		}
 	}
 
@@ -532,10 +535,7 @@ export function buildTreeFromParsedFiles(
 	map.forEach((node) => {
 		let parentPath: string | null = null;
 		if (node.metaParent && node.linkParent) {
-			parentPath =
-				node.metaParent === node.linkParent
-					? node.metaParent
-					: node.metaParent;
+			parentPath = node.metaParent;
 		} else if (node.metaParent) {
 			parentPath = node.metaParent;
 		} else if (node.linkParent) {
@@ -609,7 +609,6 @@ function sortNodeChildren(node: TreeNode): void {
 	node.children.forEach(sortNodeChildren);
 }
 
-// ========== 树上筛选 ==========
 export function filterTree(
 	roots: TreeNode[],
 	options: TreeFilterOptions,
@@ -687,29 +686,41 @@ function taskMatchesFilter(task: any, options: TreeFilterOptions): boolean {
 		if (!kw.every((k) => text.includes(k))) return false;
 	}
 	if (options.priorityValues?.length) {
-		if (
-			!task._priorityIcon ||
-			!options.priorityValues.includes(task._priorityIcon)
-		)
-			return false;
+		const allPriorities = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+		const isAllSelected = allPriorities.every((p) =>
+			options.priorityValues!.includes(p),
+		);
+		if (!isAllSelected) {
+			const icon = task._priorityIcon;
+			if (icon && !options.priorityValues!.includes(icon)) return false;
+		}
 	}
 	if (options.repeatCycles?.length) {
-		if (!task._repeat) return false;
-		if (
-			!options.repeatCycles.some((c: string) =>
-				task._repeat.toLowerCase().includes(c),
+		const allCycles = [
+			"every day",
+			"every week",
+			"every month",
+			"every year",
+		];
+		const isAllSelected = allCycles.every((c) =>
+			options.repeatCycles!.includes(c),
+		);
+		if (!isAllSelected) {
+			if (!task._repeat) return false;
+			if (
+				!options.repeatCycles!.some((c: string) =>
+					task._repeat.toLowerCase().includes(c),
+				)
 			)
-		)
-			return false;
+				return false;
+		}
 	}
 	return true;
 }
 
-// ========== 收集扁平 ==========
 export function flattenTree(roots: TreeNode[]): any[] {
 	const tasks: any[] = [];
 	const seen = new Set<string>();
-
 	function add(task: any) {
 		if (!task?.path) return;
 		const key =
@@ -719,7 +730,6 @@ export function flattenTree(roots: TreeNode[]): any[] {
 			tasks.push(task);
 		}
 	}
-
 	function walk(node: TreeNode) {
 		const fileTaskName = node._task?._cleanText;
 		if (node._task) add(node._task);
@@ -728,7 +738,6 @@ export function flattenTree(roots: TreeNode[]): any[] {
 		}
 		for (const c of node.children) walk(c);
 	}
-
 	function walkCN(cn: ContentNode, fileTaskName?: string) {
 		const task = (cn as any)._task;
 		if (task) {
@@ -742,7 +751,6 @@ export function flattenTree(roots: TreeNode[]): any[] {
 		}
 		for (const c of cn.children) walkCN(c, fileTaskName);
 	}
-
 	for (const root of roots) walk(root);
 	return tasks;
 }

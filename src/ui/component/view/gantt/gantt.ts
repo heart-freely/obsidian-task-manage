@@ -649,7 +649,7 @@ function drawHoverHighlight(state: GanttState) {
 
 	const barPath = state.taskBarPath || getTaskBarPath();
 	for (const item of state.ganttTasks) {
-		const taskId = item.task.line + "@" + item.task.path;
+		const taskId = item.task.lineNumber + "@" + item.task.path;
 		if (taskId !== state.hoveredBarTaskId) continue;
 
 		const startX = timeToX(item.start.getTime());
@@ -920,7 +920,8 @@ export function renderGantt(container: HTMLElement, tasks: any[]) {
 					y >= barY &&
 					y <= barY + CONFIG.TASK_BAR_HEIGHT
 				) {
-					hoveredBarTaskId = item.task.line + "@" + item.task.path;
+					hoveredBarTaskId =
+						item.task.lineNumber + "@" + item.task.path;
 					tooltipTask = item.task;
 					break;
 				}

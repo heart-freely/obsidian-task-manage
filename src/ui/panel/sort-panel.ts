@@ -1,4 +1,4 @@
-// src/ui/panels/sort-panel.ts
+// src/ui/panel/sort-panel.ts
 // 视图排序面板
 
 import { Store } from "../../process/store/store";
@@ -23,12 +23,20 @@ const SORT_OPTIONS = [
 export class SortPanel {
 	private container: HTMLElement;
 	private store: Store;
+	private unsub: (() => void) | null = null;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
+	}
+
+	destroy() {
+		if (this.unsub) {
+			this.unsub();
+			this.unsub = null;
+		}
 	}
 
 	render() {
