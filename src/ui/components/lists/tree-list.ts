@@ -7,7 +7,7 @@ import {
 	buildNodeMap,
 	resolveRelations,
 } from "../../../process/components/tree-task-process";
-import { countTaskStatuses, createProgressBar } from "../bar/progress-bar";
+import { countTaskStatuses, createProgressBar } from "../progress/progress";
 import { createTaskCard } from "../cards/card";
 
 // ========== 统一缩进宽度 ==========
