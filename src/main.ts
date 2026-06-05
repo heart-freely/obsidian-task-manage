@@ -1,9 +1,14 @@
 // src/main.ts
 import { Plugin } from "obsidian";
-import { registerAllCommands } from "./commands";
-import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "./configs/configs";
+import { registerAllCommands } from "./command";
+import {
+	ALL_MARKS,
+	PRIORITY_ORDER,
+	REPEAT_ORDER,
+	updateTaskFileConfig,
+} from "./process/config/config";
+import { Store } from "./process/store/store";
 import { TaskManageSettingTab } from "./settings";
-import { Store } from "./store/store";
 import { AppState, GlobalFilter, Preset } from "./types";
 import { NavigatorView } from "./ui/ui";
 
@@ -12,6 +17,22 @@ export default class TaskManagePlugin extends Plugin {
 
 	async onload() {
 		const savedData = (await this.loadData()) || {};
+
+		// 初始化任务文件识别配置
+		updateTaskFileConfig({
+			rootPath: savedData.taskRootPath || "pages/A 系统/A 任务系统",
+			filePattern: savedData.taskFilePattern || "任务\\.md$",
+			whitelist: {
+				enabled: savedData.whitelistEnabled ?? false,
+				useRegex: savedData.whitelistUseRegex ?? false,
+				pattern: savedData.whitelistPattern || "",
+			},
+			blacklist: {
+				enabled: savedData.blacklistEnabled ?? false,
+				useRegex: savedData.blacklistUseRegex ?? false,
+				pattern: savedData.blacklistPattern || "",
+			},
+		});
 
 		const defaultFilter: GlobalFilter = {
 			dateRange: { start: null, end: null, isAll: true },
@@ -345,7 +366,17 @@ export default class TaskManagePlugin extends Plugin {
 
 		this.store = new Store(initialState);
 		this.store.setSaveFn(async (state) => {
-			await this.saveData(state);
+			await this.saveData({
+				...state,
+				taskRootPath: savedData.taskRootPath,
+				taskFilePattern: savedData.taskFilePattern,
+				whitelistEnabled: savedData.whitelistEnabled,
+				whitelistUseRegex: savedData.whitelistUseRegex,
+				whitelistPattern: savedData.whitelistPattern,
+				blacklistEnabled: savedData.blacklistEnabled,
+				blacklistUseRegex: savedData.blacklistUseRegex,
+				blacklistPattern: savedData.blacklistPattern,
+			});
 		});
 
 		registerAllCommands(this, this.store);
