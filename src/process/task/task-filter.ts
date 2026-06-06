@@ -1,17 +1,17 @@
-// src/process/tasks/task-filter.ts
+// src/process/task/task-filter.ts
 // 扁平任务筛选——纯函数
 
-import { GlobalFilter } from "../../types";
+import { GlobalFilter, TaskItem } from "../../types";
 import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "../config/config";
 
 /**
  * 对扁平任务数组进行筛选
  */
 export function filterTasks(
-	tasks: any[],
+	tasks: TaskItem[],
 	filter: GlobalFilter,
 	intervalMode?: string,
-): any[] {
+): TaskItem[] {
 	let result = tasks;
 
 	// 日期范围筛选
@@ -24,7 +24,7 @@ export function filterTasks(
 		const end = filter.dateRange.end;
 		const mode = intervalMode || "scheduled-due";
 
-		result = result.filter((t: any) => {
+		result = result.filter((t: TaskItem) => {
 			let tStart: number | null = null;
 			let tEnd: number | null = null;
 
@@ -51,7 +51,9 @@ export function filterTasks(
 
 	// 状态筛选
 	if (filter.statuses && filter.statuses.length > 0) {
-		result = result.filter((t: any) => filter.statuses.includes(t._status));
+		result = result.filter((t: TaskItem) =>
+			filter.statuses.includes(t._status),
+		);
 	}
 
 	// 标记筛选
@@ -61,29 +63,29 @@ export function filterTasks(
 		filter.includeMarks.length > 0 &&
 		filter.includeMarks.length < allMarksList.length
 	) {
-		result = result.filter((t: any) =>
+		result = result.filter((t: TaskItem) =>
 			filter.includeMarks!.some((m: string) => t._marks?.[m]),
 		);
 	}
 
 	// 隐藏循环
 	if (filter.hideRepeat) {
-		result = result.filter((t: any) => !t._repeat);
+		result = result.filter((t: TaskItem) => !t._repeat);
 	}
 
 	// 隐藏已完成
 	if (filter.hideCompleted) {
-		result = result.filter((t: any) => t._status !== "completed");
+		result = result.filter((t: TaskItem) => t._status !== "completed");
 	}
 
 	// 隐藏已取消
 	if (filter.hideCancelled) {
-		result = result.filter((t: any) => t._status !== "cancelled");
+		result = result.filter((t: TaskItem) => t._status !== "cancelled");
 	}
 
 	// 根路径筛选
 	if (filter.rootPath) {
-		result = result.filter((t: any) =>
+		result = result.filter((t: TaskItem) =>
 			t.path?.startsWith(filter.rootPath!),
 		);
 	}
@@ -95,7 +97,7 @@ export function filterTasks(
 			.split(/\s+/)
 			.filter((k) => k.length > 0);
 		if (kw.length > 0) {
-			result = result.filter((t: any) => {
+			result = result.filter((t: TaskItem) => {
 				const d = (t._cleanText || t.text || "").toLowerCase();
 				return kw.every((k) => d.includes(k));
 			});
@@ -110,7 +112,7 @@ export function filterTasks(
 		filter.priorityValues.length < allPriorityIcons.length
 	) {
 		result = result.filter(
-			(t: any) =>
+			(t: TaskItem) =>
 				t._priorityIcon &&
 				filter.priorityValues!.includes(t._priorityIcon),
 		);
@@ -123,7 +125,7 @@ export function filterTasks(
 		filter.repeatCycles.length > 0 &&
 		filter.repeatCycles.length < allRepeatCycles.length
 	) {
-		result = result.filter((t: any) => {
+		result = result.filter((t: TaskItem) => {
 			if (!t._repeat) return false;
 			return filter.repeatCycles!.some((c: string) =>
 				t._repeat.toLowerCase().includes(c),

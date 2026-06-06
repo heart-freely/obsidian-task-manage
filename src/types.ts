@@ -5,27 +5,38 @@ export interface TaskItem {
 	_status: string;
 	_cleanText: string;
 	_fullLine: string;
-	_priorityIcon?: string;
-	_created?: string;
-	_scheduled?: string;
-	_starts?: string;
-	_due?: string;
-	_done?: string;
-	_cancel?: string;
-	_tag?: string;
-	_id?: string;
-	_forbid?: string;
-	_repeat?: string;
-	_marks?: Record<string, boolean>;
-	_cachedTimeRange?: { start: number; end: number };
-	_tooltip?: string;
-	_tooltipHtml?: string;
-	_isHeadingTask?: boolean;
-	_isFileTask?: boolean;
-	_headingLevel?: number;
-	_headingText?: string;
+	_priorityIcon: string;
+	_created: string;
+	_scheduled: string;
+	_starts: string;
+	_due: string;
+	_done: string;
+	_cancel: string;
+	_tag: string;
+	_id: string;
+	_forbid: string;
+	_repeat: string;
+	_marks: Record<string, boolean>;
+	_cachedTimeRange: { start: number; end: number } | null;
+	_tooltip: string;
+	_tooltipHtml: string;
+	_isHeadingTask: boolean;
+	_isFileTask: boolean;
+	_headingLevel: number;
+	_headingText: string;
 	path: string;
 	line: number;
+	lineNumber: number;
+	text: string;
+	description: string;
+	priority: string;
+	status: string;
+	fileName: string;
+	statusIcon?: string;
+	statusName?: string;
+	statusText?: string;
+	recurrenceLabel?: string;
+	tags?: string[];
 	[key: string]: any;
 }
 
@@ -43,6 +54,16 @@ export interface GlobalFilter {
 	searchText?: string;
 	priorityValues?: string[];
 	repeatCycles?: string[];
+}
+
+/** 视图隐藏配置 */
+export interface HideConfig {
+	hideStatuses: string[];
+	hidePriorityValues: string[];
+	hideRepeatCycles: string[];
+	hideMarks: string[];
+	hideSearchText: string;
+	hideTableColumns: Record<string, boolean>;
 }
 
 /** 方案 */
@@ -66,10 +87,9 @@ export interface Preset {
 	toolbarPanelsHeight?: number;
 	useDynamic?: boolean;
 	intervalMode?: string;
-	/** 任务树导航面板是否折叠（viewStyle !== 'tree' 时生效） */
 	taskTreeNavCollapsed?: boolean;
-	/** 任务树导航面板宽度（viewStyle !== 'tree' 时生效） */
 	taskTreeNavWidth?: number;
+	hideConfig?: HideConfig;
 }
 
 /** 方案分组 */

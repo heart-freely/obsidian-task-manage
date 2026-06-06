@@ -40,17 +40,18 @@ export class SearchPanel {
 
 		this.container.empty();
 		const row = this.container.createDiv({ cls: "panel-row" });
-		row.createSpan({ text: "任务描述", cls: "panel-label" });
+		row.createSpan({ text: "筛选描述", cls: "panel-label" });
 
 		const input = row.createEl("input", {
 			type: "text",
 			cls: "panel-input",
 			attr: {
-				placeholder: "输入关键词，多个用空格分隔，回车搜索",
+				placeholder:
+					"输入关键词匹配筛选任务，多个关键词用空格分隔，回车搜索",
 				size: "40",
 			},
 		});
-		input.style.width = "320px";
+		input.style.width = "380px";
 		input.value = this.currentValue || currentFilter.searchText || "";
 
 		input.addEventListener("keydown", (e: KeyboardEvent) => {

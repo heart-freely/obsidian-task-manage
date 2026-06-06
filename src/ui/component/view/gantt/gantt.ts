@@ -1,1050 +1,927 @@
-// src/ui/component/gantt/gantt.ts
-// 甘特图通用视图组件——支持虚拟滚动、依赖箭头、三画布分层
+// src/ui/component/view/gantt/gantt.ts
+// 甘特图组件 — 整体视图，甘特条作为树行内元素
 
-import { STATUS_ICONS } from "../../../../process/config/config";
+import {
+	advanceGridLineDate,
+	calcBarEdges,
+	calcDependencyPath,
+	calcRangeFromRoots,
+	calcTreeMaxWidth,
+	formatGanttDuration,
+	GANTT_CONFIG,
+	getGridFirstLineDate,
+	getGridLevels,
+	getGridLineStyle,
+	getLayerStyle,
+	getTaskInterval,
+	getTimelineLayers,
+	isDarkTheme,
+	loadZoomState,
+	saveZoomState,
+} from "../../../../process/component/gantt-view-process";
 import { DateUtils } from "../../../../process/process";
+import { TreeNode } from "../../../../process/task/task-tree";
+import { TaskItem } from "../../../../types";
+import { tooltip } from "../../tooltip/tooltip";
+import { renderTaskTree } from "../list/tree-list";
 
-// ========== 类型定义 ==========
+// ========== 时间轴标签辅助函数 ==========
 
-interface GanttFlatNode {
-	type: "folder" | "file" | "task";
-	name: string;
-	path?: string;
-	fullPath: string;
-	level: number;
-	task?: any;
-	tasks?: any[];
-	children?: GanttFlatNode[];
+function createTimelineLabel(
+	left: number,
+	width: number,
+	height: number,
+	fontSize: string,
+	fontWeight: string,
+	color: string,
+	hasBorder: boolean,
+): HTMLElement {
+	const el = document.createElement("div");
+	el.style.cssText = `
+    position: absolute; left: ${left}px; top: 0;
+    height: 100%; width: ${width}px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${color};
+    ${hasBorder ? "border-right: 1px solid var(--background-modifier-border);" : ""}
+    overflow: hidden; white-space: nowrap;
+  `;
+	return el;
 }
 
-interface GanttTaskRow {
-	task: any;
-	start: Date;
-	end: Date;
-	durationMs: number;
-	status: string;
-	flatIndex: number;
-}
+// ========== 应用背景网格 ==========
 
-interface GanttArrow {
-	fromX: number;
-	fromY: number;
-	midX: number;
-	toX: number;
-	toY: number;
-}
+function applyGridBackground(
+	content: HTMLElement,
+	dayWidth: number,
+	treeWidth: number,
+	totalWidth: number,
+	timeRange: { minTime: number; maxTime: number },
+) {
+	const dark = isDarkTheme();
 
-// ========== 全局状态（每次渲染独立） ==========
+	const gridContainer = document.createElement("div");
+	gridContainer.style.cssText = `
+    position: absolute; top: 0; left: 0;
+    width: ${totalWidth}px; height: 100%;
+    pointer-events: none; z-index: 0;
+  `;
 
-interface GanttState {
-	wrapper: HTMLElement | null;
-	canvas: HTMLCanvasElement | null;
-	ctx: CanvasRenderingContext2D | null;
-	bgCanvas: HTMLCanvasElement | null;
-	bgCtx: CanvasRenderingContext2D | null;
-	hoverCanvas: HTMLCanvasElement | null;
-	hoverCtx: CanvasRenderingContext2D | null;
+	const gridLevels = getGridLevels(dayWidth);
+	const reversed = [...gridLevels].reverse();
 
-	flatNodes: GanttFlatNode[];
-	ganttTasks: GanttTaskRow[];
+	reversed.forEach((level) => {
+		const style = getGridLineStyle(level.intervalDays, dark);
+		const firstLineDate = getGridFirstLineDate(
+			timeRange,
+			level.intervalDays,
+		);
 
-	minTime: number;
-	maxTime: number;
-	scale: number;
-	offsetX: number;
-	scrollTop: number;
-
-	rowHeight: number;
-	headerHeight: number;
-	leftWidth: number;
-
-	timeToX: ((t: number) => number) | null;
-
-	collapsedNodes: Set<string>;
-	hoveredBarTaskId: string | null;
-
-	taskBarPath: Path2D | null;
-
-	isResizing: boolean;
-	isDragging: boolean;
-	lastDragX: number;
-
-	tooltipDiv: HTMLElement | null;
-	resizeObserver: ResizeObserver | null;
-
-	cleanup: (() => void) | null;
-}
-
-// ========== 配置 ==========
-
-const CONFIG = {
-	STATUS_COLORS: {
-		todo: "#2e333b",
-		planned: "#4b525b",
-		"in-progress": "#7fb8f0",
-		completed: "#47852f",
-		cancelled: "#c3393e",
-	} as Record<string, string>,
-	TASK_BAR_RADIUS: 4,
-	TASK_BAR_HEIGHT: 20,
-	DEPENDENCY_LINE_COLOR: "#3a6ea5",
-	DEPENDENCY_LINE_WIDTH: 1,
-	DEPENDENCY_ARROW_SIZE: 6,
-	ROW_HEIGHT: 28,
-	HEADER_HEIGHT: 30,
-	LEFT_PANEL_WIDTH: 300,
-	MIN_LEFT_WIDTH: 200,
-	MAX_LEFT_WIDTH: 500,
-	SCALE_MIN: 0.5,
-	SCALE_MAX: 5,
-};
-
-// ========== 日期工具 ==========
-
-const {
-	formatDate,
-	setStart,
-	setEnd,
-	getISOWeekNumber,
-	getWeekRangeByYearWeek,
-} = DateUtils;
-
-// ========== 主题缓存 ==========
-
-function cacheTheme(): {
-	text: string;
-	grid: string;
-	accent: string;
-	bg: string;
-	secondary: string;
-	font: string;
-	boldFont: string;
-	fontFam: string;
-} {
-	const style = getComputedStyle(document.body);
-	const fontFam =
-		style.getPropertyValue("--font-text") || "Inter, sans-serif";
-	return {
-		text: style.getPropertyValue("--text-normal").trim() || "#333",
-		grid:
-			style.getPropertyValue("--background-modifier-border").trim() ||
-			"#ccc",
-		accent: style.getPropertyValue("--text-accent").trim() || "#4dabf7",
-		bg: style.getPropertyValue("--background-primary").trim() || "#fff",
-		secondary:
-			style.getPropertyValue("--background-secondary").trim() ||
-			"#f0f0f0",
-		font: `13px ${fontFam}`,
-		boldFont: `bold 13px ${fontFam}`,
-		fontFam,
-	};
-}
-
-// ========== Path2D 缓存 ==========
-
-function getTaskBarPath(): Path2D {
-	const r = CONFIG.TASK_BAR_RADIUS;
-	const w = 100,
-		h = CONFIG.TASK_BAR_HEIGHT;
-	const p = new Path2D();
-	p.moveTo(r, 0);
-	p.lineTo(w - r, 0);
-	p.quadraticCurveTo(w, 0, w, r);
-	p.lineTo(w, h - r);
-	p.quadraticCurveTo(w, h, w - r, h);
-	p.lineTo(r, h);
-	p.quadraticCurveTo(0, h, 0, h - r);
-	p.lineTo(0, r);
-	p.quadraticCurveTo(0, 0, r, 0);
-	p.closePath();
-	return p;
-}
-
-// ========== 任务间隔计算 ==========
-
-function getTaskInterval(task: any): { start: Date; end: Date } | null {
-	const startStr = task._scheduled;
-	const endStr = task._due;
-	if (!startStr || !endStr) return null;
-	const start = new Date(startStr);
-	const end = new Date(endStr);
-	if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-	return { start: start < end ? start : end, end: start < end ? end : start };
-}
-
-// ========== 构建树结构 ==========
-
-function buildGanttTree(tasks: any[], prefix: string): GanttFlatNode[] {
-	const fileMap = new Map<string, any[]>();
-	for (const task of tasks) {
-		if (!fileMap.has(task.path)) fileMap.set(task.path, []);
-		fileMap.get(task.path)!.push(task);
-	}
-
-	const pathTree = new Map<string, any>();
-	for (const [path, fileTasks] of fileMap.entries()) {
-		const relPath = path.startsWith(prefix)
-			? path.slice(prefix.length)
-			: path;
-		const parts = relPath.split("/");
-		let current = pathTree;
-		for (let i = 0; i < parts.length - 1; i++) {
-			if (!current.has(parts[i])) current.set(parts[i], new Map());
-			current = current.get(parts[i]);
+		let lineDate = new Date(firstLineDate);
+		while (lineDate.getTime() <= timeRange.maxTime) {
+			const offsetDays =
+				(lineDate.getTime() - timeRange.minTime) / 86400000;
+			const x = treeWidth + offsetDays * dayWidth;
+			if (x >= treeWidth && x <= totalWidth) {
+				const line = document.createElement("div");
+				line.style.cssText = `
+          position: absolute; left: ${x}px; top: 0;
+          width: ${style.width}; height: 100%;
+          background: ${style.color};
+        `;
+				gridContainer.appendChild(line);
+			}
+			advanceGridLineDate(lineDate, level.intervalDays);
 		}
-		const fileName = parts[parts.length - 1].replace(/\.md$/, "");
-		if (!current.has("__files")) current.set("__files", new Map());
-		current.get("__files").set(fileName, { path, tasks: fileTasks });
-	}
+	});
 
-	return convertToNodes(pathTree, 0);
+	content.appendChild(gridContainer);
 }
 
-function convertToNodes(
-	node: Map<string, any>,
-	level: number,
-): GanttFlatNode[] {
-	const result: GanttFlatNode[] = [];
-	const folders = Array.from(node.keys())
-		.filter((k) => k !== "__files")
-		.sort();
+// ========== 时间轴头部 ==========
 
-	for (const folderName of folders) {
-		const subNode = node.get(folderName);
-		const folderNode: GanttFlatNode = {
-			type: "folder",
-			name: folderName,
-			fullPath: folderName,
-			level,
-			children: convertToNodes(subNode, level + 1),
-		};
-		result.push(folderNode);
-	}
+function createTimelineHeader(
+	timeRange: { minTime: number; maxTime: number },
+	dayWidth: number,
+	totalDays: number,
+	timelineWidth: number,
+	treeWidth: number,
+): HTMLElement {
+	const totalWidth = treeWidth + timelineWidth;
+	const { layers, layerHeight } = getTimelineLayers(dayWidth);
+	const dark = isDarkTheme();
+	const layerCount = layers.length;
 
-	const files = node.get("__files") as Map<string, any> | undefined;
-	if (files) {
-		const fileNames = Array.from(files.keys()).sort();
-		for (const fileName of fileNames) {
-			const fileData = files.get(fileName)!;
-			const fileNode: GanttFlatNode = {
-				type: "file",
-				name: fileName,
-				path: fileData.path,
-				fullPath: fileData.path,
-				level,
-				tasks: fileData.tasks,
-				children: fileData.tasks.map((t: any) => ({
-					type: "task" as const,
-					name: t._cleanText || t.text || "",
-					fullPath: t.path + ":" + (t.lineNumber ?? t.line),
-					level: level + 1,
-					task: t,
-				})),
-			};
-			result.push(fileNode);
+	const header = document.createElement("div");
+	header.className = "gantt-header";
+	header.style.cssText = `
+    position: sticky; top: 0; z-index: 3;
+    height: ${GANTT_CONFIG.HEADER_HEIGHT}px;
+    width: ${totalWidth}px;
+    min-width: ${totalWidth}px;
+    background: var(--background-primary);
+    border-bottom: 1px solid var(--background-modifier-border);
+    overflow: hidden; flex-shrink: 0;
+  `;
+
+	const treeSpacer = document.createElement("div");
+	treeSpacer.style.cssText = `
+    position: absolute; top: 0; left: 0;
+    width: ${treeWidth}px; height: 100%;
+    background: var(--background-primary);
+    z-index: 5;
+  `;
+	header.appendChild(treeSpacer);
+
+	const inner = document.createElement("div");
+	inner.style.cssText = `
+    position: absolute; top: 0; left: ${treeWidth}px;
+    height: 100%; width: ${timelineWidth}px;
+  `;
+
+	let currentTop = 0;
+	let layerIdx = 0;
+
+	// ===== 年层 =====
+	const yearStyle = getLayerStyle(layerIdx, layerCount, dark);
+	const yearLayer = document.createElement("div");
+	yearLayer.style.cssText = `
+    position: absolute; top: ${currentTop}px; left: 0;
+    height: ${layerHeight}px; width: 100%;
+  `;
+	currentTop += layerHeight;
+	layerIdx++;
+
+	let curYear = -1,
+		yearStart = 0;
+	for (let i = 0; i < totalDays; i++) {
+		const y = new Date(timeRange.minTime + i * 86400000).getFullYear();
+		if (y !== curYear) {
+			if (curYear >= 0 && (i - yearStart) * dayWidth > 0) {
+				yearLayer.appendChild(
+					createTimelineLabel(
+						yearStart * dayWidth,
+						(i - yearStart) * dayWidth,
+						layerHeight,
+						yearStyle.fontSize,
+						yearStyle.fontWeight,
+						yearStyle.color,
+						true,
+					),
+				).textContent = String(curYear);
+			}
+			curYear = y;
+			yearStart = i;
 		}
 	}
+	if (curYear >= 0 && (totalDays - yearStart) * dayWidth > 0) {
+		yearLayer.appendChild(
+			createTimelineLabel(
+				yearStart * dayWidth,
+				(totalDays - yearStart) * dayWidth,
+				layerHeight,
+				yearStyle.fontSize,
+				yearStyle.fontWeight,
+				yearStyle.color,
+				false,
+			),
+		).textContent = String(curYear);
+	}
+	inner.appendChild(yearLayer);
 
-	return result;
-}
+	const showQuarters = layers.some((l) => l.name === "quarter");
+	const showMonths = layers.some((l) => l.name === "month");
+	const showWeeks = layers.some((l) => l.name === "week");
+	const showDays = layers.some((l) => l.name === "day");
 
-// ========== 扁平化节点 ==========
+	// ===== 季层 =====
+	if (showQuarters) {
+		const qStyle = getLayerStyle(layerIdx, layerCount, dark);
+		const qLayer = document.createElement("div");
+		qLayer.style.cssText = `
+      position: absolute; top: ${currentTop}px; left: 0;
+      height: ${layerHeight}px; width: 100%;
+      border-top: 1px solid var(--background-modifier-border);
+    `;
+		currentTop += layerHeight;
+		layerIdx++;
 
-function flattenNodes(
-	nodes: GanttFlatNode[],
-	collapsed: Set<string>,
-): GanttFlatNode[] {
-	const result: GanttFlatNode[] = [];
-
-	function walk(nodeList: GanttFlatNode[], level: number) {
-		for (const node of nodeList) {
-			node.level = level;
-			result.push(node);
-			const isExpanded = !collapsed.has(node.fullPath);
-			if (isExpanded && node.children) {
-				walk(node.children, level + 1);
+		let curQ = -1,
+			qStart = 0;
+		for (let i = 0; i < totalDays; i++) {
+			const q = Math.floor(
+				new Date(timeRange.minTime + i * 86400000).getMonth() / 3,
+			);
+			if (q !== curQ) {
+				if (curQ >= 0 && (i - qStart) * dayWidth > 0) {
+					qLayer.appendChild(
+						createTimelineLabel(
+							qStart * dayWidth,
+							(i - qStart) * dayWidth,
+							layerHeight,
+							qStyle.fontSize,
+							qStyle.fontWeight,
+							qStyle.color,
+							true,
+						),
+					).textContent = "Q" + (curQ + 1);
+				}
+				curQ = q;
+				qStart = i;
 			}
 		}
-	}
-
-	walk(nodes, 0);
-	return result;
-}
-
-// ========== 构建甘特图任务行 ==========
-
-function buildGanttTaskRows(flatNodes: GanttFlatNode[]): GanttTaskRow[] {
-	const rows: GanttTaskRow[] = [];
-	for (let i = 0; i < flatNodes.length; i++) {
-		const node = flatNodes[i];
-		if (node.type !== "task" || !node.task) continue;
-		const interval = getTaskInterval(node.task);
-		if (!interval) continue;
-		rows.push({
-			task: node.task,
-			start: interval.start,
-			end: interval.end,
-			durationMs: interval.end.getTime() - interval.start.getTime(),
-			status: node.task._status || "todo",
-			flatIndex: i,
-		});
-	}
-	return rows;
-}
-
-// ========== 格式化时长 ==========
-
-function formatDuration(ms: number): string {
-	if (ms <= 0) return "";
-	const days = ms / (1000 * 60 * 60 * 24);
-	if (days < 7) return Math.round(days) + "d";
-	if (days < 30) return Math.round(days / 7) + "w";
-	if (days < 365) return Math.round(days / 30) + "m";
-	return Math.round(days / 365) + "y";
-}
-
-// ========== 更新画布大小 ==========
-
-function updateCanvasSize(state: GanttState) {
-	if (
-		!state.wrapper ||
-		!state.canvas ||
-		!state.bgCanvas ||
-		!state.hoverCanvas
-	)
-		return;
-
-	const totalRows = state.flatNodes.length;
-	const totalHeight = state.headerHeight + totalRows * state.rowHeight + 20;
-	const width = state.wrapper.clientWidth;
-	const dpr = window.devicePixelRatio || 1;
-
-	state.canvas.width = width * dpr;
-	state.canvas.height = Math.max(400, totalHeight) * dpr;
-	state.canvas.style.width = width + "px";
-	state.canvas.style.height = Math.max(400, totalHeight) + "px";
-
-	state.bgCanvas.width = width * dpr;
-	state.bgCanvas.height = Math.max(400, totalHeight) * dpr;
-	state.bgCanvas.style.width = width + "px";
-	state.bgCanvas.style.height = Math.max(400, totalHeight) + "px";
-
-	state.hoverCanvas.width = width * dpr;
-	state.hoverCanvas.height = Math.max(400, totalHeight) * dpr;
-	state.hoverCanvas.style.width = width + "px";
-	state.hoverCanvas.style.height = Math.max(400, totalHeight) + "px";
-
-	state.ctx!.setTransform(1, 0, 0, 1, 0, 0);
-	state.ctx!.scale(dpr, dpr);
-	state.bgCtx!.setTransform(1, 0, 0, 1, 0, 0);
-	state.bgCtx!.scale(dpr, dpr);
-	state.hoverCtx!.setTransform(1, 0, 0, 1, 0, 0);
-	state.hoverCtx!.scale(dpr, dpr);
-}
-
-// ========== 更新 X 坐标映射 ==========
-
-function updateTimeToX(state: GanttState) {
-	const dpr = window.devicePixelRatio || 1;
-	const w = state.canvas!.width / dpr;
-	const chartWidth = w - state.leftWidth - 20;
-	const chartStartX = state.leftWidth + 10 + state.offsetX;
-	const timeRange = state.maxTime - state.minTime || 86400000;
-	state.timeToX = (time: number) => {
-		return (
-			chartStartX +
-			((time - state.minTime) / timeRange) * chartWidth * state.scale
-		);
-	};
-}
-
-// ========== 偏移限制 ==========
-
-function clampOffset(state: GanttState) {
-	const dpr = window.devicePixelRatio || 1;
-	const w = state.canvas!.width / dpr;
-	const chartWidth = w - state.leftWidth - 20;
-	const maxOffset = 0;
-	const minOffset = -(chartWidth * state.scale - chartWidth);
-	if (state.offsetX > maxOffset) state.offsetX = maxOffset;
-	if (state.offsetX < minOffset) state.offsetX = minOffset;
-}
-
-// ========== 绘制静态背景 ==========
-
-function drawStaticBackground(state: GanttState) {
-	if (!state.bgCanvas || !state.bgCtx) return;
-	const ctx = state.bgCtx;
-	const dpr = window.devicePixelRatio || 1;
-	const w = state.bgCanvas.width / dpr;
-	const h = state.bgCanvas.height / dpr;
-	const theme = cacheTheme();
-
-	ctx.clearRect(0, 0, w, h);
-	ctx.fillStyle = theme.secondary;
-	ctx.fillRect(0, 0, state.leftWidth, h);
-	ctx.fillStyle = theme.bg;
-	ctx.fillRect(state.leftWidth, 0, w - state.leftWidth, h);
-	ctx.strokeStyle = theme.grid;
-	ctx.lineWidth = 1;
-	ctx.beginPath();
-	ctx.moveTo(state.leftWidth, 0);
-	ctx.lineTo(state.leftWidth, h);
-	ctx.stroke();
-}
-
-// ========== 绘制动态内容 ==========
-
-function drawDynamicContent(state: GanttState) {
-	if (!state.canvas || !state.ctx || !state.timeToX) return;
-	const ctx = state.ctx;
-	const dpr = window.devicePixelRatio || 1;
-	const w = state.canvas.width / dpr;
-	const h = state.canvas.height / dpr;
-	const theme = cacheTheme();
-	const timeToX = state.timeToX;
-
-	ctx.clearRect(0, 0, w, h);
-	if (state.bgCanvas) ctx.drawImage(state.bgCanvas, 0, 0, w, h);
-
-	const scrollTop = state.scrollTop;
-	const yOffset = state.headerHeight - scrollTop;
-
-	// 虚拟滚动范围
-	const startRow = Math.max(0, Math.floor(scrollTop / state.rowHeight) - 3);
-	const endRow = Math.min(
-		state.flatNodes.length,
-		Math.ceil((scrollTop + h) / state.rowHeight) + 3,
-	);
-
-	// 绘制左侧树节点
-	ctx.font = theme.font;
-	ctx.textBaseline = "middle";
-	for (let i = startRow; i < endRow; i++) {
-		const node = state.flatNodes[i];
-		const y = yOffset + i * state.rowHeight + state.rowHeight / 2;
-		let x = 10 + node.level * 16;
-
-		if (node.type === "folder" || node.type === "file") {
-			ctx.fillStyle = theme.text;
-			ctx.font = `12px ${theme.fontFam}`;
-			ctx.textAlign = "center";
-			const isExpanded = !state.collapsedNodes.has(node.fullPath);
-			ctx.fillText(isExpanded ? "▼" : "▶", x + 6, y);
-			x += 20;
-			ctx.fillStyle = theme.accent;
-			ctx.font = theme.boldFont;
-			ctx.textAlign = "left";
-			const icon = node.type === "folder" ? "📁 " : "📄 ";
-			ctx.fillText(
-				icon +
-					node.name +
-					(node.tasks ? ` (${node.tasks.length})` : ""),
-				x,
-				y,
-			);
-		} else if (node.type === "task") {
-			x += 20;
-			ctx.fillStyle = theme.text;
-			ctx.font = theme.font;
-			const icon = STATUS_ICONS[node.task?._status] || "🔲";
-			ctx.fillText(
-				icon + " " + (node.task?._cleanText || node.name),
-				x,
-				y,
-			);
+		if (curQ >= 0 && (totalDays - qStart) * dayWidth > 0) {
+			qLayer.appendChild(
+				createTimelineLabel(
+					qStart * dayWidth,
+					(totalDays - qStart) * dayWidth,
+					layerHeight,
+					qStyle.fontSize,
+					qStyle.fontWeight,
+					qStyle.color,
+					false,
+				),
+			).textContent = "Q" + (curQ + 1);
 		}
+		inner.appendChild(qLayer);
 	}
 
-	// 网格线
-	ctx.strokeStyle = theme.grid;
-	ctx.lineWidth = 0.5;
-	const weekStart = new Date(state.minTime);
-	weekStart.setHours(0, 0, 0, 0);
-	const day = weekStart.getDay();
-	const diff = day === 0 ? 6 : day - 1;
-	weekStart.setDate(weekStart.getDate() - diff);
-	while (weekStart.getTime() <= state.maxTime) {
-		const x = timeToX(weekStart.getTime());
-		if (x >= state.leftWidth && x <= w) {
-			ctx.beginPath();
-			ctx.moveTo(x, 0);
-			ctx.lineTo(x, h);
-			ctx.stroke();
+	// ===== 月层 =====
+	if (showMonths) {
+		const mNames = [
+			"1月",
+			"2月",
+			"3月",
+			"4月",
+			"5月",
+			"6月",
+			"7月",
+			"8月",
+			"9月",
+			"10月",
+			"11月",
+			"12月",
+		];
+		const mStyle = getLayerStyle(layerIdx, layerCount, dark);
+		const mLayer = document.createElement("div");
+		mLayer.style.cssText = `
+      position: absolute; top: ${currentTop}px; left: 0;
+      height: ${layerHeight}px; width: 100%;
+      border-top: 1px solid var(--background-modifier-border);
+    `;
+		currentTop += layerHeight;
+		layerIdx++;
+
+		let curM = -1,
+			mStart = 0;
+		for (let i = 0; i < totalDays; i++) {
+			const m = new Date(timeRange.minTime + i * 86400000).getMonth();
+			if (m !== curM) {
+				if (curM >= 0 && (i - mStart) * dayWidth > 0) {
+					mLayer.appendChild(
+						createTimelineLabel(
+							mStart * dayWidth,
+							(i - mStart) * dayWidth,
+							layerHeight,
+							mStyle.fontSize,
+							mStyle.fontWeight,
+							mStyle.color,
+							true,
+						),
+					).textContent = mNames[curM];
+				}
+				curM = m;
+				mStart = i;
+			}
 		}
-		weekStart.setDate(weekStart.getDate() + 7);
+		if (curM >= 0 && (totalDays - mStart) * dayWidth > 0) {
+			mLayer.appendChild(
+				createTimelineLabel(
+					mStart * dayWidth,
+					(totalDays - mStart) * dayWidth,
+					layerHeight,
+					mStyle.fontSize,
+					mStyle.fontWeight,
+					mStyle.color,
+					false,
+				),
+			).textContent = mNames[curM];
+		}
+		inner.appendChild(mLayer);
+	}
+
+	// ===== 周层 =====
+	if (showWeeks) {
+		const wStyle = getLayerStyle(layerIdx, layerCount, dark);
+		const wLayer = document.createElement("div");
+		wLayer.style.cssText = `
+      position: absolute; top: ${currentTop}px; left: 0;
+      height: ${layerHeight}px; width: 100%;
+      border-top: 1px solid var(--background-modifier-border);
+    `;
+		currentTop += layerHeight;
+		layerIdx++;
+
+		let curW = -1,
+			wStart = 0;
+		for (let i = 0; i < totalDays; i++) {
+			const d = new Date(timeRange.minTime + i * 86400000);
+			const w = DateUtils.getISOWeekNumber(d);
+			if (w !== curW) {
+				if (curW >= 0 && (i - wStart) * dayWidth > 0) {
+					wLayer.appendChild(
+						createTimelineLabel(
+							wStart * dayWidth,
+							(i - wStart) * dayWidth,
+							layerHeight,
+							wStyle.fontSize,
+							wStyle.fontWeight,
+							wStyle.color,
+							true,
+						),
+					).textContent = "W" + curW;
+				}
+				curW = w;
+				wStart = i;
+			}
+		}
+		if (curW >= 0 && (totalDays - wStart) * dayWidth > 0) {
+			wLayer.appendChild(
+				createTimelineLabel(
+					wStart * dayWidth,
+					(totalDays - wStart) * dayWidth,
+					layerHeight,
+					wStyle.fontSize,
+					wStyle.fontWeight,
+					wStyle.color,
+					false,
+				),
+			).textContent = "W" + curW;
+		}
+		inner.appendChild(wLayer);
+	}
+
+	// ===== 日层 =====
+	if (showDays) {
+		const dStyle = getLayerStyle(layerIdx, layerCount, dark);
+		const dLayer = document.createElement("div");
+		dLayer.style.cssText = `
+      position: absolute; top: ${currentTop}px; left: 0;
+      height: ${layerHeight}px; width: 100%;
+      border-top: 1px solid var(--background-modifier-border);
+    `;
+
+		let curD = -1,
+			dStart = 0;
+		for (let i = 0; i < totalDays; i++) {
+			const d = new Date(timeRange.minTime + i * 86400000).getDate();
+			if (d !== curD) {
+				if (curD >= 0 && (i - dStart) * dayWidth > 0) {
+					const label = createTimelineLabel(
+						dStart * dayWidth,
+						(i - dStart) * dayWidth,
+						layerHeight,
+						dStyle.fontSize,
+						dStyle.fontWeight,
+						dStyle.color,
+						true,
+					);
+					label.textContent = String(curD);
+					dLayer.appendChild(label);
+				}
+				curD = d;
+				dStart = i;
+			}
+		}
+		if (curD >= 0 && (totalDays - dStart) * dayWidth > 0) {
+			const label = createTimelineLabel(
+				dStart * dayWidth,
+				(totalDays - dStart) * dayWidth,
+				layerHeight,
+				dStyle.fontSize,
+				dStyle.fontWeight,
+				dStyle.color,
+				false,
+			);
+			label.textContent = String(curD);
+			dLayer.appendChild(label);
+		}
+		inner.appendChild(dLayer);
 	}
 
 	// 今日线
-	const today = setStart(new Date()).getTime();
-	if (today >= state.minTime && today <= state.maxTime) {
-		const todayX = timeToX(today);
-		ctx.beginPath();
-		ctx.moveTo(todayX, 0);
-		ctx.lineTo(todayX, h);
-		ctx.strokeStyle = "#ffaa00";
-		ctx.lineWidth = 1.5;
-		ctx.setLineDash([4, 4]);
-		ctx.stroke();
-		ctx.setLineDash([]);
-	}
-
-	// 任务条
-	const barPath = state.taskBarPath || getTaskBarPath();
-	for (const item of state.ganttTasks) {
-		if (item.flatIndex < startRow || item.flatIndex >= endRow) continue;
-		const startX = timeToX(item.start.getTime());
-		const endX = timeToX(item.end.getTime());
-		const y =
-			yOffset +
-			item.flatIndex * state.rowHeight +
-			(state.rowHeight - CONFIG.TASK_BAR_HEIGHT) / 2;
-		let barWidth = endX - startX;
-		if (barWidth < 2) barWidth = 2;
-
-		ctx.fillStyle =
-			CONFIG.STATUS_COLORS[item.status] || CONFIG.STATUS_COLORS["todo"];
-		ctx.globalAlpha = 0.8;
-		ctx.save();
-		ctx.translate(startX, y);
-		ctx.scale(barWidth / 100, 1);
-		ctx.fill(barPath);
-		ctx.restore();
-
-		// 完成进度
-		if (item.task._done) {
-			const doneTime = new Date(item.task._done).getTime();
-			if (
-				doneTime >= item.start.getTime() &&
-				doneTime <= item.end.getTime()
-			) {
-				const progressX = timeToX(doneTime);
-				const progressWidth = progressX - startX;
-				if (progressWidth > 0) {
-					ctx.fillStyle = "#2e7d32";
-					ctx.globalAlpha = 0.5;
-					ctx.save();
-					ctx.translate(startX, y);
-					ctx.scale(progressWidth / 100, 1);
-					ctx.fill(barPath);
-					ctx.restore();
-				}
-			}
-		}
-		ctx.globalAlpha = 1.0;
-
-		// 时长标注
-		const durationText = formatDuration(item.durationMs);
-		if (durationText) {
-			ctx.fillStyle = theme.text;
-			ctx.font = `11px ${theme.fontFam}`;
-			ctx.textAlign = "left";
-			ctx.textBaseline = "middle";
-			const textX = endX + 4;
-			const textY = y + CONFIG.TASK_BAR_HEIGHT / 2;
-			if (textX < w - 50) ctx.fillText(durationText, textX, textY);
+	const today = DateUtils.setStart(new Date()).getTime();
+	if (today >= timeRange.minTime && today <= timeRange.maxTime) {
+		const ox = ((today - timeRange.minTime) / 86400000) * dayWidth;
+		if (ox < timelineWidth) {
+			const line = document.createElement("div");
+			line.style.cssText = `
+        position: absolute; left: ${ox}px; top: 0;
+        width: 2px; height: 100%;
+        background: var(--interactive-accent, #7fb8f0);
+        opacity: 0.5;
+        z-index: 4; pointer-events: none;
+      `;
+			inner.appendChild(line);
 		}
 	}
 
-	// 依赖箭头
-	const arrows: GanttArrow[] = [];
-	const taskIdMap = new Map<string, any>();
-	for (const item of state.ganttTasks) {
-		if (item.task._id) taskIdMap.set(item.task._id, item.task);
-	}
-
-	for (const item of state.ganttTasks) {
-		if (item.flatIndex < startRow || item.flatIndex >= endRow) continue;
-		if (!item.task._forbid) continue;
-		const forbidIds = item.task._forbid
-			.split(",")
-			.map((s: string) => s.trim())
-			.filter(Boolean);
-		for (const forbidId of forbidIds) {
-			const depTask = taskIdMap.get(forbidId);
-			if (!depTask) continue;
-			const depRow = state.ganttTasks.find((r) => r.task === depTask);
-			if (!depRow) continue;
-
-			const sourceTime = depTask._due
-				? new Date(depTask._due).getTime()
-				: null;
-			const targetTime = item.task._scheduled
-				? new Date(item.task._scheduled).getTime()
-				: null;
-			if (!sourceTime || !targetTime) continue;
-
-			const fromX = timeToX(sourceTime);
-			let toX = timeToX(targetTime);
-			if (toX <= fromX) toX = fromX + 2;
-
-			const fromY =
-				yOffset +
-				depRow.flatIndex * state.rowHeight +
-				state.rowHeight / 2;
-			const toY =
-				yOffset +
-				item.flatIndex * state.rowHeight +
-				state.rowHeight / 2;
-			const midX = fromX + (toX - fromX) * 0.5;
-
-			arrows.push({ fromX, fromY, midX, toX, toY });
-		}
-	}
-
-	if (arrows.length > 0) {
-		ctx.strokeStyle = CONFIG.DEPENDENCY_LINE_COLOR;
-		ctx.lineWidth = CONFIG.DEPENDENCY_LINE_WIDTH;
-		ctx.fillStyle = CONFIG.DEPENDENCY_LINE_COLOR;
-		ctx.lineJoin = "round";
-		ctx.lineCap = "round";
-		ctx.beginPath();
-		for (const ar of arrows) {
-			ctx.moveTo(ar.fromX, ar.fromY);
-			ctx.lineTo(ar.midX, ar.fromY);
-			ctx.lineTo(ar.midX, ar.toY);
-			ctx.lineTo(ar.toX, ar.toY);
-		}
-		ctx.stroke();
-
-		const arrowSize = CONFIG.DEPENDENCY_ARROW_SIZE;
-		for (const ar of arrows) {
-			const ax = ar.toX - arrowSize;
-			const ay = ar.toY;
-			ctx.beginPath();
-			ctx.moveTo(ax, ay - 4);
-			ctx.lineTo(ax + arrowSize, ay);
-			ctx.lineTo(ax, ay + 4);
-			ctx.closePath();
-			ctx.fill();
-		}
-	}
-
-	// 顶部时间标签
-	ctx.fillStyle = theme.text;
-	ctx.font = `12px ${theme.fontFam}`;
-	ctx.textAlign = "center";
-	for (let i = 0; i <= 10; i++) {
-		const time = state.minTime + (i / 10) * (state.maxTime - state.minTime);
-		const x = timeToX(time);
-		if (x < state.leftWidth || x > w) continue;
-		ctx.fillText(formatDate(new Date(time)), x, 20);
-	}
+	header.appendChild(inner);
+	return header;
 }
 
-// ========== 绘制高亮层 ==========
+// ========== 依赖箭头 SVG ==========
 
-function drawHoverHighlight(state: GanttState) {
-	if (!state.hoverCanvas || !state.hoverCtx || !state.timeToX) return;
-	const ctx = state.hoverCtx;
-	const dpr = window.devicePixelRatio || 1;
-	const w = state.hoverCanvas.width / dpr;
-	const h = state.hoverCanvas.height / dpr;
-	const timeToX = state.timeToX;
-	const scrollTop = state.scrollTop;
-	const yOffset = state.headerHeight - scrollTop;
+function createDependencySVG(
+	taskMap: Map<string, TaskItem>,
+	totalWidth: number,
+	treeContainer: HTMLElement,
+): SVGSVGElement {
+	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	svg.setAttribute("class", "gantt-dependencies");
+	svg.style.cssText = `
+    position: absolute; top: 0; left: 0;
+    width: ${totalWidth}px; height: 100%;
+    z-index: 1; pointer-events: none; overflow: hidden;
+  `;
+	svg.setAttribute("width", String(totalWidth));
 
-	ctx.clearRect(0, 0, w, h);
-	if (!state.hoveredBarTaskId) return;
+	function redraw() {
+		while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-	const barPath = state.taskBarPath || getTaskBarPath();
-	for (const item of state.ganttTasks) {
-		const taskId = item.task.lineNumber + "@" + item.task.path;
-		if (taskId !== state.hoveredBarTaskId) continue;
+		const rows = treeContainer.querySelectorAll("[data-task-id]");
+		if (rows.length === 0) return;
 
-		const startX = timeToX(item.start.getTime());
-		const endX = timeToX(item.end.getTime());
-		const y =
-			yOffset +
-			item.flatIndex * state.rowHeight +
-			(state.rowHeight - CONFIG.TASK_BAR_HEIGHT) / 2;
-		if (y + CONFIG.TASK_BAR_HEIGHT < 0 || y > h) continue;
-		let barWidth = endX - startX;
-		if (barWidth < 2) barWidth = 2;
+		const barPositions = new Map<
+			string,
+			{ left: number; right: number; y: number }
+		>();
+		const contentRect = treeContainer.getBoundingClientRect();
 
-		ctx.fillStyle = "#ffffff";
-		ctx.globalAlpha = 0.3;
-		ctx.save();
-		ctx.translate(startX, y);
-		ctx.scale(barWidth / 100, 1);
-		ctx.fill(barPath);
-		ctx.restore();
-		break;
-	}
-	ctx.globalAlpha = 1.0;
-}
+		rows.forEach((rowEl) => {
+			const id = (rowEl as HTMLElement).getAttribute("data-task-id");
+			if (!id) return;
+			const bar = (rowEl as HTMLElement).querySelector(
+				"[data-task-bar]",
+			) as HTMLElement;
+			if (!bar) return;
+			const barRect = bar.getBoundingClientRect();
+			barPositions.set(id, {
+				left: barRect.left - contentRect.left,
+				right: barRect.right - contentRect.left,
+				y: barRect.top - contentRect.top + barRect.height / 2,
+			});
+		});
 
-// ========== 请求绘制 ==========
+		taskMap.forEach((task) => {
+			if (!task._forbid) return;
+			const tKey = `${task.path}:${task.line}`;
+			const tPos = barPositions.get(tKey);
+			if (!tPos) return;
 
-function requestDraw(state: GanttState) {
-	requestAnimationFrame(() => {
-		drawDynamicContent(state);
-		drawHoverHighlight(state);
-	});
-}
+			task._forbid
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean)
+				.forEach((fid) => {
+					const sTask = taskMap.get(fid);
+					if (!sTask) return;
+					const sKey = `${sTask.path}:${sTask.line}`;
+					const sPos = barPositions.get(sKey);
+					if (!sPos) return;
 
-// ========== 主渲染函数 ==========
+					const sx = sPos.right;
+					const tx = tPos.left;
+					if (tx <= sx + 4) return;
 
-export function renderGantt(container: HTMLElement, tasks: any[]) {
-	// 清理旧状态
-	const oldState = (container as any).__ganttState as GanttState | undefined;
-	if (oldState) {
-		oldState.resizeObserver?.disconnect();
-		oldState.tooltipDiv?.remove();
-		oldState.cleanup?.();
-	}
+					const sy = sPos.y;
+					const ty = tPos.y;
 
-	container.empty();
-	container.style.display = "flex";
-	container.style.height = "100%";
-	container.style.position = "relative";
+					const d = calcDependencyPath(sx, sy, tx, ty);
 
-	const state: GanttState = {
-		wrapper: null,
-		canvas: null,
-		ctx: null,
-		bgCanvas: null,
-		bgCtx: null,
-		hoverCanvas: null,
-		hoverCtx: null,
-		flatNodes: [],
-		ganttTasks: [],
-		minTime: 0,
-		maxTime: 0,
-		scale: 1,
-		offsetX: 0,
-		scrollTop: 0,
-		rowHeight: CONFIG.ROW_HEIGHT,
-		headerHeight: CONFIG.HEADER_HEIGHT,
-		leftWidth: CONFIG.LEFT_PANEL_WIDTH,
-		timeToX: null,
-		collapsedNodes: new Set(),
-		hoveredBarTaskId: null,
-		taskBarPath: getTaskBarPath(),
-		isResizing: false,
-		isDragging: false,
-		lastDragX: 0,
-		tooltipDiv: null,
-		resizeObserver: null,
-		cleanup: null,
-	};
-
-	// 构建数据
-	const rootNodes = buildGanttTree(tasks, "pages/A 系统/A 任务系统/");
-	state.flatNodes = flattenNodes(rootNodes, state.collapsedNodes);
-	state.ganttTasks = buildGanttTaskRows(state.flatNodes);
-
-	// 计算时间范围
-	if (state.ganttTasks.length > 0) {
-		const times = state.ganttTasks.flatMap((t) => [
-			t.start.getTime(),
-			t.end.getTime(),
-		]);
-		const minTime = Math.min(...times);
-		const maxTime = Math.max(...times);
-		const pad = Math.max((maxTime - minTime) * 0.05, 86400000);
-		state.minTime = minTime - pad;
-		state.maxTime = maxTime + pad;
-	} else {
-		const weekRange = DateUtils.getWeekRange(new Date());
-		state.minTime = weekRange.start.getTime();
-		state.maxTime = weekRange.end.getTime();
-	}
-
-	// 创建 DOM 结构
-	const wrapper = document.createElement("div");
-	wrapper.className = "gantt-canvas-wrapper";
-	wrapper.style.cssText = `
-		flex: 1;
-		position: relative;
-		overflow: auto;
-		border: 1px solid var(--background-modifier-border);
-		border-radius: 8px;
-	`;
-
-	const bgCanvas = document.createElement("canvas");
-	bgCanvas.style.cssText =
-		"position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
-
-	const canvas = document.createElement("canvas");
-	canvas.className = "gantt-canvas";
-	canvas.style.cssText =
-		"display:block;width:100%;height:100%;cursor:default;";
-
-	const hoverCanvas = document.createElement("canvas");
-	hoverCanvas.style.cssText =
-		"position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
-
-	wrapper.appendChild(bgCanvas);
-	wrapper.appendChild(canvas);
-	wrapper.appendChild(hoverCanvas);
-	container.appendChild(wrapper);
-
-	state.wrapper = wrapper;
-	state.canvas = canvas;
-	state.ctx = canvas.getContext("2d");
-	state.bgCanvas = bgCanvas;
-	state.bgCtx = bgCanvas.getContext("2d");
-	state.hoverCanvas = hoverCanvas;
-	state.hoverCtx = hoverCanvas.getContext("2d");
-
-	// Tooltip
-	const tooltipDiv = document.createElement("div");
-	tooltipDiv.className = "gantt-tooltip";
-	tooltipDiv.style.cssText = `
-		position: fixed !important;
-		background: #2d2d2d;
-		color: #f0f0f0;
-		border: 1px solid #555;
-		border-radius: 8px;
-		padding: 10px 14px;
-		pointer-events: none;
-		z-index: 10000;
-		max-width: 450px;
-		box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-		font-size: 13px;
-		line-height: 1.5;
-		display: none;
-	`;
-	document.body.appendChild(tooltipDiv);
-	state.tooltipDiv = tooltipDiv;
-
-	// 初始化渲染
-	updateCanvasSize(state);
-	drawStaticBackground(state);
-	clampOffset(state);
-	updateTimeToX(state);
-	requestDraw(state);
-
-	// ========== 事件处理 ==========
-
-	// 点击
-	canvas.addEventListener("click", (e) => {
-		const rect = canvas.getBoundingClientRect();
-		const dpr = window.devicePixelRatio || 1;
-		const scaleX = canvas.width / rect.width;
-		const x = ((e.clientX - rect.left) * scaleX) / dpr;
-		const y = ((e.clientY - rect.top) * scaleX) / dpr;
-		const yOffset = state.headerHeight - state.scrollTop;
-
-		if (x < state.leftWidth) {
-			const rowIndex = Math.floor((y - yOffset) / state.rowHeight);
-			if (rowIndex >= 0 && rowIndex < state.flatNodes.length) {
-				const node = state.flatNodes[rowIndex];
-				const iconX = 10 + node.level * 16;
-				if (
-					(node.type === "folder" || node.type === "file") &&
-					x >= iconX &&
-					x <= iconX + 20
-				) {
-					const path = node.fullPath;
-					if (state.collapsedNodes.has(path)) {
-						state.collapsedNodes.delete(path);
-					} else {
-						state.collapsedNodes.add(path);
-					}
-					// 重建扁平节点
-					state.flatNodes = flattenNodes(
-						rootNodes,
-						state.collapsedNodes,
+					const g = document.createElementNS(
+						"http://www.w3.org/2000/svg",
+						"g",
 					);
-					state.ganttTasks = buildGanttTaskRows(state.flatNodes);
-					updateCanvasSize(state);
-					drawStaticBackground(state);
-					clampOffset(state);
-					updateTimeToX(state);
-					requestDraw(state);
-				} else if (node.type === "task" && node.task) {
-					const app = (window as any).app;
-					if (app) {
-						const file = app.vault.getAbstractFileByPath(
-							node.task.path,
-						);
-						if (file) {
-							app.workspace.getLeaf().openFile(file, {
-								eState: {
-									line:
-										node.task.lineNumber ?? node.task.line,
-								},
-							});
-						}
-					}
-				}
-			}
-		}
-	});
+					const path = document.createElementNS(
+						"http://www.w3.org/2000/svg",
+						"path",
+					);
+					path.setAttribute("d", d);
+					path.setAttribute("fill", "none");
+					path.setAttribute(
+						"stroke",
+						GANTT_CONFIG.DEPENDENCY_LINE_COLOR,
+					);
+					path.setAttribute(
+						"stroke-width",
+						String(GANTT_CONFIG.DEPENDENCY_LINE_WIDTH),
+					);
+					path.setAttribute("stroke-linecap", "round");
+					path.setAttribute("stroke-linejoin", "round");
+					g.appendChild(path);
 
-	// 鼠标移动
-	canvas.addEventListener("mousemove", (e) => {
-		const rect = canvas.getBoundingClientRect();
-		const dpr = window.devicePixelRatio || 1;
-		const scaleX = canvas.width / rect.width;
-		const x = ((e.clientX - rect.left) * scaleX) / dpr;
-		const y = ((e.clientY - rect.top) * scaleX) / dpr;
-		const yOffset = state.headerHeight - state.scrollTop;
+					const as = GANTT_CONFIG.DEPENDENCY_ARROW_SIZE;
+					const arrow = document.createElementNS(
+						"http://www.w3.org/2000/svg",
+						"polygon",
+					);
+					arrow.setAttribute(
+						"points",
+						`${tx},${ty} ${tx - as},${ty - as / 2} ${tx - as},${ty + as / 2}`,
+					);
+					arrow.setAttribute(
+						"fill",
+						GANTT_CONFIG.DEPENDENCY_LINE_COLOR,
+					);
+					g.appendChild(arrow);
 
-		if (state.isResizing) {
-			const newWidth = Math.min(
-				CONFIG.MAX_LEFT_WIDTH,
-				Math.max(CONFIG.MIN_LEFT_WIDTH, x),
-			);
-			state.leftWidth = newWidth;
-			updateCanvasSize(state);
-			drawStaticBackground(state);
-			clampOffset(state);
-			updateTimeToX(state);
-			requestDraw(state);
-			return;
-		}
+					const hit = document.createElementNS(
+						"http://www.w3.org/2000/svg",
+						"path",
+					);
+					hit.setAttribute("d", d);
+					hit.setAttribute("fill", "none");
+					hit.setAttribute("stroke", "transparent");
+					hit.setAttribute("stroke-width", "14");
+					hit.style.cssText =
+						"pointer-events: auto; cursor: pointer;";
 
-		let hoveredBarTaskId: string | null = null;
-		let tooltipTask: any = null;
+					const tip = [
+						`🆔 ${fid} → 🆔 ${task._id || "?"}`,
+						`📅 ${sTask._due || sTask._done || "?"} → 🛫 ${task._scheduled || task._starts || "?"}`,
+					].join("<br>");
 
-		if (x < state.leftWidth) {
-			const rowIndex = Math.floor((y - yOffset) / state.rowHeight);
-			if (rowIndex >= 0 && rowIndex < state.flatNodes.length) {
-				const node = state.flatNodes[rowIndex];
-				if (node.type === "task" && node.task) tooltipTask = node.task;
-			}
-		} else if (state.timeToX) {
-			for (const item of state.ganttTasks) {
-				const startX = state.timeToX(item.start.getTime());
-				const endX = state.timeToX(item.end.getTime());
-				const barY =
-					yOffset +
-					item.flatIndex * state.rowHeight +
-					(state.rowHeight - CONFIG.TASK_BAR_HEIGHT) / 2;
-				if (
-					x >= startX &&
-					x <= endX &&
-					y >= barY &&
-					y <= barY + CONFIG.TASK_BAR_HEIGHT
-				) {
-					hoveredBarTaskId =
-						item.task.lineNumber + "@" + item.task.path;
-					tooltipTask = item.task;
-					break;
-				}
-			}
-		}
+					hit.addEventListener("mouseenter", (e) =>
+						tooltip.show(tip, e.clientX, e.clientY),
+					);
+					hit.addEventListener("mousemove", (e) =>
+						tooltip.move(e.clientX, e.clientY),
+					);
+					hit.addEventListener("mouseleave", () => tooltip.hide());
 
-		if (tooltipTask?._tooltip) {
-			tooltipDiv.innerHTML = tooltipTask._tooltip.replace(/\n/g, "<br>");
-			tooltipDiv.style.display = "block";
-			tooltipDiv.style.left = e.clientX + 15 + "px";
-			tooltipDiv.style.top = e.clientY + 15 + "px";
-		} else {
-			tooltipDiv.style.display = "none";
-		}
+					g.appendChild(hit);
+					svg.appendChild(g);
+				});
+		});
+	}
 
-		if (state.hoveredBarTaskId !== hoveredBarTaskId) {
-			state.hoveredBarTaskId = hoveredBarTaskId;
-			drawHoverHighlight(state);
-		}
-	});
+	requestAnimationFrame(() => redraw());
+	const onToggle = () => requestAnimationFrame(() => redraw());
+	treeContainer.addEventListener("tree-toggle", onToggle);
+	(svg as any).__cleanup = () =>
+		treeContainer.removeEventListener("tree-toggle", onToggle);
+	(svg as any).__redraw = redraw;
+	return svg;
+}
 
-	canvas.addEventListener("mouseleave", () => {
-		tooltipDiv.style.display = "none";
-		state.hoveredBarTaskId = null;
-		drawHoverHighlight(state);
-	});
+// ========== 主入口 ==========
 
-	// 拖拽
-	canvas.addEventListener("mousedown", (e) => {
-		const rect = canvas.getBoundingClientRect();
-		const dpr = window.devicePixelRatio || 1;
-		const scaleX = canvas.width / rect.width;
-		const x = ((e.clientX - rect.left) * scaleX) / dpr;
+export function renderGanttWithTree(
+	container: HTMLElement,
+	treeRoots: TreeNode[],
+	options?: {
+		onTaskClick?: (task: TaskItem) => void;
+		intervalMode?: string;
+		sort?: { type: string; order: "asc" | "desc" };
+		dateRange?: {
+			start: number | null;
+			end: number | null;
+			isAll: boolean;
+		};
+	},
+) {
+	container.empty();
 
-		if (Math.abs(x - state.leftWidth) < 8) {
-			state.isResizing = true;
-			canvas.style.cursor = "col-resize";
-			e.preventDefault();
-		} else {
-			state.isDragging = true;
-			state.lastDragX = e.clientX;
-			canvas.style.cursor = "grabbing";
-		}
-	});
-
-	window.addEventListener("mousemove", (e) => {
-		if (state.isResizing) {
-			const rect = canvas.getBoundingClientRect();
-			const dpr = window.devicePixelRatio || 1;
-			const scaleX = canvas.width / rect.width;
-			const x = ((e.clientX - rect.left) * scaleX) / dpr;
-			const newWidth = Math.min(
-				CONFIG.MAX_LEFT_WIDTH,
-				Math.max(CONFIG.MIN_LEFT_WIDTH, x),
-			);
-			state.leftWidth = newWidth;
-			updateCanvasSize(state);
-			drawStaticBackground(state);
-			clampOffset(state);
-			updateTimeToX(state);
-			requestDraw(state);
-		} else if (state.isDragging) {
-			const dx = e.clientX - state.lastDragX;
-			state.lastDragX = e.clientX;
-			state.offsetX += dx;
-			clampOffset(state);
-			updateTimeToX(state);
-			requestDraw(state);
-		}
-	});
-
-	window.addEventListener("mouseup", () => {
-		if (state.isResizing) {
-			state.isResizing = false;
-			canvas.style.cursor = "default";
-		}
-		if (state.isDragging) {
-			state.isDragging = false;
-			canvas.style.cursor = "default";
-		}
-	});
-
-	// 滚轮缩放
-	canvas.addEventListener(
-		"wheel",
-		(e) => {
-			if (!e.altKey) return;
-			e.preventDefault();
-			const delta = e.deltaY > 0 ? 0.9 : 1.1;
-			state.scale *= delta;
-			state.scale = Math.min(
-				CONFIG.SCALE_MAX,
-				Math.max(CONFIG.SCALE_MIN, state.scale),
-			);
-			clampOffset(state);
-			updateTimeToX(state);
-			requestDraw(state);
-		},
-		{ passive: false },
+	const intervalMode = options?.intervalMode || "scheduled-due";
+	const treeWidth = calcTreeMaxWidth(treeRoots);
+	const timeRange = calcRangeFromRoots(
+		treeRoots,
+		intervalMode,
+		options?.dateRange,
+	);
+	const totalDays = Math.max(
+		Math.ceil((timeRange.maxTime - timeRange.minTime) / 86400000),
+		1,
 	);
 
-	// 滚动同步
-	wrapper.addEventListener("scroll", () => {
-		state.scrollTop = wrapper.scrollTop;
-		requestDraw(state);
-	});
+	const savedZoom = loadZoomState();
+	const initialDayWidth =
+		savedZoom?.dayWidth || GANTT_CONFIG.DEFAULT_DAY_WIDTH;
 
-	// ResizeObserver
-	const resizeObserver = new ResizeObserver(() => {
-		updateCanvasSize(state);
-		drawStaticBackground(state);
-		clampOffset(state);
-		updateTimeToX(state);
-		requestDraw(state);
-	});
-	resizeObserver.observe(wrapper);
-	state.resizeObserver = resizeObserver;
-
-	// 保存状态供清理
-	state.cleanup = () => {
-		resizeObserver.disconnect();
-		tooltipDiv.remove();
-		// 移除全局事件（使用 AbortController 更佳，此处简化）
+	const zoomState = {
+		dayWidth: Math.min(
+			GANTT_CONFIG.MAX_DAY_WIDTH,
+			Math.max(GANTT_CONFIG.MIN_DAY_WIDTH, initialDayWidth),
+		),
+		totalWidth: Math.max(totalDays * initialDayWidth, 400),
+		totalDays,
 	};
-	(container as any).__ganttState = state;
+
+	const taskMap = new Map<string, TaskItem>();
+	let isDragging = false;
+	let lastDragX = 0;
+	let dragStartScrollLeft = 0;
+
+	container.style.cssText =
+		"display: flex; flex-direction: column; height: 100%; background: transparent; user-select: none;";
+
+	const scrollArea = document.createElement("div");
+	scrollArea.className = "gantt-scroll-area";
+	scrollArea.style.cssText = "flex: 1; overflow: auto; position: relative;";
+	container.appendChild(scrollArea);
+
+	function rebuild() {
+		const savedScrollLeft = scrollArea.scrollLeft;
+		const savedScrollTop = scrollArea.scrollTop;
+
+		scrollArea.innerHTML = "";
+		taskMap.clear();
+
+		const timelineWidth = zoomState.totalWidth;
+		const totalWidth = treeWidth + timelineWidth;
+
+		// 时间轴头部
+		scrollArea.appendChild(
+			createTimelineHeader(
+				timeRange,
+				zoomState.dayWidth,
+				totalDays,
+				timelineWidth,
+				treeWidth,
+			),
+		);
+
+		// 内容区
+		const content = document.createElement("div");
+		content.className = "gantt-content";
+		content.style.cssText = `
+      position: relative;
+      width: ${totalWidth}px;
+      min-width: ${totalWidth}px;
+      min-height: 200px;
+      padding-bottom: 40px;
+      overflow: hidden;
+    `;
+
+		applyGridBackground(
+			content,
+			zoomState.dayWidth,
+			treeWidth,
+			totalWidth,
+			timeRange,
+		);
+
+		// 今日线
+		const today = DateUtils.setStart(new Date()).getTime();
+		if (today >= timeRange.minTime && today <= timeRange.maxTime) {
+			const ox =
+				((today - timeRange.minTime) / 86400000) * zoomState.dayWidth;
+			if (ox < timelineWidth) {
+				const line = document.createElement("div");
+				line.style.cssText = `
+          position: absolute; left: ${treeWidth + ox}px; top: 0;
+          width: 2px; height: 100%;
+          background: var(--interactive-accent, #7fb8f0);
+          opacity: 0.5;
+          z-index: 0; pointer-events: none;
+        `;
+				content.appendChild(line);
+			}
+		}
+
+		scrollArea.appendChild(content);
+
+		// 树容器
+		const treeContainer = document.createElement("div");
+		treeContainer.className = "gantt-tree-container";
+		treeContainer.style.cssText = "position: relative; z-index: 2;";
+		content.appendChild(treeContainer);
+
+		// SVG 依赖箭头
+		const svg = createDependencySVG(taskMap, totalWidth, treeContainer);
+		content.appendChild(svg);
+
+		// 渲染任务树 + 甘特条
+		renderTaskTree(treeContainer, {
+			roots: treeRoots,
+			onClick: (node: any) => {
+				const task = node._task || node;
+				if (task) {
+					const edges = calcBarEdges(
+						task,
+						timeRange,
+						timelineWidth,
+						intervalMode,
+					);
+					if (edges) {
+						const targetX = treeWidth + edges.left - 20;
+						scrollArea.scrollLeft = Math.max(0, targetX);
+					}
+				}
+			},
+			sort: options?.sort,
+			onRowRender: (rowEl, _node, task) => {
+				rowEl.style.position = "relative";
+				rowEl.style.width = "100%";
+
+				if (task) {
+					const taskId = `${task.path}:${task.line}`;
+					rowEl.setAttribute("data-task-id", taskId);
+					taskMap.set(taskId, task);
+					if (task._id) taskMap.set(task._id, task);
+
+					const edges = calcBarEdges(
+						task,
+						timeRange,
+						timelineWidth,
+						intervalMode,
+					);
+					if (edges) {
+						const left = treeWidth + edges.left;
+
+						const bar = document.createElement("div");
+						bar.className = "gantt-bar";
+						bar.setAttribute("data-task-bar", "true");
+						bar.style.cssText = `
+              position: absolute;
+              left: ${left}px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: ${edges.width}px;
+              height: ${GANTT_CONFIG.TASK_BAR_HEIGHT}px;
+              background: ${GANTT_CONFIG.STATUS_COLORS[task._status] || GANTT_CONFIG.STATUS_COLORS["todo"]};
+              border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
+              cursor: pointer;
+              opacity: 0.85;
+              z-index: 2;
+              display: flex;
+              align-items: center;
+              overflow: hidden;
+              transition: opacity 0.1s;
+            `;
+
+						// 完成进度覆盖层
+						const interval = getTaskInterval(task, intervalMode);
+						if (interval && task._done) {
+							const doneTime = new Date(task._done).getTime();
+							if (
+								doneTime >= interval.start.getTime() &&
+								doneTime <= interval.end.getTime()
+							) {
+								const progressRatio =
+									(doneTime - interval.start.getTime()) /
+									(interval.end.getTime() -
+										interval.start.getTime());
+								const progressEl =
+									document.createElement("div");
+								progressEl.style.cssText = `
+                  position: absolute; left: 0; top: 0;
+                  width: ${Math.round(progressRatio * 100)}%;
+                  height: 100%;
+                  background: rgba(46, 125, 50, 0.5);
+                  border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px 0 0 ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
+                  pointer-events: none;
+                `;
+								bar.appendChild(progressEl);
+							}
+						}
+
+						bar.addEventListener("mouseenter", () => {
+							bar.style.opacity = "1";
+							bar.style.zIndex = "5";
+						});
+						bar.addEventListener("mouseleave", () => {
+							bar.style.opacity = "0.85";
+							bar.style.zIndex = "2";
+						});
+
+						const dur = formatGanttDuration(
+							interval
+								? interval.end.getTime() -
+										interval.start.getTime()
+								: 0,
+						);
+						if (dur && edges.width > 30) {
+							const label = document.createElement("span");
+							label.style.cssText =
+								"font-size: 10px; color: var(--text-on-accent, white); line-height: 1; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1;";
+							label.textContent = dur;
+							bar.appendChild(label);
+						}
+
+						if (task._tooltipHtml) {
+							bar.addEventListener("mouseenter", (e) =>
+								tooltip.show(
+									task._tooltipHtml,
+									e.clientX,
+									e.clientY,
+								),
+							);
+							bar.addEventListener("mousemove", (e) =>
+								tooltip.move(e.clientX, e.clientY),
+							);
+							bar.addEventListener("mouseleave", () =>
+								tooltip.hide(),
+							);
+						}
+
+						bar.addEventListener("click", (e) => {
+							const rect = bar.getBoundingClientRect();
+							const clickX = e.clientX - rect.left;
+							const barWidth = rect.width;
+							const margin = barWidth * 0.15;
+							if (clickX > margin && clickX < barWidth - margin) {
+								if (task?.path)
+									options?.onTaskClick?.(task as TaskItem);
+							}
+						});
+
+						rowEl.appendChild(bar);
+					}
+				}
+			},
+		});
+
+		requestAnimationFrame(() => (svg as any).__redraw?.());
+
+		scrollArea.scrollLeft = Math.max(0, savedScrollLeft);
+		if (savedScrollTop > 0) scrollArea.scrollTop = savedScrollTop;
+	}
+
+	rebuild();
+
+	// Alt+滚轮缩放
+	const onWheel = (e: WheelEvent) => {
+		if (!e.altKey) return;
+		e.preventDefault();
+		e.stopPropagation();
+
+		const rect = scrollArea.getBoundingClientRect();
+		const mouseX = e.clientX - rect.left + scrollArea.scrollLeft;
+		const mouseTime =
+			timeRange.minTime +
+			((mouseX - treeWidth) / zoomState.dayWidth) * 86400000;
+
+		if (e.deltaY < 0) {
+			zoomState.dayWidth = Math.min(
+				GANTT_CONFIG.MAX_DAY_WIDTH,
+				Math.round(zoomState.dayWidth * 1.3 * 100) / 100,
+			);
+		} else {
+			zoomState.dayWidth = Math.max(
+				GANTT_CONFIG.MIN_DAY_WIDTH,
+				Math.round(zoomState.dayWidth * 0.7 * 100) / 100,
+			);
+		}
+		zoomState.totalWidth = Math.ceil(totalDays * zoomState.dayWidth);
+		saveZoomState(zoomState.dayWidth);
+
+		rebuild();
+
+		const newMouseX =
+			treeWidth +
+			((mouseTime - timeRange.minTime) / 86400000) * zoomState.dayWidth;
+		scrollArea.scrollLeft = Math.max(
+			0,
+			newMouseX - (e.clientX - rect.left),
+		);
+	};
+	scrollArea.addEventListener("wheel", onWheel, { passive: false });
+
+	// 鼠标拖拽平移
+	scrollArea.addEventListener("mousedown", (e: MouseEvent) => {
+		if ((e.target as HTMLElement).closest(".gantt-bar")) return;
+		isDragging = true;
+		lastDragX = e.clientX;
+		dragStartScrollLeft = scrollArea.scrollLeft;
+		scrollArea.style.cursor = "grabbing";
+		scrollArea.style.userSelect = "none";
+		e.preventDefault();
+	});
+
+	const onMouseMove = (e: MouseEvent) => {
+		if (!isDragging) return;
+		const dx = e.clientX - lastDragX;
+		scrollArea.scrollLeft = dragStartScrollLeft - dx;
+	};
+
+	const onMouseUp = () => {
+		if (!isDragging) return;
+		isDragging = false;
+		scrollArea.style.cursor = "";
+		scrollArea.style.userSelect = "";
+	};
+
+	window.addEventListener("mousemove", onMouseMove);
+	window.addEventListener("mouseup", onMouseUp);
+
+	return {
+		taskMap,
+		redraw: rebuild,
+		destroy: () => {
+			scrollArea.removeEventListener("wheel", onWheel);
+			window.removeEventListener("mousemove", onMouseMove);
+			window.removeEventListener("mouseup", onMouseUp);
+		},
+	};
 }

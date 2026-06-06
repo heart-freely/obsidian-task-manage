@@ -12,10 +12,13 @@ import { StatusPanel } from "./status-panel";
 import { TimePanel } from "./time-panel";
 import { ViewPanel } from "./view-panel";
 
-const PANEL_COMPONENTS: Record<
-	string,
-	new (container: HTMLElement, store: Store) => any
-> = {
+type PanelComponentClass = new (
+	container: HTMLElement,
+	store: Store,
+	app?: any,
+) => any;
+
+const PANEL_COMPONENTS: Record<string, PanelComponentClass> = {
 	config: PresetPanel,
 	time: TimePanel,
 	excut: StatusPanel,
@@ -31,6 +34,7 @@ export class Panels {
 	private store!: Store;
 	private viewEl!: HTMLElement;
 	private panelHost!: HTMLElement;
+	private app!: any;
 
 	private buttonBarEl: HTMLElement | null = null;
 	private panelsContainer: HTMLElement | null = null;
@@ -39,6 +43,7 @@ export class Panels {
 	private panelEls: Map<string, HTMLElement> = new Map();
 	private panelInstances: Map<string, any> = new Map();
 	private styleEl: HTMLStyleElement | null = null;
+	private expandHandler: (() => void) | null = null;
 
 	public isVisible: boolean = false;
 	private isPanelsCollapsed: boolean = false;
@@ -53,9 +58,10 @@ export class Panels {
 		return Panels.instance;
 	}
 
-	init(store: Store, viewEl: HTMLElement, container: HTMLElement) {
+	init(store: Store, viewEl: HTMLElement, container: HTMLElement, app: any) {
 		this.store = store;
 		this.viewEl = viewEl;
+		this.app = app;
 
 		this.panelHost = container.createDiv({ cls: "panel-host" });
 		this.panelHost.style.position = "absolute";
@@ -169,40 +175,46 @@ export class Panels {
 		if (this.styleEl) return;
 		this.styleEl = document.createElement("style");
 		this.styleEl.textContent = `
-			.panel-btn{padding:3px 6px!important;font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;line-height:var(--line-height-normal)!important;margin:2px 4px 2px 0!important;text-align:left!important;white-space:nowrap;display:inline-flex!important;align-items:center;justify-content:flex-start;flex-grow:0!important;flex-shrink:0!important;width:auto!important;min-width:auto!important;height:auto!important;border-radius:16px;background:var(--interactive-normal);border:none;cursor:pointer}
-			.panel-btn.active{background:var(--interactive-accent)!important;color:white!important}
-			.panel-label{font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;font-weight:normal!important;color:var(--text-normal)!important;text-align:justify!important;text-align-last:justify!important;text-justify:inter-character!important;width:4em;flex-shrink:0;margin:0!important;margin-right:6px!important;padding:0!important;border:none!important;box-sizing:border-box!important;overflow:hidden;white-space:normal!important;word-break:keep-all}
-			.panel-row{display:flex;align-items:center;justify-content:flex-start;margin-bottom:4px;flex-wrap:wrap}
-			.panel-sub{margin-left:8px;gap:4px}
-			.panel-section{margin:0!important;padding:0!important}
-			.panel-header-btn{flex-shrink:0;display:flex;align-items:center;gap:4px;cursor:grab;padding:4px 8px;border-radius:6px;background:var(--background-primary);border:1px solid var(--background-modifier-border);user-select:none;font-size:12px;white-space:nowrap}
-			.panel-header-btn:hover{background:var(--background-modifier-hover)}
-			.panel-header-btn.active{background:var(--background-modifier-active)}
-			.panel-header-label{font-family:inherit;font-size:inherit;line-height:inherit;color:inherit}
-			.panel-view-btn{min-width:80px}
-			.panel-input{padding:4px 8px;border-radius:12px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);font-size:13px;min-width:200px}
-			.panel-input-sm{width:48px;min-width:48px;padding:3px 4px;font-size:14px;text-align:center}
-		`;
+      .panel-btn{padding:3px 6px!important;font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;line-height:var(--line-height-normal)!important;margin:2px 4px 2px 0!important;text-align:left!important;white-space:nowrap;display:inline-flex!important;align-items:center;justify-content:flex-start;flex-grow:0!important;flex-shrink:0!important;width:auto!important;min-width:auto!important;height:auto!important;border-radius:16px;background:var(--interactive-normal);border:none;cursor:pointer}
+      .panel-btn.active{background:var(--interactive-accent)!important;color:white!important}
+      .panel-label{font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;font-weight:normal!important;color:var(--text-normal)!important;text-align:justify!important;text-align-last:justify!important;text-justify:inter-character!important;width:4em;flex-shrink:0;margin:0!important;margin-right:6px!important;padding:0!important;border:none!important;box-sizing:border-box!important;overflow:hidden;white-space:normal!important;word-break:keep-all}
+      .panel-row{display:flex;align-items:center;justify-content:flex-start;margin-bottom:4px;flex-wrap:wrap}
+      .panel-sub{margin-left:8px;gap:4px}
+      .panel-section{margin:0!important;padding:0!important}
+      .panel-header-btn{flex-shrink:0;display:flex;align-items:center;gap:4px;cursor:grab;padding:4px 8px;border-radius:6px;background:var(--background-primary);border:1px solid var(--background-modifier-border);user-select:none;font-size:12px;white-space:nowrap}
+      .panel-header-btn:hover{background:var(--background-modifier-hover)}
+      .panel-header-btn.active{background:var(--background-modifier-active)}
+      .panel-header-label{font-family:inherit;font-size:inherit;line-height:inherit;color:inherit}
+      .panel-view-btn{min-width:80px}
+      .panel-input{padding:4px 8px;border-radius:12px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);font-size:13px;min-width:200px}
+      .panel-input-sm{width:48px;min-width:48px;padding:3px 4px;font-size:14px;text-align:center}
+    `;
 		document.head.appendChild(this.styleEl);
 	}
 
 	public syncState() {
-		const state = this.store.getState();
-		const preset = state.presets.find((p) => p.id === state.activePresetId);
-		if (!preset) return;
-		const prevPresetId = (this as any)._prevPresetId;
-		if (prevPresetId && prevPresetId !== state.activePresetId) {
-			const instance = this.panelInstances.get("time");
-			if (instance && typeof instance.onPresetChanged === "function")
-				instance.onPresetChanged();
+		try {
+			const state = this.store.getState();
+			const preset = state.presets.find(
+				(p) => p.id === state.activePresetId,
+			);
+			if (!preset) return;
+			const prevPresetId = (this as any)._prevPresetId;
+			if (prevPresetId && prevPresetId !== state.activePresetId) {
+				const instance = this.panelInstances.get("time");
+				if (instance && typeof instance.onPresetChanged === "function")
+					instance.onPresetChanged();
+			}
+			(this as any)._prevPresetId = state.activePresetId;
+			this.isVisible = preset.showToolbar === true;
+			this.isPanelsCollapsed = preset.toolbarPanelsCollapsed ?? false;
+			this.panelHeight = preset.toolbarPanelsHeight ?? 300;
+			this.applyVisibility();
+			this.refreshContent();
+			requestAnimationFrame(() => this.updateViewPadding());
+		} catch (e) {
+			console.warn("[TaskManage] 面板状态同步失败:", e);
 		}
-		(this as any)._prevPresetId = state.activePresetId;
-		this.isVisible = preset.showToolbar === true;
-		this.isPanelsCollapsed = preset.toolbarPanelsCollapsed ?? false;
-		this.panelHeight = preset.toolbarPanelsHeight ?? 300;
-		this.applyVisibility();
-		this.refreshContent();
-		requestAnimationFrame(() => this.updateViewPadding());
 	}
 
 	public refreshTimePanel() {
@@ -259,12 +271,10 @@ export class Panels {
 				activeEl.tagName === "TEXTAREA" ||
 				(activeEl as HTMLElement).isContentEditable);
 
-		// 如果输入框聚焦，跳过面板内容重建
 		if (isInputFocused) return;
 
 		const newKeys = new Set(visibleKeys);
 
-		// 移除不可见的面板
 		for (const [key, panel] of this.panelEls) {
 			if (!newKeys.has(key)) {
 				panel.remove();
@@ -276,7 +286,6 @@ export class Panels {
 			}
 		}
 
-		// 只为新增的面板创建 DOM 和实例（已存在的面板通过 store.subscribe 自动更新）
 		for (const key of visibleKeys) {
 			if (!this.panelEls.has(key)) {
 				const panel = document.createElement("div");
@@ -290,19 +299,18 @@ export class Panels {
 					const instance = new PANEL_COMPONENTS[key](
 						panel,
 						this.store,
+						this.app,
 					);
 					this.panelInstances.set(key, instance);
 				}
 			}
 		}
 
-		// 按 toolbarOrder 顺序重新排列面板 DOM（不重建内容）
 		const currentChildren = Array.from(this.panelsContainer.children);
 		const expectedOrder = visibleKeys
 			.map((key) => this.panelEls.get(key))
 			.filter(Boolean);
 
-		// 检查顺序是否需要调整
 		let needReorder = false;
 		for (let i = 0; i < expectedOrder.length; i++) {
 			if (currentChildren[i] !== expectedOrder[i]) {
@@ -312,7 +320,6 @@ export class Panels {
 		}
 
 		if (needReorder) {
-			// 使用 DocumentFragment 批量操作减少回流
 			const fragment = document.createDocumentFragment();
 			for (const panel of expectedOrder) {
 				fragment.appendChild(panel!);
@@ -349,6 +356,7 @@ export class Panels {
 		this.applyVisibility();
 		this.refreshContent();
 	}
+
 	private showPanels() {
 		if (this.isPanelsCollapsed) this.togglePanels();
 	}

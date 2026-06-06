@@ -1,5 +1,5 @@
 // src/ui/component/view/card/card.ts
-// 统一任务卡片组件——纯展示
+// 统一任务卡片组件——纯展示，支持详细/简洁两种模式
 
 import {
 	PRIORITY_ICONS,
@@ -18,7 +18,10 @@ function hasValue(val: any): boolean {
 }
 
 export interface TaskCardOptions {
+	/** 是否显示 tooltip，默认 true */
 	showTooltip?: boolean;
+	/** 简洁模式：单行显示，隐藏元数据行，默认 false（详细模式） */
+	compact?: boolean;
 }
 
 export function createTaskCard(
@@ -26,6 +29,8 @@ export function createTaskCard(
 	options?: TaskCardOptions,
 ): HTMLElement {
 	const showTooltip = options?.showTooltip ?? true;
+	const compact = options?.compact ?? false;
+
 	const prioIcon = task._priorityIcon || PRIORITY_ICONS[task.priority] || "";
 	const zhName = getPriorityLabel(prioIcon);
 
@@ -73,19 +78,34 @@ export function createTaskCard(
 	li.className = "task-item";
 	li.setAttribute("data-path", task.path);
 	li.setAttribute("data-line-number", task.lineNumber ?? 0);
-	li.style.cssText =
-		"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color:var(--text-normal); transition:background 0.1s;";
 
 	const descHtml = task._cleanText || task.description || "（无描述）";
-	li.innerHTML = `<div class="task-desc" style="font-weight:500;margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;">${meta}</div>`;
 
+	if (compact) {
+		// 简洁模式：单行，仅显示描述
+		li.style.cssText =
+			"margin:0;padding:1px 0;background:transparent;border-radius:4px;font-size:var(--font-ui-small);cursor:pointer;border:none;display:block;list-style:none;border-left:none;";
+		li.innerHTML = `<div class="task-desc" style="font-weight:normal;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;line-height:1.5;">${descHtml}</div>`;
+	} else {
+		// 详细模式：两行
+		li.style.cssText =
+			"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color:var(--text-normal); transition:background 0.1s;";
+		li.innerHTML = `<div class="task-desc" style="font-weight:500;margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;">${meta}</div>`;
+	}
+
+	// 悬停背景
 	li.addEventListener("mouseenter", () => {
-		li.style.backgroundColor = "var(--background-modifier-hover)";
+		li.style.backgroundColor = compact
+			? "var(--background-modifier-hover)"
+			: "var(--background-modifier-hover)";
 	});
 	li.addEventListener("mouseleave", () => {
-		li.style.backgroundColor = "var(--background-primary)";
+		li.style.backgroundColor = compact
+			? "transparent"
+			: "var(--background-primary)";
 	});
 
+	// tooltip
 	if (showTooltip) {
 		const tipParts: string[] = [];
 		const statusKey = task._status || "todo";

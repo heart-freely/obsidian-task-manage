@@ -1,11 +1,32 @@
 // src/ui/panel/hide-panel.ts
-// 视图隐藏面板
+// 视图隐藏面板 — 修改 hideConfig，不影响 filter
 
 import {
-	DEFAULT_TABLE_COLUMNS,
-	TABLE_COLUMNS,
+	ALLOWED_STATUSES,
+	MARK_NAMES,
+	PRIORITY_ORDER,
+	REPEAT_ORDER,
+	STATUS_NAMES,
 } from "../../process/config/config";
+import { getDefaultHideConfig } from "../../process/config/panel-default-config";
 import { Store } from "../../process/store/store";
+import { HideConfig } from "../../types";
+
+const PRIORITY_ICONS = [...PRIORITY_ORDER].reverse();
+
+const HIDE_GROUPS = [
+	{ label: "隐藏状态", type: "statuses" },
+	{ label: "隐藏描述", type: "searchText" },
+	{ label: "隐藏优先", type: "priorityValues" },
+	{ label: "隐藏循环", type: "repeatCycles" },
+	{
+		label: "隐藏日期",
+		type: "marks",
+		keys: ["created", "scheduled", "starts", "cancel", "done", "due"],
+	},
+	{ label: "隐藏依赖", type: "marks", keys: ["id", "forbid"] },
+	{ label: "隐藏标签", type: "marks", keys: ["tag"] },
+];
 
 export class HidePanel {
 	private container: HTMLElement;
@@ -29,79 +50,220 @@ export class HidePanel {
 	render() {
 		this.container.empty();
 		const state = this.store.getState();
-		const preset = this.store.getActivePreset();
+		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
-		const currentFilter = preset.filter;
+		const hideConfig = preset.hideConfig ?? getDefaultHideConfig();
 
-		const updateFilter = (key: string) => {
+		const updateHideConfig = (changes: Partial<HideConfig>) => {
 			const st = this.store.getState();
-			const pr = this.store.getActivePreset();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
-			const nf = { ...pr.filter, [key]: !(pr.filter as any)[key] };
+			const newHideConfig = {
+				...(pr.hideConfig ?? getDefaultHideConfig()),
+				...changes,
+			};
 			this.store.update({
 				presets: st.presets.map((p) =>
-					p.id === pr.id ? { ...p, filter: nf } : p,
+					p.id === pr.id ? { ...p, hideConfig: newHideConfig } : p,
 				),
 			});
 		};
 
-		const row = this.container.createDiv({ cls: "panel-row" });
-		row.createSpan({ text: "隐藏", cls: "panel-label" });
+		HIDE_GROUPS.forEach((group) => {
+			const row = this.container.createDiv({ cls: "panel-row" });
+			row.createSpan({ text: group.label, cls: "panel-label" });
 
-		const hideRepeat = currentFilter.hideRepeat === true;
-		const repeatBtn = row.createEl("button", {
-			text: hideRepeat ? "显示循环" : "隐藏循环",
-			cls: "panel-btn",
-		});
-		if (hideRepeat) repeatBtn.addClass("active");
-		repeatBtn.onclick = () => updateFilter("hideRepeat");
-
-		const hideCompleted = currentFilter.hideCompleted === true;
-		const completedBtn = row.createEl("button", {
-			text: hideCompleted ? "显示已完成" : "隐藏已完成",
-			cls: "panel-btn",
-		});
-		if (hideCompleted) completedBtn.addClass("active");
-		completedBtn.onclick = () => updateFilter("hideCompleted");
-
-		const hideCancelled = currentFilter.hideCancelled === true;
-		const cancelledBtn = row.createEl("button", {
-			text: hideCancelled ? "显示已取消" : "隐藏已取消",
-			cls: "panel-btn",
-		});
-		if (hideCancelled) cancelledBtn.addClass("active");
-		cancelledBtn.onclick = () => updateFilter("hideCancelled");
-
-		const hideFolders = (currentFilter as any).hideFolders === true;
-		const folderBtn = row.createEl("button", {
-			text: hideFolders ? "显示文件夹" : "隐藏文件夹",
-			cls: "panel-btn",
-		});
-		if (hideFolders) folderBtn.addClass("active");
-		folderBtn.onclick = () => updateFilter("hideFolders");
-
-		const colRow = this.container.createDiv({ cls: "panel-row" });
-		colRow.createSpan({ text: "表格列", cls: "panel-label" });
-		const columns = preset.tableColumns ?? DEFAULT_TABLE_COLUMNS;
-		TABLE_COLUMNS.forEach((col) => {
-			const isHidden = columns[col.key] === false;
-			const btn = colRow.createEl("button", {
-				text: isHidden ? `显示${col.label}` : `隐藏${col.label}`,
-				cls: "panel-btn",
-			});
-			if (isHidden) btn.addClass("active");
-			btn.onclick = () => {
-				const st = this.store.getState();
-				const pr = this.store.getActivePreset();
-				if (!pr) return;
-				const cc = pr.tableColumns ?? DEFAULT_TABLE_COLUMNS;
-				const nc = { ...cc, [col.key]: !cc[col.key] };
-				this.store.update({
-					presets: st.presets.map((p) =>
-						p.id === pr.id ? { ...p, tableColumns: nc } : p,
-					),
+			// 隐藏状态
+			if (group.type === "statuses") {
+				const hidden = hideConfig.hideStatuses || [];
+				const allHidden = ALLOWED_STATUSES.every((s) =>
+					hidden.includes(s),
+				);
+				const mainBtn = row.createEl("button", {
+					text: "状态",
+					cls: "panel-btn",
 				});
-			};
+				if (allHidden) mainBtn.addClass("active");
+				mainBtn.onclick = () => {
+					updateHideConfig({
+						hideStatuses: allHidden ? [] : [...ALLOWED_STATUSES],
+					});
+				};
+				const subPanel = row.createDiv({ cls: "panel-sub" });
+				subPanel.style.cssText =
+					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+				ALLOWED_STATUSES.forEach((st) => {
+					const isHidden = hidden.includes(st);
+					const btn = subPanel.createEl("button", {
+						text: STATUS_NAMES[st] || st,
+						cls: "panel-btn sub-btn",
+					});
+					if (isHidden) btn.addClass("active");
+					btn.onclick = () => {
+						const nh = isHidden
+							? hidden.filter((s) => s !== st)
+							: [...hidden, st];
+						updateHideConfig({ hideStatuses: nh });
+					};
+				});
+				return;
+			}
+
+			// 隐藏描述
+			if (group.type === "searchText") {
+				const searchInput = row.createEl("input", {
+					type: "text",
+					cls: "panel-input",
+					attr: {
+						placeholder:
+							"输入关键词匹配隐藏任务，多个关键词用空格分隔，回车搜索",
+					},
+				});
+				searchInput.style.width = "380px";
+				searchInput.value = hideConfig.hideSearchText || "";
+				let timer: ReturnType<typeof setTimeout> | null = null;
+				searchInput.addEventListener("input", () => {
+					if (timer) clearTimeout(timer);
+					timer = setTimeout(() => {
+						updateHideConfig({ hideSearchText: searchInput.value });
+					}, 300);
+				});
+				return;
+			}
+
+			// 隐藏优先
+			if (group.type === "priorityValues") {
+				const hidden = hideConfig.hidePriorityValues || [];
+				const allHidden = PRIORITY_ICONS.every((i) =>
+					hidden.includes(i),
+				);
+				const mainBtn = row.createEl("button", {
+					text: "优先",
+					cls: "panel-btn",
+				});
+				if (allHidden) mainBtn.addClass("active");
+				mainBtn.onclick = () => {
+					updateHideConfig({
+						hidePriorityValues: allHidden
+							? []
+							: [...PRIORITY_ICONS],
+					});
+				};
+				const subPanel = row.createDiv({ cls: "panel-sub" });
+				subPanel.style.cssText =
+					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+				PRIORITY_ICONS.forEach((icon) => {
+					const isHidden = hidden.includes(icon);
+					const btn = subPanel.createEl("button", {
+						text: icon,
+						cls: "panel-btn sub-btn",
+					});
+					if (isHidden) btn.addClass("active");
+					btn.onclick = () => {
+						const nh = isHidden
+							? hidden.filter((i) => i !== icon)
+							: [...hidden, icon];
+						updateHideConfig({ hidePriorityValues: nh });
+					};
+				});
+				return;
+			}
+
+			// 隐藏循环
+			if (group.type === "repeatCycles") {
+				const hidden = hideConfig.hideRepeatCycles || [];
+				const allHidden = REPEAT_ORDER.every((c) => hidden.includes(c));
+				const mainBtn = row.createEl("button", {
+					text: "循环",
+					cls: "panel-btn",
+				});
+				if (allHidden) mainBtn.addClass("active");
+				mainBtn.onclick = () => {
+					updateHideConfig({
+						hideRepeatCycles: allHidden ? [] : [...REPEAT_ORDER],
+					});
+				};
+				const subPanel = row.createDiv({ cls: "panel-sub" });
+				subPanel.style.cssText =
+					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+				REPEAT_ORDER.forEach((cycle) => {
+					const isHidden = hidden.includes(cycle);
+					const btn = subPanel.createEl("button", {
+						text: `🔁 ${cycle}`,
+						cls: "panel-btn sub-btn",
+					});
+					if (isHidden) btn.addClass("active");
+					btn.onclick = () => {
+						const nh = isHidden
+							? hidden.filter((c) => c !== cycle)
+							: [...hidden, cycle];
+						updateHideConfig({ hideRepeatCycles: nh });
+					};
+				});
+				return;
+			}
+
+			// 隐藏标记（日期/依赖）：多子按钮
+			if (group.type === "marks" && group.keys && group.keys.length > 1) {
+				const hidden = hideConfig.hideMarks || [];
+				const allHidden = group.keys.every((k) => hidden.includes(k));
+				const mainBtn = row.createEl("button", {
+					text: group.label.replace("隐藏", ""),
+					cls: "panel-btn",
+				});
+				if (allHidden) mainBtn.addClass("active");
+				mainBtn.onclick = () => {
+					const others = hidden.filter(
+						(m) => !group.keys!.includes(m),
+					);
+					updateHideConfig({
+						hideMarks: allHidden
+							? others
+							: [...others, ...group.keys!],
+					});
+				};
+				const subPanel = row.createDiv({ cls: "panel-sub" });
+				subPanel.style.cssText =
+					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+				group.keys.forEach((markKey) => {
+					const isHidden = hidden.includes(markKey);
+					const btn = subPanel.createEl("button", {
+						text: MARK_NAMES[markKey] || markKey,
+						cls: "panel-btn sub-btn",
+					});
+					if (isHidden) btn.addClass("active");
+					btn.onclick = () => {
+						const nh = isHidden
+							? hidden.filter((m) => m !== markKey)
+							: [...hidden, markKey];
+						updateHideConfig({ hideMarks: nh });
+					};
+				});
+				return;
+			}
+
+			// 隐藏标签：单按钮
+			if (
+				group.type === "marks" &&
+				group.keys &&
+				group.keys.length === 1
+			) {
+				const markKey = group.keys[0];
+				const isHidden = (hideConfig.hideMarks || []).includes(markKey);
+				const btn = row.createEl("button", {
+					text: MARK_NAMES[markKey] || markKey,
+					cls: "panel-btn",
+				});
+				if (isHidden) btn.addClass("active");
+				btn.onclick = () => {
+					const hidden = hideConfig.hideMarks || [];
+					const nh = isHidden
+						? hidden.filter((m) => m !== markKey)
+						: [...hidden, markKey];
+					updateHideConfig({ hideMarks: nh });
+				};
+				return;
+			}
 		});
 	}
 }

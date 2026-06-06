@@ -1,16 +1,22 @@
 // src/ui/view/base-view.ts
-// 业务视图基类 — 面板筛选 → 节点筛选 → 扁平化 → 排序 → 渲染
+// 业务视图基类 — 筛选 → 时间 → 隐藏 → 扁平化 → 排序 → 渲染（带防抖）
 
 import { PRIORITY_ORDER } from "../../process/config/config";
+import {
+	getDefaultFilter,
+	getDefaultHideConfig,
+} from "../../process/config/panel-default-config";
 import { DataManager } from "../../process/core/data-manager";
 import { Store } from "../../process/store/store";
 import {
 	filterTree,
+	filterTreeByDateRange,
+	filterTreeByHideConfig,
 	flattenTree,
 	TreeFilterOptions,
 	TreeNode,
 } from "../../process/task/task-tree";
-import { GlobalFilter } from "../../types";
+import { GlobalFilter, HideConfig, TaskItem } from "../../types";
 import { renderKanban } from "../component/view/board/kanban-board";
 import { renderMatrix } from "../component/view/board/matrix-board";
 import { renderCalendarDay } from "../component/view/calendar/day-calendar";
@@ -18,10 +24,10 @@ import { renderCalendarMonth } from "../component/view/calendar/month-calendar";
 import { renderCalendarQuarter } from "../component/view/calendar/quarter-calendar";
 import { renderCalendarWeek } from "../component/view/calendar/week-calendar";
 import { renderCalendarYear } from "../component/view/calendar/year-calendar";
-import { renderCards } from "../component/view/card/cards";
+import { renderCards } from "../component/view/card/grid-card";
 import { renderDetail } from "../component/view/chart/detailc-chart";
 import { renderStatistics } from "../component/view/chart/statistics-chart";
-import { renderGantt } from "../component/view/gantt/gantt";
+import { renderGanttWithTree } from "../component/view/gantt/gantt";
 import { renderDepends } from "../component/view/list/depends-list";
 import { renderTaskList } from "../component/view/list/list";
 import { renderOverdueList } from "../component/view/list/overdue-list";
@@ -52,6 +58,11 @@ export abstract class BaseTaskView {
 
 	protected selectedTreeNode: any = null;
 
+	private renderDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	private static DEBOUNCE_DELAY = 50;
+
+	private ganttInstance: any = null;
+
 	constructor(container: HTMLElement, store: Store, app: any) {
 		this.container = container;
 		this.store = store;
@@ -63,35 +74,29 @@ export abstract class BaseTaskView {
 	}
 
 	getDefaultFilter(): GlobalFilter {
-		return {
-			dateRange: { start: null, end: null, isAll: true },
-			statuses: [
-				"todo",
-				"planned",
-				"in-progress",
-				"completed",
-				"cancelled",
-			],
-			includeMarks: [],
-			excludeMarks: [],
-			hideRepeat: true,
-			hideCompleted: true,
-			hideCancelled: true,
-			rootPath: null,
-			hideFolders: true,
-			priorityValues: ["⏬", "🔽", "🔼", "⏫", "🔺"],
-			repeatCycles: [
-				"every day",
-				"every week",
-				"every month",
-				"every year",
-			],
-		};
+		return getDefaultFilter();
 	}
 
-	async render() {
+	async render(): Promise<void> {
+		if (this.renderDebounceTimer) {
+			clearTimeout(this.renderDebounceTimer);
+		}
+		return new Promise<void>((resolve) => {
+			this.renderDebounceTimer = setTimeout(async () => {
+				this.renderDebounceTimer = null;
+				await this.doRender();
+				resolve();
+			}, BaseTaskView.DEBOUNCE_DELAY);
+		});
+	}
+
+	private async doRender() {
 		this.container.empty();
 		this.cleanupSplitLayout();
+		if (this.ganttInstance) {
+			this.ganttInstance.destroy?.();
+			this.ganttInstance = null;
+		}
 
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
@@ -102,8 +107,7 @@ export abstract class BaseTaskView {
 
 		try {
 			const { tasks } = await this.dataManager.loadData(this.app);
-			const validTasks = tasks.filter((t) => t != null);
-			if (validTasks.length === 0) {
+			if (tasks.length === 0) {
 				this.renderEmpty();
 				return;
 			}
@@ -117,13 +121,24 @@ export abstract class BaseTaskView {
 				repeatCycles: activeFilter.repeatCycles,
 			};
 			const panelFilteredTree = filterTree(fullTree, panelOptions);
+			const dateFilteredTree = filterTreeByDateRange(
+				panelFilteredTree,
+				activeFilter.dateRange,
+				intervalMode,
+			);
 
-			let flatTasks: any[];
+			const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
+			const displayTree = filterTreeByHideConfig(
+				dateFilteredTree,
+				hideConfig,
+			);
+
+			let flatTasks: TaskItem[];
 			if (this.selectedTreeNode) {
 				flatTasks = this.collectNodeTasksDeep(this.selectedTreeNode);
-				flatTasks = this.applyPanelFilter(flatTasks, activeFilter);
+				flatTasks = this.applyHideConfig(flatTasks, hideConfig);
 			} else {
-				flatTasks = flattenTree(panelFilteredTree);
+				flatTasks = flattenTree(displayTree);
 			}
 
 			if (flatTasks.length === 0) {
@@ -141,7 +156,7 @@ export abstract class BaseTaskView {
 				viewContainer.style.padding = "0";
 				viewContainer.style.margin = "0";
 				renderTaskTree(viewContainer, {
-					roots: panelFilteredTree,
+					roots: displayTree,
 					hideFolders: activeFilter.hideFolders ?? true,
 					onClick: (node: any) => {
 						const t = this.extractTaskFromNode(node);
@@ -149,9 +164,24 @@ export abstract class BaseTaskView {
 					},
 					sort,
 				});
+			} else if (currentStyle === "gantt") {
+				const viewContainer = this.container.createDiv({
+					cls: "view-content",
+				});
+				viewContainer.style.cssText = "height:100%;overflow:hidden;";
+				this.ganttInstance = renderGanttWithTree(
+					viewContainer,
+					displayTree,
+					{
+						onTaskClick: (t: TaskItem) => this.openTaskAtLine(t),
+						intervalMode,
+						sort: sort as { type: string; order: "asc" | "desc" },
+						dateRange: activeFilter.dateRange,
+					},
+				);
 			} else {
 				this.renderSplitLayout(
-					panelFilteredTree,
+					displayTree,
 					currentStyle,
 					activeFilter,
 					intervalMode,
@@ -160,70 +190,63 @@ export abstract class BaseTaskView {
 				);
 			}
 		} catch (e) {
+			console.warn("[TaskManage] 视图渲染失败:", e);
 			this.container.createDiv({
-				text: "加载失败：" + (e as Error).message,
+				text:
+					"加载失败：" + (e instanceof Error ? e.message : String(e)),
 			});
 		}
 	}
 
-	private applyPanelFilter(tasks: any[], filter: GlobalFilter): any[] {
-		return tasks.filter((t: any) => {
-			if (!t) return false;
-			if (
-				filter.statuses?.length > 0 &&
-				!filter.statuses.includes(t._status)
-			)
-				return false;
-			if (filter.searchText) {
-				const kw = filter.searchText
-					.toLowerCase()
-					.split(/\s+/)
-					.filter((k) => k.length > 0);
-				const text = (t._cleanText || t.text || "").toLowerCase();
-				if (kw.length > 0 && !kw.every((k) => text.includes(k)))
-					return false;
-			}
-			if (filter.priorityValues?.length > 0) {
-				const allPriorities = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-				const isAllSelected = allPriorities.every((p) =>
-					filter.priorityValues!.includes(p),
+	private applyHideConfig(
+		tasks: TaskItem[],
+		hideConfig: HideConfig,
+	): TaskItem[] {
+		let result = tasks;
+		if (hideConfig.hideStatuses.length > 0) {
+			result = result.filter(
+				(t) => !hideConfig.hideStatuses.includes(t._status),
+			);
+		}
+		if (hideConfig.hidePriorityValues.length > 0) {
+			result = result.filter(
+				(t) => !hideConfig.hidePriorityValues.includes(t._priorityIcon),
+			);
+		}
+		if (hideConfig.hideRepeatCycles.length > 0) {
+			result = result.filter((t) => {
+				if (!t._repeat) return true;
+				return !hideConfig.hideRepeatCycles.some((c) =>
+					t._repeat.toLowerCase().includes(c),
 				);
-				if (!isAllSelected) {
-					const icon = t._priorityIcon;
-					if (icon && !filter.priorityValues!.includes(icon))
-						return false;
-				}
+			});
+		}
+		if (hideConfig.hideMarks.length > 0) {
+			result = result.filter(
+				(t) => !hideConfig.hideMarks.some((m) => t._marks?.[m]),
+			);
+		}
+		if (hideConfig.hideSearchText) {
+			const kw = hideConfig.hideSearchText
+				.toLowerCase()
+				.split(/\s+/)
+				.filter((k) => k.length > 0);
+			if (kw.length > 0) {
+				result = result.filter((t) => {
+					const d = (t._cleanText || t.text || "").toLowerCase();
+					return !kw.every((k) => d.includes(k));
+				});
 			}
-			if (filter.repeatCycles?.length > 0) {
-				const allCycles = [
-					"every day",
-					"every week",
-					"every month",
-					"every year",
-				];
-				const isAllSelected = allCycles.every((c) =>
-					filter.repeatCycles!.includes(c),
-				);
-				if (!isAllSelected) {
-					if (!t._repeat) return false;
-					if (
-						!filter.repeatCycles!.some((c: string) =>
-							t._repeat.toLowerCase().includes(c),
-						)
-					)
-						return false;
-				}
-			}
-			return true;
-		});
+		}
+		return result;
 	}
 
-	private collectNodeTasksDeep(node: any): any[] {
-		const tasks: any[] = [];
+	private collectNodeTasksDeep(node: any): TaskItem[] {
+		const tasks: TaskItem[] = [];
 		const seen = new Set<string>();
-		function add(t: any) {
+		function add(t: TaskItem) {
 			if (!t?.path) return;
-			const k = t.path + ":" + (t.lineNumber ?? 0);
+			const k = t.path + ":" + (t.lineNumber ?? t.line ?? 0);
 			if (!seen.has(k)) {
 				seen.add(k);
 				tasks.push(t);
@@ -253,12 +276,12 @@ export abstract class BaseTaskView {
 	}
 
 	private renderSplitLayout(
-		panelFilteredTree: TreeNode[],
+		displayTree: TreeNode[],
 		viewStyle: string,
 		filter: GlobalFilter,
 		intervalMode: string,
 		sort: { type: string; order: string },
-		sortedTasks: any[],
+		sortedTasks: TaskItem[],
 	) {
 		const preset = this.store.getActivePreset();
 		const panelCollapsed = preset?.taskTreeNavCollapsed ?? false;
@@ -308,7 +331,7 @@ export abstract class BaseTaskView {
 			treeContent.style.cssText =
 				"flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0;";
 			renderTaskTree(treeContent, {
-				roots: panelFilteredTree,
+				roots: displayTree,
 				hideFolders: filter.hideFolders ?? true,
 				onClick: (node: any) =>
 					this.onTaskTreeNavClick(node, viewStyle),
@@ -345,6 +368,8 @@ export abstract class BaseTaskView {
 			viewStyle,
 			filter,
 			intervalMode,
+			displayTree,
+			sort,
 		);
 		document.addEventListener("mousemove", this.onResizeBound!);
 		document.addEventListener("mouseup", this.stopResizeBound!);
@@ -360,92 +385,67 @@ export abstract class BaseTaskView {
 		this.render();
 	}
 
-	private extractTaskFromNode(node: any): any | null {
+	private extractTaskFromNode(node: any): TaskItem | null {
 		const filePath = node.path || node._filePath || node._task?.path || "";
 		if (node._task?.path) return node._task;
 		if (node._task)
 			return {
 				...node._task,
 				path: node._task.path || filePath,
-				lineNumber: node._task.lineNumber ?? 0,
-			};
+				line: node._task.line ?? node._task.lineNumber ?? 0,
+				lineNumber: node._task.lineNumber ?? node._task.line ?? 0,
+			} as TaskItem;
 		if (node.path)
 			return {
 				path: node.path,
+				line: 0,
 				lineNumber: 0,
 				_status: "todo",
 				_cleanText: node.name || "",
-			};
+			} as TaskItem;
 		if (node.type === "heading" || node.type === "task")
 			return {
 				path: filePath,
+				line: node.line ?? 0,
 				lineNumber: node.line ?? 0,
 				_status: "todo",
 				_cleanText: node.text || "",
-			};
+			} as TaskItem;
 		return null;
 	}
 
-	protected openTaskAtLine(task: any) {
+	protected openTaskAtLine(task: TaskItem) {
 		if (!task?.path) return;
 		const file = this.app.vault.getAbstractFileByPath(task.path);
 		if (!file) return;
-
 		const targetLine = task.line ?? task.lineNumber ?? 0;
-
 		const leaf = this.app.workspace.getLeaf(false);
-		leaf.openFile(file, { eState: { line: targetLine } }).then(() => {
-			setTimeout(() => {
-				const view = leaf.view as any;
-				const editor = view?.editor;
-
+		leaf.openFile(file).then(() => {
+			const tryScroll = (retries: number) => {
+				const editor = leaf.view?.editor;
 				if (editor) {
-					// 设置光标
 					editor.setCursor({ line: targetLine, ch: 0 });
-
-					// 方法1: 使用 editor 的 scrollIntoView
 					editor.scrollIntoView(
 						{
-							from: { line: targetLine, ch: 0 },
-							to: {
-								line: Math.min(
-									targetLine + 10,
-									editor.lineCount() - 1,
-								),
-								ch: 0,
-							},
+							from: { line: Math.max(0, targetLine - 1), ch: 0 },
+							to: { line: targetLine + 5, ch: 0 },
 						},
 						true,
 					);
-
-					// 方法2: 使用 CM6 的滚动容器
-					const cm = editor.cm;
-					if (cm && cm.scrollDOM) {
-						const coords = cm.charCoords(
-							{ line: targetLine, ch: 0 },
-							"local",
+					setTimeout(() => {
+						editor.scrollIntoView(
+							{
+								from: { line: targetLine, ch: 0 },
+								to: { line: targetLine, ch: 0 },
+							},
+							true,
 						);
-						cm.scrollDOM.scrollTop =
-							coords.top - cm.scrollDOM.clientHeight / 3;
-					}
-
-					// 方法3: 使用 previewMode 的滚动
-					const previewEl = view?.containerEl?.querySelector(
-						".markdown-preview-view",
-					);
-					if (previewEl) {
-						const targetEl = previewEl.querySelector(
-							`[data-line="${targetLine}"]`,
-						);
-						if (targetEl) {
-							targetEl.scrollIntoView({
-								behavior: "auto",
-								block: "start",
-							});
-						}
-					}
+					}, 50);
+				} else if (retries > 0) {
+					setTimeout(() => tryScroll(retries - 1), 100);
 				}
-			}, 300);
+			};
+			setTimeout(() => tryScroll(5), 150);
 		});
 	}
 
@@ -463,6 +463,7 @@ export abstract class BaseTaskView {
 		});
 		this.render();
 	}
+
 	private startResize(e: MouseEvent) {
 		e.preventDefault();
 		this.isResizing = true;
@@ -514,18 +515,27 @@ export abstract class BaseTaskView {
 
 	protected renderByStyle(
 		container: HTMLElement,
-		tasks: any[],
+		tasks: TaskItem[],
 		style: string,
 		filter: GlobalFilter,
 		intervalMode: string,
+		panelFilteredTree?: TreeNode[],
+		sort?: { type: string; order: string },
 	) {
 		const preset = this.store.getActivePreset();
-		const h = (t: any) => this.openTaskAtLine(t);
+		const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
+		const tableCols = hideConfig.hideTableColumns;
+		const columnsVisibility: Record<string, boolean> = {};
+		for (const key in tableCols) {
+			columnsVisibility[key] = !tableCols[key];
+		}
+
+		const h = (t: TaskItem) => this.openTaskAtLine(t);
 		switch (style) {
 			case "table":
 				renderTaskTable(container, tasks, {
 					onClick: h,
-					columnsVisibility: preset?.tableColumns,
+					columnsVisibility,
 				});
 				break;
 			case "list":
@@ -569,9 +579,6 @@ export abstract class BaseTaskView {
 				break;
 			case "depends":
 				renderDepends(container, tasks, { onClick: h });
-				break;
-			case "gantt":
-				renderGantt(container, tasks);
 				break;
 			case "calendar": {
 				const bar = container.createDiv({ cls: "calendar-toolbar" });
@@ -619,11 +626,14 @@ export abstract class BaseTaskView {
 		}
 	}
 
-	protected openTask(task: any) {
+	protected openTask(task: TaskItem) {
 		this.openTaskAtLine(task);
 	}
 
-	protected applySort(tasks: any[], sort: { type: string; order: string }) {
+	protected applySort(
+		tasks: TaskItem[],
+		sort: { type: string; order: string },
+	): TaskItem[] {
 		const s = [...tasks];
 		const o = sort.order === "asc" ? 1 : -1;
 		s.sort((a, b) => {
@@ -638,7 +648,8 @@ export abstract class BaseTaskView {
 		});
 		return s;
 	}
-	private getSortValue(task: any, type: string): string | number | null {
+
+	private getSortValue(task: TaskItem, type: string): string | number | null {
 		switch (type) {
 			case "status":
 				return (
@@ -655,12 +666,17 @@ export abstract class BaseTaskView {
 			case "priority":
 				return PRIORITY_ORDER.indexOf(task._priorityIcon || "");
 			default:
-				return task["_" + type] || null;
+				return (task as any)["_" + type] || null;
 		}
 	}
 
 	destroy() {
 		if (this.unsub) this.unsub();
+		if (this.renderDebounceTimer) clearTimeout(this.renderDebounceTimer);
+		if (this.ganttInstance) {
+			this.ganttInstance.destroy?.();
+			this.ganttInstance = null;
+		}
 		this.cleanupSplitLayout();
 	}
 }

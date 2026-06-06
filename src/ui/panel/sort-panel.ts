@@ -46,7 +46,7 @@ export class SortPanel {
 		if (!preset) return;
 		const currentSort = preset?.sort ?? { type: "status", order: "asc" };
 		const row = this.container.createDiv({ cls: "panel-row" });
-		row.createSpan({ text: "排序", cls: "panel-label" });
+		row.createSpan({ text: "任务排序", cls: "panel-label" });
 
 		SORT_OPTIONS.forEach((opt) => {
 			const btn = row.createEl("button", {

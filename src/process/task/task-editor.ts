@@ -1,3 +1,5 @@
+// src/process/task/task-editor.ts
+import { TaskItem } from "../../types";
 import { RX } from "../config/config";
 
 const AUTOCOMPLETE_DAYS = 3;
@@ -5,17 +7,27 @@ const MAX_SNAPSHOTS = 5;
 const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";
 
 // ---------- 辅助函数 ----------
-export function isIncomplete(s) {
+export function isIncomplete(s: string): boolean {
 	return s === "todo" || s === "planned" || s === "in-progress";
 }
-export function isCompleted(s) {
+export function isCompleted(s: string): boolean {
 	return s === "completed" || s === "cancelled";
 }
-export function hasEssentialTags(t) {
-	return t._priorityIcon && t._created && t._scheduled && t._starts && t._due;
+export function hasEssentialTags(t: TaskItem): boolean {
+	return !!(
+		t._priorityIcon &&
+		t._created &&
+		t._scheduled &&
+		t._starts &&
+		t._due
+	);
 }
 
-function replaceMark(line, regex, newMark) {
+function replaceMark(
+	line: string,
+	regex: RegExp,
+	newMark: string | undefined,
+): string {
 	if (newMark === undefined)
 		return line
 			.replace(regex, "")
@@ -31,71 +43,75 @@ function replaceMark(line, regex, newMark) {
 
 // ---------- 编辑操作库 ----------
 export const Op = {
-	setPriority(line, emoji) {
+	setPriority(line: string, emoji: string): string {
 		return replaceMark(line, RX.priority, emoji);
 	},
-	delPriority(line) {
-		return replaceMark(line, RX.priority);
+	delPriority(line: string): string {
+		return replaceMark(line, RX.priority, undefined);
 	},
-	setRepeat(line, rule) {
+	setRepeat(line: string, rule: string): string {
 		return replaceMark(line, RX.repeat, "🔁 " + rule.replace(/^🔁\s*/, ""));
 	},
-	delRepeat(line) {
-		return replaceMark(line, RX.repeat);
+	delRepeat(line: string): string {
+		return replaceMark(line, RX.repeat, undefined);
 	},
-	setCreated(line, date) {
+	setCreated(line: string, date: string): string {
 		return replaceMark(line, RX.created, "➕ " + date);
 	},
-	delCreated(line) {
-		return replaceMark(line, RX.created);
+	delCreated(line: string): string {
+		return replaceMark(line, RX.created, undefined);
 	},
-	setScheduled(line, date) {
+	setScheduled(line: string, date: string): string {
 		return replaceMark(line, RX.scheduled, "⏳ " + date);
 	},
-	delScheduled(line) {
-		return replaceMark(line, RX.scheduled);
+	delScheduled(line: string): string {
+		return replaceMark(line, RX.scheduled, undefined);
 	},
-	setStarts(line, date) {
+	setStarts(line: string, date: string): string {
 		return replaceMark(line, RX.starts, "🛫 " + date);
 	},
-	delStarts(line) {
-		return replaceMark(line, RX.starts);
+	delStarts(line: string): string {
+		return replaceMark(line, RX.starts, undefined);
 	},
-	setDue(line, date) {
+	setDue(line: string, date: string): string {
 		return replaceMark(line, RX.due, "📅 " + date);
 	},
-	delDue(line) {
-		return replaceMark(line, RX.due);
+	delDue(line: string): string {
+		return replaceMark(line, RX.due, undefined);
 	},
-	setDone(line, date) {
+	setDone(line: string, date: string): string {
 		return replaceMark(line, RX.done, "✅ " + date);
 	},
-	delDone(line) {
-		return replaceMark(line, RX.done);
+	delDone(line: string): string {
+		return replaceMark(line, RX.done, undefined);
 	},
-	setCancel(line, date) {
+	setCancel(line: string, date: string): string {
 		return replaceMark(line, RX.cancel, "❌ " + date);
 	},
-	delCancel(line) {
-		return replaceMark(line, RX.cancel);
+	delCancel(line: string): string {
+		return replaceMark(line, RX.cancel, undefined);
 	},
-	setTag(line, keyword) {
+	setTag(line: string, keyword: string): string {
 		return replaceMark(line, RX.tag, "🏁 " + keyword.replace(/^🏁\s*/, ""));
 	},
-	delTag(line) {
-		return replaceMark(line, RX.tag);
+	delTag(line: string): string {
+		return replaceMark(line, RX.tag, undefined);
 	},
-	delId(line) {
-		return replaceMark(line, RX.id);
+	delId(line: string): string {
+		return replaceMark(line, RX.id, undefined);
 	},
-	delForbid(line) {
-		return replaceMark(line, RX.forbid);
+	delForbid(line: string): string {
+		return replaceMark(line, RX.forbid, undefined);
 	},
-	autoComplete(line, days) {
+	autoComplete(line: string, days?: number): string {
 		const doneMatch = line.match(RX.done);
 		if (!doneMatch) return line;
 		const n = days || AUTOCOMPLETE_DAYS;
-		const doneDate = window.moment(doneMatch[1], "YYYY-MM-DD", true);
+		const doneDate = (window as any).moment(
+			doneMatch[1],
+			"YYYY-MM-DD",
+			true,
+		);
 		if (!doneDate.isValid()) return line;
 		let newLine = Op.sortTags(line);
 		if (!RX.due.test(newLine))
@@ -133,7 +149,7 @@ export const Op = {
 			);
 		return Op.sortTags(newLine);
 	},
-	sortTags(line) {
+	sortTags(line: string): string {
 		const order = [
 			"priority",
 			"repeat",
@@ -147,7 +163,7 @@ export const Op = {
 			"id",
 			"forbid",
 		];
-		const parts = [];
+		const parts: string[] = [];
 		for (const key of order) {
 			const m = line.match(RX[key]);
 			parts.push(m ? m[0] : "");
@@ -164,27 +180,51 @@ export const Op = {
 };
 
 // ---------- 快照管理 ----------
-export function loadSnapshots() {
+export function loadSnapshots(): Array<{
+	time: string;
+	snapshot: Record<string, string>;
+}> {
 	try {
 		return JSON.parse(localStorage.getItem(STORAGE_KEY_SNAPSHOTS) || "[]");
 	} catch (e) {
+		console.warn("[TaskManage] 加载快照失败:", e);
 		return [];
 	}
 }
-export function saveSnapshots(snapshots) {
+
+export function saveSnapshots(
+	snapshots: Array<{
+		time: string;
+		snapshot: Record<string, string>;
+	}>,
+): void {
 	try {
 		localStorage.setItem(STORAGE_KEY_SNAPSHOTS, JSON.stringify(snapshots));
-	} catch (e) {}
+	} catch (e) {
+		console.warn("[TaskManage] 保存快照失败:", e);
+	}
 }
-export function addSnapshot(snapshots, map) {
+
+export function addSnapshot(
+	snapshots: Array<{
+		time: string;
+		snapshot: Record<string, string>;
+	}>,
+	map: Record<string, string>,
+): void {
 	snapshots.unshift({ time: new Date().toLocaleString(), snapshot: map });
 	if (snapshots.length > MAX_SNAPSHOTS) snapshots.pop();
 	saveSnapshots(snapshots);
 }
 
 // ---------- 文件写入 ----------
-export async function writeToFiles(app, tasks, taskIds, linesMap) {
-	const groups = {};
+export async function writeToFiles(
+	app: any,
+	tasks: TaskItem[],
+	taskIds: string[],
+	linesMap: Record<string, string>,
+): Promise<number> {
+	const groups: Record<string, Array<{ line: number; newLine: string }>> = {};
 	for (const id of taskIds) {
 		const task = tasks.find((t) => t.path + "|" + t.lineNumber === id);
 		if (!task) continue;
@@ -197,7 +237,7 @@ export async function writeToFiles(app, tasks, taskIds, linesMap) {
 	for (const [path, items] of Object.entries(groups)) {
 		const file = app.vault.getAbstractFileByPath(path);
 		if (!file) continue;
-		await app.vault.process(file, (data) => {
+		await app.vault.process(file, (data: string) => {
 			const dataLines = data.split("\n");
 			for (const item of items)
 				if (item.line < dataLines.length)

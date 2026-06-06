@@ -431,11 +431,17 @@ export function getPriorityLabel(icon: string): string {
 
 // ========== 任务文件识别配置 ==========
 
+/** 默认任务文件根路径 */
+export const DEFAULT_TASK_ROOT_PATH = "pages/A 系统/A 任务系统";
+
+/** 默认文件名匹配模式 */
+export const DEFAULT_TASK_FILE_PATTERN = "任务\\.md$";
+
 /** 任务文件根路径 */
-export let TASK_ROOT_PATH = "pages/A 系统/A 任务系统";
+export let TASK_ROOT_PATH = DEFAULT_TASK_ROOT_PATH;
 
 /** 文件名匹配正则（匹配以"任务"结尾的 .md 文件） */
-export let TASK_FILE_PATTERN: RegExp = /任务\.md$/;
+export let TASK_FILE_PATTERN: RegExp = new RegExp(DEFAULT_TASK_FILE_PATTERN);
 
 /** 白名单配置 */
 export let TASK_WHITELIST: {

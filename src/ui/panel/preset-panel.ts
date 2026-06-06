@@ -1,137 +1,10 @@
 // src/ui/panel/preset-panel.ts
 // 视图配置面板
 
-import {
-	ALL_MARKS,
-	PRIORITY_ORDER,
-	REPEAT_ORDER,
-} from "../../process/config/config";
+import { getDefaultPresets } from "../../process/config/panel-default-config";
 import { Store } from "../../process/store/store";
-import { GlobalFilter, Preset } from "../../types";
+import { Preset } from "../../types";
 import { Panels } from "./panel";
-
-const DEFAULT_FILTER: GlobalFilter = {
-	dateRange: { start: null, end: null, isAll: true },
-	statuses: ["todo", "planned", "in-progress", "completed", "cancelled"],
-	includeMarks: [...ALL_MARKS],
-	excludeMarks: [],
-	hideRepeat: true,
-	hideCompleted: true,
-	hideCancelled: true,
-	rootPath: null,
-	hideFolders: true,
-	priorityValues: [...PRIORITY_ORDER],
-	repeatCycles: [...REPEAT_ORDER],
-};
-
-const DEFAULT_BAR_VISIBILITY = {
-	time: true,
-	excut: true,
-	search: true,
-	mark: true,
-	view: true,
-	hide: true,
-	sort: true,
-	config: true,
-};
-const DEFAULT_TOOLBAR_ORDER = [
-	"excut",
-	"search",
-	"mark",
-	"time",
-	"view",
-	"hide",
-	"sort",
-	"config",
-];
-
-const PRESET_DEFAULTS: Record<string, Partial<Preset>> = {
-	inbox: {
-		businessView: "inbox",
-		viewStyle: "list",
-		icon: "📥",
-		showToolbar: false,
-		toolbarEverShown: false,
-		toolbarPanelsCollapsed: false,
-		toolbarPanelsHeight: 300,
-		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
-		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
-		filter: { ...DEFAULT_FILTER, statuses: ["todo", "planned"] },
-		sort: { type: "status", order: "asc" as const },
-		intervalMode: "scheduled-due",
-		useDynamic: false,
-	},
-	important: {
-		businessView: "important",
-		viewStyle: "list",
-		icon: "⭐",
-		showToolbar: false,
-		toolbarEverShown: false,
-		toolbarPanelsCollapsed: false,
-		toolbarPanelsHeight: 300,
-		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
-		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
-		filter: {
-			...DEFAULT_FILTER,
-			statuses: ["todo", "planned", "in-progress"],
-			priorityValues: ["🔺", "⏫", "🔼"],
-		},
-		sort: { type: "priority", order: "asc" as const },
-		intervalMode: "scheduled-due",
-		useDynamic: false,
-	},
-	today: {
-		businessView: "today",
-		viewStyle: "list",
-		icon: "📅",
-		showToolbar: false,
-		toolbarEverShown: false,
-		toolbarPanelsCollapsed: false,
-		toolbarPanelsHeight: 300,
-		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
-		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
-		filter: {
-			...DEFAULT_FILTER,
-			statuses: ["todo", "planned", "in-progress"],
-		},
-		sort: { type: "status", order: "asc" as const },
-		intervalMode: "scheduled-due",
-		useDynamic: true,
-	},
-	future: {
-		businessView: "future",
-		viewStyle: "list",
-		icon: "🔜",
-		showToolbar: false,
-		toolbarEverShown: false,
-		toolbarPanelsCollapsed: false,
-		toolbarPanelsHeight: 300,
-		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
-		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
-		filter: {
-			...DEFAULT_FILTER,
-			statuses: ["todo", "planned", "in-progress"],
-		},
-		sort: { type: "scheduled", order: "asc" as const },
-		intervalMode: "scheduled-due",
-		useDynamic: true,
-	},
-	"all-tasks": {
-		businessView: "allTasks",
-		viewStyle: "table",
-		icon: "📋",
-		showToolbar: false,
-		toolbarEverShown: false,
-		toolbarPanelsCollapsed: false,
-		toolbarPanelsHeight: 300,
-		toolbarOrder: DEFAULT_TOOLBAR_ORDER,
-		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
-		filter: { ...DEFAULT_FILTER },
-		sort: { type: "status", order: "asc" as const },
-		intervalMode: "scheduled-due",
-		useDynamic: false,
-	},
-};
 
 export class PresetPanel {
 	private container: HTMLElement;
@@ -242,15 +115,13 @@ export class PresetPanel {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
-			const def = PRESET_DEFAULTS[pr.id];
+			const defaultPresets = getDefaultPresets();
+			const def = defaultPresets.find((dp) => dp.id === pr.id);
 			if (!def) return;
 			updatePreset({
 				...def,
 				id: pr.id,
 				name: pr.name,
-				filter: { ...DEFAULT_FILTER, ...(def.filter || {}) },
-				barVisibility: { ...DEFAULT_BAR_VISIBILITY },
-				toolbarOrder: [...DEFAULT_TOOLBAR_ORDER],
 			} as any);
 			Panels.getInstance().refreshTimePanel();
 		};

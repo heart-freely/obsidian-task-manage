@@ -1,14 +1,8 @@
-// src/ui/component/lists/status-renderer.ts
-import { STATUS_ICONS } from "../../../../process/config/config";
-import { createGroupCard } from "../card/group-card";
+// src/ui/component/view/list/status-list.ts
+// 状态分组列表渲染器
 
-const STATUS_COLORS: Record<string, string> = {
-	todo: "rgba(180,180,180,0.25)",
-	planned: "rgba(97,175,239,0.25)",
-	"in-progress": "rgba(224,108,117,0.25)",
-	completed: "rgba(71,133,47,0.25)",
-	cancelled: "rgba(195,57,62,0.25)",
-};
+import { STATUS_COLORS, STATUS_ICONS } from "../../../../process/config/config";
+import { createGroupCard } from "../card/group-card";
 
 export function renderStatus(
 	container: HTMLElement,

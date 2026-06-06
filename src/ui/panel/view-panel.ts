@@ -18,9 +18,9 @@ const VIEW_STYLES = [
 	{ key: "matrix", label: "矩阵", group: "管理" },
 	{ key: "overdue", label: "逾期", group: "管理" },
 	{ key: "timeline", label: "时间轴", group: "管理" },
+	{ key: "calendar", label: "日历图", group: "管理" },
 	{ key: "tree", label: "任务树", group: "管理" },
 	{ key: "gantt", label: "甘特图", group: "管理" },
-	{ key: "calendar", label: "日历图", group: "管理" },
 	{ key: "statistics", label: "基础统计", group: "统计" },
 	{ key: "detail", label: "详细统计", group: "统计" },
 ];

@@ -1,31 +1,11 @@
 // src/process/task/task-tree.ts
 // 任务树数据结构 + 构建 + 筛选 + 扁平化
 
-import {
-	STATUS_ALL_SYMBOLS,
-	SYMBOL_TO_STATUS,
-	TASK_ELEMENTS,
-	YAML_DATE_FIELDS,
-} from "../config/config";
-import { ParsedFileData } from "./md-parser";
+import { HideConfig, TaskItem } from "../../types";
+import { TASK_ROOT_PATH } from "../config/config";
+import { ContentNode, ParsedFileData } from "./md-parser";
 
-const PREFIX = "pages/A 系统/A 任务系统/";
-const ALL_STATUS_SYMBOLS = (() => {
-	const allSymbols = new Set<string>();
-	for (const symbols of Object.values(STATUS_ALL_SYMBOLS)) {
-		for (const s of symbols) allSymbols.add(s);
-	}
-	const escapedSymbols = [...allSymbols].map((s) =>
-		s === "-" || s === "]" || s === "^" || s === "\\" ? "\\" + s : s,
-	);
-	const hasDash = escapedSymbols.includes("\\-");
-	return hasDash
-		? ["\\-", ...escapedSymbols.filter((s) => s !== "\\-")].join("")
-		: escapedSymbols.join("");
-})();
-const TASK_REGEX = new RegExp(
-	`^\\s*-\\s*\\[([${ALL_STATUS_SYMBOLS}])\\]\\s+(.+)$`,
-);
+// ========== 类型定义 ==========
 
 export interface TreeNode {
 	path: string;
@@ -35,25 +15,14 @@ export interface TreeNode {
 	metaParent: string | null;
 	linkParent: string | null;
 	children: TreeNode[];
-	tasks: any[];
+	tasks: TaskItem[];
 	conflict: "meta_mismatch" | "meta_missing" | "link_missing" | null;
 	missingLinks: string[];
 	contentRoots?: ContentNode[];
-	_task?: any;
+	_task?: TaskItem;
 }
 
-export interface ContentNode {
-	type: "heading" | "task";
-	level?: number;
-	text: string;
-	raw: string;
-	line: number;
-	children: ContentNode[];
-	parent: ContentNode | null;
-	_task?: any;
-	yamlStartLine?: number;
-	yamlEndLine?: number;
-}
+export { ContentNode };
 
 export interface TreeFilterOptions {
 	statuses?: string[];
@@ -64,6 +33,8 @@ export interface TreeFilterOptions {
 	priorityValues?: string[];
 	repeatCycles?: string[];
 }
+
+// ========== 文件名规范化 ==========
 
 export function normalizeFileName(raw: string): string {
 	let name = (raw || "").trim();
@@ -98,324 +69,7 @@ export function parseParentField(raw: any): string | null {
 	return name.endsWith("任务") ? name : null;
 }
 
-export function parseTaskLine(
-	fullLine: string,
-	path: string,
-	line: number,
-): any {
-	const RX_PRIORITY = /⏬|🔽|🔼|⏫|🔺/g;
-	const RX_REPEAT = /🔁\s*(every\s+(day|week|month|year))/;
-	const RX_CREATED = /➕\s*(\d{4}-\d{2}-\d{2})/;
-	const RX_SCHEDULED = /⏳\s*(\d{4}-\d{2}-\d{2})/;
-	const RX_STARTS = /🛫\s*(\d{4}-\d{2}-\d{2})/;
-	const RX_DUE = /📅\s*(\d{4}-\d{2}-\d{2})/;
-	const RX_DONE = /✅\s*(\d{4}-\d{2}-\d{2})/;
-	const RX_CANCEL = /❌\s*(\d{4}-\d{2}-\d{2})?/;
-	const RX_TAG = /🏁\s*(\S+)/;
-	const RX_ID = /🆔\s*(\S+)/;
-	const RX_FORBID = /⛔\s*([^\s,]+(?:\s*,\s*[^\s,]+)*)/;
-
-	function m(rx: RegExp, idx?: number): string | null {
-		const match = fullLine.match(rx);
-		return match ? match[idx !== undefined ? idx : 1] || null : null;
-	}
-
-	const statusMatch = fullLine.match(/^\s*- \[(.)\]\s*/);
-	let status = "todo";
-	if (statusMatch) status = SYMBOL_TO_STATUS[statusMatch[1]] || "todo";
-
-	const cleanText = fullLine
-		.replace(/⏬|🔽|🔼|⏫|🔺/g, "")
-		.replace(/🔁\s*every\s+(day|week|month|year)/gi, "")
-		.replace(/➕\s*\d{4}-\d{2}-\d{2}/g, "")
-		.replace(/⏳\s*\d{4}-\d{2}-\d{2}/g, "")
-		.replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, "")
-		.replace(/📅\s*\d{4}-\d{2}-\d{2}/g, "")
-		.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "")
-		.replace(/❌\s*(\d{4}-\d{2}-\d{2})?/g, "")
-		.replace(/🏁\s*\S+/g, "")
-		.replace(/🆔\s*\S+/g, "")
-		.replace(/⛔\s*[^\s,]+(?:\s*,\s*[^\s,]+)*/g, "")
-		.replace(/<[^>]+>/g, "")
-		.replace(/^\s*- \[.\]\s*/, "")
-		.replace(/\s{2,}/g, " ")
-		.trim();
-
-	const priorityIcon = (fullLine.match(RX_PRIORITY) || [null])[0];
-
-	return {
-		_status: status,
-		_cleanText: cleanText,
-		_fullLine: fullLine,
-		_priorityIcon: priorityIcon || "",
-		_created: m(RX_CREATED),
-		_scheduled: m(RX_SCHEDULED),
-		_starts: m(RX_STARTS),
-		_due: m(RX_DUE),
-		_done: m(RX_DONE),
-		_cancel: m(RX_CANCEL) || "",
-		_tag: m(RX_TAG),
-		_id: m(RX_ID),
-		_forbid: m(RX_FORBID) ? m(RX_FORBID).replace(/\s/g, "") : "",
-		_repeat: m(RX_REPEAT),
-		path,
-		line: line,
-		lineNumber: line,
-		text: cleanText,
-		description: cleanText,
-		priority: priorityIcon
-			? ["🔺", "⏫", "🔼", "🔽", "⏬"].indexOf(priorityIcon).toString()
-			: "none",
-		status: statusMatch ? statusMatch[1] : " ",
-		_isHeadingTask: false,
-		_isFileTask: false,
-		_headingLevel: 0,
-		_headingText: "",
-	};
-}
-
-export function parseFileContent(
-	content: string,
-	filePath?: string,
-): ContentNode[] {
-	if (!content) return [];
-
-	let body = content;
-	if (body.startsWith("---")) {
-		const endIdx = body.indexOf("---", 3);
-		if (endIdx !== -1) body = body.substring(endIdx + 3);
-	}
-
-	const lines = body.split("\n");
-	const roots: ContentNode[] = [];
-	const headingStack: ContentNode[] = [];
-	const indentStack: { indent: number; node: ContentNode }[] = [];
-	let inCodeBlock = false;
-
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
-		const trimmed = line.trim();
-
-		if (trimmed.startsWith("```")) {
-			inCodeBlock = !inCodeBlock;
-			continue;
-		}
-		if (inCodeBlock) continue;
-		if (trimmed === "") continue;
-
-		const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)/);
-		if (headingMatch) {
-			const level = headingMatch[1].length;
-			const title = headingMatch[2].trim();
-
-			if (title.endsWith("任务")) {
-				const { yamlData, yamlStartLine, yamlEndLine } =
-					parseHeadingYamlBlock(lines, i, level);
-				let taskData: any = null;
-				if (yamlData) {
-					taskData = yamlDataToTaskData(yamlData, filePath || "", i);
-					taskData._headingText = title;
-					taskData._headingLevel = level;
-				}
-
-				const node: ContentNode = {
-					type: "heading",
-					level,
-					text: title,
-					raw: trimmed,
-					line: i,
-					children: [],
-					parent: null,
-					yamlStartLine:
-						yamlStartLine >= 0 ? yamlStartLine : undefined,
-					yamlEndLine: yamlEndLine >= 0 ? yamlEndLine : undefined,
-				};
-				if (taskData) node._task = taskData;
-
-				while (
-					headingStack.length > 0 &&
-					headingStack[headingStack.length - 1].level! >= level
-				) {
-					headingStack.pop();
-				}
-
-				if (headingStack.length > 0) {
-					headingStack[headingStack.length - 1].children.push(node);
-				} else {
-					roots.push(node);
-				}
-
-				headingStack.push(node);
-				indentStack.length = 0;
-				continue;
-			}
-			continue;
-		}
-
-		const currentHeading =
-			headingStack.length > 0
-				? headingStack[headingStack.length - 1]
-				: null;
-		if (
-			currentHeading?.yamlStartLine !== undefined &&
-			currentHeading?.yamlEndLine !== undefined &&
-			i > currentHeading.yamlStartLine &&
-			i < currentHeading.yamlEndLine
-		) {
-			continue;
-		}
-
-		const taskMatch = trimmed.match(TASK_REGEX);
-		if (!taskMatch) continue;
-
-		const fullLine = trimmed;
-		const taskData = parseTaskLine(fullLine, filePath || "", i);
-
-		const node: ContentNode = {
-			type: "task",
-			text: taskData._cleanText,
-			raw: fullLine,
-			line: i,
-			children: [],
-			parent: null,
-		};
-		node._task = taskData;
-
-		const indent = getIndentLevel(line);
-
-		while (
-			indentStack.length > 0 &&
-			indentStack[indentStack.length - 1].indent >= indent
-		) {
-			indentStack.pop();
-		}
-
-		if (indentStack.length > 0) {
-			indentStack[indentStack.length - 1].node.children.push(node);
-		} else if (headingStack.length > 0) {
-			headingStack[headingStack.length - 1].children.push(node);
-		} else {
-			roots.push(node);
-		}
-
-		indentStack.push({ indent, node });
-	}
-
-	return roots;
-}
-
-function parseHeadingYamlBlock(
-	lines: string[],
-	headingLine: number,
-	headingLevel: number,
-): {
-	yamlData: Record<string, any> | null;
-	yamlStartLine: number;
-	yamlEndLine: number;
-} {
-	let yamlStartLine = -1,
-		yamlEndLine = -1;
-	for (let i = headingLine + 1; i < lines.length; i++) {
-		const trimmed = lines[i].trim();
-		const hm = trimmed.match(/^(#{1,6})\s+/);
-		if (hm && hm[1].length <= headingLevel) break;
-		if (trimmed === "```yaml" || trimmed === "```yml") {
-			yamlStartLine = i;
-			for (let j = i + 1; j < lines.length; j++) {
-				if (lines[j].trim() === "```") {
-					yamlEndLine = j;
-					break;
-				}
-			}
-			break;
-		}
-	}
-	if (yamlStartLine === -1 || yamlEndLine === -1)
-		return { yamlData: null, yamlStartLine: -1, yamlEndLine: -1 };
-	const yamlData: Record<string, any> = {};
-	for (const yamlLine of lines.slice(yamlStartLine + 1, yamlEndLine)) {
-		const colonIdx = yamlLine.indexOf(":");
-		if (colonIdx === -1) continue;
-		const key = yamlLine.substring(0, colonIdx).trim();
-		let value = yamlLine.substring(colonIdx + 1).trim();
-		if (
-			(value.startsWith("'") && value.endsWith("'")) ||
-			(value.startsWith('"') && value.endsWith('"'))
-		)
-			value = value.slice(1, -1);
-		if (key && value) yamlData[key] = value;
-	}
-	return {
-		yamlData: Object.keys(yamlData).length > 0 ? yamlData : null,
-		yamlStartLine,
-		yamlEndLine,
-	};
-}
-
-function yamlDataToTaskData(
-	yamlData: Record<string, any>,
-	filePath: string,
-	headingLine: number,
-): any {
-	const statusMap: Record<string, string> = {};
-	TASK_ELEMENTS.status.children?.forEach((c) => {
-		statusMap[c.zhName] = c.key;
-	});
-	const priorityMap: Record<string, string> = {};
-	TASK_ELEMENTS.priority.children?.forEach((c, idx) => {
-		priorityMap[c.zhName] = c.icon!;
-		priorityMap[String(4 - idx)] = c.icon!;
-	});
-	const rawStatus = yamlData["任务状态"] || "未开始",
-		rawPriority = yamlData["任务优先级"] || "none";
-	const statusKey = statusMap[rawStatus] || "todo",
-		priorityIcon = priorityMap[rawPriority] || "";
-	const formatDate = (val: any): string | null => {
-		if (!val) return null;
-		const str = String(val);
-		if (str === "NaN" || str.includes("NaN")) return null;
-		const dateMatch = str.match(/(\d{4}-\d{2}-\d{2})/);
-		return dateMatch ? dateMatch[1] : str.substring(0, 10);
-	};
-	const dateValues: Record<string, string | null> = {};
-	for (const yaName of YAML_DATE_FIELDS)
-		dateValues[yaName] = formatDate(yamlData[yaName]);
-	const name = yamlData["任务名称"] || "",
-		description = yamlData["任务简介"] || name;
-	return {
-		_status: statusKey,
-		_cleanText: description,
-		_fullLine: "",
-		_priorityIcon: priorityIcon,
-		_created: dateValues["任务创建"] || "",
-		_scheduled: dateValues["任务计划"] || "",
-		_starts: dateValues["任务开始"] || "",
-		_due: dateValues["任务截止"] || "",
-		_done: dateValues["任务完成"] || "",
-		_cancel: dateValues["任务取消"] || "",
-		_tag: yamlData["任务标签"] || "",
-		_id: yamlData["任务唯一ID"] || "",
-		_forbid: yamlData["任务引用ID"] || "",
-		_repeat: yamlData["任务周期"] || "",
-		path: filePath,
-		line: headingLine,
-		lineNumber: headingLine,
-		text: description,
-		description,
-		priority: rawPriority === "none" ? "none" : rawPriority,
-		status: " ",
-		_isHeadingTask: true,
-		_isFileTask: false,
-		_headingLevel: 0,
-		_headingText: "",
-	};
-}
-
-function getIndentLevel(line: string): number {
-	const leading = line.length - line.trimStart().length;
-	const tabCount = (line.match(/\t/g) || []).length;
-	return tabCount + Math.floor((leading - tabCount) / 4);
-}
+// ========== 去重过滤 ==========
 
 function filterDuplicateListTasks(
 	roots: ContentNode[],
@@ -446,16 +100,14 @@ function filterDuplicateListTasks(
 		});
 }
 
+// ========== 构建文件树 ==========
+
 export function buildTreeFromParsedFiles(
 	files: ParsedFileData[],
-	tasks: any[],
-	prefix: string = PREFIX,
+	tasks: TaskItem[],
+	prefix?: string,
 ): TreeNode[] {
-	const tasksByPath = new Map<string, any[]>();
-	for (const task of tasks) {
-		if (!tasksByPath.has(task.path)) tasksByPath.set(task.path, []);
-		tasksByPath.get(task.path)!.push(task);
-	}
+	const effectivePrefix = prefix || TASK_ROOT_PATH + "/";
 	const map = new Map<string, TreeNode>();
 
 	for (const file of files) {
@@ -464,19 +116,19 @@ export function buildTreeFromParsedFiles(
 		const metaParent = parseParentField(
 			file.yaml["父任务"] || file.yaml["任务父任务"],
 		);
-		let contentRoots = file.content
-			? parseFileContent(file.content, path)
-			: undefined;
-		const fileTask = file.fileTask || {
-			_status: "todo",
-			_cleanText: name,
-			path: file.path,
-			line: 0,
-			lineNumber: 0,
-			fileName: name,
-			_isFileTask: true,
-			_isHeadingTask: false,
-		};
+		let contentRoots = file.contentRoots;
+		const fileTask =
+			file.fileTask ||
+			({
+				_status: "todo",
+				_cleanText: name,
+				path: file.path,
+				line: 0,
+				lineNumber: 0,
+				fileName: name,
+				_isFileTask: true,
+				_isHeadingTask: false,
+			} as TaskItem);
 
 		if (contentRoots && fileTask) {
 			contentRoots = filterDuplicateListTasks(
@@ -490,7 +142,9 @@ export function buildTreeFromParsedFiles(
 		const node: TreeNode = {
 			path,
 			name,
-			relPath: path.startsWith(prefix) ? path.slice(prefix.length) : path,
+			relPath: path.startsWith(effectivePrefix)
+				? path.slice(effectivePrefix.length)
+				: path,
 			folderParts: [],
 			metaParent,
 			linkParent: null,
@@ -604,10 +258,13 @@ function findNodeByName(
 	}
 	return null;
 }
+
 function sortNodeChildren(node: TreeNode): void {
 	node.children.sort((a, b) => a.name.localeCompare(b.name));
 	node.children.forEach(sortNodeChildren);
 }
+
+// ========== 树筛选 ==========
 
 export function filterTree(
 	roots: TreeNode[],
@@ -620,6 +277,7 @@ export function filterTree(
 	}
 	return result;
 }
+
 function filterTreeNode(
 	node: TreeNode,
 	options: TreeFilterOptions,
@@ -639,8 +297,8 @@ function filterTreeNode(
 		if (!fcr.length) fcr = undefined;
 	}
 	const hasC = fc.length > 0,
-		hasCR = !!fcr,
-		self = node._task ? taskMatchesFilter(node._task, options) : false;
+		hasCR = !!fcr;
+	const self = node._task ? taskMatchesFilter(node._task, options) : false;
 	if (!hasC && !hasCR && !self) return null;
 	return {
 		...node,
@@ -649,6 +307,7 @@ function filterTreeNode(
 		_task: self ? node._task : undefined,
 	};
 }
+
 function filterContentNode(
 	node: ContentNode,
 	options: TreeFilterOptions,
@@ -659,18 +318,18 @@ function filterContentNode(
 		if (f) fc.push(f);
 	}
 	let self = false;
-	if (node.type === "task" && (node as any)._task)
-		self = taskMatchesFilter((node as any)._task, options);
+	if (node.type === "task" && node._task)
+		self = taskMatchesFilter(node._task, options);
 	else if (node.type === "heading") self = true;
 	if (!self && !fc.length) return null;
 	if (node.type === "heading" && !fc.length) return null;
-	return {
-		...node,
-		children: fc,
-		_task: self ? (node as any)._task : undefined,
-	};
+	return { ...node, children: fc, _task: self ? node._task : undefined };
 }
-function taskMatchesFilter(task: any, options: TreeFilterOptions): boolean {
+
+function taskMatchesFilter(
+	task: TaskItem,
+	options: TreeFilterOptions,
+): boolean {
 	if (!task) return false;
 	if (options.statuses?.length && !options.statuses.includes(task._status))
 		return false;
@@ -718,10 +377,201 @@ function taskMatchesFilter(task: any, options: TreeFilterOptions): boolean {
 	return true;
 }
 
-export function flattenTree(roots: TreeNode[]): any[] {
-	const tasks: any[] = [];
+// ========== 时间范围筛选 ==========
+
+export function filterTreeByDateRange(
+	roots: TreeNode[],
+	dateRange: { start: number | null; end: number | null; isAll: boolean },
+	intervalMode: string = "scheduled-due",
+): TreeNode[] {
+	if (dateRange.isAll || dateRange.start == null || dateRange.end == null)
+		return roots;
+	const result: TreeNode[] = [];
+	for (const node of roots) {
+		const filtered = filterTreeNodeByDate(node, dateRange, intervalMode);
+		if (filtered) result.push(filtered);
+	}
+	return result;
+}
+
+function filterTreeNodeByDate(
+	node: TreeNode,
+	dateRange: { start: number; end: number },
+	intervalMode: string,
+): TreeNode | null {
+	const fc: TreeNode[] = [];
+	for (const c of node.children) {
+		const f = filterTreeNodeByDate(c, dateRange, intervalMode);
+		if (f) fc.push(f);
+	}
+	let fcr: ContentNode[] | undefined;
+	if (node.contentRoots?.length) {
+		fcr = [];
+		for (const cn of node.contentRoots) {
+			const f = filterContentNodeByDate(cn, dateRange, intervalMode);
+			if (f) fcr.push(f);
+		}
+		if (!fcr.length) fcr = undefined;
+	}
+	const hasC = fc.length > 0,
+		hasCR = !!fcr;
+	const self = node._task
+		? taskInDateRange(node._task, dateRange, intervalMode)
+		: false;
+	if (!hasC && !hasCR && !self) return null;
+	return {
+		...node,
+		children: fc,
+		contentRoots: fcr || node.contentRoots,
+		_task: self ? node._task : undefined,
+	};
+}
+
+function filterContentNodeByDate(
+	node: ContentNode,
+	dateRange: { start: number; end: number },
+	intervalMode: string,
+): ContentNode | null {
+	const fc: ContentNode[] = [];
+	for (const c of node.children) {
+		const f = filterContentNodeByDate(c, dateRange, intervalMode);
+		if (f) fc.push(f);
+	}
+	let self = false;
+	if (node.type === "task" && node._task)
+		self = taskInDateRange(node._task, dateRange, intervalMode);
+	else if (node.type === "heading") self = true;
+	if (!self && !fc.length) return null;
+	if (node.type === "heading" && !fc.length) return null;
+	return { ...node, children: fc, _task: self ? node._task : undefined };
+}
+
+function taskInDateRange(
+	task: TaskItem,
+	dateRange: { start: number; end: number },
+	intervalMode: string,
+): boolean {
+	let startStr: string | null = null;
+	let endStr: string | null = null;
+	if (intervalMode === "starts-done") {
+		startStr = task._starts;
+		endStr = task._done || task._due;
+	} else {
+		startStr = task._scheduled;
+		endStr = task._due;
+	}
+	if (!startStr || !endStr) return false;
+	const start = new Date(startStr).getTime();
+	const end = new Date(endStr).getTime();
+	if (isNaN(start) || isNaN(end)) return false;
+	return start <= dateRange.end && end >= dateRange.start;
+}
+
+// ========== 隐藏配置筛选 ==========
+
+export function filterTreeByHideConfig(
+	roots: TreeNode[],
+	hideConfig: HideConfig,
+): TreeNode[] {
+	const result: TreeNode[] = [];
+	for (const node of roots) {
+		const filtered = filterTreeNodeByHide(node, hideConfig);
+		if (filtered) result.push(filtered);
+	}
+	return result;
+}
+
+function filterTreeNodeByHide(
+	node: TreeNode,
+	hideConfig: HideConfig,
+): TreeNode | null {
+	const fc: TreeNode[] = [];
+	for (const c of node.children) {
+		const f = filterTreeNodeByHide(c, hideConfig);
+		if (f) fc.push(f);
+	}
+	let fcr: ContentNode[] | undefined;
+	if (node.contentRoots?.length) {
+		fcr = [];
+		for (const cn of node.contentRoots) {
+			const f = filterContentNodeByHide(cn, hideConfig);
+			if (f) fcr.push(f);
+		}
+		if (!fcr.length) fcr = undefined;
+	}
+	const hasC = fc.length > 0,
+		hasCR = !!fcr;
+	const self = node._task ? taskNotHidden(node._task, hideConfig) : false;
+	if (!hasC && !hasCR && !self) return null;
+	return {
+		...node,
+		children: fc,
+		contentRoots: fcr || node.contentRoots,
+		_task: self ? node._task : undefined,
+	};
+}
+
+function filterContentNodeByHide(
+	node: ContentNode,
+	hideConfig: HideConfig,
+): ContentNode | null {
+	const fc: ContentNode[] = [];
+	for (const c of node.children) {
+		const f = filterContentNodeByHide(c, hideConfig);
+		if (f) fc.push(f);
+	}
+	let self = false;
+	if (node.type === "task" && node._task)
+		self = taskNotHidden(node._task, hideConfig);
+	else if (node.type === "heading") self = true;
+	if (!self && !fc.length) return null;
+	if (node.type === "heading" && !fc.length) return null;
+	return { ...node, children: fc, _task: self ? node._task : undefined };
+}
+
+function taskNotHidden(task: TaskItem, hideConfig: HideConfig): boolean {
+	if (
+		hideConfig.hideStatuses.length > 0 &&
+		hideConfig.hideStatuses.includes(task._status)
+	)
+		return false;
+	if (
+		hideConfig.hidePriorityValues.length > 0 &&
+		hideConfig.hidePriorityValues.includes(task._priorityIcon)
+	)
+		return false;
+	if (hideConfig.hideRepeatCycles.length > 0 && task._repeat) {
+		if (
+			hideConfig.hideRepeatCycles.some((c) =>
+				task._repeat.toLowerCase().includes(c),
+			)
+		)
+			return false;
+	}
+	if (hideConfig.hideMarks.length > 0) {
+		for (const m of hideConfig.hideMarks) {
+			if (task._marks?.[m]) return false;
+		}
+	}
+	if (hideConfig.hideSearchText) {
+		const kw = hideConfig.hideSearchText
+			.toLowerCase()
+			.split(/\s+/)
+			.filter((k) => k.length > 0);
+		if (kw.length > 0) {
+			const text = (task._cleanText || task.text || "").toLowerCase();
+			if (kw.every((k) => text.includes(k))) return false;
+		}
+	}
+	return true;
+}
+
+// ========== 扁平化 ==========
+
+export function flattenTree(roots: TreeNode[]): TaskItem[] {
+	const tasks: TaskItem[] = [];
 	const seen = new Set<string>();
-	function add(task: any) {
+	function add(task: TaskItem) {
 		if (!task?.path) return;
 		const key =
 			(task.path || "") + ":" + (task.lineNumber ?? task.line ?? 0);
@@ -739,7 +589,7 @@ export function flattenTree(roots: TreeNode[]): any[] {
 		for (const c of node.children) walk(c);
 	}
 	function walkCN(cn: ContentNode, fileTaskName?: string) {
-		const task = (cn as any)._task;
+		const task = cn._task;
 		if (task) {
 			if (
 				fileTaskName &&

@@ -1,4 +1,4 @@
-// src/ui/panels/time-panel.ts
+// src/ui/panel/time-panel.ts
 // 任务时间面板
 
 import { DataManager } from "../../process/core/data-manager";
@@ -25,6 +25,7 @@ export class TimePanel {
 	private container: HTMLElement;
 	private store: Store;
 	private dataManager: DataManager;
+	private app: any;
 
 	private dynamicStart = new Date();
 	private dynamicEnd = new Date();
@@ -55,9 +56,10 @@ export class TimePanel {
 	private dynamicSection: HTMLElement | null = null;
 	private staticSection: HTMLElement | null = null;
 
-	constructor(container: HTMLElement, store: Store) {
+	constructor(container: HTMLElement, store: Store, app?: any) {
 		this.container = container;
 		this.store = store;
+		this.app = app;
 		this.dataManager = DataManager.getInstance();
 		const today = new Date();
 		this.dynamicStart = DateUtils.setStart(today);
@@ -137,10 +139,11 @@ export class TimePanel {
 	}
 
 	private registerWorkspaceEvent() {
-		const app = (window as any).app;
-		if (!app) return;
-		app.workspace.on("active-leaf-change", () => this.checkDateChange());
-		app.workspace.on("layout-change", () => this.checkDateChange());
+		if (!this.app) return;
+		this.app.workspace.on("active-leaf-change", () =>
+			this.checkDateChange(),
+		);
+		this.app.workspace.on("layout-change", () => this.checkDateChange());
 	}
 
 	private checkDateChange() {
@@ -165,6 +168,7 @@ export class TimePanel {
 	private clamp(v: number, min: number, max: number): number {
 		return Math.max(min, Math.min(max, v));
 	}
+
 	private yearRange(): { min: number; max: number } {
 		const cy = new Date().getFullYear();
 		return { min: cy - YEAR_RANGE_OFFSET, max: cy + YEAR_RANGE_OFFSET };
@@ -328,15 +332,15 @@ export class TimePanel {
 
 	// ========== 格式化 ==========
 	private fmtYear(x: number): string {
-		return `${x}`;
+		return `${x}年`;
 	}
 	private fmtQuarter(x: number): string {
 		const y = this.currentMinYear + Math.floor((x - 1) / 4);
-		return `${y}/${((x - 1) % 4) + 1}`;
+		return `${y}/${((x - 1) % 4) + 1}季`;
 	}
 	private fmtMonth(x: number): string {
 		const y = this.currentMinYear + Math.floor((x - 1) / 12);
-		return `${y}/${((x - 1) % 12) + 1}`;
+		return `${y}/${((x - 1) % 12) + 1}月`;
 	}
 	private fmtWeek(x: number): string {
 		let r = x,
@@ -345,7 +349,7 @@ export class TimePanel {
 			r -= weeksInYear(y);
 			y++;
 		}
-		return `${y}/${r}`;
+		return `${y}/${r}周`;
 	}
 	private fmtDay(x: number): string {
 		let r = x,
@@ -355,7 +359,7 @@ export class TimePanel {
 			y++;
 		}
 		const d = dayToDate(y, Math.max(1, r));
-		return `${y}/${d.getMonth() + 1}/${d.getDate()}`;
+		return `${y}/${d.getMonth() + 1}/${d.getDate()}日`;
 	}
 
 	private fmtDynamicValue(v: number): string {
@@ -719,14 +723,13 @@ export class TimePanel {
 
 	private async initRange() {
 		try {
-			const app = (window as any).app;
-			if (!app) return;
-			await this.dataManager.loadData(app);
+			if (!this.app) return;
+			await this.dataManager.loadData(this.app);
 			const r = this.dataManager.getTaskTimeRange();
 			if (r.minTime) this.taskMinYear = new Date(r.minTime).getFullYear();
 			if (r.maxTime) this.taskMaxYear = new Date(r.maxTime).getFullYear();
-		} catch {
-			/* ignore */
+		} catch (e) {
+			console.warn("[TimePanel] 初始化时间范围失败:", e);
 		}
 	}
 
@@ -769,7 +772,7 @@ export class TimePanel {
 			this.childSlidersDrivenByYear = true;
 		}
 		const mr = this.container.createDiv({ cls: "panel-row" });
-		mr.createSpan({ text: "模式", cls: "panel-label" });
+		mr.createSpan({ text: "时间模式", cls: "panel-label" });
 		this.modeBtn = mr.createEl("button", {
 			text:
 				this.intervalMode === "scheduled-due"
@@ -782,7 +785,7 @@ export class TimePanel {
 			cls: "panel-section",
 		});
 		const uRow = this.dynamicSection.createDiv({ cls: "panel-row" });
-		uRow.createSpan({ text: "动态", cls: "panel-label" });
+		uRow.createSpan({ text: "动态时间", cls: "panel-label" });
 		(["年", "季", "月", "周", "日"] as const).forEach((u) => {
 			const k =
 				u === "年"
@@ -811,7 +814,7 @@ export class TimePanel {
 		});
 		this.staticSection
 			.createDiv({ cls: "panel-row" })
-			.createSpan({ text: "静态", cls: "panel-label" });
+			.createSpan({ text: "静态时间", cls: "panel-label" });
 		this.rebuildStaticSliders();
 	}
 }

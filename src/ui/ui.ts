@@ -91,9 +91,21 @@ export class ViewContainer {
 			this.currentView.destroy();
 			this.container.empty();
 		}
-		const ViewClass = await loader();
-		this.currentView = new ViewClass(this.container, this.store, this.app);
-		await this.currentView.render();
+		try {
+			const ViewClass = await loader();
+			this.currentView = new ViewClass(
+				this.container,
+				this.store,
+				this.app,
+			);
+			await this.currentView.render();
+		} catch (e) {
+			console.warn("[TaskManage] 视图加载失败:", e);
+			this.container.empty();
+			this.container.createDiv({
+				text: `视图加载失败: ${(e as Error).message}`,
+			});
+		}
 	}
 }
 
@@ -122,7 +134,7 @@ export function createNavigatorLayout(
 	new SidebarPanel(sidebarEl, store, app);
 
 	const panels = Panels.getInstance();
-	panels.init(store, viewEl, toolbarEl);
+	panels.init(store, viewEl, toolbarEl, app);
 
 	new ViewContainer(viewEl, store, app);
 

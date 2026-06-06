@@ -1,7 +1,7 @@
 // src/process/core/data-manager.ts
 // 数据管理器 — 统一数据加载、缓存、筛选、排序、收集
 
-import { GlobalFilter } from "../../types";
+import { GlobalFilter, TaskItem } from "../../types";
 import { loadAllTaskFiles, ParsedFileData } from "../task/md-parser";
 import {
 	buildTreeFromParsedFiles,
@@ -15,11 +15,11 @@ export type SortConfig = { type: string; order: "asc" | "desc" };
 
 interface DataCache {
 	files: ParsedFileData[] | null;
-	allTasks: any[] | null;
-	taskIdMap: Map<string, any>;
+	allTasks: TaskItem[] | null;
+	taskIdMap: Map<string, TaskItem>;
 	fullTree: TreeNode[] | null;
 	filteredTree: { fingerprint: string; roots: TreeNode[] } | null;
-	flatTasks: { fingerprint: string; tasks: any[] } | null;
+	flatTasks: { fingerprint: string; tasks: TaskItem[] } | null;
 }
 
 function filterFingerprint(filter: GlobalFilter): string {
@@ -54,8 +54,8 @@ export class DataManager {
 
 	async loadData(app: any): Promise<{
 		files: ParsedFileData[];
-		tasks: any[];
-		taskIdMap: Map<string, any>;
+		tasks: TaskItem[];
+		taskIdMap: Map<string, TaskItem>;
 	}> {
 		if (this.cache.files && this.cache.allTasks) {
 			return {
@@ -65,46 +65,49 @@ export class DataManager {
 			};
 		}
 
-		const files = await loadAllTaskFiles(app);
-		const allTasks: any[] = [];
-		const taskIdMap = new Map<string, any>();
+		try {
+			const files = await loadAllTaskFiles(app);
+			const allTasks: TaskItem[] = [];
+			const taskIdMap = new Map<string, TaskItem>();
 
-		for (const file of files) {
-			if (file.fileTask) {
-				allTasks.push(file.fileTask);
-				if (file.fileTask._id)
-					taskIdMap.set(file.fileTask._id, file.fileTask);
-			}
-			for (const ht of file.headingTasks) {
-				if (ht.task) {
-					allTasks.push(ht.task);
-					if (ht.task._id) taskIdMap.set(ht.task._id, ht.task);
+			for (const file of files) {
+				if (file.fileTask) {
+					allTasks.push(file.fileTask);
+					if (file.fileTask._id)
+						taskIdMap.set(file.fileTask._id, file.fileTask);
+				}
+				for (const ht of file.headingTasks) {
+					if (ht.task) {
+						allTasks.push(ht.task);
+						if (ht.task._id) taskIdMap.set(ht.task._id, ht.task);
+					}
+				}
+				for (const task of file.tasks) {
+					if (task) {
+						allTasks.push(task);
+						if (task._id) taskIdMap.set(task._id, task);
+					}
 				}
 			}
-			for (const task of file.tasks) {
-				if (task) {
-					allTasks.push(task);
-					if (task._id) taskIdMap.set(task._id, task);
-				}
+
+			const validTasks = allTasks.filter((t) => t != null);
+
+			this.cache.files = files;
+			this.cache.allTasks = validTasks;
+			this.cache.taskIdMap = taskIdMap;
+			this.cache.fullTree = buildTreeFromParsedFiles(files, validTasks);
+			this.cache.filteredTree = null;
+			this.cache.flatTasks = null;
+
+			for (const file of files) {
+				file.content = "";
 			}
+
+			return { files, tasks: validTasks, taskIdMap };
+		} catch (e) {
+			console.warn("[TaskManage] 加载任务数据失败:", e);
+			return { files: [], tasks: [], taskIdMap: new Map() };
 		}
-
-		// 过滤 undefined
-		const validTasks = allTasks.filter((t) => t != null);
-
-		this.cache.files = files;
-		this.cache.allTasks = validTasks;
-		this.cache.taskIdMap = taskIdMap;
-		this.cache.fullTree = buildTreeFromParsedFiles(files, validTasks);
-		this.cache.filteredTree = null;
-		this.cache.flatTasks = null;
-
-		// 释放文件原始内容
-		for (const file of files) {
-			file.content = "";
-		}
-
-		return { files, tasks: validTasks, taskIdMap };
 	}
 
 	getFullTree(): TreeNode[] {
@@ -135,7 +138,7 @@ export class DataManager {
 		return roots;
 	}
 
-	getFlatTasks(filter: GlobalFilter): any[] {
+	getFlatTasks(filter: GlobalFilter): TaskItem[] {
 		const tree = this.getFilteredTree(filter);
 		return flattenTree(tree);
 	}
@@ -166,7 +169,7 @@ export class DataManager {
 		return { minTime, maxTime };
 	}
 
-	getTaskIdMap(): Map<string, any> {
+	getTaskIdMap(): Map<string, TaskItem> {
 		return this.cache.taskIdMap;
 	}
 
