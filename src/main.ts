@@ -2,11 +2,8 @@
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./command";
 import {
-	ALL_MARKS,
 	DEFAULT_TASK_FILE_PATTERN,
 	DEFAULT_TASK_ROOT_PATH,
-	PRIORITY_ORDER,
-	REPEAT_ORDER,
 	updateTaskFileConfig,
 } from "./process/config/config";
 import { getDefaultPresets } from "./process/config/panel-default-config";
@@ -58,7 +55,7 @@ export default class TaskManagePlugin extends Plugin {
 						spFilter.includeMarks &&
 						spFilter.includeMarks.length > 0
 							? spFilter.includeMarks
-							: [...ALL_MARKS],
+							: dp.filter.includeMarks,
 					excludeMarks:
 						spFilter.excludeMarks ?? dp.filter.excludeMarks,
 					hideRepeat: spFilter.hideRepeat ?? dp.filter.hideRepeat,
@@ -73,12 +70,12 @@ export default class TaskManagePlugin extends Plugin {
 						spFilter.priorityValues &&
 						spFilter.priorityValues.length > 0
 							? spFilter.priorityValues
-							: [...PRIORITY_ORDER],
+							: dp.filter.priorityValues,
 					repeatCycles:
 						spFilter.repeatCycles &&
 						spFilter.repeatCycles.length > 0
 							? spFilter.repeatCycles
-							: [...REPEAT_ORDER],
+							: dp.filter.repeatCycles,
 				};
 				mergedPresets.push({
 					...dp,

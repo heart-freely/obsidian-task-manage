@@ -20,7 +20,7 @@ const HIDE_GROUPS = [
 	{ label: "隐藏优先", type: "priorityValues" },
 	{ label: "隐藏循环", type: "repeatCycles" },
 	{
-		label: "隐藏日期",
+		label: "隐藏时间",
 		type: "marks",
 		keys: ["created", "scheduled", "starts", "cancel", "done", "due"],
 	},
@@ -76,17 +76,15 @@ export class HidePanel {
 			// 隐藏状态
 			if (group.type === "statuses") {
 				const hidden = hideConfig.hideStatuses || [];
-				const allHidden = ALLOWED_STATUSES.every((s) =>
-					hidden.includes(s),
-				);
+				const noneHidden = hidden.length === 0;
 				const mainBtn = row.createEl("button", {
 					text: "状态",
 					cls: "panel-btn",
 				});
-				if (allHidden) mainBtn.addClass("active");
+				if (!noneHidden) mainBtn.addClass("active");
 				mainBtn.onclick = () => {
 					updateHideConfig({
-						hideStatuses: allHidden ? [] : [...ALLOWED_STATUSES],
+						hideStatuses: noneHidden ? [...ALLOWED_STATUSES] : [],
 					});
 				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
@@ -134,19 +132,17 @@ export class HidePanel {
 			// 隐藏优先
 			if (group.type === "priorityValues") {
 				const hidden = hideConfig.hidePriorityValues || [];
-				const allHidden = PRIORITY_ICONS.every((i) =>
-					hidden.includes(i),
-				);
+				const noneHidden = hidden.length === 0;
 				const mainBtn = row.createEl("button", {
 					text: "优先",
 					cls: "panel-btn",
 				});
-				if (allHidden) mainBtn.addClass("active");
+				if (!noneHidden) mainBtn.addClass("active");
 				mainBtn.onclick = () => {
 					updateHideConfig({
-						hidePriorityValues: allHidden
-							? []
-							: [...PRIORITY_ICONS],
+						hidePriorityValues: noneHidden
+							? [...PRIORITY_ICONS]
+							: [],
 					});
 				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
@@ -172,15 +168,15 @@ export class HidePanel {
 			// 隐藏循环
 			if (group.type === "repeatCycles") {
 				const hidden = hideConfig.hideRepeatCycles || [];
-				const allHidden = REPEAT_ORDER.every((c) => hidden.includes(c));
+				const noneHidden = hidden.length === 0;
 				const mainBtn = row.createEl("button", {
 					text: "循环",
 					cls: "panel-btn",
 				});
-				if (allHidden) mainBtn.addClass("active");
+				if (!noneHidden) mainBtn.addClass("active");
 				mainBtn.onclick = () => {
 					updateHideConfig({
-						hideRepeatCycles: allHidden ? [] : [...REPEAT_ORDER],
+						hideRepeatCycles: noneHidden ? [...REPEAT_ORDER] : [],
 					});
 				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
@@ -206,20 +202,20 @@ export class HidePanel {
 			// 隐藏标记（日期/依赖）：多子按钮
 			if (group.type === "marks" && group.keys && group.keys.length > 1) {
 				const hidden = hideConfig.hideMarks || [];
-				const allHidden = group.keys.every((k) => hidden.includes(k));
+				const noneHidden = group.keys.every((k) => !hidden.includes(k));
 				const mainBtn = row.createEl("button", {
 					text: group.label.replace("隐藏", ""),
 					cls: "panel-btn",
 				});
-				if (allHidden) mainBtn.addClass("active");
+				if (!noneHidden) mainBtn.addClass("active");
 				mainBtn.onclick = () => {
 					const others = hidden.filter(
 						(m) => !group.keys!.includes(m),
 					);
 					updateHideConfig({
-						hideMarks: allHidden
-							? others
-							: [...others, ...group.keys!],
+						hideMarks: noneHidden
+							? [...others, ...group.keys!]
+							: others,
 					});
 				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });

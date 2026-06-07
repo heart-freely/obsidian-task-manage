@@ -19,8 +19,6 @@ import {
 	EnhancedSliderRef,
 } from "../component/slider/slider";
 
-const YEAR_RANGE_OFFSET = 10;
-
 export class TimePanel {
 	private container: HTMLElement;
 	private store: Store;
@@ -33,7 +31,7 @@ export class TimePanel {
 	private staticStart = new Date();
 	private staticEnd = new Date();
 	private useDynamic = false;
-	private intervalMode = "scheduled-due";
+	private intervalMode = "any-date";
 	private taskMinYear = 2021;
 	private taskMaxYear = 2031;
 	private currentMinYear: number = new Date().getFullYear();
@@ -51,7 +49,7 @@ export class TimePanel {
 	private pendingDateCheck: number | null = null;
 	private lastCheckedDate: string = "";
 	private useDynamicBtn: HTMLElement | null = null;
-	private modeBtn: HTMLElement | null = null;
+	private modeBtns = new Map<string, HTMLElement>();
 	private unitBtns = new Map<string, HTMLElement>();
 	private dynamicSection: HTMLElement | null = null;
 	private staticSection: HTMLElement | null = null;
@@ -94,7 +92,7 @@ export class TimePanel {
 	public onPresetChanged() {
 		const pre = this.store.getActivePreset();
 		if (!pre) return;
-		this.intervalMode = pre.intervalMode ?? "scheduled-due";
+		this.intervalMode = pre.intervalMode ?? "any-date";
 		this.useDynamic = pre.useDynamic ?? false;
 		const cf = pre.filter;
 		if (
@@ -127,12 +125,7 @@ export class TimePanel {
 			this.dynamicEnd = DateUtils.setStart(today);
 			this.dynamicUnit = "day";
 		}
-		if (this.modeBtn)
-			this.modeBtn.setText(
-				this.intervalMode === "scheduled-due"
-					? "计划~截止"
-					: "开始~完成",
-			);
+		this.updateModeButtons();
 		this.syncUseDynamicButton();
 		this.rebuildStaticSliders();
 		this.rebuildDynamicSlider();
@@ -171,7 +164,7 @@ export class TimePanel {
 
 	private yearRange(): { min: number; max: number } {
 		const cy = new Date().getFullYear();
-		return { min: cy - YEAR_RANGE_OFFSET, max: cy + YEAR_RANGE_OFFSET };
+		return { min: cy - 10, max: cy + 10 };
 	}
 
 	private updatePreset(changes: { dateRange?: boolean } & Partial<any>) {
@@ -220,7 +213,9 @@ export class TimePanel {
 		this.dynamicEnd = endDate;
 		if (this.useDynamic) {
 			this.syncDynamicToStatic(startDate, endDate);
-			this.updatePreset({ dateRange: true });
+			if (this.intervalMode !== "none") {
+				this.updatePreset({ dateRange: true });
+			}
 		}
 	}
 
@@ -252,7 +247,11 @@ export class TimePanel {
 				this.childSlidersDrivenByYear = false;
 		}
 		this.rebuildStaticSliders();
-		this.updatePreset({ dateRange: true });
+
+		// 只有时间模式选中时才刷新视图
+		if (this.intervalMode !== "none") {
+			this.updatePreset({ dateRange: true });
+		}
 	}
 
 	private onToggleDynamic() {
@@ -284,21 +283,38 @@ export class TimePanel {
 			this.rebuildStaticSliders();
 		}
 		this.syncUseDynamicButton();
-		this.updatePreset({ dateRange: true, useDynamic: this.useDynamic });
+		if (this.intervalMode !== "none") {
+			this.updatePreset({ dateRange: true, useDynamic: this.useDynamic });
+		} else {
+			this.updatePreset({ useDynamic: this.useDynamic });
+		}
 	}
 
-	private onToggleMode() {
-		this.intervalMode =
-			this.intervalMode === "scheduled-due"
-				? "starts-done"
-				: "scheduled-due";
-		if (this.modeBtn)
-			this.modeBtn.setText(
-				this.intervalMode === "scheduled-due"
-					? "计划~截止"
-					: "开始~完成",
-			);
+	private onSelectMode(mode: string) {
+		if (this.intervalMode === mode) return;
+		this.intervalMode = mode;
+		this.updateModeButtons();
 		this.updatePreset({ intervalMode: this.intervalMode });
+	}
+
+	private updateModeButtons() {
+		const mainBtn = this.container.querySelector(
+			".panel-btn:not(.sub-btn)",
+		) as HTMLElement;
+		if (mainBtn) {
+			if (this.intervalMode !== "none") {
+				mainBtn.addClass("active");
+			} else {
+				mainBtn.removeClass("active");
+			}
+		}
+		this.modeBtns.forEach((btn, mode) => {
+			if (mode === this.intervalMode) {
+				btn.addClass("active");
+			} else {
+				btn.removeClass("active");
+			}
+		});
 	}
 
 	private onSwitchUnit(k: "day" | "week" | "month" | "quarter" | "year") {
@@ -313,7 +329,9 @@ export class TimePanel {
 			this.dynamicEnd = new Date(t);
 			if (this.useDynamic) {
 				this.syncDynamicToStatic(this.dynamicStart, this.dynamicEnd);
-				this.updatePreset({ dateRange: true });
+				if (this.intervalMode !== "none") {
+					this.updatePreset({ dateRange: true });
+				}
 			}
 		}
 		this.dynamicUnit = k;
@@ -380,6 +398,7 @@ export class TimePanel {
 		if (u === "year") return `${p}${abs}年`;
 		return `${p}${abs}日`;
 	}
+
 	private fmtDynamicLabel(a: number, b: number): string {
 		return a === b
 			? this.fmtDynamicValue(a)
@@ -599,15 +618,15 @@ export class TimePanel {
 	}
 
 	private refreshDynamicUI() {
-		const ref = this.enhancedSliders.get("dynamic"),
-			updateMid = this.updateMidLines.get("dynamic");
+		const ref = this.enhancedSliders.get("dynamic");
+		const updateMid = this.updateMidLines.get("dynamic");
 		if (!ref || !updateMid) return;
 		const mx = this.maxDyn(),
 			mn = -mx;
 		const ds = calcDynamicOffset(this.dynamicStart, this.dynamicUnit);
 		const de = calcDynamicOffset(this.dynamicEnd, this.dynamicUnit);
-		const minV = this.clamp(Math.min(ds, de), mn, mx),
-			maxV = this.clamp(Math.max(ds, de), mn, mx);
+		const minV = this.clamp(Math.min(ds, de), mn, mx);
+		const maxV = this.clamp(Math.max(ds, de), mn, mx);
 		ref.update(minV, maxV);
 		ref.labelSpan.textContent = this.fmtDynamicLabel(minV, maxV);
 		updateMid(0);
@@ -739,13 +758,13 @@ export class TimePanel {
 		this.enhancedSliders.clear();
 		this.updateMidLines.clear();
 		this.unitBtns.clear();
+		this.modeBtns.clear();
 		this.useDynamicBtn = null;
-		this.modeBtn = null;
 		this.dynamicSection = null;
 		this.staticSection = null;
 		await this.initRange();
 		const pre = this.store.getActivePreset();
-		this.intervalMode = pre?.intervalMode ?? "scheduled-due";
+		this.intervalMode = pre?.intervalMode ?? "any-date";
 		this.useDynamic = pre?.useDynamic ?? false;
 		if (this.initialRender) {
 			this.initialRender = false;
@@ -771,16 +790,52 @@ export class TimePanel {
 			this.currentMaxYear = this.staticEnd.getFullYear();
 			this.childSlidersDrivenByYear = true;
 		}
+
+		// 时间筛选（主按钮 + 子按钮三选一）
 		const mr = this.container.createDiv({ cls: "panel-row" });
-		mr.createSpan({ text: "时间模式", cls: "panel-label" });
-		this.modeBtn = mr.createEl("button", {
-			text:
-				this.intervalMode === "scheduled-due"
-					? "计划~截止"
-					: "开始~完成",
-			cls: "panel-btn active",
+		mr.createSpan({ text: "时间筛选", cls: "panel-label" });
+
+		const mainBtn = mr.createEl("button", {
+			text: "时间模式",
+			cls: "panel-btn",
 		});
-		this.modeBtn.onclick = () => this.onToggleMode();
+		if (this.intervalMode !== "none") mainBtn.addClass("active");
+
+		mainBtn.onclick = () => {
+			const newMode = this.intervalMode !== "none" ? "none" : "any-date";
+			this.intervalMode = newMode;
+			this.updateModeButtons();
+			this.updatePreset({ intervalMode: this.intervalMode });
+			// 从不选中切换到选中时，用当前静态时间刷新一次视图
+			if (newMode !== "none") {
+				this.updatePreset({
+					dateRange: true,
+					intervalMode: this.intervalMode,
+				});
+			}
+		};
+
+		const subPanel = mr.createDiv({ cls: "panel-sub" });
+		subPanel.style.cssText =
+			"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+
+		const modes = [
+			{ key: "any-date", label: "任意时间" },
+			{ key: "scheduled-due", label: "计划时间" },
+			{ key: "starts-done", label: "执行时间" },
+		];
+
+		modes.forEach(({ key, label }) => {
+			const btn = subPanel.createEl("button", {
+				text: label,
+				cls: "panel-btn sub-btn",
+			});
+			if (this.intervalMode === key) btn.addClass("active");
+			btn.onclick = () => this.onSelectMode(key);
+			this.modeBtns.set(key, btn);
+		});
+
+		// 动态时间
 		this.dynamicSection = this.container.createDiv({
 			cls: "panel-section",
 		});
@@ -809,9 +864,9 @@ export class TimePanel {
 		if (this.useDynamic) this.useDynamicBtn.addClass("active");
 		this.useDynamicBtn.onclick = () => this.onToggleDynamic();
 		this.rebuildDynamicSlider();
-		this.staticSection = this.container.createDiv({
-			cls: "panel-section",
-		});
+
+		// 静态时间
+		this.staticSection = this.container.createDiv({ cls: "panel-section" });
 		this.staticSection
 			.createDiv({ cls: "panel-row" })
 			.createSpan({ text: "静态时间", cls: "panel-label" });

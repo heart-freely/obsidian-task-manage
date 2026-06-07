@@ -119,6 +119,7 @@ export abstract class BaseTaskView {
 				searchText: activeFilter.searchText,
 				priorityValues: activeFilter.priorityValues,
 				repeatCycles: activeFilter.repeatCycles,
+				includeMarks: activeFilter.includeMarks,
 			};
 			const panelFilteredTree = filterTree(fullTree, panelOptions);
 			const dateFilteredTree = filterTreeByDateRange(
@@ -216,9 +217,32 @@ export abstract class BaseTaskView {
 		if (hideConfig.hideRepeatCycles.length > 0) {
 			result = result.filter((t) => {
 				if (!t._repeat) return true;
-				return !hideConfig.hideRepeatCycles.some((c) =>
-					t._repeat.toLowerCase().includes(c),
-				);
+				const taskCycle = t._repeat.toLowerCase().replace(/^🔁\s*/, "");
+				return !hideConfig.hideRepeatCycles.some((c) => {
+					const filterCycle = c.toLowerCase().replace(/^🔁\s*/, "");
+					if (taskCycle === filterCycle) return true;
+					if (
+						filterCycle === "every day" &&
+						/\bevery\s+(\d+\s+)?days?\b/i.test(taskCycle)
+					)
+						return true;
+					if (
+						filterCycle === "every week" &&
+						/\bevery\s+(\d+\s+)?weeks?\b/i.test(taskCycle)
+					)
+						return true;
+					if (
+						filterCycle === "every month" &&
+						/\bevery\s+(\d+\s+)?months?\b/i.test(taskCycle)
+					)
+						return true;
+					if (
+						filterCycle === "every year" &&
+						/\bevery\s+(\d+\s+)?years?\b/i.test(taskCycle)
+					)
+						return true;
+					return false;
+				});
 			});
 		}
 		if (hideConfig.hideMarks.length > 0) {
@@ -239,6 +263,121 @@ export abstract class BaseTaskView {
 			}
 		}
 		return result;
+	}
+
+	private applyPanelFilter(
+		tasks: TaskItem[],
+		filter: GlobalFilter,
+	): TaskItem[] {
+		return tasks.filter((t: TaskItem) => {
+			if (!t) return false;
+
+			const activeGroups: Array<() => boolean> = [];
+
+			const statuses = filter.statuses || [];
+			if (statuses.length > 0) {
+				activeGroups.push(() => statuses.includes(t._status));
+			}
+
+			const priorityValues = filter.priorityValues || [];
+			if (priorityValues.length > 0) {
+				activeGroups.push(() => {
+					const icon = t._priorityIcon;
+					return icon ? priorityValues.includes(icon) : false;
+				});
+			}
+
+			const repeatCycles = filter.repeatCycles || [];
+			if (repeatCycles.length > 0) {
+				activeGroups.push(() => {
+					if (!t._repeat) return false;
+					const taskCycle = t._repeat
+						.toLowerCase()
+						.replace(/^🔁\s*/, "");
+					return repeatCycles.some((c) => {
+						const filterCycle = c
+							.toLowerCase()
+							.replace(/^🔁\s*/, "");
+						if (taskCycle === filterCycle) return true;
+						if (
+							filterCycle === "every day" &&
+							/\bevery\s+(\d+\s+)?days?\b/i.test(taskCycle)
+						)
+							return true;
+						if (
+							filterCycle === "every week" &&
+							/\bevery\s+(\d+\s+)?weeks?\b/i.test(taskCycle)
+						)
+							return true;
+						if (
+							filterCycle === "every month" &&
+							/\bevery\s+(\d+\s+)?months?\b/i.test(taskCycle)
+						)
+							return true;
+						if (
+							filterCycle === "every year" &&
+							/\bevery\s+(\d+\s+)?years?\b/i.test(taskCycle)
+						)
+							return true;
+						return false;
+					});
+				});
+			}
+
+			const includeMarks = filter.includeMarks || [];
+			const allDateMarks = [
+				"created",
+				"scheduled",
+				"starts",
+				"cancel",
+				"done",
+				"due",
+			];
+			const dateMarksSelected = allDateMarks.filter((k) =>
+				includeMarks.includes(k),
+			);
+			if (dateMarksSelected.length > 0) {
+				activeGroups.push(() => {
+					return dateMarksSelected.some((m) => t._marks?.[m]);
+				});
+			}
+
+			const allDepMarks = ["id", "forbid"];
+			const depMarksSelected = allDepMarks.filter((k) =>
+				includeMarks.includes(k),
+			);
+			if (depMarksSelected.length > 0) {
+				activeGroups.push(() => {
+					return depMarksSelected.some((m) => t._marks?.[m]);
+				});
+			}
+
+			if (includeMarks.includes("tag")) {
+				activeGroups.push(() => {
+					return !!t._marks?.tag;
+				});
+			}
+
+			if (filter.searchText) {
+				const kw = filter.searchText
+					.toLowerCase()
+					.split(/\s+/)
+					.filter((k) => k.length > 0);
+				if (kw.length > 0) {
+					activeGroups.push(() => {
+						const text = (
+							t._cleanText ||
+							t.text ||
+							""
+						).toLowerCase();
+						return kw.every((k) => text.includes(k));
+					});
+				}
+			}
+
+			if (activeGroups.length === 0) return true;
+			return activeGroups.some((check) => check());
+		});
 	}
 
 	private collectNodeTasksDeep(node: any): TaskItem[] {

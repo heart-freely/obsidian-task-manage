@@ -3,6 +3,7 @@
 
 import { TaskItem } from "../../types";
 import { STATUS_COLORS } from "../config/config";
+import { YEAR_RANGE_OFFSET } from "../config/panel-default-config";
 import { DateUtils } from "../process";
 import { TreeNode } from "../task/task-tree";
 
@@ -30,8 +31,6 @@ export const GANTT_CONFIG = {
 	STORAGE_KEY: "ganttZoomState",
 };
 
-// ========== 任务间隔计算 ==========
-
 export function getTaskInterval(
 	task: TaskItem,
 	intervalMode: string = "scheduled-due",
@@ -41,7 +40,26 @@ export function getTaskInterval(
 
 	if (intervalMode === "starts-done") {
 		startStr = task._starts;
-		endStr = task._done || task._due;
+		endStr = task._done || task._cancel;
+	} else if (intervalMode === "any-date") {
+		const dates = [
+			task._created,
+			task._scheduled,
+			task._starts,
+			task._due,
+			task._done,
+			task._cancel,
+		].filter(Boolean) as string[];
+		if (dates.length === 0) return null;
+		const timestamps = dates
+			.map((d) => new Date(d).getTime())
+			.filter((t) => !isNaN(t));
+		if (timestamps.length === 0) return null;
+		const minTime = Math.min(...timestamps);
+		const maxTime = Math.max(...timestamps);
+		return { start: new Date(minTime), end: new Date(maxTime) };
+	} else if (intervalMode === "none") {
+		return null;
 	} else {
 		startStr = task._scheduled;
 		endStr = task._due;
@@ -53,8 +71,6 @@ export function getTaskInterval(
 	if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
 	return { start: start < end ? start : end, end: start < end ? end : start };
 }
-
-// ========== 时间范围计算 ==========
 
 export function calcRangeFromRoots(
 	roots: TreeNode[],
@@ -76,12 +92,14 @@ export function calcRangeFromRoots(
 	const now = new Date();
 	const currentYear = now.getFullYear();
 	return {
-		minTime: DateUtils.setStart(new Date(currentYear - 5, 0, 1)).getTime(),
-		maxTime: DateUtils.setEnd(new Date(currentYear + 5, 11, 31)).getTime(),
+		minTime: DateUtils.setStart(
+			new Date(currentYear - YEAR_RANGE_OFFSET, 0, 1),
+		).getTime(),
+		maxTime: DateUtils.setEnd(
+			new Date(currentYear + YEAR_RANGE_OFFSET, 11, 31),
+		).getTime(),
 	};
 }
-
-// ========== 格式化时长 ==========
 
 export function formatGanttDuration(ms: number): string {
 	if (ms <= 0) return "";
@@ -92,8 +110,6 @@ export function formatGanttDuration(ms: number): string {
 	if (days < 365) return Math.round(days / 30) + "m";
 	return Math.round(days / 365) + "y";
 }
-
-// ========== 计算任务树最大宽度 ==========
 
 export function calcTreeMaxWidth(roots: TreeNode[]): number {
 	let maxDepth = 0;
@@ -125,8 +141,6 @@ export function calcTreeMaxWidth(roots: TreeNode[]): number {
 	);
 }
 
-// ========== 缩放状态持久化 ==========
-
 export function loadZoomState(): { dayWidth: number } | null {
 	try {
 		const saved = localStorage.getItem(GANTT_CONFIG.STORAGE_KEY);
@@ -148,8 +162,6 @@ export function saveZoomState(dayWidth: number) {
 	}
 }
 
-// ========== 判断当前主题是深色还是浅色 ==========
-
 export function isDarkTheme(): boolean {
 	const bg = getComputedStyle(document.body)
 		.getPropertyValue("--background-primary")
@@ -163,8 +175,6 @@ export function isDarkTheme(): boolean {
 	}
 	return true;
 }
-
-// ========== 时间轴层级判断 ==========
 
 export function getTimelineLayers(dayWidth: number) {
 	const showDays = dayWidth >= 40;
@@ -184,8 +194,6 @@ export function getTimelineLayers(dayWidth: number) {
 
 	return { layers, layerHeight };
 }
-
-// ========== 层级样式：越高层级越粗，颜色越深（深色主题越浅） ==========
 
 export function getLayerStyle(
 	layerIndex: number,
@@ -207,8 +215,6 @@ export function getLayerStyle(
 
 	return { fontSize, fontWeight, color };
 }
-
-// ========== 背景网格线样式：越高层级越粗，颜色越深 ==========
 
 export function getGridLineStyle(
 	intervalDays: number,
@@ -241,8 +247,6 @@ export function getGridLineStyle(
 	return { width, color };
 }
 
-// ========== 背景网格层级定义 ==========
-
 export function getGridLevels(
 	dayWidth: number,
 ): Array<{ intervalDays: number }> {
@@ -269,8 +273,6 @@ export function getGridLevels(
 
 	return gridLevels;
 }
-
-// ========== 网格线起始日期对齐 ==========
 
 export function getGridFirstLineDate(
 	timeRange: { minTime: number; maxTime: number },
@@ -312,8 +314,6 @@ export function getGridFirstLineDate(
 	return firstLineDate;
 }
 
-// ========== 网格线日期递增 ==========
-
 export function advanceGridLineDate(date: Date, intervalDays: number): void {
 	if (intervalDays >= 365) {
 		date.setFullYear(date.getFullYear() + 1);
@@ -325,8 +325,6 @@ export function advanceGridLineDate(date: Date, intervalDays: number): void {
 		date.setDate(date.getDate() + intervalDays);
 	}
 }
-
-// ========== 甘特条左右边缘计算 ==========
 
 export function calcBarEdges(
 	task: TaskItem,
@@ -355,8 +353,6 @@ export function calcBarEdges(
 		width: Math.max(2, clampedRight - clampedLeft),
 	};
 }
-
-// ========== 依赖箭头路径计算 ==========
 
 export function calcDependencyPath(
 	sx: number,

@@ -1,8 +1,7 @@
-// src/process/bars/set-bar.ts
+// src/process/panel/panel-config.ts
 // 图表数据计算、任务计算、滑动条计算、格式化函数（纯函数）
 
 import { ALLOWED_STATUSES } from "../config/config";
-// 新增：从 task-filter.ts 导入 filterTasks
 import { filterTasks } from "../task/task-filter";
 
 // ========== ISO 周数计算（内部使用） ==========
@@ -688,7 +687,7 @@ export function maxDynamicRange(unit: string): number {
 			Math.floor(today.getMonth() / 3),
 			3 - Math.floor(today.getMonth() / 3),
 		);
-	if (unit === "year") return 5;
+	if (unit === "year") return 10;
 	return 365;
 }
 
@@ -747,5 +746,5 @@ export function staticSliderRanges(
 	};
 }
 
-// ========== 重新导出 filterTasks（从 task-filter.ts 移入） ==========
+// ========== 重新导出 filterTasks ==========
 export { filterTasks };

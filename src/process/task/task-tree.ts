@@ -32,6 +32,7 @@ export interface TreeFilterOptions {
 	searchText?: string;
 	priorityValues?: string[];
 	repeatCycles?: string[];
+	includeMarks?: string[];
 }
 
 // ========== 文件名规范化 ==========
@@ -326,55 +327,135 @@ function filterContentNode(
 	return { ...node, children: fc, _task: self ? node._task : undefined };
 }
 
+/**
+ * 筛选逻辑：
+ * 1. 全选和部分选的组都参与筛选，全不选的组不参与
+ * 2. 如果没有参与的组 → 保留任务
+ * 3. 任务满足任一参与组的条件 → 保留；否则排除
+ * 组间关系：或
+ * 组内关系：或
+ */
 function taskMatchesFilter(
 	task: TaskItem,
 	options: TreeFilterOptions,
 ): boolean {
 	if (!task) return false;
-	if (options.statuses?.length && !options.statuses.includes(task._status))
-		return false;
+
+	// 隐藏选项（独立于筛选组，始终生效）
 	if (options.hideRepeat && task._repeat) return false;
 	if (options.hideCompleted && task._status === "completed") return false;
 	if (options.hideCancelled && task._status === "cancelled") return false;
+
+	// 收集所有参与的组（全选或部分选，即 length > 0）
+	const activeGroups: Array<() => boolean> = [];
+
+	// 状态组：length > 0 即参与
+	const statuses = options.statuses || [];
+	if (statuses.length > 0) {
+		activeGroups.push(() => statuses.includes(task._status));
+	}
+
+	// 优先级组：length > 0 即参与
+	const priorityValues = options.priorityValues || [];
+	if (priorityValues.length > 0) {
+		activeGroups.push(() => {
+			const icon = task._priorityIcon;
+			return icon ? priorityValues.includes(icon) : false;
+		});
+	}
+
+	// 循环组：length > 0 即参与
+	const repeatCycles = options.repeatCycles || [];
+	if (repeatCycles.length > 0) {
+		activeGroups.push(() => {
+			if (!task._repeat) return false;
+			const taskCycle = task._repeat.toLowerCase().replace(/^🔁\s*/, "");
+			return repeatCycles.some((c) => {
+				const filterCycle = c.toLowerCase().replace(/^🔁\s*/, "");
+				// 精确匹配
+				if (taskCycle === filterCycle) return true;
+				// 同类型匹配
+				if (
+					filterCycle === "every day" &&
+					/\bevery\s+(\d+\s+)?days?\b/i.test(taskCycle)
+				)
+					return true;
+				if (
+					filterCycle === "every week" &&
+					/\bevery\s+(\d+\s+)?weeks?\b/i.test(taskCycle)
+				)
+					return true;
+				if (
+					filterCycle === "every month" &&
+					/\bevery\s+(\d+\s+)?months?\b/i.test(taskCycle)
+				)
+					return true;
+				if (
+					filterCycle === "every year" &&
+					/\bevery\s+(\d+\s+)?years?\b/i.test(taskCycle)
+				)
+					return true;
+				return false;
+			});
+		});
+	}
+
+	// 日期标记组：有选中的日期标记即参与
+	const includeMarks = options.includeMarks || [];
+	const allDateMarks = [
+		"created",
+		"scheduled",
+		"starts",
+		"cancel",
+		"done",
+		"due",
+	];
+	const dateMarksSelected = allDateMarks.filter((k) =>
+		includeMarks.includes(k),
+	);
+	if (dateMarksSelected.length > 0) {
+		activeGroups.push(() => {
+			return dateMarksSelected.some((m) => task._marks?.[m]);
+		});
+	}
+
+	// 依赖标记组：有选中的依赖标记即参与
+	const allDepMarks = ["id", "forbid"];
+	const depMarksSelected = allDepMarks.filter((k) =>
+		includeMarks.includes(k),
+	);
+	if (depMarksSelected.length > 0) {
+		activeGroups.push(() => {
+			return depMarksSelected.some((m) => task._marks?.[m]);
+		});
+	}
+
+	// 标签标记组：选中即参与
+	if (includeMarks.includes("tag")) {
+		activeGroups.push(() => {
+			return !!task._marks?.tag;
+		});
+	}
+
+	// 搜索组：有搜索文本即参与
 	if (options.searchText) {
 		const kw = options.searchText
 			.toLowerCase()
 			.split(/\s+/)
 			.filter((k) => k.length > 0);
-		const text = (task._cleanText || task.text || "").toLowerCase();
-		if (!kw.every((k) => text.includes(k))) return false;
-	}
-	if (options.priorityValues?.length) {
-		const allPriorities = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-		const isAllSelected = allPriorities.every((p) =>
-			options.priorityValues!.includes(p),
-		);
-		if (!isAllSelected) {
-			const icon = task._priorityIcon;
-			if (icon && !options.priorityValues!.includes(icon)) return false;
+		if (kw.length > 0) {
+			activeGroups.push(() => {
+				const text = (task._cleanText || task.text || "").toLowerCase();
+				return kw.every((k) => text.includes(k));
+			});
 		}
 	}
-	if (options.repeatCycles?.length) {
-		const allCycles = [
-			"every day",
-			"every week",
-			"every month",
-			"every year",
-		];
-		const isAllSelected = allCycles.every((c) =>
-			options.repeatCycles!.includes(c),
-		);
-		if (!isAllSelected) {
-			if (!task._repeat) return false;
-			if (
-				!options.repeatCycles!.some((c: string) =>
-					task._repeat.toLowerCase().includes(c),
-				)
-			)
-				return false;
-		}
-	}
-	return true;
+
+	// 如果没有参与的组 → 保留任务
+	if (activeGroups.length === 0) return true;
+
+	// 任务满足任一参与组的条件 → 保留
+	return activeGroups.some((check) => check());
 }
 
 // ========== 时间范围筛选 ==========
@@ -451,15 +532,36 @@ function taskInDateRange(
 	dateRange: { start: number; end: number },
 	intervalMode: string,
 ): boolean {
+	// 不筛选模式
+	if (intervalMode === "none") return true;
+
 	let startStr: string | null = null;
 	let endStr: string | null = null;
+
 	if (intervalMode === "starts-done") {
 		startStr = task._starts;
-		endStr = task._done || task._due;
+		endStr = task._done || task._cancel;
+	} else if (intervalMode === "any-date") {
+		const dates = [
+			task._created,
+			task._scheduled,
+			task._starts,
+			task._due,
+			task._done,
+			task._cancel,
+		];
+		for (const d of dates) {
+			if (!d) continue;
+			const ts = new Date(d).getTime();
+			if (isNaN(ts)) continue;
+			if (ts >= dateRange.start && ts <= dateRange.end) return true;
+		}
+		return false;
 	} else {
 		startStr = task._scheduled;
 		endStr = task._due;
 	}
+
 	if (!startStr || !endStr) return false;
 	const start = new Date(startStr).getTime();
 	const end = new Date(endStr).getTime();
@@ -541,10 +643,33 @@ function taskNotHidden(task: TaskItem, hideConfig: HideConfig): boolean {
 	)
 		return false;
 	if (hideConfig.hideRepeatCycles.length > 0 && task._repeat) {
+		const taskCycle = task._repeat.toLowerCase().replace(/^🔁\s*/, "");
 		if (
-			hideConfig.hideRepeatCycles.some((c) =>
-				task._repeat.toLowerCase().includes(c),
-			)
+			hideConfig.hideRepeatCycles.some((c) => {
+				const filterCycle = c.toLowerCase().replace(/^🔁\s*/, "");
+				if (taskCycle === filterCycle) return true;
+				if (
+					filterCycle === "every day" &&
+					/\bevery\s+(\d+\s+)?days?\b/i.test(taskCycle)
+				)
+					return true;
+				if (
+					filterCycle === "every week" &&
+					/\bevery\s+(\d+\s+)?weeks?\b/i.test(taskCycle)
+				)
+					return true;
+				if (
+					filterCycle === "every month" &&
+					/\bevery\s+(\d+\s+)?months?\b/i.test(taskCycle)
+				)
+					return true;
+				if (
+					filterCycle === "every year" &&
+					/\bevery\s+(\d+\s+)?years?\b/i.test(taskCycle)
+				)
+					return true;
+				return false;
+			})
 		)
 			return false;
 	}

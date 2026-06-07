@@ -56,7 +56,7 @@ export class ViewPanel {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
-		const currentStyle = preset?.viewStyle ?? "table";
+		const currentStyle = preset?.viewStyle ?? "list";
 		const groups = new Map<string, typeof VIEW_STYLES>();
 		VIEW_STYLES.forEach((s) => {
 			if (!groups.has(s.group)) groups.set(s.group, []);

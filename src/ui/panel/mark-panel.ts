@@ -14,7 +14,7 @@ const MARK_GROUPS: { label: string; type: string; keys?: string[] }[] = [
 	{ label: "筛选优先", type: "priorityValues" },
 	{ label: "筛选循环", type: "repeatCycles" },
 	{
-		label: "筛选日期",
+		label: "筛选时间",
 		type: "marks",
 		keys: ["created", "scheduled", "starts", "cancel", "done", "due"],
 	},
@@ -65,20 +65,18 @@ export class MarkPanel {
 			const row = this.container.createDiv({ cls: "panel-row" });
 			row.createSpan({ text: group.label, cls: "panel-label" });
 
-			// 优先级组：主按钮 + 子按钮
+			// 优先级组
 			if (group.type === "priorityValues") {
 				const selected = currentFilter.priorityValues || [];
-				const allSelected = PRIORITY_ICONS.every((i) =>
-					selected.includes(i),
-				);
+				const noneSelected = selected.length === 0;
 				const mainBtn = row.createEl("button", {
 					text: "优先级",
 					cls: "panel-btn",
 				});
-				if (allSelected) mainBtn.addClass("active");
+				if (!noneSelected) mainBtn.addClass("active");
 				mainBtn.onclick = () => {
 					updateFilter({
-						priorityValues: allSelected ? [] : [...PRIORITY_ICONS],
+						priorityValues: noneSelected ? [...PRIORITY_ICONS] : [],
 					});
 				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
@@ -100,20 +98,18 @@ export class MarkPanel {
 				return;
 			}
 
-			// 循环组：主按钮 + 子按钮
+			// 循环组
 			if (group.type === "repeatCycles") {
 				const selected = currentFilter.repeatCycles || [];
-				const allSelected = REPEAT_ORDER.every((c) =>
-					selected.includes(c),
-				);
+				const noneSelected = selected.length === 0;
 				const mainBtn = row.createEl("button", {
 					text: "循环",
 					cls: "panel-btn",
 				});
-				if (allSelected) mainBtn.addClass("active");
+				if (!noneSelected) mainBtn.addClass("active");
 				mainBtn.onclick = () => {
 					updateFilter({
-						repeatCycles: allSelected ? [] : [...REPEAT_ORDER],
+						repeatCycles: noneSelected ? [...REPEAT_ORDER] : [],
 					});
 				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
@@ -135,25 +131,25 @@ export class MarkPanel {
 				return;
 			}
 
-			// 标记组（日期/依赖）：主按钮 + 子按钮
+			// 标记组（日期/依赖）：多子按钮
 			if (group.type === "marks" && group.keys && group.keys.length > 1) {
 				const selected = currentFilter.includeMarks || [];
-				const allSelected = group.keys.every((k) =>
-					selected.includes(k),
+				const noneSelected = group.keys.every(
+					(k) => !selected.includes(k),
 				);
 				const mainBtn = row.createEl("button", {
 					text: group.label.replace("筛选", ""),
 					cls: "panel-btn",
 				});
-				if (allSelected) mainBtn.addClass("active");
+				if (!noneSelected) mainBtn.addClass("active");
 				mainBtn.onclick = () => {
 					const others = selected.filter(
 						(m) => !group.keys!.includes(m),
 					);
 					updateFilter({
-						includeMarks: allSelected
-							? others
-							: [...others, ...group.keys!],
+						includeMarks: noneSelected
+							? [...others, ...group.keys!]
+							: others,
 					});
 				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
@@ -175,7 +171,7 @@ export class MarkPanel {
 				return;
 			}
 
-			// 单标记组（标签）：仅一个按钮，无子按钮
+			// 单标记组（标签）
 			if (
 				group.type === "marks" &&
 				group.keys &&

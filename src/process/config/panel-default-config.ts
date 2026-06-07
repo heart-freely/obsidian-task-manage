@@ -1,24 +1,28 @@
 // src/process/config/panel-default-config.ts
-// 面板默认配置 — 所有功能面板的默认值统一来源
+// 面板默认配置 — 所有功能面板的默认值和共用常量统一来源
 
 import { GlobalFilter, HideConfig, Preset } from "../../types";
-import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "./config";
+
+// ========== 共用常量 ==========
+
+/** 年份范围偏移（用于"全部"时间范围和动态年滑动条） */
+export const YEAR_RANGE_OFFSET = 10;
 
 // ========== 默认筛选条件 ==========
 
 export function getDefaultFilter(): GlobalFilter {
 	return {
 		dateRange: { start: null, end: null, isAll: true },
-		statuses: ["todo", "planned", "in-progress", "completed", "cancelled"],
-		includeMarks: [...ALL_MARKS],
+		statuses: [],
+		includeMarks: [],
 		excludeMarks: [],
 		hideRepeat: true,
 		hideCompleted: true,
 		hideCancelled: true,
 		rootPath: null,
 		hideFolders: true,
-		priorityValues: [...PRIORITY_ORDER],
-		repeatCycles: [...REPEAT_ORDER],
+		priorityValues: [],
+		repeatCycles: [],
 	};
 }
 
@@ -26,30 +30,25 @@ export function getDefaultFilter(): GlobalFilter {
 
 export function getDefaultHideConfig(): HideConfig {
 	return {
-		hideStatuses: ["completed", "cancelled"],
+		hideStatuses: [],
 		hidePriorityValues: [],
-		hideRepeatCycles: [
-			"every day",
-			"every week",
-			"every month",
-			"every year",
-		],
-		hideMarks: ["created", "cancel", "id", "forbid", "tag"],
+		hideRepeatCycles: [],
+		hideMarks: [],
 		hideSearchText: "",
 		hideTableColumns: {
 			status: false,
 			content: false,
 			priority: false,
-			repeat: true,
-			created: true,
+			repeat: false,
+			created: false,
 			scheduled: false,
 			starts: false,
-			cancel: true,
-			done: true,
+			cancel: false,
+			done: false,
 			due: false,
-			tag: true,
-			id: true,
-			forbid: true,
+			tag: false,
+			id: false,
+			forbid: false,
 		},
 	};
 }
@@ -86,7 +85,7 @@ export function getDefaultPresets(): Preset[] {
 			sort: true,
 			config: true,
 		} as Record<string, boolean>,
-		intervalMode: "scheduled-due" as string,
+		intervalMode: "any-date" as string,
 		taskTreeNavCollapsed: true,
 		taskTreeNavWidth: 280,
 		hideConfig: { ...defaultHideConfig },
@@ -186,7 +185,7 @@ export function getDefaultPresets(): Preset[] {
 			id: "all-tasks",
 			name: "所有任务",
 			businessView: "allTasks",
-			viewStyle: "table",
+			viewStyle: "list",
 			icon: "📋",
 			filter: { ...defaultFilter },
 			sort: { type: "status", order: "asc" as const },

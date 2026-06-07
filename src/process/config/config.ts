@@ -150,7 +150,8 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 		zhName: "循环",
 		enName: "Repeat",
 		icon: "🔁",
-		pattern: "🔁\\s*(every\\s+(day|week|month|year))",
+		pattern:
+			"🔁\\s*(every\\s+(\\d+\\s+)?(day|week|month|year)s?|every\\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)|every\\s+\\d+(st|nd|rd|th)|on\\s+\\d{4}-\\d{2}-\\d{2})",
 		inMarkSequence: true,
 		yaName: "任务周期",
 		children: [

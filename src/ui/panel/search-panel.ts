@@ -33,8 +33,11 @@ export class SearchPanel {
 			"input",
 		) as HTMLInputElement;
 		if (existingInput) {
-			existingInput.value =
+			const newValue =
 				this.currentValue || currentFilter.searchText || "";
+			if (existingInput.value !== newValue) {
+				existingInput.value = newValue;
+			}
 			return;
 		}
 
@@ -48,7 +51,6 @@ export class SearchPanel {
 			attr: {
 				placeholder:
 					"输入关键词匹配筛选任务，多个关键词用空格分隔，回车搜索",
-				size: "40",
 			},
 		});
 		input.style.width = "380px";

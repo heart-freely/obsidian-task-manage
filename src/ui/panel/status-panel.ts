@@ -34,18 +34,21 @@ export class StatusPanel {
 		row.createSpan({ text: "筛选状态", cls: "panel-label" });
 
 		const selected = currentFilter.statuses || [];
-		const allSelected = ALLOWED_STATUSES.every((s) => selected.includes(s));
+		const noneSelected = selected.length === 0;
 
+		// 主按钮：至少选中一个就高亮
 		const mainBtn = row.createEl("button", {
 			text: "状态",
 			cls: "panel-btn",
 		});
-		if (allSelected) mainBtn.addClass("active");
+		if (!noneSelected) mainBtn.addClass("active");
+
 		mainBtn.onclick = () => {
 			const st = this.store.getState();
 			const pr = this.store.getActivePreset();
 			if (!pr) return;
-			const ns = allSelected ? [] : [...ALLOWED_STATUSES];
+			// 全部不选时 → 全选；有选中时 → 全部不选
+			const ns = noneSelected ? [...ALLOWED_STATUSES] : [];
 			this.store.update({
 				presets: st.presets.map((p) =>
 					p.id === pr.id
