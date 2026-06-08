@@ -9,7 +9,6 @@ import {
 	sortFileNodes,
 } from "../../../../process/component/tree-view-process";
 import { ContentNode, TreeNode } from "../../../../process/task/task-tree";
-import { TaskItem } from "../../../../types";
 import { createProgressBar } from "../../progress/progress";
 import { createTaskCard } from "../card/card";
 
@@ -20,11 +19,10 @@ export interface TreeListOptions {
 	roots: TreeNode[];
 	onClick?: (node: any) => void;
 	sort?: { type: string; order: "asc" | "desc" };
-	/** 每渲染一个行节点时回调，用于甘特图等扩展 */
 	onRowRender?: (
 		rowEl: HTMLElement,
 		node: TreeNode | ContentNode,
-		task: TaskItem | null,
+		task: any,
 	) => void;
 }
 
@@ -52,7 +50,6 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 			childContainer.style.display = "none";
 			b.textContent = "▶";
 		}
-		// 通知扩展（甘特图等）树结构发生了变化
 		const treeRoot =
 			b.closest(".task-tree") ||
 			b.closest(".gantt-tree-container") ||
@@ -171,13 +168,10 @@ function renderFileNodeInline(
 		"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
 
 	if (task) {
-		const originalCleanText = task._cleanText;
-		task._cleanText = "📄 " + (originalCleanText || node.name);
 		const card = createTreeCard(task, onClick, node);
 		contentContainer.appendChild(card);
 		if (total > 0 && hasContent)
 			addProgressBadge(contentContainer, counts, total);
-		task._cleanText = originalCleanText;
 	} else {
 		const pseudoTask = {
 			_status: "todo",
@@ -264,13 +258,12 @@ function renderContentNode(
 		const { counts, total } = countContentNodeStatuses(node);
 
 		if (task) {
-			const originalCleanText = task._cleanText;
+			// 使用去序号后的标题文本
 			task._cleanText = hTag + " " + cleanTitle;
 			const card = createTreeCard(task, onClick, wrappedNode);
 			contentContainer.appendChild(card);
 			if (total > 0 && hasChildren)
 				addProgressBadge(contentContainer, counts, total);
-			task._cleanText = originalCleanText;
 		} else {
 			const pseudoTask = {
 				_status: "todo",
@@ -307,8 +300,7 @@ function renderContentNode(
 		rowWrapper.appendChild(rightSpacer);
 		parentEl.appendChild(rowWrapper);
 
-		const nodeTask = task || null;
-		options?.onRowRender?.(rowWrapper, node, nodeTask);
+		options?.onRowRender?.(rowWrapper, node, task || null);
 
 		const sortedChildren = sort
 			? sortContentNodes(node.children, sort)
@@ -324,7 +316,7 @@ function renderContentNode(
 		);
 	} else if (node.type === "task") {
 		const task = (node as any)._task;
-		const taskData: any = task || {
+		const taskData = task || {
 			_status: "todo",
 			text: node.text,
 			description: node.text,

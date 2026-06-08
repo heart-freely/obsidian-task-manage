@@ -469,6 +469,7 @@ export abstract class BaseTaskView {
 			});
 			treeContent.style.cssText =
 				"flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0;";
+
 			renderTaskTree(treeContent, {
 				roots: displayTree,
 				hideFolders: filter.hideFolders ?? true,

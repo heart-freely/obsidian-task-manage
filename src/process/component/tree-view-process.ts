@@ -14,6 +14,7 @@ export function removeHeadingNumber(text: string): string {
 		.replace(/^[\d]+\.[\d.]*[:\)\-\—]\s*/, "")
 		.replace(/^[A-Z]+\.[\d.]*[:\)\-\—]\s*/, "")
 		.replace(/^[IVXLCDM]+\.[\d.]*[:\)\-\—]\s*/, "")
+		.replace(/^\d+\s+/, "")
 		.replace(/^_[\.\s]*/, "")
 		.trim();
 }

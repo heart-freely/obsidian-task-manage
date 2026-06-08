@@ -438,11 +438,19 @@ export const DEFAULT_TASK_ROOT_PATH = "pages/A 系统/A 任务系统";
 /** 默认文件名匹配模式 */
 export const DEFAULT_TASK_FILE_PATTERN = "任务\\.md$";
 
+/** 默认标题任务匹配模式 */
+export const DEFAULT_HEADING_TASK_PATTERN = "任务$";
+
 /** 任务文件根路径 */
 export let TASK_ROOT_PATH = DEFAULT_TASK_ROOT_PATH;
 
-/** 文件名匹配正则（匹配以"任务"结尾的 .md 文件） */
+/** 文件名匹配正则 */
 export let TASK_FILE_PATTERN: RegExp = new RegExp(DEFAULT_TASK_FILE_PATTERN);
+
+/** 标题任务匹配正则 */
+export let HEADING_TASK_PATTERN: RegExp = new RegExp(
+	DEFAULT_HEADING_TASK_PATTERN,
+);
 
 /** 白名单配置 */
 export let TASK_WHITELIST: {
@@ -491,6 +499,7 @@ export function isBlacklisted(filePath: string): boolean {
 export function updateTaskFileConfig(config: {
 	rootPath?: string;
 	filePattern?: string;
+	headingPattern?: string;
 	whitelist?: { enabled?: boolean; useRegex?: boolean; pattern?: string };
 	blacklist?: { enabled?: boolean; useRegex?: boolean; pattern?: string };
 }) {
@@ -498,6 +507,13 @@ export function updateTaskFileConfig(config: {
 	if (config.filePattern !== undefined) {
 		try {
 			TASK_FILE_PATTERN = new RegExp(config.filePattern);
+		} catch {
+			/* 保持原值 */
+		}
+	}
+	if (config.headingPattern !== undefined) {
+		try {
+			HEADING_TASK_PATTERN = new RegExp(config.headingPattern);
 		} catch {
 			/* 保持原值 */
 		}

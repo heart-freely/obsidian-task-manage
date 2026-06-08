@@ -3,15 +3,16 @@
 
 import { TaskItem } from "../../types";
 import {
+	HEADING_TASK_PATTERN,
+	isBlacklisted,
+	isTaskFile,
+	isWhitelisted,
 	RX,
 	STATUS_ALL_SYMBOLS,
 	SYMBOL_TO_STATUS,
 	TASK_ELEMENTS,
 	TASK_ROOT_PATH,
 	YAML_DATE_FIELDS,
-	isBlacklisted,
-	isTaskFile,
-	isWhitelisted,
 } from "../config/config";
 import { DateUtils } from "../process";
 
@@ -121,7 +122,6 @@ export function parseTaskLine(
 
 // ========== 文件解析 ==========
 
-// 前置声明，避免循环引用
 export interface ContentNode {
 	type: "heading" | "task";
 	level?: number;
@@ -426,7 +426,7 @@ function getStatusIconForTooltip(status: string): string {
 	return map[status] || "🔲";
 }
 
-// ========== 文件内容解析（核心，不依赖 task-tree.ts） ==========
+// ========== 文件内容解析 ==========
 
 function parseFileContent(content: string, filePath?: string): ContentNode[] {
 	if (!content) return [];
@@ -459,7 +459,36 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 			const level = headingMatch[1].length;
 			const title = headingMatch[2].trim();
 
-			if (title.endsWith("任务")) {
+			// 所有标题都加入树结构
+			const node: ContentNode = {
+				type: "heading",
+				level,
+				text: title,
+				raw: trimmed,
+				line: i,
+				children: [],
+				parent: null,
+			};
+
+			// 弹出比当前级别低或相等的标题
+			while (
+				headingStack.length > 0 &&
+				headingStack[headingStack.length - 1].level! >= level
+			) {
+				headingStack.pop();
+			}
+
+			if (headingStack.length > 0) {
+				headingStack[headingStack.length - 1].children.push(node);
+			} else {
+				roots.push(node);
+			}
+
+			headingStack.push(node);
+			indentStack.length = 0;
+
+			// 匹配正则的标题设置为标题任务
+			if (HEADING_TASK_PATTERN.test(title)) {
 				const { yamlData, yamlStartLine, yamlEndLine } =
 					parseHeadingYamlBlock(lines, i, level);
 				let taskData: TaskItem | null = null;
@@ -470,41 +499,19 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 						taskData._headingLevel = level;
 					}
 				}
-
-				const node: ContentNode = {
-					type: "heading",
-					level,
-					text: title,
-					raw: trimmed,
-					line: i,
-					children: [],
-					parent: null,
-					yamlStartLine:
-						yamlStartLine >= 0 ? yamlStartLine : undefined,
-					yamlEndLine: yamlEndLine >= 0 ? yamlEndLine : undefined,
-				};
-				if (taskData) node._task = taskData;
-
-				while (
-					headingStack.length > 0 &&
-					headingStack[headingStack.length - 1].level! >= level
-				) {
-					headingStack.pop();
+				if (taskData) {
+					node._task = taskData;
+					node.yamlStartLine =
+						yamlStartLine >= 0 ? yamlStartLine : undefined;
+					node.yamlEndLine =
+						yamlEndLine >= 0 ? yamlEndLine : undefined;
 				}
-
-				if (headingStack.length > 0) {
-					headingStack[headingStack.length - 1].children.push(node);
-				} else {
-					roots.push(node);
-				}
-
-				headingStack.push(node);
-				indentStack.length = 0;
-				continue;
 			}
+
 			continue;
 		}
 
+		// 跳过标题 YAML 代码块区域
 		const currentHeading =
 			headingStack.length > 0
 				? headingStack[headingStack.length - 1]
@@ -554,7 +561,88 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 		indentStack.push({ indent, node });
 	}
 
+	// 自动识别：标题下有列表任务的，提升为标题任务
+	promoteToHeadingTasks(roots);
+
 	return roots;
+}
+
+/**
+ * 自动识别标题任务：为没有 _task 但有子列表任务的标题创建伪任务
+ */
+function promoteToHeadingTasks(nodes: ContentNode[]) {
+	for (const node of nodes) {
+		if (node.type === "heading") {
+			if (!node._task && hasListTasks(node)) {
+				node._task = createPseudoHeadingTask(node);
+			}
+		}
+		if (node.children.length > 0) {
+			promoteToHeadingTasks(node.children);
+		}
+	}
+}
+
+/**
+ * 检查节点下是否有列表任务（不包括标题节点自身的 _task）
+ */
+function hasListTasks(node: ContentNode): boolean {
+	for (const child of node.children) {
+		if (child.type === "task" && child._task) return true;
+		if (child.type === "heading" && child._task) return true;
+		if (hasListTasks(child)) return true;
+	}
+	return false;
+}
+
+/**
+ * 为自动识别的标题创建伪任务数据
+ */
+function createPseudoHeadingTask(node: ContentNode): TaskItem {
+	return {
+		_status: "todo",
+		_cleanText: node.text,
+		_fullLine: "",
+		_priorityIcon: "",
+		_created: "",
+		_scheduled: "",
+		_starts: "",
+		_due: "",
+		_done: "",
+		_cancel: "",
+		_tag: "",
+		_id: "",
+		_forbid: "",
+		_repeat: "",
+		_marks: {
+			priority: false,
+			repeat: false,
+			created: false,
+			scheduled: false,
+			starts: false,
+			due: false,
+			done: false,
+			cancel: false,
+			tag: false,
+			id: false,
+			forbid: false,
+		},
+		_cachedTimeRange: null,
+		_tooltip: "",
+		_tooltipHtml: "",
+		_isHeadingTask: true,
+		_isFileTask: false,
+		_headingLevel: node.level || 1,
+		_headingText: node.text,
+		path: "",
+		line: node.line,
+		lineNumber: node.line,
+		text: node.text,
+		description: node.text,
+		priority: "none",
+		status: " ",
+		fileName: "",
+	} as TaskItem;
 }
 
 function parseHeadingYamlBlock(
@@ -621,44 +709,43 @@ function yamlDataToTaskData(
 	});
 	const rawStatus = yamlData["任务状态"] || "未开始",
 		rawPriority = yamlData["任务优先级"] || "none";
-	const statusKey = statusMap[rawStatus] || "todo",
-		priorityIcon = priorityMap[rawPriority] || "";
-	const formatDate = (val: any): string | null => {
+	const sk = statusMap[rawStatus] || "todo",
+		pi = priorityMap[rawPriority] || "";
+	const fd = (val: any): string | null => {
 		if (!val) return null;
-		const str = String(val);
-		if (str === "NaN" || str.includes("NaN")) return null;
-		const dateMatch = str.match(/(\d{4}-\d{2}-\d{2})/);
-		return dateMatch ? dateMatch[1] : str.substring(0, 10);
+		const s = String(val);
+		if (s === "NaN" || s.includes("NaN")) return null;
+		const dm = s.match(/(\d{4}-\d{2}-\d{2})/);
+		return dm ? dm[1] : s.substring(0, 10);
 	};
-	const dateValues: Record<string, string | null> = {};
-	for (const yaName of YAML_DATE_FIELDS)
-		dateValues[yaName] = formatDate(yamlData[yaName]);
+	const dv: Record<string, string | null> = {};
+	for (const yn of YAML_DATE_FIELDS) dv[yn] = fd(yamlData[yn]);
 	const name = yamlData["任务名称"] || "",
 		description = yamlData["任务简介"] || name;
 	return {
-		_status: statusKey,
+		_status: sk,
 		_cleanText: description,
 		_fullLine: "",
-		_priorityIcon: priorityIcon,
-		_created: dateValues["任务创建"] || "",
-		_scheduled: dateValues["任务计划"] || "",
-		_starts: dateValues["任务开始"] || "",
-		_due: dateValues["任务截止"] || "",
-		_done: dateValues["任务完成"] || "",
-		_cancel: dateValues["任务取消"] || "",
+		_priorityIcon: pi,
+		_created: dv["任务创建"] || "",
+		_scheduled: dv["任务计划"] || "",
+		_starts: dv["任务开始"] || "",
+		_due: dv["任务截止"] || "",
+		_done: dv["任务完成"] || "",
+		_cancel: dv["任务取消"] || "",
 		_tag: yamlData["任务标签"] || "",
 		_id: yamlData["任务唯一ID"] || "",
 		_forbid: yamlData["任务引用ID"] || "",
 		_repeat: yamlData["任务周期"] || "",
 		_marks: {
-			priority: !!priorityIcon,
+			priority: !!pi,
 			repeat: !!yamlData["任务周期"],
-			created: !!dateValues["任务创建"],
-			scheduled: !!dateValues["任务计划"],
-			starts: !!dateValues["任务开始"],
-			due: !!dateValues["任务截止"],
-			done: !!dateValues["任务完成"],
-			cancel: !!dateValues["任务取消"],
+			created: !!dv["任务创建"],
+			scheduled: !!dv["任务计划"],
+			starts: !!dv["任务开始"],
+			due: !!dv["任务截止"],
+			done: !!dv["任务完成"],
+			cancel: !!dv["任务取消"],
 			tag: !!yamlData["任务标签"],
 			id: !!yamlData["任务唯一ID"],
 			forbid: !!yamlData["任务引用ID"],

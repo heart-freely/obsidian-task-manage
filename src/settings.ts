@@ -1,10 +1,16 @@
 // src/settings.ts
 import { App, PluginSettingTab, Setting } from "obsidian";
-import { updateTaskFileConfig } from "./process/config/config";
+import {
+	DEFAULT_HEADING_TASK_PATTERN,
+	DEFAULT_TASK_FILE_PATTERN,
+	DEFAULT_TASK_ROOT_PATH,
+	updateTaskFileConfig,
+} from "./process/config/config";
 
 export interface TaskManageSettings {
 	taskRootPath: string;
 	taskFilePattern: string;
+	headingTaskPattern: string;
 	whitelistEnabled: boolean;
 	whitelistUseRegex: boolean;
 	whitelistPattern: string;
@@ -15,8 +21,9 @@ export interface TaskManageSettings {
 }
 
 export const DEFAULT_SETTINGS: TaskManageSettings = {
-	taskRootPath: "pages/A 系统/A 任务系统",
-	taskFilePattern: "任务\\.md$",
+	taskRootPath: DEFAULT_TASK_ROOT_PATH,
+	taskFilePattern: DEFAULT_TASK_FILE_PATTERN,
+	headingTaskPattern: DEFAULT_HEADING_TASK_PATTERN,
 	whitelistEnabled: false,
 	whitelistUseRegex: false,
 	whitelistPattern: "",
@@ -45,10 +52,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			.setDesc("任务文件所在的根路径")
 			.addText((text) =>
 				text
-					.setPlaceholder("pages/A 系统/A 任务系统")
+					.setPlaceholder(DEFAULT_TASK_ROOT_PATH)
 					.setValue(
 						this.plugin.settings.taskRootPath ||
-							DEFAULT_SETTINGS.taskRootPath,
+							DEFAULT_TASK_ROOT_PATH,
 					)
 					.onChange(async (value) => {
 						this.plugin.settings.taskRootPath = value.trim();
@@ -65,14 +72,34 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder("任务\\.md$")
+					.setPlaceholder(DEFAULT_TASK_FILE_PATTERN)
 					.setValue(
 						this.plugin.settings.taskFilePattern ||
-							DEFAULT_SETTINGS.taskFilePattern,
+							DEFAULT_TASK_FILE_PATTERN,
 					)
 					.onChange(async (value) => {
 						this.plugin.settings.taskFilePattern = value;
 						updateTaskFileConfig({ filePattern: value });
+						await this.plugin.saveData(this.plugin.settings);
+					}),
+			);
+
+		// ========== 标题任务匹配 ==========
+		new Setting(containerEl)
+			.setName("标题任务匹配正则")
+			.setDesc(
+				'匹配标题任务的正则表达式（默认：任务$ 匹配以"任务"结尾的标题）',
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder(DEFAULT_HEADING_TASK_PATTERN)
+					.setValue(
+						this.plugin.settings.headingTaskPattern ||
+							DEFAULT_HEADING_TASK_PATTERN,
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.headingTaskPattern = value;
+						updateTaskFileConfig({ headingPattern: value });
 						await this.plugin.saveData(this.plugin.settings);
 					}),
 			);

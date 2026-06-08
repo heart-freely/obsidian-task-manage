@@ -2,6 +2,7 @@
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./command";
 import {
+	DEFAULT_HEADING_TASK_PATTERN,
 	DEFAULT_TASK_FILE_PATTERN,
 	DEFAULT_TASK_ROOT_PATH,
 	updateTaskFileConfig,
@@ -21,6 +22,8 @@ export default class TaskManagePlugin extends Plugin {
 		updateTaskFileConfig({
 			rootPath: savedData.taskRootPath || DEFAULT_TASK_ROOT_PATH,
 			filePattern: savedData.taskFilePattern || DEFAULT_TASK_FILE_PATTERN,
+			headingPattern:
+				savedData.headingTaskPattern || DEFAULT_HEADING_TASK_PATTERN,
 			whitelist: {
 				enabled: savedData.whitelistEnabled ?? false,
 				useRegex: savedData.whitelistUseRegex ?? false,
@@ -114,6 +117,7 @@ export default class TaskManagePlugin extends Plugin {
 				...state,
 				taskRootPath: savedData.taskRootPath,
 				taskFilePattern: savedData.taskFilePattern,
+				headingTaskPattern: savedData.headingTaskPattern,
 				whitelistEnabled: savedData.whitelistEnabled,
 				whitelistUseRegex: savedData.whitelistUseRegex,
 				whitelistPattern: savedData.whitelistPattern,
