@@ -1,6 +1,4 @@
 // src/ui/panel/status-panel.ts
-// 任务状态面板
-
 import { ALLOWED_STATUSES, STATUS_NAMES } from "../../process/config/config";
 import { Store } from "../../process/store/store";
 
@@ -36,7 +34,6 @@ export class StatusPanel {
 		const selected = currentFilter.statuses || [];
 		const noneSelected = selected.length === 0;
 
-		// 主按钮：至少选中一个就高亮
 		const mainBtn = row.createEl("button", {
 			text: "状态",
 			cls: "panel-btn",
@@ -47,7 +44,6 @@ export class StatusPanel {
 			const st = this.store.getState();
 			const pr = this.store.getActivePreset();
 			if (!pr) return;
-			// 全部不选时 → 全选；有选中时 → 全部不选
 			const ns = noneSelected ? [...ALLOWED_STATUSES] : [];
 			this.store.update({
 				presets: st.presets.map((p) =>

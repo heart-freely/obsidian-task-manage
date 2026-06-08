@@ -1,44 +1,30 @@
 // src/types.ts
 
-/** 任务统一结构 */
-export interface TaskItem {
-	_status: string;
-	_cleanText: string;
-	_fullLine: string;
-	_priorityIcon: string;
-	_created: string;
-	_scheduled: string;
-	_starts: string;
-	_due: string;
-	_done: string;
-	_cancel: string;
-	_tag: string;
-	_id: string;
-	_forbid: string;
-	_repeat: string;
-	_marks: Record<string, boolean>;
-	_cachedTimeRange: { start: number; end: number } | null;
-	_tooltip: string;
-	_tooltipHtml: string;
-	_isHeadingTask: boolean;
-	_isFileTask: boolean;
-	_headingLevel: number;
-	_headingText: string;
-	path: string;
-	line: number;
-	lineNumber: number;
-	text: string;
-	description: string;
-	priority: string;
-	status: string;
-	fileName: string;
-	statusIcon?: string;
-	statusName?: string;
-	statusText?: string;
-	recurrenceLabel?: string;
-	tags?: string[];
-	[key: string]: any;
-}
+// 从 config.ts 重新导出（类型从常量自动派生，单一数据源）
+import type {
+	DateMarkKey,
+	MarkKey,
+	PriorityIcon,
+	RepeatCycle,
+	TaskStatus,
+} from "./process/config/config";
+
+export type { DateMarkKey, MarkKey, PriorityIcon, RepeatCycle, TaskStatus };
+
+// ========== 纯业务类型 ==========
+
+/** 任务来源类型 */
+export type TaskSource = "file" | "heading" | "list";
+
+/** 时间计算模式 */
+export type IntervalMode =
+	| "scheduled-due"
+	| "starts-done"
+	| "any-date"
+	| "none";
+
+/** 任务标记存在性映射 */
+export type TaskMarks = Record<MarkKey, boolean>;
 
 /** 全局筛选条件 */
 export interface GlobalFilter {
@@ -66,7 +52,7 @@ export interface HideConfig {
 	hideTableColumns: Record<string, boolean>;
 }
 
-/** 方案 */
+/** 视图方案 */
 export interface Preset {
 	id: string;
 	name: string;
@@ -100,11 +86,47 @@ export interface PresetGroup {
 	order?: number;
 }
 
-/** Store 状态 */
+/** Store 全局状态 */
 export interface AppState {
 	activePresetId: string | null;
 	presets: Preset[];
 	presetGroups: PresetGroup[];
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
+}
+
+export interface Task {
+	/** 执行状态 */
+	status: TaskStatus;
+	/** 去除所有标记后的纯文本描述 */
+	content: string;
+
+	/**
+	 * 优先级数字
+	 * 0 = 最高 (🔺), 1 = 高 (⏫), 2 = 中 (🔼), 3 = 低 (🔽), 4 = 最低 (⏬), 5 = 无优先级
+	 */
+	priority: number;
+
+	/** 循环规则原文（不含🔁前缀），如 "every week" */
+	repeat: string;
+
+	/** 创建日期（毫秒时间戳，null 表示不存在） */
+	created: number | null;
+	/** 计划日期（毫秒时间戳，null 表示不存在） */
+	scheduled: number | null;
+	/** 开始日期（毫秒时间戳，null 表示不存在） */
+	starts: number | null;
+	/** 截止日期（毫秒时间戳，null 表示不存在） */
+	due: number | null;
+	/** 完成日期（毫秒时间戳，null 表示不存在） */
+	done: number | null;
+	/** 取消日期（毫秒时间戳，null 表示不存在） */
+	cancelled: number | null;
+
+	/** 唯一ID（用户自定义标记 🆔 的值） */
+	id: string;
+	/** 依赖ID列表（逗号分隔的原始字符串，来自 ⛔ 标记） */
+	forbid: string;
+	/** 标签（来自 🏁 标记） */
+	tag: string;
 }

@@ -1,9 +1,12 @@
+// src/ui/component/view/calendar/quarter-calendar.ts
+
 import { DateUtils } from "../../../../process/process";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 
 export function renderCalendarQuarter(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void; intervalMode?: string },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void; intervalMode?: string },
 ) {
 	container.empty();
 	const today = new Date();
@@ -17,8 +20,7 @@ export function renderCalendarQuarter(
 			text: `${today.getFullYear()}年${monthIdx + 1}月`,
 			cls: "quarter-month-title",
 		});
-		// 复用月视图的简化版（这里直接嵌入简化网格，或调用 renderCalendarMonth 的一部分，为避免循环，我们内联一个简单网格）
-		renderMiniMonth(monDiv, today.getFullYear(), monthIdx, tasks, options);
+		renderMiniMonth(monDiv, today.getFullYear(), monthIdx, nodes, options);
 	}
 }
 
@@ -26,7 +28,7 @@ function renderMiniMonth(
 	container: HTMLElement,
 	year: number,
 	month: number,
-	tasks: any[],
+	nodes: TaskTreeNode[],
 	options?: any,
 ) {
 	const firstDay = new Date(year, month, 1);
@@ -38,38 +40,41 @@ function renderMiniMonth(
 	for (let i = 0; i < 42; i++) {
 		const d = new Date(startDay);
 		d.setDate(startDay.getDate() + i);
-		const dateStr = DateUtils.formatDate(d);
 		const isOtherMonth = d.getMonth() !== month;
 		const cell = grid.createDiv({
 			cls: "mini-cell" + (isOtherMonth ? " other-month" : ""),
 		});
 		cell.textContent = d.getDate().toString();
-		const dayTasks = tasks.filter((task) => {
-			// 判断任务是否覆盖该日期（使用 intervalMode）
-			const intervalMode = options?.intervalMode || "scheduled-due";
-			return isTaskInDate(task, d, intervalMode);
-		});
-		if (dayTasks.length > 0) {
+
+		const intervalMode = options?.intervalMode || "scheduled-due";
+		const dayNodes = nodes.filter((node) =>
+			isNodeInDate(node, d, intervalMode),
+		);
+		if (dayNodes.length > 0) {
 			cell.style.backgroundColor = "#4dabf7";
 			cell.style.color = "white";
-			cell.title = dayTasks.map((t) => t._cleanText).join(", ");
+			cell.title = dayNodes.map((n) => n.text || n.content).join(", ");
 		}
 	}
 }
 
-function isTaskInDate(task: any, date: Date, intervalMode: string): boolean {
-	const startField =
-		intervalMode === "starts-done" ? "_starts" : "_scheduled";
-	const endField =
-		intervalMode === "starts-done"
-			? task._done
-				? "_done"
-				: "_due"
-			: "_due";
-	const start = task[startField] ? new Date(task[startField]) : null;
-	const end = task[endField] ? new Date(task[endField]) : null;
-	if (!start || !end) return false;
+function isNodeInDate(
+	node: TaskTreeNode,
+	date: Date,
+	intervalMode: string,
+): boolean {
+	let startField: number | null, endField: number | null;
+
+	if (intervalMode === "starts-done") {
+		startField = node.starts;
+		endField = node.done ?? node.due;
+	} else {
+		startField = node.scheduled;
+		endField = node.due;
+	}
+
+	if (startField === null || endField === null) return false;
 	const dayStart = DateUtils.setStart(date).getTime();
 	const dayEnd = DateUtils.setEnd(date).getTime();
-	return start.getTime() <= dayEnd && end.getTime() >= dayStart;
+	return startField <= dayEnd && endField >= dayStart;
 }

@@ -1,19 +1,21 @@
 // src/ui/component/lists/list.ts
+
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createTaskCard } from "../card/card";
 
 interface TaskListOptions {
-	onClick?: (task: any) => void;
+	onClick?: (node: TaskTreeNode) => void;
 	compact?: boolean;
 }
 
 export function renderTaskList(
 	container: HTMLElement,
-	tasks: any[],
+	nodes: TaskTreeNode[],
 	options: TaskListOptions = {},
 ) {
 	const ul = container.createEl("ul", { cls: "task-list" });
-	tasks.forEach((task) => {
-		const card = createTaskCard(task, {
+	nodes.forEach((node) => {
+		const card = createTaskCard(node, {
 			showTooltip: options.compact ?? false,
 		});
 		if (options.compact) {
@@ -26,7 +28,7 @@ export function renderTaskList(
 		if (options.onClick) {
 			card.addEventListener("click", (e) => {
 				e.stopPropagation();
-				options.onClick!(task);
+				options.onClick!(node);
 			});
 		}
 		ul.appendChild(card);

@@ -1,4 +1,4 @@
-// src/ui/views/today-view.ts
+// src/ui/view/today-view.ts
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 
@@ -29,7 +29,6 @@ export class TodayView extends BaseTaskView {
 		filter.hideCancelled = true;
 		return filter;
 	}
-
 	protected renderEmpty() {
 		this.container.createDiv({ text: "📅 今天没有符合条件的任务" });
 	}

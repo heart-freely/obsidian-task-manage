@@ -1,20 +1,25 @@
 // src/ui/component/lists/time-list.ts
+
+import { formatDisplayDate } from "../../../../process/config/config";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 const COLOR = "rgba(97,175,239,0.25)";
 
 export function renderTimeList(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void },
 ) {
 	container.empty();
 
-	const groups: Record<string, any[]> = {};
-	tasks.forEach((task) => {
-		const date = task._scheduled || "无计划日期";
+	const groups: Record<string, TaskTreeNode[]> = {};
+	nodes.forEach((node) => {
+		const date = node.scheduled
+			? formatDisplayDate(new Date(node.scheduled))
+			: "无计划日期";
 		if (!groups[date]) groups[date] = [];
-		groups[date].push(task);
+		groups[date].push(node);
 	});
 
 	const sortedDates = Object.keys(groups).sort((a, b) => {

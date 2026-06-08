@@ -1,12 +1,18 @@
+// src/ui/component/view/list/timeline-list.ts
+
+import { formatDisplayDate } from "../../../../process/config/config";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
-export function renderTimeline(container: HTMLElement, tasks: any[]) {
+export function renderTimeline(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
-	const groups: Record<string, any[]> = {};
-	tasks.forEach((task) => {
-		const due = task._due || "无截止日期";
+	const groups: Record<string, TaskTreeNode[]> = {};
+	nodes.forEach((node) => {
+		const due = node.due
+			? formatDisplayDate(new Date(node.due))
+			: "无截止日期";
 		if (!groups[due]) groups[due] = [];
-		groups[due].push(task);
+		groups[due].push(node);
 	});
 
 	const sortedDates = Object.keys(groups).sort((a, b) => {
@@ -15,7 +21,6 @@ export function renderTimeline(container: HTMLElement, tasks: any[]) {
 		return a.localeCompare(b);
 	});
 
-	// 统一颜色条
 	const color = "rgba(97,175,239,0.25)";
 
 	sortedDates.forEach((date) => {

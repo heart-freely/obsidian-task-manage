@@ -1,18 +1,20 @@
+// src/ui/component/view/board/matrix-board.ts
+
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
-export function renderMatrix(container: HTMLElement, tasks: any[]) {
+export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
 
-	// 仅保留有优先级的任务
-	const filteredTasks = tasks.filter((t) => t._priorityIcon);
+	const filteredNodes = nodes.filter((n) => n.priority !== 5);
 
-	const quadrants: any[][] = [[], [], [], []];
-	filteredTasks.forEach((task) => {
-		const icon = task._priorityIcon;
-		if (icon === "🔺") quadrants[0].push(task);
-		else if (icon === "⏫") quadrants[1].push(task);
-		else if (icon === "🔼") quadrants[2].push(task);
-		else quadrants[3].push(task);
+	const quadrants: TaskTreeNode[][] = [[], [], [], []];
+	filteredNodes.forEach((node) => {
+		const p = node.priority;
+		if (p === 0) quadrants[0].push(node);
+		else if (p === 1) quadrants[1].push(node);
+		else if (p === 2) quadrants[2].push(node);
+		else quadrants[3].push(node);
 	});
 
 	const labels = [

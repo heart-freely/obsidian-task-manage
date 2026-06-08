@@ -1,25 +1,24 @@
 // src/process/core/data-manager.ts
-// 数据管理器 — 统一数据加载、缓存、筛选、排序、收集
 
-import { GlobalFilter, TaskItem } from "../../types";
+import { GlobalFilter } from "../../types";
 import { loadAllTaskFiles, ParsedFileData } from "../task/md-parser";
 import {
-	buildTreeFromParsedFiles,
+	applyHideConfig,
+	buildTaskTree,
 	filterTree,
 	flattenTree,
+	TaskTreeNode,
 	TreeFilterOptions,
-	TreeNode,
 } from "../task/task-tree";
 
 export type SortConfig = { type: string; order: "asc" | "desc" };
 
 interface DataCache {
 	files: ParsedFileData[] | null;
-	allTasks: TaskItem[] | null;
-	taskIdMap: Map<string, TaskItem>;
-	fullTree: TreeNode[] | null;
-	filteredTree: { fingerprint: string; roots: TreeNode[] } | null;
-	flatTasks: { fingerprint: string; tasks: TaskItem[] } | null;
+	taskIdMap: Map<string, TaskTreeNode>;
+	fullTree: TaskTreeNode[] | null;
+	filteredTree: { fingerprint: string; roots: TaskTreeNode[] } | null;
+	flatNodes: { fingerprint: string; nodes: TaskTreeNode[] } | null;
 }
 
 function filterFingerprint(filter: GlobalFilter): string {
@@ -38,11 +37,10 @@ export class DataManager {
 	private static instance: DataManager;
 	private cache: DataCache = {
 		files: null,
-		allTasks: null,
 		taskIdMap: new Map(),
 		fullTree: null,
 		filteredTree: null,
-		flatTasks: null,
+		flatNodes: null,
 	};
 
 	private constructor() {}
@@ -54,67 +52,50 @@ export class DataManager {
 
 	async loadData(app: any): Promise<{
 		files: ParsedFileData[];
-		tasks: TaskItem[];
-		taskIdMap: Map<string, TaskItem>;
+		nodes: TaskTreeNode[];
+		taskIdMap: Map<string, TaskTreeNode>;
 	}> {
-		if (this.cache.files && this.cache.allTasks) {
+		if (this.cache.files && this.cache.fullTree) {
 			return {
 				files: this.cache.files,
-				tasks: this.cache.allTasks,
+				nodes: flattenTree(this.cache.fullTree),
 				taskIdMap: this.cache.taskIdMap,
 			};
 		}
 
 		try {
 			const files = await loadAllTaskFiles(app);
-			const allTasks: TaskItem[] = [];
-			const taskIdMap = new Map<string, TaskItem>();
+			const fullTree = buildTaskTree(files);
+			const taskIdMap = new Map<string, TaskTreeNode>();
 
-			for (const file of files) {
-				if (file.fileTask) {
-					allTasks.push(file.fileTask);
-					if (file.fileTask._id)
-						taskIdMap.set(file.fileTask._id, file.fileTask);
-				}
-				for (const ht of file.headingTasks) {
-					if (ht.task) {
-						allTasks.push(ht.task);
-						if (ht.task._id) taskIdMap.set(ht.task._id, ht.task);
-					}
-				}
-				for (const task of file.tasks) {
-					if (task) {
-						allTasks.push(task);
-						if (task._id) taskIdMap.set(task._id, task);
-					}
-				}
+			const allNodes = flattenTree(fullTree);
+			for (const node of allNodes) {
+				taskIdMap.set(node.uid, node);
+				if (node.id) taskIdMap.set(node.id, node);
 			}
 
-			const validTasks = allTasks.filter((t) => t != null);
-
 			this.cache.files = files;
-			this.cache.allTasks = validTasks;
 			this.cache.taskIdMap = taskIdMap;
-			this.cache.fullTree = buildTreeFromParsedFiles(files, validTasks);
+			this.cache.fullTree = fullTree;
 			this.cache.filteredTree = null;
-			this.cache.flatTasks = null;
+			this.cache.flatNodes = null;
 
 			for (const file of files) {
 				file.content = "";
 			}
 
-			return { files, tasks: validTasks, taskIdMap };
+			return { files, nodes: allNodes, taskIdMap };
 		} catch (e) {
 			console.warn("[TaskManage] 加载任务数据失败:", e);
-			return { files: [], tasks: [], taskIdMap: new Map() };
+			return { files: [], nodes: [], taskIdMap: new Map() };
 		}
 	}
 
-	getFullTree(): TreeNode[] {
+	getFullTree(): TaskTreeNode[] {
 		return this.cache.fullTree || [];
 	}
 
-	getFilteredTree(filter: GlobalFilter): TreeNode[] {
+	getFilteredTree(filter: GlobalFilter): TaskTreeNode[] {
 		const fp = filterFingerprint(filter);
 		if (
 			this.cache.filteredTree &&
@@ -134,34 +115,45 @@ export class DataManager {
 		};
 		const roots = filterTree(fullTree, options);
 		this.cache.filteredTree = { fingerprint: fp, roots };
-		this.cache.flatTasks = null;
+		this.cache.flatNodes = null;
 		return roots;
 	}
 
-	getFlatTasks(filter: GlobalFilter): TaskItem[] {
+	getFlatNodes(filter: GlobalFilter): TaskTreeNode[] {
+		const fp = filterFingerprint(filter);
+		if (this.cache.flatNodes && this.cache.flatNodes.fingerprint === fp) {
+			return this.cache.flatNodes.nodes;
+		}
 		const tree = this.getFilteredTree(filter);
-		return flattenTree(tree);
+		const nodes = flattenTree(tree);
+		this.cache.flatNodes = { fingerprint: fp, nodes };
+		return nodes;
+	}
+
+	getDisplayTree(filter: GlobalFilter, hideConfig: any): TaskTreeNode[] {
+		const tree = this.getFilteredTree(filter);
+		applyHideConfig(tree, hideConfig);
+		return tree;
 	}
 
 	getTaskTimeRange(): { minTime: number | null; maxTime: number | null } {
-		const tasks = this.cache.allTasks;
-		if (!tasks) return { minTime: null, maxTime: null };
+		const allNodes = this.cache.fullTree
+			? flattenTree(this.cache.fullTree)
+			: [];
+		if (!allNodes.length) return { minTime: null, maxTime: null };
 		let minTime: number | null = null;
 		let maxTime: number | null = null;
-		for (const task of tasks) {
-			if (!task) continue;
+		for (const node of allNodes) {
 			const dates = [
-				task._created,
-				task._scheduled,
-				task._starts,
-				task._due,
-				task._done,
-				task._cancel,
+				node.created,
+				node.scheduled,
+				node.starts,
+				node.due,
+				node.done,
+				node.cancelled,
 			];
-			for (const dateStr of dates) {
-				if (!dateStr) continue;
-				const ts = new Date(dateStr).getTime();
-				if (isNaN(ts)) continue;
+			for (const ts of dates) {
+				if (ts === null) continue;
 				if (minTime === null || ts < minTime) minTime = ts;
 				if (maxTime === null || ts > maxTime) maxTime = ts;
 			}
@@ -169,23 +161,22 @@ export class DataManager {
 		return { minTime, maxTime };
 	}
 
-	getTaskIdMap(): Map<string, TaskItem> {
+	getTaskIdMap(): Map<string, TaskTreeNode> {
 		return this.cache.taskIdMap;
 	}
 
 	invalidate() {
 		this.cache = {
 			files: null,
-			allTasks: null,
 			taskIdMap: new Map(),
 			fullTree: null,
 			filteredTree: null,
-			flatTasks: null,
+			flatNodes: null,
 		};
 	}
 
 	invalidateFilterCache() {
 		this.cache.filteredTree = null;
-		this.cache.flatTasks = null;
+		this.cache.flatNodes = null;
 	}
 }

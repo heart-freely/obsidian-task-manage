@@ -1,4 +1,5 @@
 // src/ui/component/charts/statistics-charts.ts
+
 import {
 	ALLOWED_STATUSES,
 	DATE_MARK_COLORS,
@@ -12,9 +13,14 @@ import {
 	STATUS_ICONS,
 	STATUS_NAMES,
 } from "../../../../process/config/config";
+import { getTaskMarks } from "../../../../process/task/task-derived";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { echarts } from "./echart";
 
-export function renderStatistics(container: HTMLElement, tasks: any[]) {
+export function renderStatistics(
+	container: HTMLElement,
+	nodes: TaskTreeNode[],
+) {
 	container.empty();
 	const grid = document.createElement("div");
 	grid.className = "chart-grid";
@@ -74,43 +80,51 @@ export function renderStatistics(container: HTMLElement, tasks: any[]) {
 
 	const statusCounts: Record<string, number> = {};
 	ALLOWED_STATUSES.forEach((s) => (statusCounts[s] = 0));
-	tasks.forEach((t) => {
-		statusCounts[t._status]++;
+	nodes.forEach((n) => {
+		statusCounts[n.status]++;
 	});
+
+	const prioIcons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
 	const prioCounts: Record<string, number> = {};
 	PRIORITY_ORDER.forEach((p) => (prioCounts[p] = 0));
-	tasks.forEach((t) => {
-		if (t._priorityIcon) prioCounts[t._priorityIcon]++;
+	nodes.forEach((n) => {
+		const icon = prioIcons[n.priority] || "";
+		if (icon) prioCounts[icon]++;
 	});
+
 	const repeatCounts: Record<string, number> = {};
 	REPEAT_ORDER.forEach((r) => (repeatCounts[r] = 0));
-	tasks.forEach((t) => {
-		if (t._repeat) {
+	nodes.forEach((n) => {
+		if (n.repeat) {
 			REPEAT_ORDER.forEach((r) => {
-				if (t._repeat.toLowerCase().includes(r)) repeatCounts[r]++;
+				if (n.repeat.toLowerCase().includes(r)) repeatCounts[r]++;
 			});
 		}
 	});
+
 	const dateCounts: Record<string, number> = {};
 	DATE_MARK_ORDER.forEach((m) => (dateCounts[m] = 0));
-	tasks.forEach((t) => {
+	nodes.forEach((n) => {
+		const marks = getTaskMarks(n);
 		DATE_MARK_ORDER.forEach((m) => {
-			if (t["_" + m]) dateCounts[m]++;
+			if (marks[m as keyof typeof marks]) dateCounts[m]++;
 		});
 	});
+
 	let idCnt = 0,
 		forbidCnt = 0,
 		bothCnt = 0;
-	tasks.forEach((t) => {
-		const hi = !!t._id,
-			hf = !!t._forbid;
+	nodes.forEach((n) => {
+		const hi = !!n.id,
+			hf = !!n.forbid;
 		if (hi && hf) bothCnt++;
 		else if (hi) idCnt++;
 		else if (hf) forbidCnt++;
 	});
+
 	const tagMap: Record<string, number> = {};
-	tasks.forEach((t) => {
-		if (t._tag) tagMap[t._tag] = (tagMap[t._tag] || 0) + 1;
+	nodes.forEach((n) => {
+		if (n.tag) tagMap[n.tag] = (tagMap[n.tag] || 0) + 1;
 	});
 
 	makePieChart(
@@ -139,10 +153,10 @@ export function renderStatistics(container: HTMLElement, tasks: any[]) {
 	);
 	makePieChart(
 		"📅 日期标记",
-		DATE_MARK_ORDER.map((m, i) => ({
+		DATE_MARK_ORDER.map((m) => ({
 			name: DATE_MARK_NAMES[m],
 			value: dateCounts[m],
-			color: DATE_MARK_COLORS[i],
+			color: DATE_MARK_COLORS[m],
 		})).filter((d) => d.value > 0),
 	);
 	makePieChart(

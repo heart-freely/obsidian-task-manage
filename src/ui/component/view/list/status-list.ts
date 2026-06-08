@@ -1,17 +1,17 @@
 // src/ui/component/view/list/status-list.ts
-// 状态分组列表渲染器
 
 import { STATUS_COLORS, STATUS_ICONS } from "../../../../process/config/config";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 export function renderStatus(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void },
 ) {
 	container.empty();
 
-	const groups: Record<string, any[]> = {
+	const groups: Record<string, TaskTreeNode[]> = {
 		todo: [],
 		planned: [],
 		"in-progress": [],
@@ -19,9 +19,8 @@ export function renderStatus(
 		cancelled: [],
 	};
 
-	tasks.forEach((task) => {
-		const status = task._status || "todo";
-		if (groups[status]) groups[status].push(task);
+	nodes.forEach((node) => {
+		if (groups[node.status]) groups[node.status].push(node);
 	});
 
 	const statusOrder = [

@@ -1,14 +1,12 @@
 // src/process/component/gantt-view-process.ts
-// 甘特图视图数据处理（非 UI）
 
-import { TaskItem } from "../../types";
 import { STATUS_COLORS } from "../config/config";
 import { YEAR_RANGE_OFFSET } from "../config/panel-default-config";
 import { DateUtils } from "../process";
-import { TreeNode } from "../task/task-tree";
+import { getTaskTimeRange, IntervalMode } from "../task/task-derived";
+import { TaskTreeNode } from "../task/task-tree";
 
 export interface GanttTaskRow {
-	task: TaskItem;
 	start: Date;
 	end: Date;
 	durationMs: number;
@@ -32,48 +30,16 @@ export const GANTT_CONFIG = {
 };
 
 export function getTaskInterval(
-	task: TaskItem,
+	node: TaskTreeNode,
 	intervalMode: string = "scheduled-due",
 ): { start: Date; end: Date } | null {
-	let startStr: string | null = null;
-	let endStr: string | null = null;
-
-	if (intervalMode === "starts-done") {
-		startStr = task._starts;
-		endStr = task._done || task._cancel;
-	} else if (intervalMode === "any-date") {
-		const dates = [
-			task._created,
-			task._scheduled,
-			task._starts,
-			task._due,
-			task._done,
-			task._cancel,
-		].filter(Boolean) as string[];
-		if (dates.length === 0) return null;
-		const timestamps = dates
-			.map((d) => new Date(d).getTime())
-			.filter((t) => !isNaN(t));
-		if (timestamps.length === 0) return null;
-		const minTime = Math.min(...timestamps);
-		const maxTime = Math.max(...timestamps);
-		return { start: new Date(minTime), end: new Date(maxTime) };
-	} else if (intervalMode === "none") {
-		return null;
-	} else {
-		startStr = task._scheduled;
-		endStr = task._due;
-	}
-
-	if (!startStr || !endStr) return null;
-	const start = new Date(startStr);
-	const end = new Date(endStr);
-	if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-	return { start: start < end ? start : end, end: start < end ? end : start };
+	const range = getTaskTimeRange(node, intervalMode as IntervalMode);
+	if (!range) return null;
+	return { start: new Date(range.start), end: new Date(range.end) };
 }
 
 export function calcRangeFromRoots(
-	roots: TreeNode[],
+	roots: TaskTreeNode[],
 	intervalMode: string = "scheduled-due",
 	dateRange?: { start: number | null; end: number | null; isAll: boolean },
 ): { minTime: number; maxTime: number } {
@@ -88,7 +54,6 @@ export function calcRangeFromRoots(
 			maxTime: DateUtils.setEnd(new Date(dateRange.end)).getTime(),
 		};
 	}
-
 	const now = new Date();
 	const currentYear = now.getFullYear();
 	return {
@@ -111,29 +76,15 @@ export function formatGanttDuration(ms: number): string {
 	return Math.round(days / 365) + "y";
 }
 
-export function calcTreeMaxWidth(roots: TreeNode[]): number {
+export function calcTreeMaxWidth(roots: TaskTreeNode[]): number {
 	let maxDepth = 0;
 	let maxTextLen = 0;
-
-	function walk(node: TreeNode, depth: number) {
+	function walk(node: TaskTreeNode, depth: number) {
 		if (depth > maxDepth) maxDepth = depth;
-		const text = node._task?._cleanText || node.name || "";
+		const text = node.text || "";
 		if (text.length > maxTextLen) maxTextLen = text.length;
-		if (node.contentRoots) {
-			for (const cn of node.contentRoots) walkCN(cn, depth + 1);
-		}
 		for (const child of node.children) walk(child, depth + 1);
 	}
-
-	function walkCN(cn: any, depth: number) {
-		if (depth > maxDepth) maxDepth = depth;
-		const text = cn._task?._cleanText || cn.text || "";
-		if (text.length > maxTextLen) maxTextLen = text.length;
-		if (cn.children) {
-			for (const child of cn.children) walkCN(child, depth + 1);
-		}
-	}
-
 	for (const root of roots) walk(root, 0);
 	return Math.max(
 		GANTT_CONFIG.TREE_MIN_WIDTH,
@@ -181,17 +132,14 @@ export function getTimelineLayers(dayWidth: number) {
 	const showWeeks = dayWidth >= 15;
 	const showMonths = dayWidth >= 5;
 	const showQuarters = dayWidth >= 1.5;
-
 	const layers: Array<{ name: string; height: number }> = [];
 	layers.push({ name: "year", height: 0 });
 	if (showQuarters) layers.push({ name: "quarter", height: 0 });
 	if (showMonths) layers.push({ name: "month", height: 0 });
 	if (showWeeks) layers.push({ name: "week", height: 0 });
 	if (showDays) layers.push({ name: "day", height: 0 });
-
 	const layerHeight = GANTT_CONFIG.HEADER_HEIGHT / layers.length;
 	layers.forEach((l) => (l.height = layerHeight));
-
 	return { layers, layerHeight };
 }
 
@@ -203,7 +151,6 @@ export function getLayerStyle(
 	const ratio = totalLayers > 1 ? layerIndex / (totalLayers - 1) : 0;
 	const fontSize = Math.round(11 - ratio * 4) + "px";
 	const fontWeight = ratio < 0.5 ? "600" : "400";
-
 	let color: string;
 	if (dark) {
 		const lightness = Math.round(90 - ratio * 40);
@@ -212,7 +159,6 @@ export function getLayerStyle(
 		const lightness = Math.round(20 + ratio * 40);
 		color = `hsl(0, 0%, ${lightness}%)`;
 	}
-
 	return { fontSize, fontWeight, color };
 }
 
@@ -222,7 +168,6 @@ export function getGridLineStyle(
 ): { width: string; color: string } {
 	let width: string;
 	let alpha: number;
-
 	if (intervalDays >= 365) {
 		width = "2px";
 		alpha = dark ? 0.25 : 0.25;
@@ -239,11 +184,9 @@ export function getGridLineStyle(
 		width = "0.5px";
 		alpha = dark ? 0.05 : 0.06;
 	}
-
 	const color = dark
 		? `rgba(255, 255, 255, ${alpha})`
 		: `rgba(0, 0, 0, ${alpha})`;
-
 	return { width, color };
 }
 
@@ -251,26 +194,26 @@ export function getGridLevels(
 	dayWidth: number,
 ): Array<{ intervalDays: number }> {
 	const gridLevels: Array<{ intervalDays: number }> = [];
-
 	if (dayWidth >= 40) {
-		gridLevels.push({ intervalDays: 1 });
-		gridLevels.push({ intervalDays: 7 });
-		gridLevels.push({ intervalDays: 30 });
-		gridLevels.push({ intervalDays: 365 });
+		gridLevels.push(
+			{ intervalDays: 1 },
+			{ intervalDays: 7 },
+			{ intervalDays: 30 },
+			{ intervalDays: 365 },
+		);
 	} else if (dayWidth >= 15) {
-		gridLevels.push({ intervalDays: 7 });
-		gridLevels.push({ intervalDays: 30 });
-		gridLevels.push({ intervalDays: 365 });
+		gridLevels.push(
+			{ intervalDays: 7 },
+			{ intervalDays: 30 },
+			{ intervalDays: 365 },
+		);
 	} else if (dayWidth >= 5) {
-		gridLevels.push({ intervalDays: 30 });
-		gridLevels.push({ intervalDays: 365 });
+		gridLevels.push({ intervalDays: 30 }, { intervalDays: 365 });
 	} else if (dayWidth >= 1.5) {
-		gridLevels.push({ intervalDays: 91 });
-		gridLevels.push({ intervalDays: 365 });
+		gridLevels.push({ intervalDays: 91 }, { intervalDays: 365 });
 	} else {
 		gridLevels.push({ intervalDays: 365 });
 	}
-
 	return gridLevels;
 }
 
@@ -279,62 +222,50 @@ export function getGridFirstLineDate(
 	intervalDays: number,
 ): Date {
 	let firstLineDate: Date;
-
 	if (intervalDays >= 365) {
 		firstLineDate = new Date(timeRange.minTime);
 		firstLineDate.setMonth(0, 1);
 		firstLineDate.setHours(0, 0, 0, 0);
-		if (firstLineDate.getTime() < timeRange.minTime) {
+		if (firstLineDate.getTime() < timeRange.minTime)
 			firstLineDate.setFullYear(firstLineDate.getFullYear() + 1);
-		}
 	} else if (intervalDays >= 28) {
 		firstLineDate = new Date(timeRange.minTime);
 		firstLineDate.setDate(1);
 		firstLineDate.setHours(0, 0, 0, 0);
-		if (firstLineDate.getTime() < timeRange.minTime) {
+		if (firstLineDate.getTime() < timeRange.minTime)
 			firstLineDate.setMonth(firstLineDate.getMonth() + 1);
-		}
 	} else if (intervalDays >= 7) {
 		firstLineDate = new Date(timeRange.minTime);
 		const day = firstLineDate.getDay();
 		const diff = day === 0 ? -6 : 1 - day;
 		firstLineDate.setDate(firstLineDate.getDate() + diff);
 		firstLineDate.setHours(0, 0, 0, 0);
-		if (firstLineDate.getTime() < timeRange.minTime) {
+		if (firstLineDate.getTime() < timeRange.minTime)
 			firstLineDate.setDate(firstLineDate.getDate() + 7);
-		}
 	} else {
 		firstLineDate = new Date(timeRange.minTime);
 		firstLineDate.setHours(0, 0, 0, 0);
-		if (firstLineDate.getTime() < timeRange.minTime) {
+		if (firstLineDate.getTime() < timeRange.minTime)
 			firstLineDate.setDate(firstLineDate.getDate() + 1);
-		}
 	}
-
 	return firstLineDate;
 }
 
 export function advanceGridLineDate(date: Date, intervalDays: number): void {
-	if (intervalDays >= 365) {
-		date.setFullYear(date.getFullYear() + 1);
-	} else if (intervalDays >= 91) {
-		date.setMonth(date.getMonth() + 3);
-	} else if (intervalDays >= 28) {
-		date.setMonth(date.getMonth() + 1);
-	} else {
-		date.setDate(date.getDate() + intervalDays);
-	}
+	if (intervalDays >= 365) date.setFullYear(date.getFullYear() + 1);
+	else if (intervalDays >= 91) date.setMonth(date.getMonth() + 3);
+	else if (intervalDays >= 28) date.setMonth(date.getMonth() + 1);
+	else date.setDate(date.getDate() + intervalDays);
 }
 
 export function calcBarEdges(
-	task: TaskItem,
+	node: TaskTreeNode,
 	timeRange: { minTime: number; maxTime: number },
 	timelineWidth: number,
 	intervalMode: string,
 ): { left: number; width: number } | null {
-	const interval = getTaskInterval(task, intervalMode);
+	const interval = getTaskInterval(node, intervalMode);
 	if (!interval) return null;
-
 	const timeRangeMs = timeRange.maxTime - timeRange.minTime;
 	const rawLeft =
 		((interval.start.getTime() - timeRange.minTime) / timeRangeMs) *
@@ -344,10 +275,8 @@ export function calcBarEdges(
 		((interval.end.getTime() - interval.start.getTime()) / timeRangeMs) *
 			timelineWidth,
 	);
-
 	const clampedLeft = Math.max(0, rawLeft);
 	const clampedRight = Math.min(timelineWidth, rawLeft + rawWidth);
-
 	return {
 		left: clampedLeft,
 		width: Math.max(2, clampedRight - clampedLeft),
@@ -362,7 +291,6 @@ export function calcDependencyPath(
 ): string {
 	const as = GANTT_CONFIG.DEPENDENCY_ARROW_SIZE;
 	const cornerX = tx - as;
-
 	return [`M ${sx} ${sy}`, `L ${cornerX} ${sy}`, `L ${cornerX} ${ty}`].join(
 		" ",
 	);

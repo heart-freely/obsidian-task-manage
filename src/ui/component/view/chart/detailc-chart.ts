@@ -1,20 +1,22 @@
 // src/ui/component/charts/detailc-charts.ts
+
 import {
 	ALLOWED_STATUSES,
 	STATUS_COLORS,
 	STATUS_NAMES,
 } from "../../../../process/config/config";
 import { DateUtils } from "../../../../process/process";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { echarts } from "./echart";
 
-export function renderDetail(container: HTMLElement, tasks: any[]) {
+export function renderDetail(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
 	const today = new Date();
 	let minDate = new Date(today),
 		maxDate = new Date(today);
-	tasks.forEach((task) => {
-		if (task._scheduled) {
-			const d = new Date(task._scheduled);
+	nodes.forEach((n) => {
+		if (n.scheduled !== null) {
+			const d = new Date(n.scheduled);
 			if (d < minDate) minDate = d;
 			if (d > maxDate) maxDate = d;
 		}
@@ -30,10 +32,13 @@ export function renderDetail(container: HTMLElement, tasks: any[]) {
 	ALLOWED_STATUSES.forEach((st) => {
 		seriesData[st] = new Array(dates.length).fill(0);
 	});
-	tasks.forEach((task) => {
-		const idx = dates.indexOf(task._scheduled || "");
+	nodes.forEach((n) => {
+		const dateStr = n.scheduled
+			? DateUtils.formatDate(new Date(n.scheduled))
+			: "";
+		const idx = dates.indexOf(dateStr);
 		if (idx >= 0) {
-			const arr = seriesData[task._status];
+			const arr = seriesData[n.status];
 			if (arr && idx < arr.length) arr[idx]++;
 		}
 	});

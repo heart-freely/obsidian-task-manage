@@ -1,23 +1,23 @@
+// src/ui/component/view/list/depends-list.ts
+
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 export function renderDepends(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void },
 ) {
 	container.empty();
-	// 只保留有依赖标记的任务
-	const dependsTasks = tasks.filter((t) => t._forbid);
-	if (dependsTasks.length === 0) {
+	const dependsNodes = nodes.filter((n) => n.forbid);
+	if (dependsNodes.length === 0) {
 		container.createDiv({ text: "🔗 暂无依赖任务" });
 		return;
 	}
 
-	const sorted = [...dependsTasks].sort((a, b) => {
-		const aHas = a._forbid ? 1 : 0;
-		const bHas = b._forbid ? 1 : 0;
-		return bHas - aHas;
-	});
+	const sorted = [...dependsNodes].sort(
+		(a, b) => (a.forbid ? 1 : 0) - (b.forbid ? 1 : 0),
+	);
 
 	const card = createGroupCard({
 		title: "🔗 依赖任务",

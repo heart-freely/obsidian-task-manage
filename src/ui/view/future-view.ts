@@ -1,4 +1,4 @@
-// src/ui/views/future-view.ts
+// src/ui/view/future-view.ts
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 
@@ -21,7 +21,6 @@ export class FutureView extends BaseTaskView {
 		filter.hideCancelled = true;
 		return filter;
 	}
-
 	protected renderEmpty() {
 		this.container.createDiv({ text: "🔜 暂无未来任务" });
 	}

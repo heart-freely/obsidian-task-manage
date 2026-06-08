@@ -1,29 +1,27 @@
+// src/ui/component/view/calendar/day-calendar.ts
+
 import { DateUtils } from "../../../../process/process";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 
 export function renderCalendarDay(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void; intervalMode?: string },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void; intervalMode?: string },
 ) {
 	container.empty();
 	const intervalMode = options?.intervalMode || "scheduled-due";
 
-	// 按日期分组任务
-	const map = new Map<string, any[]>();
+	const map = new Map<string, TaskTreeNode[]>();
 	const today = new Date();
-	const todayStr = DateUtils.formatDate(today);
-	// 默认只显示今天，若 tasks 中包含今天有交集的任务，则显示；否则也展示今天但无任务
-	// 为了支持过去/未来日期，可以扩展，但这里仅展示任务所覆盖的所有日期
-	tasks.forEach((task) => {
-		// 计算任务覆盖的日期列表
-		const dates = getDatesForTask(task, intervalMode);
+
+	nodes.forEach((node) => {
+		const dates = getDatesForNode(node, intervalMode);
 		dates.forEach((dateStr) => {
 			if (!map.has(dateStr)) map.set(dateStr, []);
-			map.get(dateStr)!.push(task);
+			map.get(dateStr)!.push(node);
 		});
 	});
 
-	// 按日期排序
 	const sortedDates = Array.from(map.keys()).sort();
 	if (sortedDates.length === 0) {
 		container.createDiv({ text: "暂无任务日期", cls: "empty-placeholder" });
@@ -32,39 +30,34 @@ export function renderCalendarDay(
 
 	sortedDates.forEach((dateStr) => {
 		const groupDiv = container.createDiv({ cls: "day-group" });
-		const header = groupDiv.createEl("div", {
-			text: `📅 ${dateStr}`,
-			cls: "day-header",
-		});
+		groupDiv.createEl("div", { text: `📅 ${dateStr}`, cls: "day-header" });
 		const list = groupDiv.createEl("ul", { cls: "task-list" });
-		const dayTasks = map.get(dateStr)!;
-		dayTasks.forEach((task) => {
+		const dayNodes = map.get(dateStr)!;
+		dayNodes.forEach((node) => {
 			const li = list.createEl("li", { cls: "task-item" });
-			li.createSpan({
-				text: `${task._statusIcon || ""} ${task._cleanText || task.text}`,
-			});
+			li.createSpan({ text: `${node.text || node.content}` });
 			li.addEventListener("click", () => {
-				if (options?.onClick) options.onClick(task);
+				if (options?.onClick) options.onClick(node);
 			});
 		});
 	});
 }
 
-function getDatesForTask(task: any, intervalMode: string): string[] {
+function getDatesForNode(node: TaskTreeNode, intervalMode: string): string[] {
 	const dates: string[] = [];
-	let startField: string, endField: string;
+	let startField: number | null, endField: number | null;
+
 	if (intervalMode === "starts-done") {
-		startField = "_starts";
-		endField = "_done" in task && task._done ? "_done" : "_due";
+		startField = node.starts;
+		endField = node.done ?? node.due;
 	} else {
-		startField = "_scheduled";
-		endField = "_due";
+		startField = node.scheduled;
+		endField = node.due;
 	}
-	const start = task[startField] ? new Date(task[startField]) : null;
-	const end = task[endField] ? new Date(task[endField]) : null;
-	if (start && end) {
-		let cur = DateUtils.setStart(start);
-		const finish = DateUtils.setEnd(end).getTime();
+
+	if (startField !== null && endField !== null) {
+		let cur = DateUtils.setStart(new Date(startField));
+		const finish = DateUtils.setEnd(new Date(endField)).getTime();
 		while (cur.getTime() <= finish) {
 			dates.push(DateUtils.formatDate(cur));
 			cur.setDate(cur.getDate() + 1);

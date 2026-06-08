@@ -1,19 +1,25 @@
 // src/ui/component/tables/table.ts
+
 import {
 	DEFAULT_TABLE_COLUMNS,
-	getPriorityLabel,
 	STATUS_ICONS,
 	STATUS_NAMES,
+	formatDisplayDate,
 } from "../../../../process/config/config";
+import {
+	getPriorityIcon,
+	getPriorityName,
+} from "../../../../process/task/task-derived";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 
 interface TaskTableOptions {
-	onClick?: (task: any) => void;
+	onClick?: (node: TaskTreeNode) => void;
 	columnsVisibility?: Record<string, boolean>;
 }
 
 export function renderTaskTable(
 	container: HTMLElement,
-	tasks: any[],
+	nodes: TaskTreeNode[],
 	options: TaskTableOptions = {},
 ) {
 	const visibility = options.columnsVisibility ?? DEFAULT_TABLE_COLUMNS;
@@ -32,7 +38,7 @@ export function renderTaskTable(
 	if (visibility.created) headerRow.appendChild(createTh("创建", "nowrap"));
 	if (visibility.scheduled) headerRow.appendChild(createTh("计划", "nowrap"));
 	if (visibility.starts) headerRow.appendChild(createTh("开始", "nowrap"));
-	if (visibility.cancel) headerRow.appendChild(createTh("取消", "nowrap"));
+	if (visibility.cancelled) headerRow.appendChild(createTh("取消", "nowrap"));
 	if (visibility.done) headerRow.appendChild(createTh("完成", "nowrap"));
 	if (visibility.due) headerRow.appendChild(createTh("截止", "nowrap"));
 	if (visibility.id) headerRow.appendChild(createTh("唯一ID", "nowrap"));
@@ -42,45 +48,83 @@ export function renderTaskTable(
 	table.appendChild(thead);
 
 	const tbody = document.createElement("tbody");
-	tasks.forEach((task) => {
+	nodes.forEach((node) => {
 		const row = document.createElement("tr");
 		row.className = "task-row";
-		row.addEventListener("click", () => options.onClick?.(task));
+		row.addEventListener("click", () => options.onClick?.(node));
 
 		if (visibility.status) {
-			const statusKey = task._status || "todo";
-			const icon = STATUS_ICONS[statusKey] || "🔲";
-			const name = STATUS_NAMES[statusKey] || "未开始";
+			const icon = STATUS_ICONS[node.status] || "🔲";
+			const name = STATUS_NAMES[node.status] || "未开始";
 			row.appendChild(createTd(`${icon} ${name}`, false));
 		}
 		if (visibility.content) {
-			row.appendChild(createTd(task._cleanText || task.text || "", true));
+			row.appendChild(createTd(node.text || node.content || "", true));
 		}
 		if (visibility.priority) {
-			const icon = task._priorityIcon || "";
-			const label = getPriorityLabel(icon);
+			const icon = getPriorityIcon(node);
+			const label = getPriorityName(node);
 			row.appendChild(
 				createTd(icon ? `${icon} ${label}` : label || "", false),
 			);
 		}
 		if (visibility.repeat) {
-			const text = task._repeat ? `🔁 ${task._repeat}` : "";
-			row.appendChild(createTd(text, false));
+			row.appendChild(
+				createTd(node.repeat ? `🔁 ${node.repeat}` : "", false),
+			);
 		}
 		if (visibility.created)
-			row.appendChild(createTd(task._created || "", false));
+			row.appendChild(
+				createTd(
+					node.created
+						? formatDisplayDate(new Date(node.created))
+						: "",
+					false,
+				),
+			);
 		if (visibility.scheduled)
-			row.appendChild(createTd(task._scheduled || "", false));
+			row.appendChild(
+				createTd(
+					node.scheduled
+						? formatDisplayDate(new Date(node.scheduled))
+						: "",
+					false,
+				),
+			);
 		if (visibility.starts)
-			row.appendChild(createTd(task._starts || "", false));
-		if (visibility.cancel)
-			row.appendChild(createTd(task._cancel || "", false));
-		if (visibility.done) row.appendChild(createTd(task._done || "", false));
-		if (visibility.due) row.appendChild(createTd(task._due || "", false));
-		if (visibility.id) row.appendChild(createTd(task._id || "", false));
+			row.appendChild(
+				createTd(
+					node.starts ? formatDisplayDate(new Date(node.starts)) : "",
+					false,
+				),
+			);
+		if (visibility.cancelled)
+			row.appendChild(
+				createTd(
+					node.cancelled
+						? formatDisplayDate(new Date(node.cancelled))
+						: "",
+					false,
+				),
+			);
+		if (visibility.done)
+			row.appendChild(
+				createTd(
+					node.done ? formatDisplayDate(new Date(node.done)) : "",
+					false,
+				),
+			);
+		if (visibility.due)
+			row.appendChild(
+				createTd(
+					node.due ? formatDisplayDate(new Date(node.due)) : "",
+					false,
+				),
+			);
+		if (visibility.id) row.appendChild(createTd(node.id || "", false));
 		if (visibility.forbid)
-			row.appendChild(createTd(task._forbid || "", false));
-		if (visibility.tag) row.appendChild(createTd(task._tag || "", false));
+			row.appendChild(createTd(node.forbid || "", false));
+		if (visibility.tag) row.appendChild(createTd(node.tag || "", false));
 		tbody.appendChild(row);
 	});
 	table.appendChild(tbody);
@@ -97,11 +141,8 @@ function createTh(text: string, mode: "nowrap" | "wrap"): HTMLTableCellElement {
 	th.style.color = "var(--text-muted)";
 	th.style.fontWeight = "600";
 	th.style.whiteSpace = "nowrap";
-	if (mode === "nowrap") {
-		th.style.width = "1px";
-	} else {
-		th.style.width = "66%";
-	}
+	if (mode === "nowrap") th.style.width = "1px";
+	else th.style.width = "66%";
 	return th;
 }
 

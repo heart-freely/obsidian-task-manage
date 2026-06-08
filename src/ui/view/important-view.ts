@@ -1,4 +1,4 @@
-// src/ui/views/important-view.ts
+// src/ui/view/important-view.ts
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 
@@ -12,7 +12,6 @@ export class ImportantView extends BaseTaskView {
 		filter.priorityValues = ["🔺", "⏫", "🔼"];
 		return filter;
 	}
-
 	protected renderEmpty() {
 		this.container.createDiv({ text: "⭐ 暂无重要任务" });
 	}

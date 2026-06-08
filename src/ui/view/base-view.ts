@@ -1,7 +1,6 @@
 // src/ui/view/base-view.ts
-// 业务视图基类 — 筛选 → 时间 → 隐藏 → 扁平化 → 排序 → 渲染（带防抖）
+// 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染（带防抖）
 
-import { PRIORITY_ORDER } from "../../process/config/config";
 import {
 	getDefaultFilter,
 	getDefaultHideConfig,
@@ -9,14 +8,14 @@ import {
 import { DataManager } from "../../process/core/data-manager";
 import { Store } from "../../process/store/store";
 import {
+	applyHideConfig,
 	filterTree,
 	filterTreeByDateRange,
-	filterTreeByHideConfig,
 	flattenTree,
+	TaskTreeNode,
 	TreeFilterOptions,
-	TreeNode,
 } from "../../process/task/task-tree";
-import { GlobalFilter, HideConfig, TaskItem } from "../../types";
+import { GlobalFilter } from "../../types";
 import { renderKanban } from "../component/view/board/kanban-board";
 import { renderMatrix } from "../component/view/board/matrix-board";
 import { renderCalendarDay } from "../component/view/calendar/day-calendar";
@@ -56,7 +55,7 @@ export abstract class BaseTaskView {
 	private onResizeBound: ((e: MouseEvent) => void) | null = null;
 	private stopResizeBound: (() => void) | null = null;
 
-	protected selectedTreeNode: any = null;
+	protected selectedTreeNode: TaskTreeNode | null = null;
 
 	private renderDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 	private static DEBOUNCE_DELAY = 50;
@@ -78,9 +77,7 @@ export abstract class BaseTaskView {
 	}
 
 	async render(): Promise<void> {
-		if (this.renderDebounceTimer) {
-			clearTimeout(this.renderDebounceTimer);
-		}
+		if (this.renderDebounceTimer) clearTimeout(this.renderDebounceTimer);
 		return new Promise<void>((resolve) => {
 			this.renderDebounceTimer = setTimeout(async () => {
 				this.renderDebounceTimer = null;
@@ -106,8 +103,8 @@ export abstract class BaseTaskView {
 		const intervalMode = preset?.intervalMode ?? "scheduled-due";
 
 		try {
-			const { tasks } = await this.dataManager.loadData(this.app);
-			if (tasks.length === 0) {
+			const { nodes } = await this.dataManager.loadData(this.app);
+			if (nodes.length === 0) {
 				this.renderEmpty();
 				return;
 			}
@@ -129,26 +126,23 @@ export abstract class BaseTaskView {
 			);
 
 			const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
-			const displayTree = filterTreeByHideConfig(
-				dateFilteredTree,
-				hideConfig,
-			);
+			applyHideConfig(dateFilteredTree, hideConfig);
 
-			let flatTasks: TaskItem[];
+			let flatNodes: TaskTreeNode[];
 			if (this.selectedTreeNode) {
-				flatTasks = this.collectNodeTasksDeep(this.selectedTreeNode);
-				flatTasks = this.applyHideConfig(flatTasks, hideConfig);
+				flatNodes = this.collectNodeTasksDeep(this.selectedTreeNode);
 			} else {
-				flatTasks = flattenTree(displayTree);
+				flatNodes = flattenTree(dateFilteredTree);
 			}
+			flatNodes = flatNodes.filter((n) => n.display);
 
-			if (flatTasks.length === 0) {
+			if (flatNodes.length === 0) {
 				this.renderEmpty();
 				return;
 			}
 
 			const sort = preset?.sort ?? { type: "status", order: "asc" };
-			const sorted = this.applySort(flatTasks, sort);
+			const sorted = this.applySort(flatNodes, sort);
 
 			if (currentStyle === "tree") {
 				const viewContainer = this.container.createDiv({
@@ -157,12 +151,9 @@ export abstract class BaseTaskView {
 				viewContainer.style.padding = "0";
 				viewContainer.style.margin = "0";
 				renderTaskTree(viewContainer, {
-					roots: displayTree,
+					roots: dateFilteredTree,
 					hideFolders: activeFilter.hideFolders ?? true,
-					onClick: (node: any) => {
-						const t = this.extractTaskFromNode(node);
-						if (t) this.openTaskAtLine(t);
-					},
+					onClick: (node: TaskTreeNode) => this.openTaskAtLine(node),
 					sort,
 				});
 			} else if (currentStyle === "gantt") {
@@ -172,9 +163,10 @@ export abstract class BaseTaskView {
 				viewContainer.style.cssText = "height:100%;overflow:hidden;";
 				this.ganttInstance = renderGanttWithTree(
 					viewContainer,
-					displayTree,
+					dateFilteredTree,
 					{
-						onTaskClick: (t: TaskItem) => this.openTaskAtLine(t),
+						onTaskClick: (node: TaskTreeNode) =>
+							this.openTaskAtLine(node),
 						intervalMode,
 						sort: sort as { type: string; order: "asc" | "desc" },
 						dateRange: activeFilter.dateRange,
@@ -182,7 +174,7 @@ export abstract class BaseTaskView {
 				);
 			} else {
 				this.renderSplitLayout(
-					displayTree,
+					dateFilteredTree,
 					currentStyle,
 					activeFilter,
 					intervalMode,
@@ -199,228 +191,27 @@ export abstract class BaseTaskView {
 		}
 	}
 
-	private applyHideConfig(
-		tasks: TaskItem[],
-		hideConfig: HideConfig,
-	): TaskItem[] {
-		let result = tasks;
-		if (hideConfig.hideStatuses.length > 0) {
-			result = result.filter(
-				(t) => !hideConfig.hideStatuses.includes(t._status),
-			);
-		}
-		if (hideConfig.hidePriorityValues.length > 0) {
-			result = result.filter(
-				(t) => !hideConfig.hidePriorityValues.includes(t._priorityIcon),
-			);
-		}
-		if (hideConfig.hideRepeatCycles.length > 0) {
-			result = result.filter((t) => {
-				if (!t._repeat) return true;
-				const taskCycle = t._repeat.toLowerCase().replace(/^🔁\s*/, "");
-				return !hideConfig.hideRepeatCycles.some((c) => {
-					const filterCycle = c.toLowerCase().replace(/^🔁\s*/, "");
-					if (taskCycle === filterCycle) return true;
-					if (
-						filterCycle === "every day" &&
-						/\bevery\s+(\d+\s+)?days?\b/i.test(taskCycle)
-					)
-						return true;
-					if (
-						filterCycle === "every week" &&
-						/\bevery\s+(\d+\s+)?weeks?\b/i.test(taskCycle)
-					)
-						return true;
-					if (
-						filterCycle === "every month" &&
-						/\bevery\s+(\d+\s+)?months?\b/i.test(taskCycle)
-					)
-						return true;
-					if (
-						filterCycle === "every year" &&
-						/\bevery\s+(\d+\s+)?years?\b/i.test(taskCycle)
-					)
-						return true;
-					return false;
-				});
-			});
-		}
-		if (hideConfig.hideMarks.length > 0) {
-			result = result.filter(
-				(t) => !hideConfig.hideMarks.some((m) => t._marks?.[m]),
-			);
-		}
-		if (hideConfig.hideSearchText) {
-			const kw = hideConfig.hideSearchText
-				.toLowerCase()
-				.split(/\s+/)
-				.filter((k) => k.length > 0);
-			if (kw.length > 0) {
-				result = result.filter((t) => {
-					const d = (t._cleanText || t.text || "").toLowerCase();
-					return !kw.every((k) => d.includes(k));
-				});
-			}
-		}
-		return result;
-	}
-
-	private applyPanelFilter(
-		tasks: TaskItem[],
-		filter: GlobalFilter,
-	): TaskItem[] {
-		return tasks.filter((t: TaskItem) => {
-			if (!t) return false;
-
-			const activeGroups: Array<() => boolean> = [];
-
-			const statuses = filter.statuses || [];
-			if (statuses.length > 0) {
-				activeGroups.push(() => statuses.includes(t._status));
-			}
-
-			const priorityValues = filter.priorityValues || [];
-			if (priorityValues.length > 0) {
-				activeGroups.push(() => {
-					const icon = t._priorityIcon;
-					return icon ? priorityValues.includes(icon) : false;
-				});
-			}
-
-			const repeatCycles = filter.repeatCycles || [];
-			if (repeatCycles.length > 0) {
-				activeGroups.push(() => {
-					if (!t._repeat) return false;
-					const taskCycle = t._repeat
-						.toLowerCase()
-						.replace(/^🔁\s*/, "");
-					return repeatCycles.some((c) => {
-						const filterCycle = c
-							.toLowerCase()
-							.replace(/^🔁\s*/, "");
-						if (taskCycle === filterCycle) return true;
-						if (
-							filterCycle === "every day" &&
-							/\bevery\s+(\d+\s+)?days?\b/i.test(taskCycle)
-						)
-							return true;
-						if (
-							filterCycle === "every week" &&
-							/\bevery\s+(\d+\s+)?weeks?\b/i.test(taskCycle)
-						)
-							return true;
-						if (
-							filterCycle === "every month" &&
-							/\bevery\s+(\d+\s+)?months?\b/i.test(taskCycle)
-						)
-							return true;
-						if (
-							filterCycle === "every year" &&
-							/\bevery\s+(\d+\s+)?years?\b/i.test(taskCycle)
-						)
-							return true;
-						return false;
-					});
-				});
-			}
-
-			const includeMarks = filter.includeMarks || [];
-			const allDateMarks = [
-				"created",
-				"scheduled",
-				"starts",
-				"cancel",
-				"done",
-				"due",
-			];
-			const dateMarksSelected = allDateMarks.filter((k) =>
-				includeMarks.includes(k),
-			);
-			if (dateMarksSelected.length > 0) {
-				activeGroups.push(() => {
-					return dateMarksSelected.some((m) => t._marks?.[m]);
-				});
-			}
-
-			const allDepMarks = ["id", "forbid"];
-			const depMarksSelected = allDepMarks.filter((k) =>
-				includeMarks.includes(k),
-			);
-			if (depMarksSelected.length > 0) {
-				activeGroups.push(() => {
-					return depMarksSelected.some((m) => t._marks?.[m]);
-				});
-			}
-
-			if (includeMarks.includes("tag")) {
-				activeGroups.push(() => {
-					return !!t._marks?.tag;
-				});
-			}
-
-			if (filter.searchText) {
-				const kw = filter.searchText
-					.toLowerCase()
-					.split(/\s+/)
-					.filter((k) => k.length > 0);
-				if (kw.length > 0) {
-					activeGroups.push(() => {
-						const text = (
-							t._cleanText ||
-							t.text ||
-							""
-						).toLowerCase();
-						return kw.every((k) => text.includes(k));
-					});
-				}
-			}
-
-			if (activeGroups.length === 0) return true;
-			return activeGroups.some((check) => check());
-		});
-	}
-
-	private collectNodeTasksDeep(node: any): TaskItem[] {
-		const tasks: TaskItem[] = [];
+	private collectNodeTasksDeep(node: TaskTreeNode): TaskTreeNode[] {
+		const tasks: TaskTreeNode[] = [];
 		const seen = new Set<string>();
-		function add(t: TaskItem) {
-			if (!t?.path) return;
-			const k = t.path + ":" + (t.lineNumber ?? t.line ?? 0);
-			if (!seen.has(k)) {
-				seen.add(k);
-				tasks.push(t);
+		function walk(n: TaskTreeNode) {
+			if (!seen.has(n.uid)) {
+				seen.add(n.uid);
+				tasks.push(n);
 			}
+			for (const child of n.children) walk(child);
 		}
-		function collectFromContentNode(cn: any) {
-			if (cn._task?.path) add(cn._task);
-			if (Array.isArray(cn.children))
-				cn.children.forEach((c: any) => collectFromContentNode(c));
-		}
-		function collectFromTreeNode(tn: any) {
-			if (Array.isArray(tn.contentRoots))
-				tn.contentRoots.forEach((c: any) => collectFromContentNode(c));
-			if (Array.isArray(tn.children))
-				tn.children.forEach((c: any) => collectFromTreeNode(c));
-		}
-		if (
-			node.contentRoots !== undefined ||
-			(node.children !== undefined && !node.type)
-		) {
-			collectFromTreeNode(node);
-		} else if (node.type === "heading" || node.type === "task") {
-			collectFromContentNode(node);
-		}
-		if (tasks.length === 0 && node._task?.path) add(node._task);
+		walk(node);
 		return tasks;
 	}
 
 	private renderSplitLayout(
-		displayTree: TreeNode[],
+		displayTree: TaskTreeNode[],
 		viewStyle: string,
 		filter: GlobalFilter,
 		intervalMode: string,
 		sort: { type: string; order: string },
-		sortedTasks: TaskItem[],
+		sortedNodes: TaskTreeNode[],
 	) {
 		const preset = this.store.getActivePreset();
 		const panelCollapsed = preset?.taskTreeNavCollapsed ?? false;
@@ -473,7 +264,7 @@ export abstract class BaseTaskView {
 			renderTaskTree(treeContent, {
 				roots: displayTree,
 				hideFolders: filter.hideFolders ?? true,
-				onClick: (node: any) =>
+				onClick: (node: TaskTreeNode) =>
 					this.onTaskTreeNavClick(node, viewStyle),
 				sort,
 			});
@@ -504,7 +295,7 @@ export abstract class BaseTaskView {
 			"flex:1;overflow:auto;min-width:0;padding:0;";
 		this.renderByStyle(
 			this.rightContentContainer,
-			sortedTasks,
+			sortedNodes,
 			viewStyle,
 			filter,
 			intervalMode,
@@ -515,50 +306,20 @@ export abstract class BaseTaskView {
 		document.addEventListener("mouseup", this.stopResizeBound!);
 	}
 
-	private onTaskTreeNavClick(node: any, currentViewStyle: string) {
+	private onTaskTreeNavClick(node: TaskTreeNode, currentViewStyle: string) {
 		if (currentViewStyle === "gantt" || currentViewStyle === "tree") {
-			const task = this.extractTaskFromNode(node);
-			if (task) this.openTaskAtLine(task);
+			this.openTaskAtLine(node);
 			return;
 		}
 		this.selectedTreeNode = this.selectedTreeNode === node ? null : node;
 		this.render();
 	}
 
-	private extractTaskFromNode(node: any): TaskItem | null {
-		const filePath = node.path || node._filePath || node._task?.path || "";
-		if (node._task?.path) return node._task;
-		if (node._task)
-			return {
-				...node._task,
-				path: node._task.path || filePath,
-				line: node._task.line ?? node._task.lineNumber ?? 0,
-				lineNumber: node._task.lineNumber ?? node._task.line ?? 0,
-			} as TaskItem;
-		if (node.path)
-			return {
-				path: node.path,
-				line: 0,
-				lineNumber: 0,
-				_status: "todo",
-				_cleanText: node.name || "",
-			} as TaskItem;
-		if (node.type === "heading" || node.type === "task")
-			return {
-				path: filePath,
-				line: node.line ?? 0,
-				lineNumber: node.line ?? 0,
-				_status: "todo",
-				_cleanText: node.text || "",
-			} as TaskItem;
-		return null;
-	}
-
-	protected openTaskAtLine(task: TaskItem) {
-		if (!task?.path) return;
-		const file = this.app.vault.getAbstractFileByPath(task.path);
+	protected openTaskAtLine(node: TaskTreeNode) {
+		if (!node?.path) return;
+		const file = this.app.vault.getAbstractFileByPath(node.path);
 		if (!file) return;
-		const targetLine = task.line ?? task.lineNumber ?? 0;
+		const targetLine = node.line;
 		const leaf = this.app.workspace.getLeaf(false);
 		leaf.openFile(file).then(() => {
 			const tryScroll = (retries: number) => {
@@ -572,15 +333,17 @@ export abstract class BaseTaskView {
 						},
 						true,
 					);
-					setTimeout(() => {
-						editor.scrollIntoView(
-							{
-								from: { line: targetLine, ch: 0 },
-								to: { line: targetLine, ch: 0 },
-							},
-							true,
-						);
-					}, 50);
+					setTimeout(
+						() =>
+							editor.scrollIntoView(
+								{
+									from: { line: targetLine, ch: 0 },
+									to: { line: targetLine, ch: 0 },
+								},
+								true,
+							),
+						50,
+					);
 				} else if (retries > 0) {
 					setTimeout(() => tryScroll(retries - 1), 100);
 				}
@@ -655,70 +418,59 @@ export abstract class BaseTaskView {
 
 	protected renderByStyle(
 		container: HTMLElement,
-		tasks: TaskItem[],
+		nodes: TaskTreeNode[],
 		style: string,
 		filter: GlobalFilter,
 		intervalMode: string,
-		panelFilteredTree?: TreeNode[],
+		panelFilteredTree?: TaskTreeNode[],
 		sort?: { type: string; order: string },
 	) {
-		const preset = this.store.getActivePreset();
-		const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
-		const tableCols = hideConfig.hideTableColumns;
-		const columnsVisibility: Record<string, boolean> = {};
-		for (const key in tableCols) {
-			columnsVisibility[key] = !tableCols[key];
-		}
-
-		const h = (t: TaskItem) => this.openTaskAtLine(t);
+		const h = (n: TaskTreeNode) => this.openTaskAtLine(n);
 		switch (style) {
 			case "table":
-				renderTaskTable(container, tasks, {
-					onClick: h,
-					columnsVisibility,
-				});
+				renderTaskTable(container, nodes, { onClick: h });
 				break;
 			case "list":
-				renderTaskList(container, tasks, {
+				renderTaskList(container, nodes, {
 					onClick: h,
 					compact: false,
 				});
 				break;
 			case "cards":
-				renderCards(container, tasks, { onClick: h });
+				renderCards(container, nodes, { onClick: h });
 				break;
 			case "status":
-				renderStatus(container, tasks, { onClick: h });
+				renderStatus(container, nodes, { onClick: h });
 				break;
 			case "priority":
-				renderPriority(container, tasks, { onClick: h });
+				renderPriority(container, nodes, { onClick: h });
 				break;
 			case "kanban":
-				renderKanban(container, tasks);
+				renderKanban(container, nodes);
 				break;
 			case "matrix":
-				renderMatrix(container, tasks);
+				renderMatrix(container, nodes);
 				break;
 			case "recurring":
-				renderRecurring(container, tasks, { onClick: h });
+				renderRecurring(container, nodes, { onClick: h });
 				break;
 			case "time":
-				renderTimeList(container, tasks, { onClick: h });
+				renderTimeList(container, nodes, { onClick: h });
 				break;
 			case "overdue":
-				renderOverdueList(container, tasks, { onClick: h });
+				renderOverdueList(container, nodes, { onClick: h });
 				break;
 			case "timeline":
-				renderTimeline(container, tasks);
+				renderTimeline(container, nodes);
 				break;
 			case "tag":
-				renderTag(container, tasks, { onClick: h });
+				renderTag(container, nodes, { onClick: h });
 				break;
 			case "uniqueId":
-				renderUniqueId(container, tasks, { onClick: h });
+				renderUniqueId(container, nodes, { onClick: h });
 				break;
 			case "depends":
-				renderDepends(container, tasks, { onClick: h });
+				renderDepends(container, nodes, { onClick: h });
 				break;
 			case "calendar": {
 				const bar = container.createDiv({ cls: "calendar-toolbar" });
@@ -749,32 +501,28 @@ export abstract class BaseTaskView {
 					quarter: renderCalendarQuarter,
 					year: renderCalendarYear,
 				};
-				(cm[this.calendarSubView] || renderCalendarMonth)(cc, tasks, {
+				(cm[this.calendarSubView] || renderCalendarMonth)(cc, nodes, {
 					onClick: h,
 					intervalMode,
 				});
 				break;
 			}
 			case "statistics":
-				renderStatistics(container, tasks);
+				renderStatistics(container, nodes);
 				break;
 			case "detail":
-				renderDetail(container, tasks);
+				renderDetail(container, nodes);
 				break;
 			default:
 				container.createDiv({ text: `未支持的视图样式：${style}` });
 		}
 	}
 
-	protected openTask(task: TaskItem) {
-		this.openTaskAtLine(task);
-	}
-
 	protected applySort(
-		tasks: TaskItem[],
+		nodes: TaskTreeNode[],
 		sort: { type: string; order: string },
-	): TaskItem[] {
-		const s = [...tasks];
+	): TaskTreeNode[] {
+		const s = [...nodes];
 		const o = sort.order === "asc" ? 1 : -1;
 		s.sort((a, b) => {
 			const va = this.getSortValue(a, sort.type),
@@ -789,24 +537,39 @@ export abstract class BaseTaskView {
 		return s;
 	}
 
-	private getSortValue(task: TaskItem, type: string): string | number | null {
+	private getSortValue(
+		node: TaskTreeNode,
+		type: string,
+	): string | number | null {
 		switch (type) {
-			case "status":
-				return (
-					{
-						todo: 0,
-						planned: 1,
-						"in-progress": 2,
-						completed: 3,
-						cancelled: 4,
-					}[task._status] ?? 5
-				);
+			case "status": {
+				const so: Record<string, number> = {
+					todo: 0,
+					planned: 1,
+					"in-progress": 2,
+					completed: 3,
+					cancelled: 4,
+				};
+				return so[node.status] ?? 5;
+			}
 			case "description":
-				return (task._cleanText || task.text || "").toLowerCase();
+				return (node.content || node.text || "").toLowerCase();
 			case "priority":
-				return PRIORITY_ORDER.indexOf(task._priorityIcon || "");
+				return node.priority;
+			case "scheduled":
+				return node.scheduled;
+			case "due":
+				return node.due;
+			case "created":
+				return node.created;
+			case "starts":
+				return node.starts;
+			case "done":
+				return node.done;
+			case "cancelled":
+				return node.cancelled;
 			default:
-				return (task as any)["_" + type] || null;
+				return (node as any)[type] ?? null;
 		}
 	}
 

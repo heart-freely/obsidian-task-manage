@@ -1,26 +1,21 @@
-// src/ui/component/bar/progress-bar.ts
-// 任务进度条通用组件
+// src/ui/component/progress/progress.ts
 
 import {
 	ALLOWED_STATUSES,
 	STATUS_COLORS,
+	STATUS_ICONS,
+	STATUS_NAMES,
 } from "../../../process/config/config";
+import { TaskTreeNode } from "../../../process/task/task-tree";
 import { tooltip } from "../tooltip/tooltip";
 
 export interface ProgressBarOptions {
-	/** 各状态的任务数量 */
 	counts: Record<string, number>;
-	/** 总任务数 */
 	total: number;
-	/** 进度条高度 */
 	height?: string;
-	/** 是否显示百分比文字 */
 	showPercent?: boolean;
 }
 
-/**
- * 创建任务进度条
- */
 export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 	const { counts, total, height, showPercent } = options;
 	const barHeight = height || "6px";
@@ -37,7 +32,6 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		barHeight +
 		";border-radius:3px;overflow:hidden;background:var(--background-modifier-border);display:flex;";
 
-	// 按照 config 中的顺序：未开始 → 计划中 → 进行中 → 已完成 → 已取消
 	const order = ["todo", "planned", "in-progress", "completed", "cancelled"];
 	let accumulated = 0;
 
@@ -71,40 +65,51 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		container.appendChild(label);
 	}
 
-	// Tooltip：鼠标悬停显示各状态详情
 	const tooltipHtml = buildProgressTooltip(counts, safeTotal);
 	if (tooltipHtml) {
-		container.addEventListener("mouseenter", (e) => {
-			tooltip.show(tooltipHtml, e.clientX, e.clientY);
-		});
-		container.addEventListener("mousemove", (e) => {
-			tooltip.move(e.clientX, e.clientY);
-		});
-		container.addEventListener("mouseleave", () => {
-			tooltip.hide();
-		});
+		container.addEventListener("mouseenter", (e) =>
+			tooltip.show(tooltipHtml, e.clientX, e.clientY),
+		);
+		container.addEventListener("mousemove", (e) =>
+			tooltip.move(e.clientX, e.clientY),
+		);
+		container.addEventListener("mouseleave", () => tooltip.hide());
 	}
 
 	return container;
 }
 
-/**
- * 构建进度条 Tooltip 内容
- * 顺序：未开始 → 计划中 → 进行中 → 已取消 → 已完成
- */
 function buildProgressTooltip(
 	counts: Record<string, number>,
 	total: number,
 ): string {
 	const parts: string[] = [];
-
-	// 按照 config 中的执行状态顺序：未开始 → 计划中 → 进行中 → 已取消 → 已完成
 	const statusConfig: Array<{ key: string; icon: string; label: string }> = [
-		{ key: "todo", icon: "🔲", label: "未开始" },
-		{ key: "planned", icon: "❔", label: "计划中" },
-		{ key: "in-progress", icon: "⏩", label: "进行中" },
-		{ key: "cancelled", icon: "❎", label: "已取消" },
-		{ key: "completed", icon: "✅", label: "已完成" },
+		{
+			key: "todo",
+			icon: STATUS_ICONS["todo"] || "🔲",
+			label: STATUS_NAMES["todo"] || "未开始",
+		},
+		{
+			key: "planned",
+			icon: STATUS_ICONS["planned"] || "❔",
+			label: STATUS_NAMES["planned"] || "计划中",
+		},
+		{
+			key: "in-progress",
+			icon: STATUS_ICONS["in-progress"] || "⏩",
+			label: STATUS_NAMES["in-progress"] || "进行中",
+		},
+		{
+			key: "cancelled",
+			icon: STATUS_ICONS["cancelled"] || "❎",
+			label: STATUS_NAMES["cancelled"] || "已取消",
+		},
+		{
+			key: "completed",
+			icon: STATUS_ICONS["completed"] || "✅",
+			label: STATUS_NAMES["completed"] || "已完成",
+		},
 	];
 
 	statusConfig.forEach(({ key, icon, label }) => {
@@ -116,10 +121,7 @@ function buildProgressTooltip(
 	return parts.join("<br>");
 }
 
-/**
- * 统计任务列表中各状态数量
- */
-export function countTaskStatuses(tasks: any[]): {
+export function countTaskStatuses(nodes: TaskTreeNode[]): {
 	counts: Record<string, number>;
 	total: number;
 } {
@@ -128,11 +130,10 @@ export function countTaskStatuses(tasks: any[]): {
 		counts[s] = 0;
 	});
 
-	tasks.forEach((task) => {
-		const status = task._status || "todo";
+	nodes.forEach((node) => {
+		const status = node.status || "todo";
 		counts[status] = (counts[status] || 0) + 1;
 	});
 
-	const total = tasks.length;
-	return { counts, total };
+	return { counts, total: nodes.length };
 }

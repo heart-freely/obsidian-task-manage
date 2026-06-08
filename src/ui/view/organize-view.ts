@@ -1,5 +1,4 @@
 // src/ui/view/organize-view.ts
-// 整理处视图（批量编辑）
 
 import { DataManager } from "../../process/core/data-manager";
 import {
@@ -9,6 +8,7 @@ import {
 	writeToFiles,
 } from "../../process/task/task-editor";
 import { filterTasks } from "../../process/task/task-filter";
+import { TaskTreeNode } from "../../process/task/task-tree";
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 
@@ -34,7 +34,7 @@ const EDIT_MARKS = [
 	{ key: "starts", label: "开始", options: ["今天", "删除"] },
 	{ key: "due", label: "截止", options: ["今天", "删除"] },
 	{ key: "done", label: "完成", options: ["今天", "删除"] },
-	{ key: "cancel", label: "取消", options: ["今天", "删除"] },
+	{ key: "cancelled", label: "取消", options: ["今天", "删除"] },
 	{ key: "tag", label: "标签", options: ["🏁 keep", "🏁 delete", "删除"] },
 	{ key: "id", label: "ID", options: ["生成", "删除"] },
 	{ key: "forbid", label: "依赖", options: ["删除"] },
@@ -60,24 +60,23 @@ export class OrganizeView extends BaseTaskView {
 
 	async render() {
 		this.container.empty();
-		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		const activeFilter: GlobalFilter =
 			preset?.filter ?? this.getDefaultFilter();
 		try {
-			const { tasks: allTasks } = await this.dataManager.loadData(
+			const { nodes: allNodes } = await this.dataManager.loadData(
 				this.app,
 			);
-			if (!allTasks || allTasks.length === 0) {
+			if (!allNodes || allNodes.length === 0) {
 				this.renderEmpty();
 				return;
 			}
-			let tasks = filterTasks(allTasks, activeFilter);
-			tasks = this.applyOrganizeFilter(tasks);
+			let nodes = filterTasks(allNodes, activeFilter);
+			nodes = this.applyOrganizeFilter(nodes);
 			this.renderModeSwitch();
-			this.renderEditToolbar(tasks);
-			this.renderTaskList(tasks);
-			this.renderBottomBar(tasks);
+			this.renderEditToolbar(nodes);
+			this.renderTaskList(nodes);
+			this.renderBottomBar(nodes);
 		} catch (e) {
 			this.container.createDiv({
 				text: "加载失败：" + (e as Error).message,
@@ -89,23 +88,24 @@ export class OrganizeView extends BaseTaskView {
 		this.container.createDiv({ text: "没有符合条件的任务" });
 	}
 
-	protected applyOrganizeFilter(tasks: any[]): any[] {
+	protected applyOrganizeFilter(nodes: TaskTreeNode[]): TaskTreeNode[] {
 		const mode = this.filterMode;
 		const isIncomplete = mode.startsWith("incomplete");
 		const isMissing = mode.endsWith("missing");
-		return tasks.filter((task) => {
+		return nodes.filter((node) => {
 			const statusOk = isIncomplete
-				? task._status === "todo" || task._status === "planned"
-				: task._status === "in-progress" ||
-					task._status === "completed" ||
-					task._status === "cancelled";
+				? node.status === "todo" || node.status === "planned"
+				: node.status === "in-progress" ||
+					node.status === "completed" ||
+					node.status === "cancelled";
 			if (!statusOk) return false;
-			const hasEssential =
-				task._priorityIcon &&
-				task._created &&
-				task._scheduled &&
-				task._starts &&
-				task._due;
+			const hasEssential = !!(
+				node.priority !== 5 &&
+				node.created &&
+				node.scheduled &&
+				node.starts &&
+				node.due
+			);
 			if (isMissing && hasEssential) return false;
 			if (!isMissing && !hasEssential) return false;
 			return true;
@@ -132,7 +132,7 @@ export class OrganizeView extends BaseTaskView {
 		});
 	}
 
-	protected renderEditToolbar(tasks: any[]) {
+	protected renderEditToolbar(nodes: TaskTreeNode[]) {
 		const toolbar = this.container.createDiv({
 			cls: "organize-edit-toolbar",
 		});
@@ -141,12 +141,9 @@ export class OrganizeView extends BaseTaskView {
 			cls: "filter-btn",
 		});
 		selectAllBtn.onclick = () => {
-			if (this.selectedTasks.size === tasks.length)
+			if (this.selectedTasks.size === nodes.length)
 				this.selectedTasks.clear();
-			else
-				tasks.forEach((t) =>
-					this.selectedTasks.add(t.path + "|" + t.lineNumber),
-				);
+			else nodes.forEach((n) => this.selectedTasks.add(n.uid));
 			this.render();
 		};
 		EDIT_MARKS.forEach((mark) => {
@@ -169,15 +166,9 @@ export class OrganizeView extends BaseTaskView {
 		});
 		autoBtn.onclick = () => {
 			this.selectedTasks.forEach((taskId) => {
-				const task = tasks.find(
-					(t) => t.path + "|" + t.lineNumber === taskId,
-				);
-				if (task?._done) {
-					this.previews.set(
-						taskId,
-						Op.autoComplete(task._fullLine, 3),
-					);
-				}
+				const node = nodes.find((n) => n.uid === taskId);
+				if (node?.done)
+					this.previews.set(taskId, Op.autoComplete(node.rawLine, 3));
 			});
 			this.render();
 		};
@@ -187,12 +178,8 @@ export class OrganizeView extends BaseTaskView {
 		});
 		sortBtn.onclick = () => {
 			this.selectedTasks.forEach((taskId) => {
-				const task = tasks.find(
-					(t) => t.path + "|" + t.lineNumber === taskId,
-				);
-				if (task) {
-					this.previews.set(taskId, Op.sortTags(task._fullLine));
-				}
+				const node = nodes.find((n) => n.uid === taskId);
+				if (node) this.previews.set(taskId, Op.sortTags(node.rawLine));
 			});
 			this.render();
 		};
@@ -224,10 +211,10 @@ export class OrganizeView extends BaseTaskView {
 				v === "删除"
 					? Op.delDone(l)
 					: Op.setDone(l, new Date().toISOString().slice(0, 10)),
-			cancel: (l, v) =>
+			cancelled: (l, v) =>
 				v === "删除"
-					? Op.delCancel(l)
-					: Op.setCancel(l, new Date().toISOString().slice(0, 10)),
+					? Op.delCancelled(l)
+					: Op.setCancelled(l, new Date().toISOString().slice(0, 10)),
 			tag: (l, v) =>
 				v === "删除"
 					? Op.delTag(l)
@@ -253,12 +240,12 @@ export class OrganizeView extends BaseTaskView {
 		this.render();
 	}
 
-	protected renderTaskList(tasks: any[]) {
+	protected renderTaskList(nodes: TaskTreeNode[]) {
 		const listContainer = this.container.createDiv({
 			cls: "organize-task-list",
 		});
-		tasks.forEach((task) => {
-			const taskId = task.path + "|" + task.lineNumber;
+		nodes.forEach((node) => {
+			const taskId = node.uid;
 			const isSelected = this.selectedTasks.has(taskId);
 			const isConfirmed = this.confirmedTasks.has(taskId);
 			const previewLine = this.previews.get(taskId);
@@ -274,7 +261,7 @@ export class OrganizeView extends BaseTaskView {
 			row.appendChild(checkbox);
 			const originalText = document.createElement("div");
 			originalText.className = "organize-original";
-			originalText.textContent = task._fullLine;
+			originalText.textContent = node.rawLine;
 			row.appendChild(originalText);
 			if (previewLine && !isConfirmed) {
 				const preview = document.createElement("div");
@@ -292,7 +279,7 @@ export class OrganizeView extends BaseTaskView {
 				const confirmed = document.createElement("div");
 				confirmed.className = "organize-confirmed";
 				confirmed.textContent =
-					"✔ 已修改: " + (previewLine || task._fullLine);
+					"✔ 已修改: " + (previewLine || node.rawLine);
 				row.appendChild(confirmed);
 				const undoBtn = document.createElement("button");
 				undoBtn.textContent = "撤回";
@@ -306,7 +293,7 @@ export class OrganizeView extends BaseTaskView {
 		});
 	}
 
-	protected renderBottomBar(tasks: any[]) {
+	protected renderBottomBar(nodes: TaskTreeNode[]) {
 		const bar = this.container.createDiv({ cls: "organize-bottom-bar" });
 		const saveBtn = bar.createEl("button", {
 			text: "💾 保存所有修改",
@@ -320,14 +307,12 @@ export class OrganizeView extends BaseTaskView {
 			});
 			const snapshot: Record<string, string> = {};
 			taskIds.forEach((id) => {
-				const task = tasks.find(
-					(t) => t.path + "|" + t.lineNumber === id,
-				);
-				if (task) snapshot[id] = task._fullLine;
+				const node = nodes.find((n) => n.uid === id);
+				if (node) snapshot[id] = node.rawLine;
 			});
 			const snapshots = loadSnapshots();
 			addSnapshot(snapshots, snapshot);
-			await writeToFiles(this.app, tasks, taskIds, linesMap);
+			await writeToFiles(this.app, nodes, taskIds, linesMap);
 			this.confirmedTasks.clear();
 			this.previews.clear();
 			this.selectedTasks.clear();
@@ -346,7 +331,7 @@ export class OrganizeView extends BaseTaskView {
 			taskIds.forEach((id) => {
 				linesMap[id] = last.snapshot[id];
 			});
-			await writeToFiles(this.app, tasks, taskIds, linesMap);
+			await writeToFiles(this.app, nodes, taskIds, linesMap);
 			snapshots.shift();
 			this.render();
 		};

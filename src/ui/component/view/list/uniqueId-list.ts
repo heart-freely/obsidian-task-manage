@@ -1,23 +1,23 @@
 // src/ui/component/lists/uniqueId-renderer.ts
+
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 export function renderUniqueId(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void },
 ) {
 	container.empty();
-	const uniqueIdTasks = tasks.filter((t) => t._id);
-	if (uniqueIdTasks.length === 0) {
+	const uniqueIdNodes = nodes.filter((n) => n.id);
+	if (uniqueIdNodes.length === 0) {
 		container.createDiv({ text: "🆔 暂无带唯一ID的任务" });
 		return;
 	}
 
-	const sorted = [...uniqueIdTasks].sort((a, b) => {
-		const aHas = a._id ? 1 : 0;
-		const bHas = b._id ? 1 : 0;
-		return bHas - aHas;
-	});
+	const sorted = [...uniqueIdNodes].sort(
+		(a, b) => (a.id ? 1 : 0) - (b.id ? 1 : 0),
+	);
 
 	const card = createGroupCard({
 		title: "🆔 唯一ID任务",

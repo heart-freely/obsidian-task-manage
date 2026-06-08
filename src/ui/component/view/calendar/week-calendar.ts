@@ -1,15 +1,17 @@
+// src/ui/component/view/calendar/week-calendar.ts
+
 import { DateUtils } from "../../../../process/process";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 
 export function renderCalendarWeek(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void; intervalMode?: string },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void; intervalMode?: string },
 ) {
 	container.empty();
 	const intervalMode = options?.intervalMode || "scheduled-due";
 
-	// 找到最小/最大日期，生成覆盖的周列表
-	const allDates = getRelevantDates(tasks, intervalMode);
+	const allDates = getRelevantDates(nodes, intervalMode);
 	if (allDates.length === 0) {
 		container.createDiv({ text: "无任务日期", cls: "empty-placeholder" });
 		return;
@@ -17,9 +19,7 @@ export function renderCalendarWeek(
 	const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
 	const maxDate = new Date(Math.max(...allDates.map((d) => d.getTime())));
 
-	// 生成周列表
 	let weekStart = DateUtils.setStart(minDate);
-	// 确保从周一开始
 	const dow = weekStart.getDay() || 7;
 	weekStart.setDate(weekStart.getDate() - (dow - 1));
 
@@ -34,7 +34,6 @@ export function renderCalendarWeek(
 			cls: "week-title",
 		});
 
-		// 生成7列网格
 		const grid = weekDiv.createDiv({ cls: "calendar-grid" });
 		for (let i = 0; i < 7; i++) {
 			const d = new Date(weekStart);
@@ -47,18 +46,17 @@ export function renderCalendarWeek(
 			});
 			cell.createDiv({ text: `${d.getDate()}`, cls: "cal-cell-header" });
 
-			// 获取当天任务
-			const dayTasks = tasks.filter((task) =>
-				isTaskInDate(task, d, intervalMode),
+			const dayNodes = nodes.filter((node) =>
+				isNodeInDate(node, d, intervalMode),
 			);
-			if (dayTasks.length > 0) {
+			if (dayNodes.length > 0) {
 				const list = cell.createEl("ul", { cls: "task-list-mini" });
-				dayTasks.forEach((task) => {
+				dayNodes.forEach((node) => {
 					const li = list.createEl("li", {
-						text: task._cleanText || task.text,
+						text: node.text || node.content,
 					});
 					li.addEventListener("click", () => {
-						if (options?.onClick) options.onClick(task);
+						if (options?.onClick) options.onClick(node);
 					});
 				});
 			}
@@ -68,36 +66,38 @@ export function renderCalendarWeek(
 	}
 }
 
-function isTaskInDate(task: any, date: Date, intervalMode: string): boolean {
-	const startField =
-		intervalMode === "starts-done" ? "_starts" : "_scheduled";
-	const endField =
-		intervalMode === "starts-done"
-			? task._done
-				? "_done"
-				: "_due"
-			: "_due";
-	const start = task[startField] ? new Date(task[startField]) : null;
-	const end = task[endField] ? new Date(task[endField]) : null;
-	if (!start || !end) return false;
+function isNodeInDate(
+	node: TaskTreeNode,
+	date: Date,
+	intervalMode: string,
+): boolean {
+	let startField: number | null, endField: number | null;
+
+	if (intervalMode === "starts-done") {
+		startField = node.starts;
+		endField = node.done ?? node.due;
+	} else {
+		startField = node.scheduled;
+		endField = node.due;
+	}
+
+	if (startField === null || endField === null) return false;
 	const dayStart = DateUtils.setStart(date).getTime();
 	const dayEnd = DateUtils.setEnd(date).getTime();
-	return start.getTime() <= dayEnd && end.getTime() >= dayStart;
+	return startField <= dayEnd && endField >= dayStart;
 }
 
-function getRelevantDates(tasks: any[], intervalMode: string): Date[] {
+function getRelevantDates(nodes: TaskTreeNode[], intervalMode: string): Date[] {
 	const dates: Date[] = [];
-	tasks.forEach((task) => {
-		const startField =
-			intervalMode === "starts-done" ? "_starts" : "_scheduled";
-		const endField =
-			intervalMode === "starts-done"
-				? task._done
-					? "_done"
-					: "_due"
-				: "_due";
-		if (task[startField]) dates.push(new Date(task[startField]));
-		if (task[endField]) dates.push(new Date(task[endField]));
+	nodes.forEach((node) => {
+		if (intervalMode === "starts-done") {
+			if (node.starts) dates.push(new Date(node.starts));
+			if (node.done) dates.push(new Date(node.done));
+			else if (node.due) dates.push(new Date(node.due));
+		} else {
+			if (node.scheduled) dates.push(new Date(node.scheduled));
+			if (node.due) dates.push(new Date(node.due));
+		}
 	});
 	return dates;
 }

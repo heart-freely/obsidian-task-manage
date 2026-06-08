@@ -1,9 +1,12 @@
+// src/ui/component/view/calendar/year-calendar.ts
+
 import { DateUtils } from "../../../../process/process";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 
 export function renderCalendarYear(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void; intervalMode?: string },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void; intervalMode?: string },
 ) {
 	container.empty();
 	const year = new Date().getFullYear();
@@ -42,11 +45,11 @@ export function renderCalendarYear(
 			});
 			cell.textContent = d.getDate().toString();
 
-			const dayTasks = tasks.filter((task) => {
-				const intervalMode = options?.intervalMode || "scheduled-due";
-				return isTaskInDate(task, d, intervalMode);
-			});
-			if (dayTasks.length > 0) {
+			const intervalMode = options?.intervalMode || "scheduled-due";
+			const dayNodes = nodes.filter((node) =>
+				isNodeInDate(node, d, intervalMode),
+			);
+			if (dayNodes.length > 0) {
 				cell.style.backgroundColor = "#4dabf7";
 				cell.style.color = "white";
 			}
@@ -54,19 +57,23 @@ export function renderCalendarYear(
 	}
 }
 
-function isTaskInDate(task: any, date: Date, intervalMode: string): boolean {
-	const startField =
-		intervalMode === "starts-done" ? "_starts" : "_scheduled";
-	const endField =
-		intervalMode === "starts-done"
-			? task._done
-				? "_done"
-				: "_due"
-			: "_due";
-	const start = task[startField] ? new Date(task[startField]) : null;
-	const end = task[endField] ? new Date(task[endField]) : null;
-	if (!start || !end) return false;
+function isNodeInDate(
+	node: TaskTreeNode,
+	date: Date,
+	intervalMode: string,
+): boolean {
+	let startField: number | null, endField: number | null;
+
+	if (intervalMode === "starts-done") {
+		startField = node.starts;
+		endField = node.done ?? node.due;
+	} else {
+		startField = node.scheduled;
+		endField = node.due;
+	}
+
+	if (startField === null || endField === null) return false;
 	const dayStart = DateUtils.setStart(date).getTime();
 	const dayEnd = DateUtils.setEnd(date).getTime();
-	return start.getTime() <= dayEnd && end.getTime() >= dayStart;
+	return startField <= dayEnd && endField >= dayStart;
 }

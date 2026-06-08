@@ -1,21 +1,21 @@
+// src/ui/component/view/board/kanban-board.ts
+
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
-export function renderKanban(container: HTMLElement, tasks: any[]) {
+export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
 
-	// 仅保留有效状态的任务
 	const validStatuses = ["todo", "planned", "in-progress"];
-	const filteredTasks = tasks.filter((t) =>
-		validStatuses.includes(t._status),
-	);
+	const filteredNodes = nodes.filter((n) => validStatuses.includes(n.status));
 
-	const groups: Record<string, any[]> = {
+	const groups: Record<string, TaskTreeNode[]> = {
 		todo: [],
 		planned: [],
 		"in-progress": [],
 	};
-	filteredTasks.forEach((t) => {
-		groups[t._status].push(t);
+	filteredNodes.forEach((n) => {
+		groups[n.status].push(n);
 	});
 
 	const columns = [

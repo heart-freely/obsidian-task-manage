@@ -1,4 +1,4 @@
-// src/ui/views/all-view.ts
+// src/ui/view/all-view.ts
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 

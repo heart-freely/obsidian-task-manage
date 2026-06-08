@@ -1,3 +1,5 @@
+// src/ui/component/view/list/tag-list.ts
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 const TAG_COLORS = [
@@ -10,32 +12,31 @@ const TAG_COLORS = [
 
 export function renderTag(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void },
 ) {
 	container.empty();
-	// 只保留有标签的任务
-	const taggedTasks = tasks.filter((t) => t._tag);
-	if (taggedTasks.length === 0) {
+	const taggedNodes = nodes.filter((n) => n.task.tag);
+	if (taggedNodes.length === 0) {
 		container.createDiv({ text: "🏷️ 暂无标签任务" });
 		return;
 	}
 
-	const tagMap = new Map<string, any[]>();
-	taggedTasks.forEach((task) => {
-		const tag = task._tag || "无标签";
+	const tagMap = new Map<string, TaskTreeNode[]>();
+	taggedNodes.forEach((node) => {
+		const tag = node.task.tag || "无标签";
 		if (!tagMap.has(tag)) tagMap.set(tag, []);
-		tagMap.get(tag)!.push(task);
+		tagMap.get(tag)!.push(node);
 	});
 
 	let colorIndex = 0;
-	tagMap.forEach((tagTasks, tag) => {
+	tagMap.forEach((tagNodes, tag) => {
 		const color = TAG_COLORS[colorIndex % TAG_COLORS.length];
 		colorIndex++;
 		const card = createGroupCard({
 			title: `🏁 ${tag}`,
-			count: tagTasks.length,
-			tasks: tagTasks,
+			count: tagNodes.length,
+			tasks: tagNodes,
 			onClick: options?.onClick,
 			color: color,
 		});

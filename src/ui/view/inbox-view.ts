@@ -1,4 +1,4 @@
-// src/ui/views/inbox-view.ts
+// src/ui/view/inbox-view.ts
 import { GlobalFilter } from "../../types";
 import { BaseTaskView } from "./base-view";
 
@@ -11,7 +11,6 @@ export class InboxView extends BaseTaskView {
 		filter.hideCancelled = true;
 		return filter;
 	}
-
 	protected renderEmpty() {
 		this.container.createDiv({ text: "📭 暂无待办任务" });
 	}

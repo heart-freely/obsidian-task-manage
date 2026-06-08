@@ -1,20 +1,17 @@
 // src/process/task/task-filter.ts
-// 扁平任务筛选——纯函数
 
-import { GlobalFilter, TaskItem } from "../../types";
+import { GlobalFilter } from "../../types";
 import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "../config/config";
+import { getTaskMarks } from "./task-derived";
+import { TaskTreeNode } from "./task-tree";
 
-/**
- * 对扁平任务数组进行筛选
- */
 export function filterTasks(
-	tasks: TaskItem[],
+	nodes: TaskTreeNode[],
 	filter: GlobalFilter,
 	intervalMode?: string,
-): TaskItem[] {
-	let result = tasks;
+): TaskTreeNode[] {
+	let result = nodes;
 
-	// 日期范围筛选
 	if (
 		!filter.dateRange.isAll &&
 		filter.dateRange.start != null &&
@@ -24,111 +21,92 @@ export function filterTasks(
 		const end = filter.dateRange.end;
 		const mode = intervalMode || "scheduled-due";
 
-		result = result.filter((t: TaskItem) => {
+		result = result.filter((node) => {
 			let tStart: number | null = null;
 			let tEnd: number | null = null;
 
 			if (mode === "starts-done") {
-				tStart = t._starts ? new Date(t._starts).getTime() : null;
-				tEnd = t._done
-					? new Date(t._done).getTime()
-					: t._due
-						? new Date(t._due).getTime()
-						: null;
+				tStart = node.starts;
+				tEnd = node.done ?? node.due;
 			} else {
-				tStart = t._scheduled ? new Date(t._scheduled).getTime() : null;
-				tEnd = t._due
-					? new Date(t._due).getTime()
-					: t._done
-						? new Date(t._done).getTime()
-						: null;
+				tStart = node.scheduled;
+				tEnd = node.due ?? node.done;
 			}
 
-			if (!tStart || !tEnd) return false;
+			if (tStart === null || tEnd === null) return false;
 			return tStart <= end && tEnd >= start;
 		});
 	}
 
-	// 状态筛选
 	if (filter.statuses && filter.statuses.length > 0) {
-		result = result.filter((t: TaskItem) =>
-			filter.statuses.includes(t._status),
-		);
+		result = result.filter((node) => filter.statuses.includes(node.status));
 	}
 
-	// 标记筛选
-	const allMarksList = [...ALL_MARKS];
 	if (
 		filter.includeMarks &&
 		filter.includeMarks.length > 0 &&
-		filter.includeMarks.length < allMarksList.length
+		filter.includeMarks.length < ALL_MARKS.length
 	) {
-		result = result.filter((t: TaskItem) =>
-			filter.includeMarks!.some((m: string) => t._marks?.[m]),
-		);
+		result = result.filter((node) => {
+			const marks = getTaskMarks(node);
+			return filter.includeMarks!.some(
+				(m) => marks[m as keyof typeof marks],
+			);
+		});
 	}
 
-	// 隐藏循环
 	if (filter.hideRepeat) {
-		result = result.filter((t: TaskItem) => !t._repeat);
+		result = result.filter((node) => !node.repeat);
 	}
 
-	// 隐藏已完成
 	if (filter.hideCompleted) {
-		result = result.filter((t: TaskItem) => t._status !== "completed");
+		result = result.filter((node) => node.status !== "completed");
 	}
 
-	// 隐藏已取消
 	if (filter.hideCancelled) {
-		result = result.filter((t: TaskItem) => t._status !== "cancelled");
+		result = result.filter((node) => node.status !== "cancelled");
 	}
 
-	// 根路径筛选
 	if (filter.rootPath) {
-		result = result.filter((t: TaskItem) =>
-			t.path?.startsWith(filter.rootPath!),
+		result = result.filter((node) =>
+			node.path?.startsWith(filter.rootPath!),
 		);
 	}
 
-	// 搜索文本
 	if (filter.searchText) {
 		const kw = filter.searchText
 			.toLowerCase()
 			.split(/\s+/)
 			.filter((k) => k.length > 0);
 		if (kw.length > 0) {
-			result = result.filter((t: TaskItem) => {
-				const d = (t._cleanText || t.text || "").toLowerCase();
+			result = result.filter((node) => {
+				const d = (node.content || node.text || "").toLowerCase();
 				return kw.every((k) => d.includes(k));
 			});
 		}
 	}
 
-	// 优先级筛选
-	const allPriorityIcons = [...PRIORITY_ORDER];
 	if (
 		filter.priorityValues &&
 		filter.priorityValues.length > 0 &&
-		filter.priorityValues.length < allPriorityIcons.length
+		filter.priorityValues.length < PRIORITY_ORDER.length
 	) {
-		result = result.filter(
-			(t: TaskItem) =>
-				t._priorityIcon &&
-				filter.priorityValues!.includes(t._priorityIcon),
-		);
+		result = result.filter((node) => {
+			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+			const icon = icons[node.priority] || "";
+			return icon && filter.priorityValues!.includes(icon);
+		});
 	}
 
-	// 循环周期筛选
-	const allRepeatCycles = [...REPEAT_ORDER];
 	if (
 		filter.repeatCycles &&
 		filter.repeatCycles.length > 0 &&
-		filter.repeatCycles.length < allRepeatCycles.length
+		filter.repeatCycles.length < REPEAT_ORDER.length
 	) {
-		result = result.filter((t: TaskItem) => {
-			if (!t._repeat) return false;
-			return filter.repeatCycles!.some((c: string) =>
-				t._repeat.toLowerCase().includes(c),
+		result = result.filter((node) => {
+			if (!node.repeat) return false;
+			return filter.repeatCycles!.some((c) =>
+				node.repeat.toLowerCase().includes(c),
 			);
 		});
 	}

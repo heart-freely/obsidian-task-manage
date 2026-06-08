@@ -1,9 +1,12 @@
+// src/ui/component/view/calendar/month-calendar.ts
+
 import { DateUtils } from "../../../../process/process";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 
 export function renderCalendarMonth(
 	container: HTMLElement,
-	tasks: any[],
-	options?: { onClick?: (task: any) => void; intervalMode?: string },
+	nodes: TaskTreeNode[],
+	options?: { onClick?: (node: TaskTreeNode) => void; intervalMode?: string },
 ) {
 	container.empty();
 	const intervalMode = options?.intervalMode || "scheduled-due";
@@ -17,9 +20,8 @@ export function renderCalendarMonth(
 	startDay.setDate(1 - (dow === 7 ? 6 : 1 - dow));
 
 	const grid = container.createDiv({ cls: "calendar-grid" });
-	// 标题行
 	["一", "二", "三", "四", "五", "六", "日"].forEach((d) => {
-		const cell = grid.createDiv({ text: d, cls: "cal-cell-header" });
+		grid.createDiv({ text: d, cls: "cal-cell-header" });
 	});
 
 	for (let i = 0; i < 42; i++) {
@@ -37,32 +39,36 @@ export function renderCalendarMonth(
 		});
 		cell.createDiv({ text: `${d.getDate()}`, cls: "cal-cell-header" });
 
-		const dayTasks = tasks.filter((task) =>
-			isTaskInDate(task, d, intervalMode),
+		const dayNodes = nodes.filter((node) =>
+			isNodeInDate(node, d, intervalMode),
 		);
-		dayTasks.forEach((task) => {
+		dayNodes.forEach((node) => {
 			const taskEl = cell.createDiv({ cls: "cal-task" });
-			taskEl.createSpan({ text: task._cleanText || task.text });
+			taskEl.createSpan({ text: node.text || node.content });
 			taskEl.addEventListener("click", () => {
-				if (options?.onClick) options.onClick(task);
+				if (options?.onClick) options.onClick(node);
 			});
 		});
 	}
 }
 
-function isTaskInDate(task: any, date: Date, intervalMode: string): boolean {
-	const startField =
-		intervalMode === "starts-done" ? "_starts" : "_scheduled";
-	const endField =
-		intervalMode === "starts-done"
-			? task._done
-				? "_done"
-				: "_due"
-			: "_due";
-	const start = task[startField] ? new Date(task[startField]) : null;
-	const end = task[endField] ? new Date(task[endField]) : null;
-	if (!start || !end) return false;
+function isNodeInDate(
+	node: TaskTreeNode,
+	date: Date,
+	intervalMode: string,
+): boolean {
+	let startField: number | null, endField: number | null;
+
+	if (intervalMode === "starts-done") {
+		startField = node.starts;
+		endField = node.done ?? node.due;
+	} else {
+		startField = node.scheduled;
+		endField = node.due;
+	}
+
+	if (startField === null || endField === null) return false;
 	const dayStart = DateUtils.setStart(date).getTime();
 	const dayEnd = DateUtils.setEnd(date).getTime();
-	return start.getTime() <= dayEnd && end.getTime() >= dayStart;
+	return startField <= dayEnd && endField >= dayStart;
 }

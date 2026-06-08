@@ -1,10 +1,8 @@
 // src/process/component/tree-view-process.ts
-// 任务树视图数据处理
 
 import { countTaskStatuses } from "../../ui/component/progress/progress";
-import { ContentNode, TreeNode } from "../task/task-tree";
-
-// ========== 去除 number headings 插件序号 ==========
+import { ContentNode } from "../task/md-parser";
+import { TaskTreeNode } from "../task/task-tree";
 
 export function removeHeadingNumber(text: string): string {
 	return text
@@ -19,43 +17,21 @@ export function removeHeadingNumber(text: string): string {
 		.trim();
 }
 
-// ========== 收集任务 ==========
-
-export function collectNodeTasks(node: ContentNode): any[] {
+export function collectAllTasksFromNode(node: TaskTreeNode): TaskTreeNode[] {
 	const seen = new Set<string>();
-	const tasks: any[] = [];
-	function add(task: any) {
-		const key = (task.path || "") + ":" + (task.lineNumber ?? task.line);
-		if (!seen.has(key)) {
-			seen.add(key);
-			tasks.push(task);
+	const all: TaskTreeNode[] = [];
+	function walk(n: TaskTreeNode) {
+		if (!seen.has(n.uid)) {
+			seen.add(n.uid);
+			all.push(n);
 		}
+		for (const child of n.children) walk(child);
 	}
-	if (node.type === "task" && node._task) add(node._task);
-	node.children.forEach((child) => collectNodeTasks(child).forEach(add));
-	return tasks;
-}
-
-export function collectAllTasksFromNode(node: TreeNode): any[] {
-	const seen = new Set<string>();
-	const all: any[] = [];
-	function add(task: any) {
-		const key = (task.path || "") + ":" + (task.lineNumber ?? task.line);
-		if (!seen.has(key)) {
-			seen.add(key);
-			all.push(task);
-		}
-	}
-	node.tasks.forEach(add);
-	node.children.forEach((child) =>
-		collectAllTasksFromNode(child).forEach(add),
-	);
-	if (node.contentRoots)
-		node.contentRoots.forEach((cn) => collectNodeTasks(cn).forEach(add));
+	walk(node);
 	return all;
 }
 
-export function countNodeStatuses(node: TreeNode): {
+export function countNodeStatuses(node: TaskTreeNode): {
 	counts: Record<string, number>;
 	total: number;
 } {
@@ -67,25 +43,29 @@ export function countContentNodeStatuses(node: ContentNode): {
 	counts: Record<string, number>;
 	total: number;
 } {
-	const tasks = collectNodeTasks(node);
+	const tasks: any[] = [];
+	function walk(cn: ContentNode) {
+		if (cn.task) tasks.push({ status: cn.task.status });
+		for (const child of cn.children) walk(child);
+	}
+	walk(node);
 	return countTaskStatuses(tasks);
 }
 
-// ========== 排序 ==========
-
-export function getNodeGroupOrder(node: ContentNode): number {
-	if (node.type === "task") return 0;
+export function getNodeGroupOrder(node: TaskTreeNode): number {
+	if (node.type === "list") return 0;
 	if (node.type === "heading") return 1;
 	return 2;
 }
 
 export function compareTasks(
-	taskA: any,
-	taskB: any,
+	nodeA: TaskTreeNode,
+	nodeB: TaskTreeNode,
 	sortType?: string,
 	order: number = 1,
 ): number {
 	if (!sortType) return 0;
+
 	if (sortType === "status") {
 		const so: Record<string, number> = {
 			todo: 0,
@@ -94,34 +74,25 @@ export function compareTasks(
 			completed: 3,
 			cancelled: 4,
 		};
-		const sa = so[taskA._status] ?? 5,
-			sb = so[taskB._status] ?? 5;
+		const sa = so[nodeA.status] ?? 5,
+			sb = so[nodeB.status] ?? 5;
 		if (sa !== sb) return (sa - sb) * order;
 	} else if (sortType === "priority") {
-		const po: Record<string, number> = {
-			"🔺": 0,
-			"⏫": 1,
-			"🔼": 2,
-			"🔽": 3,
-			"⏬": 4,
-		};
-		const pa = taskA._priorityIcon ? (po[taskA._priorityIcon] ?? 5) : 5;
-		const pb = taskB._priorityIcon ? (po[taskB._priorityIcon] ?? 5) : 5;
-		if (pa !== pb) return (pa - pb) * order;
+		if (nodeA.priority !== nodeB.priority)
+			return (nodeA.priority - nodeB.priority) * order;
 	} else if (sortType === "scheduled") {
-		const da = taskA._scheduled
-			? new Date(taskA._scheduled).getTime()
-			: null;
-		const db = taskB._scheduled
-			? new Date(taskB._scheduled).getTime()
-			: null;
-		if (!da && !db) return 0;
-		if (!da) return 1;
-		if (!db) return -1;
+		const da = nodeA.scheduled,
+			db = nodeB.scheduled;
+		if (da === null && db === null) return 0;
+		if (da === null) return 1;
+		if (db === null) return -1;
 		if (da !== db) return (da - db) * order;
 	}
+
 	return (
-		(taskA._cleanText || "").localeCompare(taskB._cleanText || "") * order
+		(nodeA.content || nodeA.text).localeCompare(
+			nodeB.content || nodeB.text,
+		) * order
 	);
 }
 
@@ -131,48 +102,43 @@ export function sortContentNodes(
 ): ContentNode[] {
 	if (!nodes || nodes.length === 0) return nodes;
 	const sorted = [...nodes];
-	const order = sort?.order === "asc" ? 1 : -1;
 	sorted.sort((a, b) => {
-		const ga = getNodeGroupOrder(a),
-			gb = getNodeGroupOrder(b);
-		if (ga !== gb) return ga - gb;
-		const ta = (a as any)._task,
-			tb = (b as any)._task;
-		if (!ta && !tb) return 0;
-		if (!ta) return 1;
-		if (!tb) return -1;
-		return compareTasks(ta, tb, sort?.type, order);
+		if (a.type !== b.type) return a.type === "task" ? -1 : 1;
+		if (!a.task || !b.task) return 0;
+		const order = sort?.order === "asc" ? 1 : -1;
+		const so: Record<string, number> = {
+			todo: 0,
+			planned: 1,
+			"in-progress": 2,
+			completed: 3,
+			cancelled: 4,
+		};
+		const sa = so[a.task.status] ?? 5;
+		const sb = so[b.task.status] ?? 5;
+		if (sa !== sb) return (sa - sb) * order;
+		return (
+			(a.task.content || a.text).localeCompare(b.task.content || b.text) *
+			order
+		);
 	});
 	for (const node of sorted) {
-		if (node.children.length > 0) {
+		if (node.children.length > 0)
 			node.children = sortContentNodes(node.children, sort);
-		}
 	}
 	return sorted;
 }
 
 export function sortFileNodes(
-	nodes: TreeNode[],
+	nodes: TaskTreeNode[],
 	sort?: { type: string; order: "asc" | "desc" },
-): TreeNode[] {
+): TaskTreeNode[] {
 	if (!nodes || nodes.length === 0) return nodes;
 	const sorted = [...nodes];
 	const order = sort?.order === "asc" ? 1 : -1;
-	sorted.sort((a, b) => {
-		const ta = a._task,
-			tb = b._task;
-		if (!ta && !tb) return 0;
-		if (!ta) return 1;
-		if (!tb) return -1;
-		return compareTasks(ta, tb, sort?.type, order);
-	});
+	sorted.sort((a, b) => compareTasks(a, b, sort?.type, order));
 	for (const node of sorted) {
-		if (node.contentRoots?.length > 0) {
-			node.contentRoots = sortContentNodes(node.contentRoots, sort);
-		}
-		if (node.children.length > 0) {
+		if (node.children.length > 0)
 			node.children = sortFileNodes(node.children, sort);
-		}
 	}
 	return sorted;
 }

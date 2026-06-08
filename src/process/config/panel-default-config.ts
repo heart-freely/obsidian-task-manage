@@ -43,7 +43,7 @@ export function getDefaultHideConfig(): HideConfig {
 			created: false,
 			scheduled: false,
 			starts: false,
-			cancel: false,
+			cancelled: false,
 			done: false,
 			due: false,
 			tag: false,

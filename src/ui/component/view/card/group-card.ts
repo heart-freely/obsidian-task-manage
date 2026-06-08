@@ -1,11 +1,14 @@
+// src/ui/component/view/card/group-card.ts
+
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createTaskCard } from "./card";
 
 export interface GroupCardOptions {
 	title: string;
 	count: number;
-	tasks: any[];
-	onClick?: (task: any) => void;
-	color?: string; // 左侧颜色条，如 "rgba(180,180,180,0.25)"
+	tasks: TaskTreeNode[];
+	onClick?: (node: TaskTreeNode) => void;
+	color?: string;
 }
 
 export function createGroupCard(options: GroupCardOptions): HTMLElement {
@@ -20,12 +23,8 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	colDiv.style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)";
 	colDiv.style.overflow = "hidden";
 
-	// 左侧颜色条（若提供）
-	if (color) {
-		colDiv.style.borderLeft = `4px solid ${color}`;
-	}
+	if (color) colDiv.style.borderLeft = `4px solid ${color}`;
 
-	// 标题栏
 	const header = document.createElement("div");
 	header.className = "group-card-header";
 	header.style.padding = "8px 12px";
@@ -36,19 +35,18 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	header.style.alignItems = "center";
 	header.innerHTML = `<span>${title}</span><span class="group-card-count" style="color:var(--text-muted)">${count}</span>`;
 
-	// 任务列表区
 	const body = document.createElement("div");
 	body.className = "group-card-body";
 	body.style.padding = "8px 0";
 
 	const list = document.createElement("ul");
 	list.className = "task-list";
-	tasks.forEach((task) => {
-		const card = createTaskCard(task);
+	tasks.forEach((node) => {
+		const card = createTaskCard(node);
 		if (onClick) {
 			card.addEventListener("click", (e) => {
 				e.stopPropagation();
-				onClick(task);
+				onClick(node);
 			});
 		}
 		list.appendChild(card);

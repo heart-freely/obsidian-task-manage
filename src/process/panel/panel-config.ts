@@ -1,8 +1,9 @@
 // src/process/panel/panel-config.ts
-// 图表数据计算、任务计算、滑动条计算、格式化函数（纯函数）
 
 import { ALLOWED_STATUSES } from "../config/config";
+import { getTaskTimeRange } from "../task/task-derived";
 import { filterTasks } from "../task/task-filter";
+import { TaskTreeNode } from "../task/task-tree";
 
 // ========== ISO 周数计算（内部使用） ==========
 
@@ -52,36 +53,28 @@ function ensureYearCache(y: number): void {
 	).getTime();
 }
 
-// ========== 日历查询函数（查表） ==========
-
 export function daysInYear(y: number): number {
 	ensureYearCache(y);
 	return DAYS_IN_YEAR_CACHE[y];
 }
-
 export function weeksInYear(y: number): number {
 	ensureYearCache(y);
 	return WEEKS_IN_YEAR_CACHE[y];
 }
-
 export function getFirstMondayOfYear(y: number): Date {
 	ensureYearCache(y);
 	return new Date(FIRST_MONDAY_CACHE[y]);
 }
-
 export function getLastSundayOfYear(y: number): Date {
 	ensureYearCache(y);
 	return new Date(LAST_SUNDAY_CACHE[y]);
 }
-
 export function getFirstDayOfYear(y: number): Date {
 	return new Date(y, 0, 1, 0, 0, 0, 0);
 }
-
 export function getLastDayOfYear(y: number): Date {
 	return new Date(y, 11, 31, 23, 59, 59, 999);
 }
-
 export function isoWeek(d: Date): number {
 	return isoWeekRaw(d);
 }
@@ -101,24 +94,21 @@ export function dayToDate(y: number, d: number): Date {
 	return dt;
 }
 
-// ========== 格式化函数（纯函数） ==========
+// ========== 格式化函数 ==========
 
 export function formatYearValue(x: number): string {
 	return `${x}`;
 }
-
 export function formatQuarterValue(x: number, baseYear: number): string {
 	const y = baseYear + Math.floor((x - 1) / 4);
 	const q = ((x - 1) % 4) + 1;
 	return `${y}/${q}`;
 }
-
 export function formatMonthValue(x: number, baseYear: number): string {
 	const y = baseYear + Math.floor((x - 1) / 12);
 	const m = ((x - 1) % 12) + 1;
 	return `${y}/${m}`;
 }
-
 export function formatWeekValue(x: number, baseYear: number): string {
 	let r = x,
 		y = baseYear;
@@ -128,7 +118,6 @@ export function formatWeekValue(x: number, baseYear: number): string {
 	}
 	return `${y}/${r}`;
 }
-
 export function formatDayValue(x: number, baseYear: number): string {
 	let r = x,
 		y = baseYear;
@@ -139,7 +128,6 @@ export function formatDayValue(x: number, baseYear: number): string {
 	const d = dayToDate(y, Math.max(1, r));
 	return `${y}/${d.getMonth() + 1}/${d.getDate()}`;
 }
-
 export function formatDynamicValue(v: number, unit: string): string {
 	if (v === 0) {
 		if (unit === "day") return "本日";
@@ -156,7 +144,6 @@ export function formatDynamicValue(v: number, unit: string): string {
 	if (unit === "year") return `${p}${abs}年`;
 	return `${p}${abs}日`;
 }
-
 export function formatDynamicLabel(a: number, b: number, unit: string): string {
 	const fa = formatDynamicValue(a, unit);
 	const fb = formatDynamicValue(b, unit);
@@ -207,20 +194,20 @@ export function getTodayAbsoluteValue(
 	return 0;
 }
 
-// ========== 原 calcul-echarts 计算 ==========
+// ========== 计算函数 ==========
 
 export function computeTotalSpanDays(
-	tasks: any[],
+	nodes: TaskTreeNode[],
 	fieldStart: string,
 	fieldEnd: string,
 ): number {
-	if (!tasks.length) return 0;
+	if (!nodes.length) return 0;
 	let min = Infinity,
 		max = -Infinity;
-	tasks.forEach((t) => {
-		const s = t[fieldStart] ? new Date(t[fieldStart]).getTime() : null;
-		const e = t[fieldEnd] ? new Date(t[fieldEnd]).getTime() : null;
-		if (s && e && s <= e) {
+	nodes.forEach((node) => {
+		const s = (node as any)[fieldStart] as number | null;
+		const e = (node as any)[fieldEnd] as number | null;
+		if (s !== null && e !== null && s <= e) {
 			if (s < min) min = s;
 			if (e > max) max = e;
 		}
@@ -229,44 +216,34 @@ export function computeTotalSpanDays(
 	return Math.ceil((max - min) / (1000 * 60 * 60 * 24)) + 1;
 }
 
-export function calcPlannedDuration(tasks: any[]): number {
+export function calcPlannedDuration(nodes: TaskTreeNode[]): number {
 	let total = 0;
-	tasks.forEach((t) => {
-		if (t._scheduled && t._due)
-			total += Math.max(
-				0,
-				(new Date(t._due).getTime() -
-					new Date(t._scheduled).getTime()) /
-					86400000,
-			);
+	nodes.forEach((node) => {
+		if (node.scheduled !== null && node.due !== null)
+			total += Math.max(0, (node.due - node.scheduled) / 86400000);
 	});
 	return Math.round(total);
 }
 
-export function calcActualDuration(tasks: any[]): number {
+export function calcActualDuration(nodes: TaskTreeNode[]): number {
 	let total = 0;
-	tasks.forEach((t) => {
-		if (t._starts && t._done)
-			total += Math.max(
-				0,
-				(new Date(t._done).getTime() - new Date(t._starts).getTime()) /
-					86400000,
-			);
+	nodes.forEach((node) => {
+		if (node.starts !== null && node.done !== null)
+			total += Math.max(0, (node.done - node.starts) / 86400000);
 	});
 	return Math.round(total);
 }
 
 export function calcTotalSpanHours(
-	tasks: any[],
+	nodes: TaskTreeNode[],
 	fieldStart: string,
 	fieldEnd: string,
 ): number {
-	const days = computeTotalSpanDays(tasks, fieldStart, fieldEnd);
-	return days * 12;
+	return computeTotalSpanDays(nodes, fieldStart, fieldEnd) * 12;
 }
 
 export function prepareDailyStatusStack(
-	tasks: any[],
+	nodes: TaskTreeNode[],
 	dateRange: any,
 	formatDate: (d: Date) => string,
 	setStart: (d: Date) => Date,
@@ -293,18 +270,18 @@ export function prepareDailyStatusStack(
 			cur.setDate(cur.getDate() + 1);
 		}
 	}
-	tasks.forEach((t) => {
-		const range = t._cachedTimeRange;
+	nodes.forEach((node) => {
+		const range = getTaskTimeRange(node, "scheduled-due");
 		if (!range) return;
 		const cur = setStart(new Date(range.start));
 		const end = setStart(new Date(range.end));
 		while (cur <= end) {
 			const key = keyOf(cur);
 			if (dateRange) {
-				if (dayMap[key]) dayMap[key][t._status]++;
+				if (dayMap[key]) dayMap[key][node.status]++;
 			} else {
 				if (!dayMap[key]) dayMap[key] = initDay();
-				dayMap[key][t._status]++;
+				dayMap[key][node.status]++;
 			}
 			cur.setDate(cur.getDate() + 1);
 		}
@@ -320,27 +297,23 @@ export function prepareDailyStatusStack(
 	return { dates, seriesData, statusOrder: ALLOWED_STATUSES };
 }
 
-// ========== 通用筛选函数 ==========
-
-export function getTaskTimeRange(tasks: any[]): {
+export function getTaskTimeRangeFromNodes(nodes: TaskTreeNode[]): {
 	minTime: number | null;
 	maxTime: number | null;
 } {
 	let minTime: number | null = null;
 	let maxTime: number | null = null;
-	for (const task of tasks) {
-		const dates: (string | undefined)[] = [
-			task._created,
-			task._scheduled,
-			task._starts,
-			task._due,
-			task._done,
-			task._cancel,
+	for (const node of nodes) {
+		const dates: (number | null)[] = [
+			node.created,
+			node.scheduled,
+			node.starts,
+			node.due,
+			node.done,
+			node.cancelled,
 		];
-		for (const dateStr of dates) {
-			if (!dateStr) continue;
-			const ts = new Date(dateStr).getTime();
-			if (isNaN(ts)) continue;
+		for (const ts of dates) {
+			if (ts === null) continue;
 			if (minTime === null || ts < minTime) minTime = ts;
 			if (maxTime === null || ts > maxTime) maxTime = ts;
 		}
@@ -366,42 +339,6 @@ function calcYearOffset(
 		day += DAYS_IN_YEAR_CACHE[y];
 	}
 	return { quarter, month, week, day };
-}
-
-export function absoluteValueToYear(
-	lv: string,
-	absValue: number,
-	baseYear: number,
-): number {
-	let remaining = absValue;
-	let year = baseYear;
-	switch (lv) {
-		case "quarter":
-			while (remaining > 4) {
-				remaining -= 4;
-				year++;
-			}
-			break;
-		case "month":
-			while (remaining > 12) {
-				remaining -= 12;
-				year++;
-			}
-			break;
-		case "week":
-			while (remaining > weeksInYear(year)) {
-				remaining -= weeksInYear(year);
-				year++;
-			}
-			break;
-		case "day":
-			while (remaining > daysInYear(year)) {
-				remaining -= daysInYear(year);
-				year++;
-			}
-			break;
-	}
-	return year;
 }
 
 function absoluteToYearValue(
@@ -746,5 +683,4 @@ export function staticSliderRanges(
 	};
 }
 
-// ========== 重新导出 filterTasks ==========
 export { filterTasks };

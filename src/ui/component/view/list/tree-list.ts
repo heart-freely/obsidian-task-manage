@@ -1,14 +1,11 @@
 // src/ui/component/view/list/tree-list.ts
-// 任务树列表渲染组件
 
 import {
-	countContentNodeStatuses,
 	countNodeStatuses,
 	removeHeadingNumber,
-	sortContentNodes,
 	sortFileNodes,
 } from "../../../../process/component/tree-view-process";
-import { ContentNode, TreeNode } from "../../../../process/task/task-tree";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { createProgressBar } from "../../progress/progress";
 import { createTaskCard } from "../card/card";
 
@@ -16,17 +13,11 @@ const INDENT_WIDTH = 24;
 
 export interface TreeListOptions {
 	hideFolders?: boolean;
-	roots: TreeNode[];
-	onClick?: (node: any) => void;
+	roots: TaskTreeNode[];
+	onClick?: (node: TaskTreeNode) => void;
 	sort?: { type: string; order: "asc" | "desc" };
-	onRowRender?: (
-		rowEl: HTMLElement,
-		node: TreeNode | ContentNode,
-		task: any,
-	) => void;
+	onRowRender?: (rowEl: HTMLElement, node: TaskTreeNode) => void;
 }
-
-// ========== DOM 工具 ==========
 
 function createRowWrapper(depth: number): HTMLElement {
 	const w = document.createElement("div");
@@ -54,11 +45,10 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 			b.closest(".task-tree") ||
 			b.closest(".gantt-tree-container") ||
 			b.closest(".task-tree-nav-content");
-		if (treeRoot) {
+		if (treeRoot)
 			treeRoot.dispatchEvent(
 				new CustomEvent("tree-toggle", { bubbles: true }),
 			);
-		}
 	});
 	return b;
 }
@@ -94,13 +84,11 @@ function addProgressBadge(
 }
 
 function createTreeCard(
-	task: any,
-	onClick?: (node: any) => void,
-	node?: any,
+	node: TaskTreeNode,
+	onClick?: (node: TaskTreeNode) => void,
 ): HTMLElement {
-	const card = createTaskCard(task, { showTooltip: true, compact: true });
-
-	if (onClick && node) {
+	const card = createTaskCard(node, { showTooltip: true, compact: true });
+	if (onClick) {
 		card.addEventListener(
 			"click",
 			(e) => {
@@ -111,11 +99,8 @@ function createTreeCard(
 			true,
 		);
 	}
-
 	return card;
 }
-
-// ========== 主渲染 ==========
 
 export function renderTaskTree(
 	container: HTMLElement,
@@ -123,16 +108,13 @@ export function renderTaskTree(
 ) {
 	container.empty();
 	let roots = options.roots;
-	const sort = options.sort;
-	if (sort) {
-		roots = sortFileNodes(roots, sort);
-	}
+	if (options.sort) roots = sortFileNodes(roots, options.sort);
 
 	const tree = document.createElement("div");
 	tree.className = "task-tree";
 
 	if (roots.length > 0) {
-		roots.forEach((root) => renderFileNodeInline(root, 0, tree, options));
+		roots.forEach((root) => renderNode(root, tree, options));
 	} else {
 		const dr = document.createElement("div");
 		dr.style.cssText =
@@ -140,65 +122,42 @@ export function renderTaskTree(
 		dr.textContent = "📄 任务系统";
 		tree.appendChild(dr);
 	}
-
 	container.appendChild(tree);
 }
 
-// ========== 渲染文件节点 ==========
-
-function renderFileNodeInline(
-	node: TreeNode,
-	depth: number,
+function renderNode(
+	node: TaskTreeNode,
 	parentEl: HTMLElement,
 	options?: TreeListOptions,
 ) {
-	const onClick = options?.onClick;
-	const sort = options?.sort;
-	const hasContent =
-		(node.contentRoots?.length || 0) > 0 || node.children.length > 0;
+	const hasChildren = node.children.length > 0;
 	const childContainer = document.createElement("div");
-	const task = node._task;
 	const { counts, total } = countNodeStatuses(node);
-	const rowWrapper = createRowWrapper(depth);
-	if (hasContent) rowWrapper.appendChild(createToggleBtn(childContainer));
+
+	const rowWrapper = createRowWrapper(node.depth);
+	if (hasChildren) rowWrapper.appendChild(createToggleBtn(childContainer));
 	else rowWrapper.appendChild(createSpacer());
 
 	const contentContainer = document.createElement("div");
 	contentContainer.style.cssText =
 		"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
 
-	if (task) {
-		const card = createTreeCard(task, onClick, node);
-		contentContainer.appendChild(card);
-		if (total > 0 && hasContent)
-			addProgressBadge(contentContainer, counts, total);
+	if (node.type === "file") {
+		if (!node.text.startsWith("📄 ")) node.text = "📄 " + node.text;
+	} else if (node.type === "heading") {
+		node.text =
+			"H" +
+			(node.headingLevel || node.depth) +
+			" " +
+			removeHeadingNumber(node.text);
 	} else {
-		const pseudoTask = {
-			_status: "todo",
-			_cleanText: "📄 " + node.name,
-			path: node.path || "",
-			line: 0,
-			lineNumber: 0,
-			_priorityIcon: "",
-			_tag: "",
-			_id: "",
-			_forbid: "",
-			_repeat: "",
-			_created: "",
-			_scheduled: "",
-			_starts: "",
-			_due: "",
-			_done: "",
-			_cancel: "",
-			status: " ",
-			priority: "none",
-			fileName: node.name,
-		};
-		const card = createTreeCard(pseudoTask, onClick, node);
-		contentContainer.appendChild(card);
-		if (total > 0 && hasContent)
-			addProgressBadge(contentContainer, counts, total);
+		if (!node.text.startsWith("● ")) node.text = "● " + node.text;
 	}
+
+	const card = createTreeCard(node, options?.onClick);
+	contentContainer.appendChild(card);
+	if (total > 0 && hasChildren)
+		addProgressBadge(contentContainer, counts, total);
 
 	rowWrapper.appendChild(contentContainer);
 	const rightSpacer = document.createElement("div");
@@ -206,183 +165,9 @@ function renderFileNodeInline(
 	rowWrapper.appendChild(rightSpacer);
 	parentEl.appendChild(rowWrapper);
 
-	options?.onRowRender?.(rowWrapper, node, task || null);
+	options?.onRowRender?.(rowWrapper, node);
 
-	if (node.contentRoots?.length > 0) {
-		const sortedRoots = sort
-			? sortContentNodes(node.contentRoots, sort)
-			: sortContentNodes(node.contentRoots);
-		sortedRoots.forEach((cn) =>
-			renderContentNode(
-				cn,
-				depth + 1,
-				childContainer,
-				node.path,
-				options,
-			),
-		);
-	}
-	node.children.forEach((child) =>
-		renderFileNodeInline(child, depth + 1, childContainer, options),
-	);
-	parentEl.appendChild(childContainer);
-}
-
-// ========== 渲染内容节点 ==========
-
-function renderContentNode(
-	node: ContentNode,
-	depth: number,
-	parentEl: HTMLElement,
-	filePath?: string,
-	options?: TreeListOptions,
-) {
-	const onClick = options?.onClick;
-	const sort = options?.sort;
-	const childContainer = document.createElement("div");
-	const hasChildren = node.children.length > 0;
-	const wrappedNode = { ...node, _filePath: filePath };
-
-	if (node.type === "heading") {
-		const task = (node as any)._task;
-		const level = node.level || 1;
-		const hTag = "H" + level;
-		const cleanTitle = removeHeadingNumber(node.text);
-		const rowWrapper = createRowWrapper(depth);
-		if (hasChildren)
-			rowWrapper.appendChild(createToggleBtn(childContainer));
-		else rowWrapper.appendChild(createSpacer());
-		const contentContainer = document.createElement("div");
-		contentContainer.style.cssText =
-			"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
-		const { counts, total } = countContentNodeStatuses(node);
-
-		if (task) {
-			// 使用去序号后的标题文本
-			task._cleanText = hTag + " " + cleanTitle;
-			const card = createTreeCard(task, onClick, wrappedNode);
-			contentContainer.appendChild(card);
-			if (total > 0 && hasChildren)
-				addProgressBadge(contentContainer, counts, total);
-		} else {
-			const pseudoTask = {
-				_status: "todo",
-				_cleanText: hTag + " " + cleanTitle,
-				path: filePath || "",
-				line: node.line,
-				lineNumber: node.line,
-				_priorityIcon: "",
-				_tag: "",
-				_id: "",
-				_forbid: "",
-				_repeat: "",
-				_created: "",
-				_scheduled: "",
-				_starts: "",
-				_due: "",
-				_done: "",
-				_cancel: "",
-				status: " ",
-				priority: "none",
-				fileName: filePath
-					? filePath.split("/").pop()?.replace(".md", "")
-					: "",
-			};
-			const card = createTreeCard(pseudoTask, onClick, wrappedNode);
-			contentContainer.appendChild(card);
-			if (total > 0 && hasChildren)
-				addProgressBadge(contentContainer, counts, total);
-		}
-
-		rowWrapper.appendChild(contentContainer);
-		const rightSpacer = document.createElement("div");
-		rightSpacer.style.cssText = "flex:1;";
-		rowWrapper.appendChild(rightSpacer);
-		parentEl.appendChild(rowWrapper);
-
-		options?.onRowRender?.(rowWrapper, node, task || null);
-
-		const sortedChildren = sort
-			? sortContentNodes(node.children, sort)
-			: sortContentNodes(node.children);
-		sortedChildren.forEach((child) =>
-			renderContentNode(
-				child,
-				depth + 1,
-				childContainer,
-				filePath,
-				options,
-			),
-		);
-	} else if (node.type === "task") {
-		const task = (node as any)._task;
-		const taskData = task || {
-			_status: "todo",
-			text: node.text,
-			description: node.text,
-			_cleanText: node.text,
-			path: filePath || "",
-			line: node.line,
-			lineNumber: node.line,
-			_priorityIcon: "",
-			_tag: "",
-			_id: "",
-			_forbid: "",
-			_repeat: "",
-			_created: "",
-			_scheduled: "",
-			_starts: "",
-			_due: "",
-			_done: "",
-			_cancel: "",
-			status: " ",
-			priority: "none",
-		};
-		const rowWrapper = createRowWrapper(depth);
-		const contentContainer = document.createElement("div");
-		contentContainer.style.cssText =
-			"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
-
-		if (hasChildren) {
-			rowWrapper.appendChild(createToggleBtn(childContainer));
-			const { counts, total } = countContentNodeStatuses(node);
-			const originalText = taskData._cleanText;
-			if (!originalText.startsWith("● "))
-				taskData._cleanText = "● " + originalText;
-			const card = createTreeCard(taskData, onClick, wrappedNode);
-			contentContainer.appendChild(card);
-			if (total > 0) addProgressBadge(contentContainer, counts, total);
-			taskData._cleanText = originalText;
-		} else {
-			rowWrapper.appendChild(createSpacer());
-			const originalText = taskData._cleanText;
-			if (!originalText.startsWith("● "))
-				taskData._cleanText = "● " + originalText;
-			const card = createTreeCard(taskData, onClick, wrappedNode);
-			contentContainer.appendChild(card);
-			taskData._cleanText = originalText;
-		}
-
-		rowWrapper.appendChild(contentContainer);
-		const rightSpacer = document.createElement("div");
-		rightSpacer.style.cssText = "flex:1;";
-		rowWrapper.appendChild(rightSpacer);
-		parentEl.appendChild(rowWrapper);
-
-		options?.onRowRender?.(rowWrapper, node, task || taskData);
-
-		const sortedChildren = sort
-			? sortContentNodes(node.children, sort)
-			: sortContentNodes(node.children);
-		sortedChildren.forEach((child) =>
-			renderContentNode(
-				child,
-				depth + 1,
-				childContainer,
-				filePath,
-				options,
-			),
-		);
-	}
+	for (const child of node.children)
+		renderNode(child, childContainer, options);
 	parentEl.appendChild(childContainer);
 }

@@ -1,29 +1,87 @@
 // src/process/task/task-tree.ts
-// 任务树数据结构 + 构建 + 筛选 + 扁平化
 
-import { HideConfig, TaskItem } from "../../types";
+import { HideConfig, TaskStatus } from "../../types";
 import { TASK_ROOT_PATH } from "../config/config";
 import { ContentNode, ParsedFileData } from "./md-parser";
+import { getTaskMarks } from "./task-derived";
 
 // ========== 类型定义 ==========
 
-export interface TreeNode {
+/**
+ * 统一任务树节点
+ *
+ * 层级关系示例：
+ *   depth=0  file    个人任务管理任务.md
+ *   depth=1  heading    ## 收集任务
+ *   depth=2  list         - [ ] 整理邮箱
+ *   depth=3  list           - [ ] 子任务（缩进）
+ */
+export interface TaskTreeNode {
+	// ===== 节点标识 =====
+	readonly uid: string;
+	type: "file" | "heading" | "list";
+
+	// ===== 定位信息 =====
 	path: string;
-	name: string;
-	relPath: string;
-	folderParts: string[];
-	metaParent: string | null;
-	linkParent: string | null;
-	children: TreeNode[];
-	tasks: TaskItem[];
-	conflict: "meta_mismatch" | "meta_missing" | "link_missing" | null;
-	missingLinks: string[];
-	contentRoots?: ContentNode[];
-	_task?: TaskItem;
+	line: number;
+	rawLine: string;
+
+	// ===== 树结构 =====
+	depth: number;
+	parent: TaskTreeNode | null;
+	children: TaskTreeNode[];
+
+	// ===== 显示 =====
+	text: string;
+	/** 是否在视图中显示，false 表示被隐藏筛选过滤，默认 true */
+	display: boolean;
+
+	// ===== 执行状态 =====
+	status: TaskStatus;
+
+	// ===== 任务属性 =====
+	content: string;
+	priority: number;
+	repeat: string;
+
+	// ===== 日期字段 =====
+	created: number | null;
+	scheduled: number | null;
+	starts: number | null;
+	due: number | null;
+	done: number | null;
+	cancelled: number | null;
+
+	// ===== 标识字段 =====
+	id: string;
+	forbid: string;
+	tag: string;
+
+	// ===== 标题特有 =====
+	headingLevel?: number;
+	headingText?: string;
+
+	// ===== 文件间引用关系 =====
+	fileRelations?: FileRelations;
 }
 
-export { ContentNode };
+/**
+ * 文件间引用关系（仅 type === 'file' 的节点）
+ */
+export interface FileRelations {
+	declaredParentName: string | null;
+	declaredParent: TaskTreeNode | null;
+	declaredChildren: TaskTreeNode[];
 
+	linkedChildrenNames: string[];
+	linkedChildren: TaskTreeNode[];
+	linkedParents: TaskTreeNode[];
+
+	conflict: "meta_mismatch" | "meta_missing" | "link_missing" | null;
+	missingLinks: string[];
+}
+
+/** 树筛选选项 */
 export interface TreeFilterOptions {
 	statuses?: string[];
 	hideRepeat?: boolean;
@@ -48,17 +106,20 @@ export function normalizeFileName(raw: string): string {
 export function extractAllLinks(content: string): string[] {
 	if (!content) return [];
 	const links: string[] = [];
+
 	const wikiRegex = /\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]/g;
 	let match: RegExpExecArray | null;
 	while ((match = wikiRegex.exec(content)) !== null) {
 		const name = normalizeFileName(match[1].trim());
 		if (name.endsWith("任务")) links.push(name);
 	}
+
 	const mdRegex = /\[([^\]]*)\]\(([^)]+\.md)\)/g;
 	while ((match = mdRegex.exec(content)) !== null) {
 		const name = normalizeFileName(match[2].trim());
 		if (name.endsWith("任务")) links.push(name);
 	}
+
 	return [...new Set(links)];
 }
 
@@ -70,311 +131,305 @@ export function parseParentField(raw: any): string | null {
 	return name.endsWith("任务") ? name : null;
 }
 
-// ========== 去重过滤 ==========
+// ========== 构建统一任务树 ==========
 
-function filterDuplicateListTasks(
-	roots: ContentNode[],
-	fileTaskName: string,
-): ContentNode[] {
-	if (!fileTaskName || roots.length === 0) return roots;
-	return roots
-		.map((cn) => {
-			if (cn.type === "task" && cn._task) {
-				if (
-					cn._task._cleanText === fileTaskName &&
-					!cn._task._isFileTask
-				)
-					return null;
-			}
-			if (cn.children.length > 0)
-				cn.children = filterDuplicateListTasks(
-					cn.children,
-					fileTaskName,
-				);
-			return cn;
-		})
-		.filter((cn): cn is ContentNode => {
-			if (!cn) return false;
-			if (cn.type === "heading" && cn.children.length === 0 && !cn._task)
-				return false;
-			return true;
-		});
-}
-
-// ========== 构建文件树 ==========
-
-export function buildTreeFromParsedFiles(
+export function buildTaskTree(
 	files: ParsedFileData[],
-	tasks: TaskItem[],
 	prefix?: string,
-): TreeNode[] {
+): TaskTreeNode[] {
 	const effectivePrefix = prefix || TASK_ROOT_PATH + "/";
-	const map = new Map<string, TreeNode>();
+	const nodeMap = new Map<string, TaskTreeNode>();
 
+	// 1. 为每个文件创建文件级节点
 	for (const file of files) {
-		const path = file.path;
 		const name = file.name.replace(/\.md$/, "");
+		const uid = file.path + ":0";
+
+		const fileNode: TaskTreeNode = {
+			uid,
+			type: "file",
+			path: file.path,
+			line: 0,
+			rawLine: "",
+			depth: 0,
+			parent: null,
+			children: [],
+			text: name,
+			display: true,
+			status: file.fileTask?.status ?? "todo",
+			content: file.fileTask?.content ?? name,
+			priority: file.fileTask?.priority ?? 5,
+			repeat: file.fileTask?.repeat ?? "",
+			created: file.fileTask?.created ?? null,
+			scheduled: file.fileTask?.scheduled ?? null,
+			starts: file.fileTask?.starts ?? null,
+			due: file.fileTask?.due ?? null,
+			done: file.fileTask?.done ?? null,
+			cancelled: file.fileTask?.cancelled ?? null,
+			id: file.fileTask?.id ?? "",
+			forbid: file.fileTask?.forbid ?? "",
+			tag: file.fileTask?.tag ?? "",
+		};
+
+		if (file.contentRoots && file.contentRoots.length > 0) {
+			fileNode.children = convertContentNodes(
+				file.contentRoots,
+				fileNode,
+			);
+		}
+
+		nodeMap.set(file.path, fileNode);
+	}
+
+	// 2. 解析文件间关系
+	for (const file of files) {
+		const node = nodeMap.get(file.path);
+		if (!node) continue;
+
+		const relations: FileRelations = {
+			declaredParentName: null,
+			declaredParent: null,
+			declaredChildren: [],
+			linkedChildrenNames: [],
+			linkedChildren: [],
+			linkedParents: [],
+			conflict: null,
+			missingLinks: [],
+		};
+
 		const metaParent = parseParentField(
 			file.yaml["父任务"] || file.yaml["任务父任务"],
 		);
-		let contentRoots = file.contentRoots;
-		const fileTask =
-			file.fileTask ||
-			({
-				_status: "todo",
-				_cleanText: name,
-				path: file.path,
-				line: 0,
-				lineNumber: 0,
-				fileName: name,
-				_isFileTask: true,
-				_isHeadingTask: false,
-			} as TaskItem);
+		if (metaParent) {
+			relations.declaredParentName = metaParent;
+			const parentNode = findNodeByName(nodeMap, metaParent);
+			if (parentNode) {
+				relations.declaredParent = parentNode;
+				if (!parentNode.fileRelations) initFileRelations(parentNode);
+				parentNode.fileRelations!.declaredChildren.push(node);
+			} else {
+				relations.missingLinks.push(metaParent);
+			}
+		}
 
-		if (contentRoots && fileTask) {
-			contentRoots = filterDuplicateListTasks(
-				contentRoots,
-				fileTask._cleanText,
+		const bodyLinks = getBodyLinks(file.content);
+		relations.linkedChildrenNames = bodyLinks;
+		for (const linkName of bodyLinks) {
+			const childNode = findNodeByName(nodeMap, linkName);
+			if (childNode) {
+				relations.linkedChildren.push(childNode);
+				if (!childNode.fileRelations) initFileRelations(childNode);
+				childNode.fileRelations!.linkedParents.push(node);
+			} else {
+				relations.missingLinks.push(linkName);
+			}
+		}
+
+		node.fileRelations = relations;
+	}
+
+	// 3. 检测冲突
+	for (const node of nodeMap.values()) {
+		if (!node.fileRelations) continue;
+		const r = node.fileRelations;
+
+		const hasDeclared = r.declaredParentName !== null;
+		const hasLinked = r.linkedParents.length > 0;
+
+		if (hasDeclared && hasLinked) {
+			const declaredName = r.declaredParentName!;
+			const linkedMatch = r.linkedParents.some(
+				(p) => normalizeFileName(p.text) === declaredName,
 			);
-			if (contentRoots && contentRoots.length === 0)
-				contentRoots = undefined;
+			if (!linkedMatch) r.conflict = "meta_mismatch";
+		} else if (hasLinked && !hasDeclared) {
+			r.conflict = "meta_missing";
+		} else if (hasDeclared && !hasLinked) {
+			r.conflict = "link_missing";
 		}
-
-		const node: TreeNode = {
-			path,
-			name,
-			relPath: path.startsWith(effectivePrefix)
-				? path.slice(effectivePrefix.length)
-				: path,
-			folderParts: [],
-			metaParent,
-			linkParent: null,
-			children: [],
-			tasks: [],
-			conflict: null,
-			missingLinks: [],
-			contentRoots,
-			_task: fileTask,
-		};
-		map.set(path, node);
 	}
 
-	const getBodyLinks = (content: string): string[] => {
-		if (!content) return [];
-		let body = content;
-		if (body.startsWith("---")) {
-			const endIdx = body.indexOf("---", 3);
-			if (endIdx !== -1) body = body.substring(endIdx + 3);
-		}
-		body = body.replace(/```[\s\S]*?```/g, "");
-		return extractAllLinks(body);
-	};
+	// 4. 建立父子关系，计算深度
+	const roots: TaskTreeNode[] = [];
 
-	for (const file of files) {
-		const node = map.get(file.path);
-		if (!node) continue;
-		const normalizedSelfName = normalizeFileName(node.name);
-		const allLinks = getBodyLinks(file.content);
-		for (const linkName of allLinks) {
-			if (linkName === normalizedSelfName) continue;
-			const child = findNodeByName(map, linkName);
-			if (child && !child.metaParent) {
-				child.linkParent = normalizeFileName(node.name);
+	for (const node of nodeMap.values()) {
+		if (!node.fileRelations?.declaredParent) {
+			roots.push(node);
+		} else {
+			const parent = node.fileRelations.declaredParent;
+			if (!isAncestor(node, parent)) {
+				node.parent = parent;
+				parent.children.push(node);
 			}
 		}
 	}
 
-	const roots: TreeNode[] = [];
-	const nodeParentMap = new Map<string, string>();
+	for (const root of roots) {
+		computeDepth(root, 0);
+	}
 
-	map.forEach((node) => {
-		let parentPath: string | null = null;
-		if (node.metaParent && node.linkParent) {
-			parentPath = node.metaParent;
-		} else if (node.metaParent) {
-			parentPath = node.metaParent;
-		} else if (node.linkParent) {
-			node.conflict = "meta_missing";
-			parentPath = node.linkParent;
-		}
-
-		if (parentPath) {
-			let current: string | null = parentPath;
-			const visited = new Set<string>();
-			let hasCycle = false;
-			while (current) {
-				if (visited.has(current)) {
-					hasCycle = true;
-					break;
-				}
-				if (current === normalizeFileName(node.name)) {
-					hasCycle = true;
-					break;
-				}
-				visited.add(current);
-				current = nodeParentMap.get(current) || null;
-			}
-			if (!hasCycle) {
-				nodeParentMap.set(normalizeFileName(node.name), parentPath);
-				const parent = findNodeByName(map, parentPath);
-				if (parent) {
-					parent.children.push(node);
-					return;
-				}
-			}
-		}
-		roots.push(node);
-	});
-
-	map.forEach((parentNode) => {
-		const file = files.find((f) => f.path === parentNode.path);
-		if (!file) return;
-		const normalizedSelfName = normalizeFileName(parentNode.name);
-		const allLinks = getBodyLinks(file.content);
-		for (const linkName of allLinks) {
-			if (linkName === normalizedSelfName) continue;
-			const child = findNodeByName(map, linkName);
-			if (
-				child &&
-				!parentNode.children.some((c) => c.path === child.path)
-			)
-				parentNode.missingLinks.push(linkName);
-		}
-		if (parentNode.missingLinks.length > 0 && !parentNode.conflict)
-			parentNode.conflict = "link_missing";
-	});
-
-	roots.sort((a, b) => a.name.localeCompare(b.name));
-	roots.forEach(sortNodeChildren);
 	return roots;
 }
 
+function initFileRelations(node: TaskTreeNode): void {
+	if (!node.fileRelations) {
+		node.fileRelations = {
+			declaredParentName: null,
+			declaredParent: null,
+			declaredChildren: [],
+			linkedChildrenNames: [],
+			linkedChildren: [],
+			linkedParents: [],
+			conflict: null,
+			missingLinks: [],
+		};
+	}
+}
+
+function getBodyLinks(content: string): string[] {
+	if (!content) return [];
+	let body = content;
+	if (body.startsWith("---")) {
+		const endIdx = body.indexOf("---", 3);
+		if (endIdx !== -1) body = body.substring(endIdx + 3);
+	}
+	body = body.replace(/```[\s\S]*?```/g, "");
+	return extractAllLinks(body);
+}
+
+function isAncestor(node: TaskTreeNode, target: TaskTreeNode): boolean {
+	let current = target;
+	const visited = new Set<TaskTreeNode>();
+	while (current) {
+		if (current === node) return true;
+		if (visited.has(current)) return true;
+		visited.add(current);
+		current = current.parent!;
+	}
+	return false;
+}
+
+function computeDepth(node: TaskTreeNode, depth: number): void {
+	node.depth = depth;
+	for (const child of node.children) {
+		computeDepth(child, depth + 1);
+	}
+}
+
 function findNodeByName(
-	map: Map<string, TreeNode>,
+	map: Map<string, TaskTreeNode>,
 	name: string,
-): TreeNode | null {
+): TaskTreeNode | null {
 	const lower = name.toLowerCase();
 	for (const node of map.values()) {
-		if (node.name.toLowerCase() === lower) return node;
+		if (node.type === "file" && normalizeFileName(node.text) === lower)
+			return node;
 	}
 	return null;
 }
 
-function sortNodeChildren(node: TreeNode): void {
-	node.children.sort((a, b) => a.name.localeCompare(b.name));
-	node.children.forEach(sortNodeChildren);
+function convertContentNodes(
+	nodes: ContentNode[],
+	parent: TaskTreeNode,
+): TaskTreeNode[] {
+	const result: TaskTreeNode[] = [];
+	for (const cn of nodes) {
+		const child: TaskTreeNode = {
+			uid: parent.path + ":" + cn.line,
+			type: cn.type === "task" ? "list" : "heading",
+			path: parent.path,
+			line: cn.line,
+			rawLine: cn.raw,
+			depth: parent.depth + 1,
+			parent,
+			children: [],
+			text: cn.text,
+			display: true,
+			status: cn.task?.status ?? "todo",
+			content: cn.task?.content ?? cn.text,
+			priority: cn.task?.priority ?? 5,
+			repeat: cn.task?.repeat ?? "",
+			created: cn.task?.created ?? null,
+			scheduled: cn.task?.scheduled ?? null,
+			starts: cn.task?.starts ?? null,
+			due: cn.task?.due ?? null,
+			done: cn.task?.done ?? null,
+			cancelled: cn.task?.cancelled ?? null,
+			id: cn.task?.id ?? "",
+			forbid: cn.task?.forbid ?? "",
+			tag: cn.task?.tag ?? "",
+			headingLevel: cn.type === "heading" ? cn.depth : undefined,
+			headingText: cn.type === "heading" ? cn.text : undefined,
+		};
+		child.children = convertContentNodes(cn.children, child);
+		result.push(child);
+	}
+	return result;
 }
 
 // ========== 树筛选 ==========
 
 export function filterTree(
-	roots: TreeNode[],
+	roots: TaskTreeNode[],
 	options: TreeFilterOptions,
-): TreeNode[] {
-	const result: TreeNode[] = [];
+): TaskTreeNode[] {
+	const result: TaskTreeNode[] = [];
 	for (const node of roots) {
-		const f = filterTreeNode(node, options);
+		const f = filterNode(node, options);
 		if (f) result.push(f);
 	}
 	return result;
 }
 
-function filterTreeNode(
-	node: TreeNode,
+function filterNode(
+	node: TaskTreeNode,
 	options: TreeFilterOptions,
-): TreeNode | null {
-	const fc: TreeNode[] = [];
+): TaskTreeNode | null {
+	const fc: TaskTreeNode[] = [];
 	for (const c of node.children) {
-		const f = filterTreeNode(c, options);
+		const f = filterNode(c, options);
 		if (f) fc.push(f);
 	}
-	let fcr: ContentNode[] | undefined;
-	if (node.contentRoots?.length) {
-		fcr = [];
-		for (const cn of node.contentRoots) {
-			const f = filterContentNode(cn, options);
-			if (f) fcr.push(f);
-		}
-		if (!fcr.length) fcr = undefined;
-	}
-	const hasC = fc.length > 0,
-		hasCR = !!fcr;
-	const self = node._task ? taskMatchesFilter(node._task, options) : false;
-	if (!hasC && !hasCR && !self) return null;
-	return {
-		...node,
-		children: fc,
-		contentRoots: fcr || node.contentRoots,
-		_task: self ? node._task : undefined,
-	};
+
+	const hasChildren = fc.length > 0;
+	const self = taskMatchesFilter(node, options);
+
+	if (!hasChildren && !self) return null;
+
+	return { ...node, children: fc };
 }
 
-function filterContentNode(
-	node: ContentNode,
-	options: TreeFilterOptions,
-): ContentNode | null {
-	const fc: ContentNode[] = [];
-	for (const c of node.children) {
-		const f = filterContentNode(c, options);
-		if (f) fc.push(f);
-	}
-	let self = false;
-	if (node.type === "task" && node._task)
-		self = taskMatchesFilter(node._task, options);
-	else if (node.type === "heading") self = true;
-	if (!self && !fc.length) return null;
-	if (node.type === "heading" && !fc.length) return null;
-	return { ...node, children: fc, _task: self ? node._task : undefined };
-}
-
-/**
- * 筛选逻辑：
- * 1. 全选和部分选的组都参与筛选，全不选的组不参与
- * 2. 如果没有参与的组 → 保留任务
- * 3. 任务满足任一参与组的条件 → 保留；否则排除
- * 组间关系：或
- * 组内关系：或
- */
 function taskMatchesFilter(
-	task: TaskItem,
+	node: TaskTreeNode,
 	options: TreeFilterOptions,
 ): boolean {
-	if (!task) return false;
+	if (options.hideRepeat && node.repeat) return false;
+	if (options.hideCompleted && node.status === "completed") return false;
+	if (options.hideCancelled && node.status === "cancelled") return false;
 
-	// 隐藏选项（独立于筛选组，始终生效）
-	if (options.hideRepeat && task._repeat) return false;
-	if (options.hideCompleted && task._status === "completed") return false;
-	if (options.hideCancelled && task._status === "cancelled") return false;
-
-	// 收集所有参与的组（全选或部分选，即 length > 0）
 	const activeGroups: Array<() => boolean> = [];
 
-	// 状态组：length > 0 即参与
 	const statuses = options.statuses || [];
 	if (statuses.length > 0) {
-		activeGroups.push(() => statuses.includes(task._status));
+		activeGroups.push(() => statuses.includes(node.status));
 	}
 
-	// 优先级组：length > 0 即参与
 	const priorityValues = options.priorityValues || [];
 	if (priorityValues.length > 0) {
 		activeGroups.push(() => {
-			const icon = task._priorityIcon;
-			return icon ? priorityValues.includes(icon) : false;
+			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+			return priorityValues.includes(icons[node.priority] || "");
 		});
 	}
 
-	// 循环组：length > 0 即参与
 	const repeatCycles = options.repeatCycles || [];
 	if (repeatCycles.length > 0) {
 		activeGroups.push(() => {
-			if (!task._repeat) return false;
-			const taskCycle = task._repeat.toLowerCase().replace(/^🔁\s*/, "");
+			if (!node.repeat) return false;
+			const taskCycle = node.repeat.toLowerCase().replace(/^🔁\s*/, "");
 			return repeatCycles.some((c) => {
 				const filterCycle = c.toLowerCase().replace(/^🔁\s*/, "");
-				// 精确匹配
 				if (taskCycle === filterCycle) return true;
-				// 同类型匹配
 				if (
 					filterCycle === "every day" &&
 					/\bevery\s+(\d+\s+)?days?\b/i.test(taskCycle)
@@ -400,13 +455,13 @@ function taskMatchesFilter(
 		});
 	}
 
-	// 日期标记组：有选中的日期标记即参与
 	const includeMarks = options.includeMarks || [];
+	const marks = getTaskMarks(node);
 	const allDateMarks = [
 		"created",
 		"scheduled",
 		"starts",
-		"cancel",
+		"cancelled",
 		"done",
 		"due",
 	];
@@ -414,30 +469,25 @@ function taskMatchesFilter(
 		includeMarks.includes(k),
 	);
 	if (dateMarksSelected.length > 0) {
-		activeGroups.push(() => {
-			return dateMarksSelected.some((m) => task._marks?.[m]);
-		});
+		activeGroups.push(() =>
+			dateMarksSelected.some((m) => marks[m as keyof typeof marks]),
+		);
 	}
 
-	// 依赖标记组：有选中的依赖标记即参与
 	const allDepMarks = ["id", "forbid"];
 	const depMarksSelected = allDepMarks.filter((k) =>
 		includeMarks.includes(k),
 	);
 	if (depMarksSelected.length > 0) {
-		activeGroups.push(() => {
-			return depMarksSelected.some((m) => task._marks?.[m]);
-		});
+		activeGroups.push(() =>
+			depMarksSelected.some((m) => marks[m as keyof typeof marks]),
+		);
 	}
 
-	// 标签标记组：选中即参与
 	if (includeMarks.includes("tag")) {
-		activeGroups.push(() => {
-			return !!task._marks?.tag;
-		});
+		activeGroups.push(() => !!node.tag);
 	}
 
-	// 搜索组：有搜索文本即参与
 	if (options.searchText) {
 		const kw = options.searchText
 			.toLowerCase()
@@ -445,205 +495,122 @@ function taskMatchesFilter(
 			.filter((k) => k.length > 0);
 		if (kw.length > 0) {
 			activeGroups.push(() => {
-				const text = (task._cleanText || task.text || "").toLowerCase();
+				const text = (node.content || node.text || "").toLowerCase();
 				return kw.every((k) => text.includes(k));
 			});
 		}
 	}
 
-	// 如果没有参与的组 → 保留任务
 	if (activeGroups.length === 0) return true;
-
-	// 任务满足任一参与组的条件 → 保留
 	return activeGroups.some((check) => check());
 }
 
 // ========== 时间范围筛选 ==========
 
 export function filterTreeByDateRange(
-	roots: TreeNode[],
+	roots: TaskTreeNode[],
 	dateRange: { start: number | null; end: number | null; isAll: boolean },
 	intervalMode: string = "scheduled-due",
-): TreeNode[] {
+): TaskTreeNode[] {
 	if (dateRange.isAll || dateRange.start == null || dateRange.end == null)
 		return roots;
-	const result: TreeNode[] = [];
+	const result: TaskTreeNode[] = [];
 	for (const node of roots) {
-		const filtered = filterTreeNodeByDate(node, dateRange, intervalMode);
+		const filtered = filterNodeByDate(node, dateRange, intervalMode);
 		if (filtered) result.push(filtered);
 	}
 	return result;
 }
 
-function filterTreeNodeByDate(
-	node: TreeNode,
+function filterNodeByDate(
+	node: TaskTreeNode,
 	dateRange: { start: number; end: number },
 	intervalMode: string,
-): TreeNode | null {
-	const fc: TreeNode[] = [];
+): TaskTreeNode | null {
+	const fc: TaskTreeNode[] = [];
 	for (const c of node.children) {
-		const f = filterTreeNodeByDate(c, dateRange, intervalMode);
+		const f = filterNodeByDate(c, dateRange, intervalMode);
 		if (f) fc.push(f);
 	}
-	let fcr: ContentNode[] | undefined;
-	if (node.contentRoots?.length) {
-		fcr = [];
-		for (const cn of node.contentRoots) {
-			const f = filterContentNodeByDate(cn, dateRange, intervalMode);
-			if (f) fcr.push(f);
-		}
-		if (!fcr.length) fcr = undefined;
-	}
-	const hasC = fc.length > 0,
-		hasCR = !!fcr;
-	const self = node._task
-		? taskInDateRange(node._task, dateRange, intervalMode)
-		: false;
-	if (!hasC && !hasCR && !self) return null;
-	return {
-		...node,
-		children: fc,
-		contentRoots: fcr || node.contentRoots,
-		_task: self ? node._task : undefined,
-	};
-}
-
-function filterContentNodeByDate(
-	node: ContentNode,
-	dateRange: { start: number; end: number },
-	intervalMode: string,
-): ContentNode | null {
-	const fc: ContentNode[] = [];
-	for (const c of node.children) {
-		const f = filterContentNodeByDate(c, dateRange, intervalMode);
-		if (f) fc.push(f);
-	}
-	let self = false;
-	if (node.type === "task" && node._task)
-		self = taskInDateRange(node._task, dateRange, intervalMode);
-	else if (node.type === "heading") self = true;
-	if (!self && !fc.length) return null;
-	if (node.type === "heading" && !fc.length) return null;
-	return { ...node, children: fc, _task: self ? node._task : undefined };
+	const hasChildren = fc.length > 0;
+	const self = taskInDateRange(node, dateRange, intervalMode);
+	if (!hasChildren && !self) return null;
+	return { ...node, children: fc };
 }
 
 function taskInDateRange(
-	task: TaskItem,
+	node: TaskTreeNode,
 	dateRange: { start: number; end: number },
 	intervalMode: string,
 ): boolean {
-	// 不筛选模式
 	if (intervalMode === "none") return true;
 
-	let startStr: string | null = null;
-	let endStr: string | null = null;
-
 	if (intervalMode === "starts-done") {
-		startStr = task._starts;
-		endStr = task._done || task._cancel;
-	} else if (intervalMode === "any-date") {
-		const dates = [
-			task._created,
-			task._scheduled,
-			task._starts,
-			task._due,
-			task._done,
-			task._cancel,
-		];
-		for (const d of dates) {
-			if (!d) continue;
-			const ts = new Date(d).getTime();
-			if (isNaN(ts)) continue;
-			if (ts >= dateRange.start && ts <= dateRange.end) return true;
-		}
-		return false;
-	} else {
-		startStr = task._scheduled;
-		endStr = task._due;
+		const start = node.starts;
+		const end = node.done ?? node.cancelled;
+		if (start === null || end === null) return false;
+		return start <= dateRange.end && end >= dateRange.start;
 	}
 
-	if (!startStr || !endStr) return false;
-	const start = new Date(startStr).getTime();
-	const end = new Date(endStr).getTime();
-	if (isNaN(start) || isNaN(end)) return false;
+	if (intervalMode === "any-date") {
+		const dates = [
+			node.created,
+			node.scheduled,
+			node.starts,
+			node.due,
+			node.done,
+			node.cancelled,
+		];
+		for (const d of dates) {
+			if (d !== null && d >= dateRange.start && d <= dateRange.end)
+				return true;
+		}
+		return false;
+	}
+
+	const start = node.scheduled;
+	const end = node.due;
+	if (start === null || end === null) return false;
 	return start <= dateRange.end && end >= dateRange.start;
 }
 
-// ========== 隐藏配置筛选 ==========
+// ========== 隐藏配置筛选（设置 display 标志，不删除节点）==========
 
-export function filterTreeByHideConfig(
-	roots: TreeNode[],
+export function applyHideConfig(
+	roots: TaskTreeNode[],
 	hideConfig: HideConfig,
-): TreeNode[] {
-	const result: TreeNode[] = [];
-	for (const node of roots) {
-		const filtered = filterTreeNodeByHide(node, hideConfig);
-		if (filtered) result.push(filtered);
+): void {
+	for (const root of roots) {
+		applyHideConfigToNode(root, hideConfig);
 	}
-	return result;
 }
 
-function filterTreeNodeByHide(
-	node: TreeNode,
+function applyHideConfigToNode(
+	node: TaskTreeNode,
 	hideConfig: HideConfig,
-): TreeNode | null {
-	const fc: TreeNode[] = [];
-	for (const c of node.children) {
-		const f = filterTreeNodeByHide(c, hideConfig);
-		if (f) fc.push(f);
+): void {
+	node.display = !isNodeHidden(node, hideConfig);
+	for (const child of node.children) {
+		applyHideConfigToNode(child, hideConfig);
 	}
-	let fcr: ContentNode[] | undefined;
-	if (node.contentRoots?.length) {
-		fcr = [];
-		for (const cn of node.contentRoots) {
-			const f = filterContentNodeByHide(cn, hideConfig);
-			if (f) fcr.push(f);
-		}
-		if (!fcr.length) fcr = undefined;
-	}
-	const hasC = fc.length > 0,
-		hasCR = !!fcr;
-	const self = node._task ? taskNotHidden(node._task, hideConfig) : false;
-	if (!hasC && !hasCR && !self) return null;
-	return {
-		...node,
-		children: fc,
-		contentRoots: fcr || node.contentRoots,
-		_task: self ? node._task : undefined,
-	};
 }
 
-function filterContentNodeByHide(
-	node: ContentNode,
-	hideConfig: HideConfig,
-): ContentNode | null {
-	const fc: ContentNode[] = [];
-	for (const c of node.children) {
-		const f = filterContentNodeByHide(c, hideConfig);
-		if (f) fc.push(f);
-	}
-	let self = false;
-	if (node.type === "task" && node._task)
-		self = taskNotHidden(node._task, hideConfig);
-	else if (node.type === "heading") self = true;
-	if (!self && !fc.length) return null;
-	if (node.type === "heading" && !fc.length) return null;
-	return { ...node, children: fc, _task: self ? node._task : undefined };
-}
+function isNodeHidden(node: TaskTreeNode, hideConfig: HideConfig): boolean {
+	const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+	const icon = icons[node.priority] || "";
 
-function taskNotHidden(task: TaskItem, hideConfig: HideConfig): boolean {
 	if (
 		hideConfig.hideStatuses.length > 0 &&
-		hideConfig.hideStatuses.includes(task._status)
+		hideConfig.hideStatuses.includes(node.status)
 	)
-		return false;
+		return true;
 	if (
 		hideConfig.hidePriorityValues.length > 0 &&
-		hideConfig.hidePriorityValues.includes(task._priorityIcon)
+		hideConfig.hidePriorityValues.includes(icon)
 	)
-		return false;
-	if (hideConfig.hideRepeatCycles.length > 0 && task._repeat) {
-		const taskCycle = task._repeat.toLowerCase().replace(/^🔁\s*/, "");
+		return true;
+	if (hideConfig.hideRepeatCycles.length > 0 && node.repeat) {
+		const taskCycle = node.repeat.toLowerCase().replace(/^🔁\s*/, "");
 		if (
 			hideConfig.hideRepeatCycles.some((c) => {
 				const filterCycle = c.toLowerCase().replace(/^🔁\s*/, "");
@@ -671,11 +638,12 @@ function taskNotHidden(task: TaskItem, hideConfig: HideConfig): boolean {
 				return false;
 			})
 		)
-			return false;
+			return true;
 	}
 	if (hideConfig.hideMarks.length > 0) {
+		const marks = getTaskMarks(node);
 		for (const m of hideConfig.hideMarks) {
-			if (task._marks?.[m]) return false;
+			if (marks[m as keyof typeof marks]) return true;
 		}
 	}
 	if (hideConfig.hideSearchText) {
@@ -684,48 +652,27 @@ function taskNotHidden(task: TaskItem, hideConfig: HideConfig): boolean {
 			.split(/\s+/)
 			.filter((k) => k.length > 0);
 		if (kw.length > 0) {
-			const text = (task._cleanText || task.text || "").toLowerCase();
-			if (kw.every((k) => text.includes(k))) return false;
+			const text = (node.content || node.text || "").toLowerCase();
+			if (kw.every((k) => text.includes(k))) return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 // ========== 扁平化 ==========
 
-export function flattenTree(roots: TreeNode[]): TaskItem[] {
-	const tasks: TaskItem[] = [];
+export function flattenTree(roots: TaskTreeNode[]): TaskTreeNode[] {
+	const result: TaskTreeNode[] = [];
 	const seen = new Set<string>();
-	function add(task: TaskItem) {
-		if (!task?.path) return;
-		const key =
-			(task.path || "") + ":" + (task.lineNumber ?? task.line ?? 0);
-		if (!seen.has(key)) {
-			seen.add(key);
-			tasks.push(task);
+
+	function walk(node: TaskTreeNode) {
+		if (!seen.has(node.uid)) {
+			seen.add(node.uid);
+			result.push(node);
 		}
+		for (const child of node.children) walk(child);
 	}
-	function walk(node: TreeNode) {
-		const fileTaskName = node._task?._cleanText;
-		if (node._task) add(node._task);
-		if (node.contentRoots) {
-			for (const cn of node.contentRoots) walkCN(cn, fileTaskName);
-		}
-		for (const c of node.children) walk(c);
-	}
-	function walkCN(cn: ContentNode, fileTaskName?: string) {
-		const task = cn._task;
-		if (task) {
-			if (
-				fileTaskName &&
-				task._cleanText === fileTaskName &&
-				!task._isFileTask
-			)
-				return;
-			add(task);
-		}
-		for (const c of cn.children) walkCN(c, fileTaskName);
-	}
+
 	for (const root of roots) walk(root);
-	return tasks;
+	return result;
 }

@@ -1,6 +1,4 @@
 // src/ui/panel/mark-panel.ts
-// 任务标记面板（筛选）
-
 import {
 	MARK_NAMES,
 	PRIORITY_ORDER,
@@ -16,7 +14,7 @@ const MARK_GROUPS: { label: string; type: string; keys?: string[] }[] = [
 	{
 		label: "筛选时间",
 		type: "marks",
-		keys: ["created", "scheduled", "starts", "cancel", "done", "due"],
+		keys: ["created", "scheduled", "starts", "cancelled", "done", "due"],
 	},
 	{ label: "筛选依赖", type: "marks", keys: ["id", "forbid"] },
 	{ label: "筛选标签", type: "marks", keys: ["tag"] },
@@ -43,7 +41,6 @@ export class MarkPanel {
 
 	render() {
 		this.container.empty();
-		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
 		const currentFilter = preset.filter;
@@ -65,7 +62,6 @@ export class MarkPanel {
 			const row = this.container.createDiv({ cls: "panel-row" });
 			row.createSpan({ text: group.label, cls: "panel-label" });
 
-			// 优先级组
 			if (group.type === "priorityValues") {
 				const selected = currentFilter.priorityValues || [];
 				const noneSelected = selected.length === 0;
@@ -74,11 +70,10 @@ export class MarkPanel {
 					cls: "panel-btn",
 				});
 				if (!noneSelected) mainBtn.addClass("active");
-				mainBtn.onclick = () => {
+				mainBtn.onclick = () =>
 					updateFilter({
 						priorityValues: noneSelected ? [...PRIORITY_ICONS] : [],
 					});
-				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
 				subPanel.style.cssText =
 					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
@@ -98,7 +93,6 @@ export class MarkPanel {
 				return;
 			}
 
-			// 循环组
 			if (group.type === "repeatCycles") {
 				const selected = currentFilter.repeatCycles || [];
 				const noneSelected = selected.length === 0;
@@ -107,11 +101,10 @@ export class MarkPanel {
 					cls: "panel-btn",
 				});
 				if (!noneSelected) mainBtn.addClass("active");
-				mainBtn.onclick = () => {
+				mainBtn.onclick = () =>
 					updateFilter({
 						repeatCycles: noneSelected ? [...REPEAT_ORDER] : [],
 					});
-				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
 				subPanel.style.cssText =
 					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
@@ -131,7 +124,6 @@ export class MarkPanel {
 				return;
 			}
 
-			// 标记组（日期/依赖）：多子按钮
 			if (group.type === "marks" && group.keys && group.keys.length > 1) {
 				const selected = currentFilter.includeMarks || [];
 				const noneSelected = group.keys.every(
@@ -171,7 +163,6 @@ export class MarkPanel {
 				return;
 			}
 
-			// 单标记组（标签）
 			if (
 				group.type === "marks" &&
 				group.keys &&

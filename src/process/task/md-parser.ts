@@ -1,7 +1,7 @@
 // src/process/task/md-parser.ts
 // Markdown 任务解析器
 
-import { TaskItem } from "../../types";
+import { TaskStatus } from "../../types";
 import {
 	HEADING_TASK_PATTERN,
 	isBlacklisted,
@@ -14,7 +14,6 @@ import {
 	TASK_ROOT_PATH,
 	YAML_DATE_FIELDS,
 } from "../config/config";
-import { DateUtils } from "../process";
 
 // ========== 导出 TASK_REGEX 供 task-tree.ts 使用 ==========
 
@@ -36,22 +35,43 @@ export const TASK_REGEX = new RegExp(
 	`^\\s*-\\s*\\[([${ALL_STATUS_SYMBOLS_STR}])\\]\\s+(.+)$`,
 );
 
+// ========== 优先级图标 → 数字 ==========
+
+const PRIORITY_ICON_TO_NUM: Record<string, number> = {
+	"🔺": 0,
+	"⏫": 1,
+	"🔼": 2,
+	"🔽": 3,
+	"⏬": 4,
+};
+
+function parseDate(dateStr: string): number | null {
+	if (!dateStr) return null;
+	const ts = new Date(dateStr).getTime();
+	return isNaN(ts) ? null : ts;
+}
+
 // ========== 任务行解析 ==========
 
 export function parseTaskLine(
 	fullLine: string,
 	filePath: string,
 	line: number,
-): TaskItem {
+) {
 	const statusMatch = fullLine.match(/^\s*- \[(.)\]\s*/);
-	let status = "todo";
-	if (statusMatch) status = SYMBOL_TO_STATUS[statusMatch[1]] || "todo";
+	let status: TaskStatus = "todo";
+	if (statusMatch)
+		status = (SYMBOL_TO_STATUS[statusMatch[1]] || "todo") as TaskStatus;
 	const text = fullLine.replace(/^\s*- \[.\]\s*/, "");
+
 	function m(rx: RegExp, idx?: number): string | null {
 		const match = text.match(rx);
 		return match ? match[idx !== undefined ? idx : 1] || null : null;
 	}
-	const priorityIcon = (text.match(RX.priority) || [null])[0];
+
+	const priorityIcon = (text.match(RX.priority) || [null])[0] || "";
+	const priority = PRIORITY_ICON_TO_NUM[priorityIcon] ?? 5;
+
 	const cleanText = text
 		.replace(/⏬|🔽|🔼|⏫|🔺/g, "")
 		.replace(/🔁\s*every\s+(day|week|month|year)/gi, "")
@@ -68,69 +88,33 @@ export function parseTaskLine(
 		.replace(/\s{2,}/g, " ")
 		.trim();
 
-	const task: TaskItem = {
-		_status: status,
-		_cleanText: cleanText,
-		_fullLine: fullLine,
-		_priorityIcon: priorityIcon || "",
-		_created: m(RX.created) || "",
-		_scheduled: m(RX.scheduled) || "",
-		_starts: m(RX.starts) || "",
-		_due: m(RX.due) || "",
-		_done: m(RX.done) || "",
-		_cancel: m(RX.cancel) || "",
-		_tag: m(RX.tag) || "",
-		_id: m(RX.id) || "",
-		_forbid: m(RX.forbid) ? m(RX.forbid).replace(/\s/g, "") : "",
-		_repeat: m(RX.repeat) || "",
-		_marks: {
-			priority: !!priorityIcon,
-			repeat: !!m(RX.repeat),
-			created: !!m(RX.created),
-			scheduled: !!m(RX.scheduled),
-			starts: !!m(RX.starts),
-			due: !!m(RX.due),
-			done: !!m(RX.done),
-			cancel: !!m(RX.cancel),
-			tag: !!m(RX.tag),
-			id: !!m(RX.id),
-			forbid: !!(m(RX.forbid) && m(RX.forbid).replace(/\s/g, "")),
-		},
-		_cachedTimeRange: null,
-		_tooltip: "",
-		_tooltipHtml: "",
-		_isHeadingTask: false,
-		_isFileTask: false,
-		_headingLevel: 0,
-		_headingText: "",
-		path: filePath,
-		line: line,
-		lineNumber: line,
-		text: cleanText,
-		description: cleanText,
-		priority: priorityIcon
-			? ["🔺", "⏫", "🔼", "🔽", "⏬"].indexOf(priorityIcon).toString()
-			: "none",
-		status: statusMatch ? statusMatch[1] : " ",
-		fileName: filePath.split("/").pop()?.replace(".md", "") || "",
+	return {
+		status,
+		content: cleanText,
+		priority,
+		repeat: (m(RX.repeat) || "").replace(/^🔁\s*/, ""),
+		created: parseDate(m(RX.created) || ""),
+		scheduled: parseDate(m(RX.scheduled) || ""),
+		starts: parseDate(m(RX.starts) || ""),
+		due: parseDate(m(RX.due) || ""),
+		done: parseDate(m(RX.done) || ""),
+		cancelled: parseDate(m(RX.cancelled) || ""),
+		tag: m(RX.tag) || "",
+		id: m(RX.id) || "",
+		forbid: m(RX.forbid) ? m(RX.forbid).replace(/\s/g, "") : "",
 	};
-
-	task._cachedTimeRange = computeTaskTimeRange(task);
-	ensureTaskTooltip(task);
-	return task;
 }
 
-// ========== 文件解析 ==========
+// ========== 数据结构 ==========
 
 export interface ContentNode {
 	type: "heading" | "task";
-	level?: number;
 	text: string;
 	raw: string;
 	line: number;
+	depth: number;
 	children: ContentNode[];
-	parent: ContentNode | null;
-	_task?: TaskItem;
+	task: ReturnType<typeof parseTaskLine> | null;
 	yamlStartLine?: number;
 	yamlEndLine?: number;
 }
@@ -140,17 +124,11 @@ export interface ParsedFileData {
 	name: string;
 	content: string;
 	yaml: Record<string, any>;
-	fileTask: TaskItem | null;
-	tasks: TaskItem[];
-	headingTasks: Array<{
-		line: number;
-		level: number;
-		text: string;
-		yamlData: Record<string, any> | null;
-		task: TaskItem | null;
-	}>;
-	contentRoots?: ContentNode[];
+	fileTask: ReturnType<typeof parseTaskLine> | null;
+	contentRoots: ContentNode[];
 }
+
+// ========== 文件解析 ==========
 
 export function parseFile(
 	filePath: string,
@@ -158,16 +136,8 @@ export function parseFile(
 	content: string,
 ): ParsedFileData {
 	const yaml = parseFrontmatter(content);
-	const fileTask = buildFileTaskFromYaml(yaml, filePath, fileName);
-	const contentRoots = content
-		? parseFileContent(content, filePath)
-		: undefined;
-	const tasks: TaskItem[] = [];
-	const headingTasks: ParsedFileData["headingTasks"] = [];
-
-	if (contentRoots) {
-		collectFromContent(contentRoots, tasks, headingTasks);
-	}
+	const fileTask = buildFileTaskFromYaml(yaml);
+	const contentRoots = content ? parseFileContent(content, filePath) : [];
 
 	return {
 		path: filePath,
@@ -175,32 +145,8 @@ export function parseFile(
 		content,
 		yaml,
 		fileTask,
-		tasks,
-		headingTasks,
 		contentRoots,
 	};
-}
-
-function collectFromContent(
-	nodes: ContentNode[],
-	tasks: TaskItem[],
-	headingTasks: ParsedFileData["headingTasks"],
-) {
-	for (const node of nodes) {
-		if (node.type === "task" && node._task) tasks.push(node._task);
-		if (node.type === "heading") {
-			headingTasks.push({
-				line: node.line,
-				level: node.level || 1,
-				text: node.text,
-				yamlData: null,
-				task: node._task || null,
-			});
-		}
-		if (node.children && node.children.length > 0) {
-			collectFromContent(node.children, tasks, headingTasks);
-		}
-	}
 }
 
 function parseFrontmatter(content: string): Record<string, any> {
@@ -226,204 +172,56 @@ function parseFrontmatter(content: string): Record<string, any> {
 	return result;
 }
 
-function buildFileTaskFromYaml(
-	yamlData: Record<string, any>,
-	filePath: string,
-	fileName: string,
-): TaskItem {
-	const nameFromFile = fileName.replace(/\.md$/, "");
-	const task = buildTaskFromYaml(yamlData, filePath, 0, true);
-	if (task) {
-		task._isFileTask = true;
-		task._cleanText = nameFromFile;
-		task.fileName = nameFromFile;
-		return task;
-	}
-	return {
-		_status: "todo",
-		_cleanText: nameFromFile,
-		_fullLine: "",
-		_priorityIcon: "",
-		_created: "",
-		_scheduled: "",
-		_starts: "",
-		_due: "",
-		_done: "",
-		_cancel: "",
-		_tag: "",
-		_id: "",
-		_forbid: "",
-		_repeat: "",
-		_marks: {
-			priority: false,
-			repeat: false,
-			created: false,
-			scheduled: false,
-			starts: false,
-			due: false,
-			done: false,
-			cancel: false,
-			tag: false,
-			id: false,
-			forbid: false,
-		},
-		_cachedTimeRange: null,
-		_tooltip: "",
-		_tooltipHtml: "",
-		_isHeadingTask: false,
-		_isFileTask: true,
-		_headingLevel: 0,
-		_headingText: "",
-		path: filePath,
-		line: 0,
-		lineNumber: 0,
-		text: nameFromFile,
-		description: nameFromFile,
-		priority: "none",
-		status: " ",
-		fileName: nameFromFile,
-	};
-}
-
-function buildTaskFromYaml(
-	yamlData: Record<string, any>,
-	filePath: string,
-	line: number,
-	isFile: boolean,
-): TaskItem | null {
-	const sm: Record<string, string> = {};
-	TASK_ELEMENTS.status.children?.forEach((c) => {
-		sm[c.zhName] = c.key;
-	});
-	const pm: Record<string, string> = {};
-	TASK_ELEMENTS.priority.children?.forEach((c, idx) => {
-		pm[c.zhName] = c.icon!;
-		pm[String(4 - idx)] = c.icon!;
-	});
-	const rawStatus = yamlData["任务状态"] || "未开始",
-		rawPriority = yamlData["任务优先级"] || "none";
-	const sk = sm[rawStatus] || "todo",
-		pi = pm[rawPriority] || "";
-	const fd = (val: any): string | null => {
-		if (!val) return null;
-		const s = String(val);
-		if (s === "NaN" || s.includes("NaN")) return null;
-		const dm = s.match(/(\d{4}-\d{2}-\d{2})/);
-		return dm ? dm[1] : s.substring(0, 10);
-	};
-	const dv: Record<string, string | null> = {};
-	for (const yn of YAML_DATE_FIELDS) dv[yn] = fd(yamlData[yn]);
-	const name = yamlData["任务名称"] || "";
-	const description = yamlData["任务简介"] || name;
-	if (!description && !name && Object.keys(dv).every((k) => !dv[k]))
-		return null;
-
-	const task: TaskItem = {
-		_status: sk,
-		_cleanText: description,
-		_fullLine: "",
-		_priorityIcon: pi,
-		_created: dv["任务创建"] || "",
-		_scheduled: dv["任务计划"] || "",
-		_starts: dv["任务开始"] || "",
-		_due: dv["任务截止"] || "",
-		_done: dv["任务完成"] || "",
-		_cancel: dv["任务取消"] || "",
-		_tag: yamlData["任务标签"] || "",
-		_id: yamlData["任务唯一ID"] || "",
-		_forbid: yamlData["任务引用ID"] || "",
-		_repeat: yamlData["任务周期"] || "",
-		_marks: {
-			priority: !!pi,
-			repeat: !!yamlData["任务周期"],
-			created: !!dv["任务创建"],
-			scheduled: !!dv["任务计划"],
-			starts: !!dv["任务开始"],
-			due: !!dv["任务截止"],
-			done: !!dv["任务完成"],
-			cancel: !!dv["任务取消"],
-			tag: !!yamlData["任务标签"],
-			id: !!yamlData["任务唯一ID"],
-			forbid: !!yamlData["任务引用ID"],
-		},
-		_cachedTimeRange: null,
-		_tooltip: "",
-		_tooltipHtml: "",
-		_isHeadingTask: !isFile,
-		_isFileTask: isFile,
-		_headingLevel: 0,
-		_headingText: "",
-		path: filePath,
-		line: line,
-		lineNumber: line,
-		text: description,
-		description,
-		priority: rawPriority === "none" ? "none" : rawPriority,
-		status: " ",
-		fileName: filePath.split("/").pop()?.replace(".md", "") || "",
-	};
-
-	task._cachedTimeRange = computeTaskTimeRange(task);
-	ensureTaskTooltip(task);
+function buildFileTaskFromYaml(yamlData: Record<string, any>) {
+	const task = buildTaskFromYaml(yamlData);
 	return task;
 }
 
-function computeTaskTimeRange(
-	task: TaskItem,
-): { start: number; end: number } | null {
-	let min = Infinity,
-		max = -Infinity,
-		has = false;
-	function add(d: any) {
-		if (d) {
-			const ts = new Date(d).getTime();
-			if (!isNaN(ts)) {
-				if (ts < min) min = ts;
-				if (ts > max) max = ts;
-				has = true;
-			}
-		}
-	}
-	add(task._scheduled);
-	add(task._due);
-	add(task._starts);
-	if (task._done) add(task._done);
-	if (!has) return null;
+function buildTaskFromYaml(yamlData: Record<string, any>) {
+	const sm: Record<string, string> = {};
+	TASK_ELEMENTS.status.children.forEach((c) => {
+		sm[c.zhName] = c.key;
+	});
+	const pm: Record<string, number> = {};
+	TASK_ELEMENTS.priority.children.forEach((c, idx) => {
+		pm[c.zhName] = 4 - idx;
+	});
+
+	const rawStatus = yamlData["任务状态"] || "未开始";
+	const rawPriority = yamlData["任务优先级"] || "none";
+	const sk = (sm[rawStatus] || "todo") as TaskStatus;
+	const pi = rawPriority === "none" ? 5 : (pm[rawPriority] ?? 5);
+
+	const parseDate = (val: any): number | null => {
+		if (!val) return null;
+		const s = String(val);
+		const dm = s.match(/(\d{4}-\d{2}-\d{2})/);
+		const dateStr = dm ? dm[1] : s.substring(0, 10);
+		const ts = new Date(dateStr).getTime();
+		return isNaN(ts) ? null : ts;
+	};
+
+	const dv: Record<string, number | null> = {};
+	for (const yn of YAML_DATE_FIELDS) dv[yn] = parseDate(yamlData[yn]);
+
+	const description = yamlData["任务简介"] || yamlData["任务名称"] || "";
+	if (!description && Object.values(dv).every((v) => v === null)) return null;
+
 	return {
-		start: DateUtils.setStart(new Date(min)).getTime(),
-		end: DateUtils.setEnd(new Date(max)).getTime(),
+		status: sk,
+		content: description,
+		priority: pi,
+		repeat: (yamlData["任务周期"] || "").replace(/^🔁\s*/, ""),
+		created: dv["任务创建"] ?? null,
+		scheduled: dv["任务计划"] ?? null,
+		starts: dv["任务开始"] ?? null,
+		due: dv["任务截止"] ?? null,
+		done: dv["任务完成"] ?? null,
+		cancelled: dv["任务取消"] ?? null,
+		tag: yamlData["任务标签"] || "",
+		id: yamlData["任务唯一ID"] || "",
+		forbid: yamlData["任务引用ID"] || "",
 	};
-}
-
-function ensureTaskTooltip(task: TaskItem) {
-	if (task._tooltip) return;
-	const parts: string[] = [];
-	const icon = getStatusIconForTooltip(task._status);
-	parts.push(icon + " " + task._cleanText);
-	if (task._priorityIcon) parts.push(task._priorityIcon);
-	if (task._repeat) parts.push("🔁 " + task._repeat);
-	if (task._created) parts.push("➕ " + task._created);
-	if (task._scheduled) parts.push("⏳ " + task._scheduled);
-	if (task._starts) parts.push("🛫 " + task._starts);
-	if (task._due) parts.push("📅 " + task._due);
-	if (task._done) parts.push("✅ " + task._done);
-	if (task._cancel) parts.push("❌ " + task._cancel);
-	if (task._tag) parts.push("🏁 " + task._tag);
-	if (task._id) parts.push("🆔 " + task._id);
-	if (task._forbid) parts.push("⛔ " + task._forbid);
-	task._tooltip = parts.join("\n");
-	task._tooltipHtml = task._tooltip.replace(/\n/g, "<br>");
-}
-
-function getStatusIconForTooltip(status: string): string {
-	const map: Record<string, string> = {
-		todo: "🔲",
-		planned: "❔",
-		"in-progress": "⏩",
-		completed: "✅",
-		cancelled: "❎",
-	};
-	return map[status] || "🔲";
 }
 
 // ========== 文件内容解析 ==========
@@ -451,29 +249,25 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 			inCodeBlock = !inCodeBlock;
 			continue;
 		}
-		if (inCodeBlock) continue;
-		if (trimmed === "") continue;
+		if (inCodeBlock || trimmed === "") continue;
 
 		const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)/);
 		if (headingMatch) {
 			const level = headingMatch[1].length;
 			const title = headingMatch[2].trim();
-
-			// 所有标题都加入树结构
 			const node: ContentNode = {
 				type: "heading",
-				level,
 				text: title,
 				raw: trimmed,
 				line: i,
+				depth: level,
 				children: [],
-				parent: null,
+				task: null,
 			};
 
-			// 弹出比当前级别低或相等的标题
 			while (
 				headingStack.length > 0 &&
-				headingStack[headingStack.length - 1].level! >= level
+				headingStack[headingStack.length - 1].depth >= level
 			) {
 				headingStack.pop();
 			}
@@ -483,35 +277,42 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 			} else {
 				roots.push(node);
 			}
-
 			headingStack.push(node);
 			indentStack.length = 0;
 
-			// 匹配正则的标题设置为标题任务
 			if (HEADING_TASK_PATTERN.test(title)) {
 				const { yamlData, yamlStartLine, yamlEndLine } =
 					parseHeadingYamlBlock(lines, i, level);
-				let taskData: TaskItem | null = null;
+				let taskData = null;
 				if (yamlData) {
-					taskData = yamlDataToTaskData(yamlData, filePath || "", i);
-					if (taskData) {
-						taskData._headingText = title;
-						taskData._headingLevel = level;
-					}
+					taskData = buildTaskFromYaml(yamlData);
 				}
 				if (taskData) {
-					node._task = taskData;
-					node.yamlStartLine =
-						yamlStartLine >= 0 ? yamlStartLine : undefined;
-					node.yamlEndLine =
-						yamlEndLine >= 0 ? yamlEndLine : undefined;
+					node.task = taskData;
+				} else {
+					node.task = {
+						status: "todo" as TaskStatus,
+						content: title,
+						priority: 5,
+						repeat: "",
+						created: null,
+						scheduled: null,
+						starts: null,
+						due: null,
+						done: null,
+						cancelled: null,
+						tag: "",
+						id: "",
+						forbid: "",
+					};
 				}
+				node.yamlStartLine =
+					yamlStartLine >= 0 ? yamlStartLine : undefined;
+				node.yamlEndLine = yamlEndLine >= 0 ? yamlEndLine : undefined;
 			}
-
 			continue;
 		}
 
-		// 跳过标题 YAML 代码块区域
 		const currentHeading =
 			headingStack.length > 0
 				? headingStack[headingStack.length - 1]
@@ -528,21 +329,18 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 		const taskMatch = trimmed.match(TASK_REGEX);
 		if (!taskMatch) continue;
 
-		const fullLine = trimmed;
-		const taskData: TaskItem = parseTaskLine(fullLine, filePath || "", i);
-
+		const taskData = parseTaskLine(trimmed, filePath || "", i);
 		const node: ContentNode = {
 			type: "task",
-			text: taskData._cleanText,
-			raw: fullLine,
+			text: taskData.content,
+			raw: trimmed,
 			line: i,
+			depth: 0,
 			children: [],
-			parent: null,
+			task: taskData,
 		};
-		node._task = taskData;
 
 		const indent = getIndentLevel(line);
-
 		while (
 			indentStack.length > 0 &&
 			indentStack[indentStack.length - 1].indent >= indent
@@ -557,92 +355,42 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 		} else {
 			roots.push(node);
 		}
-
 		indentStack.push({ indent, node });
 	}
 
-	// 自动识别：标题下有列表任务的，提升为标题任务
 	promoteToHeadingTasks(roots);
-
 	return roots;
 }
 
-/**
- * 自动识别标题任务：为没有 _task 但有子列表任务的标题创建伪任务
- */
 function promoteToHeadingTasks(nodes: ContentNode[]) {
 	for (const node of nodes) {
-		if (node.type === "heading") {
-			if (!node._task && hasListTasks(node)) {
-				node._task = createPseudoHeadingTask(node);
-			}
+		if (node.type === "heading" && !node.task && hasListTasks(node)) {
+			node.task = {
+				status: "todo" as TaskStatus,
+				content: node.text,
+				priority: 5,
+				repeat: "",
+				created: null,
+				scheduled: null,
+				starts: null,
+				due: null,
+				done: null,
+				cancelled: null,
+				tag: "",
+				id: "",
+				forbid: "",
+			};
 		}
-		if (node.children.length > 0) {
-			promoteToHeadingTasks(node.children);
-		}
+		if (node.children.length > 0) promoteToHeadingTasks(node.children);
 	}
 }
 
-/**
- * 检查节点下是否有列表任务（不包括标题节点自身的 _task）
- */
 function hasListTasks(node: ContentNode): boolean {
 	for (const child of node.children) {
-		if (child.type === "task" && child._task) return true;
-		if (child.type === "heading" && child._task) return true;
+		if (child.type === "task" && child.task) return true;
 		if (hasListTasks(child)) return true;
 	}
 	return false;
-}
-
-/**
- * 为自动识别的标题创建伪任务数据
- */
-function createPseudoHeadingTask(node: ContentNode): TaskItem {
-	return {
-		_status: "todo",
-		_cleanText: node.text,
-		_fullLine: "",
-		_priorityIcon: "",
-		_created: "",
-		_scheduled: "",
-		_starts: "",
-		_due: "",
-		_done: "",
-		_cancel: "",
-		_tag: "",
-		_id: "",
-		_forbid: "",
-		_repeat: "",
-		_marks: {
-			priority: false,
-			repeat: false,
-			created: false,
-			scheduled: false,
-			starts: false,
-			due: false,
-			done: false,
-			cancel: false,
-			tag: false,
-			id: false,
-			forbid: false,
-		},
-		_cachedTimeRange: null,
-		_tooltip: "",
-		_tooltipHtml: "",
-		_isHeadingTask: true,
-		_isFileTask: false,
-		_headingLevel: node.level || 1,
-		_headingText: node.text,
-		path: "",
-		line: node.line,
-		lineNumber: node.line,
-		text: node.text,
-		description: node.text,
-		priority: "none",
-		status: " ",
-		fileName: "",
-	} as TaskItem;
 }
 
 function parseHeadingYamlBlock(
@@ -693,81 +441,6 @@ function parseHeadingYamlBlock(
 	};
 }
 
-function yamlDataToTaskData(
-	yamlData: Record<string, any>,
-	filePath: string,
-	headingLine: number,
-): TaskItem {
-	const statusMap: Record<string, string> = {};
-	TASK_ELEMENTS.status.children?.forEach((c) => {
-		statusMap[c.zhName] = c.key;
-	});
-	const priorityMap: Record<string, string> = {};
-	TASK_ELEMENTS.priority.children?.forEach((c, idx) => {
-		priorityMap[c.zhName] = c.icon!;
-		priorityMap[String(4 - idx)] = c.icon!;
-	});
-	const rawStatus = yamlData["任务状态"] || "未开始",
-		rawPriority = yamlData["任务优先级"] || "none";
-	const sk = statusMap[rawStatus] || "todo",
-		pi = priorityMap[rawPriority] || "";
-	const fd = (val: any): string | null => {
-		if (!val) return null;
-		const s = String(val);
-		if (s === "NaN" || s.includes("NaN")) return null;
-		const dm = s.match(/(\d{4}-\d{2}-\d{2})/);
-		return dm ? dm[1] : s.substring(0, 10);
-	};
-	const dv: Record<string, string | null> = {};
-	for (const yn of YAML_DATE_FIELDS) dv[yn] = fd(yamlData[yn]);
-	const name = yamlData["任务名称"] || "",
-		description = yamlData["任务简介"] || name;
-	return {
-		_status: sk,
-		_cleanText: description,
-		_fullLine: "",
-		_priorityIcon: pi,
-		_created: dv["任务创建"] || "",
-		_scheduled: dv["任务计划"] || "",
-		_starts: dv["任务开始"] || "",
-		_due: dv["任务截止"] || "",
-		_done: dv["任务完成"] || "",
-		_cancel: dv["任务取消"] || "",
-		_tag: yamlData["任务标签"] || "",
-		_id: yamlData["任务唯一ID"] || "",
-		_forbid: yamlData["任务引用ID"] || "",
-		_repeat: yamlData["任务周期"] || "",
-		_marks: {
-			priority: !!pi,
-			repeat: !!yamlData["任务周期"],
-			created: !!dv["任务创建"],
-			scheduled: !!dv["任务计划"],
-			starts: !!dv["任务开始"],
-			due: !!dv["任务截止"],
-			done: !!dv["任务完成"],
-			cancel: !!dv["任务取消"],
-			tag: !!yamlData["任务标签"],
-			id: !!yamlData["任务唯一ID"],
-			forbid: !!yamlData["任务引用ID"],
-		},
-		_cachedTimeRange: null,
-		_tooltip: "",
-		_tooltipHtml: "",
-		_isHeadingTask: true,
-		_isFileTask: false,
-		_headingLevel: 0,
-		_headingText: "",
-		path: filePath,
-		line: headingLine,
-		lineNumber: headingLine,
-		text: description,
-		description,
-		priority: rawPriority === "none" ? "none" : rawPriority,
-		status: " ",
-		fileName: filePath.split("/").pop()?.replace(".md", "") || "",
-	};
-}
-
 function getIndentLevel(line: string): number {
 	const leading = line.length - line.trimStart().length;
 	const tabCount = (line.match(/\t/g) || []).length;
@@ -790,7 +463,7 @@ export async function loadAllTaskFiles(app: any): Promise<ParsedFileData[]> {
 		try {
 			const content = await app.vault.cachedRead(file);
 			const parsed = parseFile(file.path, file.name, content);
-			if (isTaskFile(file.name, parsed.tasks.length > 0)) {
+			if (isTaskFile(file.name, parsed.contentRoots.length > 0)) {
 				results.push(parsed);
 			}
 		} catch (e) {

@@ -1,6 +1,4 @@
 // src/ui/panel/hide-panel.ts
-// 视图隐藏面板 — 修改 hideConfig，不影响 filter
-
 import {
 	ALLOWED_STATUSES,
 	MARK_NAMES,
@@ -22,7 +20,7 @@ const HIDE_GROUPS = [
 	{
 		label: "隐藏时间",
 		type: "marks",
-		keys: ["created", "scheduled", "starts", "cancel", "done", "due"],
+		keys: ["created", "scheduled", "starts", "cancelled", "done", "due"],
 	},
 	{ label: "隐藏依赖", type: "marks", keys: ["id", "forbid"] },
 	{ label: "隐藏标签", type: "marks", keys: ["tag"] },
@@ -73,7 +71,6 @@ export class HidePanel {
 			const row = this.container.createDiv({ cls: "panel-row" });
 			row.createSpan({ text: group.label, cls: "panel-label" });
 
-			// 隐藏状态
 			if (group.type === "statuses") {
 				const hidden = hideConfig.hideStatuses || [];
 				const noneHidden = hidden.length === 0;
@@ -82,11 +79,10 @@ export class HidePanel {
 					cls: "panel-btn",
 				});
 				if (!noneHidden) mainBtn.addClass("active");
-				mainBtn.onclick = () => {
+				mainBtn.onclick = () =>
 					updateHideConfig({
 						hideStatuses: noneHidden ? [...ALLOWED_STATUSES] : [],
 					});
-				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
 				subPanel.style.cssText =
 					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
@@ -107,7 +103,6 @@ export class HidePanel {
 				return;
 			}
 
-			// 隐藏描述
 			if (group.type === "searchText") {
 				const searchInput = row.createEl("input", {
 					type: "text",
@@ -122,14 +117,17 @@ export class HidePanel {
 				let timer: ReturnType<typeof setTimeout> | null = null;
 				searchInput.addEventListener("input", () => {
 					if (timer) clearTimeout(timer);
-					timer = setTimeout(() => {
-						updateHideConfig({ hideSearchText: searchInput.value });
-					}, 300);
+					timer = setTimeout(
+						() =>
+							updateHideConfig({
+								hideSearchText: searchInput.value,
+							}),
+						300,
+					);
 				});
 				return;
 			}
 
-			// 隐藏优先
 			if (group.type === "priorityValues") {
 				const hidden = hideConfig.hidePriorityValues || [];
 				const noneHidden = hidden.length === 0;
@@ -138,13 +136,12 @@ export class HidePanel {
 					cls: "panel-btn",
 				});
 				if (!noneHidden) mainBtn.addClass("active");
-				mainBtn.onclick = () => {
+				mainBtn.onclick = () =>
 					updateHideConfig({
 						hidePriorityValues: noneHidden
 							? [...PRIORITY_ICONS]
 							: [],
 					});
-				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
 				subPanel.style.cssText =
 					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
@@ -165,7 +162,6 @@ export class HidePanel {
 				return;
 			}
 
-			// 隐藏循环
 			if (group.type === "repeatCycles") {
 				const hidden = hideConfig.hideRepeatCycles || [];
 				const noneHidden = hidden.length === 0;
@@ -174,11 +170,10 @@ export class HidePanel {
 					cls: "panel-btn",
 				});
 				if (!noneHidden) mainBtn.addClass("active");
-				mainBtn.onclick = () => {
+				mainBtn.onclick = () =>
 					updateHideConfig({
 						hideRepeatCycles: noneHidden ? [...REPEAT_ORDER] : [],
 					});
-				};
 				const subPanel = row.createDiv({ cls: "panel-sub" });
 				subPanel.style.cssText =
 					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
@@ -199,7 +194,6 @@ export class HidePanel {
 				return;
 			}
 
-			// 隐藏标记（日期/依赖）：多子按钮
 			if (group.type === "marks" && group.keys && group.keys.length > 1) {
 				const hidden = hideConfig.hideMarks || [];
 				const noneHidden = group.keys.every((k) => !hidden.includes(k));
@@ -238,7 +232,6 @@ export class HidePanel {
 				return;
 			}
 
-			// 隐藏标签：单按钮
 			if (
 				group.type === "marks" &&
 				group.keys &&

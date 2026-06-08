@@ -1,5 +1,4 @@
 // src/ui/component/view/gantt/gantt.ts
-// 甘特图组件 — 整体视图，甘特条作为树行内元素
 
 import {
 	advanceGridLineDate,
@@ -20,12 +19,9 @@ import {
 	saveZoomState,
 } from "../../../../process/component/gantt-view-process";
 import { DateUtils } from "../../../../process/process";
-import { TreeNode } from "../../../../process/task/task-tree";
-import { TaskItem } from "../../../../types";
+import { TaskTreeNode } from "../../../../process/task/task-tree";
 import { tooltip } from "../../tooltip/tooltip";
 import { renderTaskTree } from "../list/tree-list";
-
-// ========== 时间轴标签辅助函数 ==========
 
 function createTimelineLabel(
 	left: number,
@@ -48,8 +44,6 @@ function createTimelineLabel(
 	return el;
 }
 
-// ========== 应用背景网格 ==========
-
 function applyGridBackground(
 	content: HTMLElement,
 	dayWidth: number,
@@ -58,24 +52,20 @@ function applyGridBackground(
 	timeRange: { minTime: number; maxTime: number },
 ) {
 	const dark = isDarkTheme();
-
 	const gridContainer = document.createElement("div");
 	gridContainer.style.cssText = `
     position: absolute; top: 0; left: 0;
     width: ${totalWidth}px; height: 100%;
     pointer-events: none; z-index: 0;
   `;
-
 	const gridLevels = getGridLevels(dayWidth);
 	const reversed = [...gridLevels].reverse();
-
 	reversed.forEach((level) => {
 		const style = getGridLineStyle(level.intervalDays, dark);
 		const firstLineDate = getGridFirstLineDate(
 			timeRange,
 			level.intervalDays,
 		);
-
 		let lineDate = new Date(firstLineDate);
 		while (lineDate.getTime() <= timeRange.maxTime) {
 			const offsetDays =
@@ -93,11 +83,8 @@ function applyGridBackground(
 			advanceGridLineDate(lineDate, level.intervalDays);
 		}
 	});
-
 	content.appendChild(gridContainer);
 }
-
-// ========== 时间轴头部 ==========
 
 function createTimelineHeader(
 	timeRange: { minTime: number; maxTime: number },
@@ -116,8 +103,7 @@ function createTimelineHeader(
 	header.style.cssText = `
     position: sticky; top: 0; z-index: 3;
     height: ${GANTT_CONFIG.HEADER_HEIGHT}px;
-    width: ${totalWidth}px;
-    min-width: ${totalWidth}px;
+    width: ${totalWidth}px; min-width: ${totalWidth}px;
     background: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
     overflow: hidden; flex-shrink: 0;
@@ -127,8 +113,7 @@ function createTimelineHeader(
 	treeSpacer.style.cssText = `
     position: absolute; top: 0; left: 0;
     width: ${treeWidth}px; height: 100%;
-    background: var(--background-primary);
-    z-index: 5;
+    background: var(--background-primary); z-index: 5;
   `;
 	header.appendChild(treeSpacer);
 
@@ -141,13 +126,10 @@ function createTimelineHeader(
 	let currentTop = 0;
 	let layerIdx = 0;
 
-	// ===== 年层 =====
+	// 年层
 	const yearStyle = getLayerStyle(layerIdx, layerCount, dark);
 	const yearLayer = document.createElement("div");
-	yearLayer.style.cssText = `
-    position: absolute; top: ${currentTop}px; left: 0;
-    height: ${layerHeight}px; width: 100%;
-  `;
+	yearLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%;`;
 	currentTop += layerHeight;
 	layerIdx++;
 
@@ -193,18 +175,13 @@ function createTimelineHeader(
 	const showWeeks = layers.some((l) => l.name === "week");
 	const showDays = layers.some((l) => l.name === "day");
 
-	// ===== 季层 =====
+	// 季层
 	if (showQuarters) {
 		const qStyle = getLayerStyle(layerIdx, layerCount, dark);
 		const qLayer = document.createElement("div");
-		qLayer.style.cssText = `
-      position: absolute; top: ${currentTop}px; left: 0;
-      height: ${layerHeight}px; width: 100%;
-      border-top: 1px solid var(--background-modifier-border);
-    `;
+		qLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
 		currentTop += layerHeight;
 		layerIdx++;
-
 		let curQ = -1,
 			qStart = 0;
 		for (let i = 0; i < totalDays; i++) {
@@ -245,7 +222,7 @@ function createTimelineHeader(
 		inner.appendChild(qLayer);
 	}
 
-	// ===== 月层 =====
+	// 月层
 	if (showMonths) {
 		const mNames = [
 			"1月",
@@ -263,14 +240,9 @@ function createTimelineHeader(
 		];
 		const mStyle = getLayerStyle(layerIdx, layerCount, dark);
 		const mLayer = document.createElement("div");
-		mLayer.style.cssText = `
-      position: absolute; top: ${currentTop}px; left: 0;
-      height: ${layerHeight}px; width: 100%;
-      border-top: 1px solid var(--background-modifier-border);
-    `;
+		mLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
 		currentTop += layerHeight;
 		layerIdx++;
-
 		let curM = -1,
 			mStart = 0;
 		for (let i = 0; i < totalDays; i++) {
@@ -309,18 +281,13 @@ function createTimelineHeader(
 		inner.appendChild(mLayer);
 	}
 
-	// ===== 周层 =====
+	// 周层
 	if (showWeeks) {
 		const wStyle = getLayerStyle(layerIdx, layerCount, dark);
 		const wLayer = document.createElement("div");
-		wLayer.style.cssText = `
-      position: absolute; top: ${currentTop}px; left: 0;
-      height: ${layerHeight}px; width: 100%;
-      border-top: 1px solid var(--background-modifier-border);
-    `;
+		wLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
 		currentTop += layerHeight;
 		layerIdx++;
-
 		let curW = -1,
 			wStart = 0;
 		for (let i = 0; i < totalDays; i++) {
@@ -360,16 +327,11 @@ function createTimelineHeader(
 		inner.appendChild(wLayer);
 	}
 
-	// ===== 日层 =====
+	// 日层
 	if (showDays) {
 		const dStyle = getLayerStyle(layerIdx, layerCount, dark);
 		const dLayer = document.createElement("div");
-		dLayer.style.cssText = `
-      position: absolute; top: ${currentTop}px; left: 0;
-      height: ${layerHeight}px; width: 100%;
-      border-top: 1px solid var(--background-modifier-border);
-    `;
-
+		dLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
 		let curD = -1,
 			dStart = 0;
 		for (let i = 0; i < totalDays; i++) {
@@ -418,8 +380,7 @@ function createTimelineHeader(
         position: absolute; left: ${ox}px; top: 0;
         width: 2px; height: 100%;
         background: var(--interactive-accent, #7fb8f0);
-        opacity: 0.5;
-        z-index: 4; pointer-events: none;
+        opacity: 0.5; z-index: 4; pointer-events: none;
       `;
 			inner.appendChild(line);
 		}
@@ -429,10 +390,8 @@ function createTimelineHeader(
 	return header;
 }
 
-// ========== 依赖箭头 SVG ==========
-
 function createDependencySVG(
-	taskMap: Map<string, TaskItem>,
+	taskMap: Map<string, TaskTreeNode>,
 	totalWidth: number,
 	treeContainer: HTMLElement,
 ): SVGSVGElement {
@@ -447,7 +406,6 @@ function createDependencySVG(
 
 	function redraw() {
 		while (svg.firstChild) svg.removeChild(svg.firstChild);
-
 		const rows = treeContainer.querySelectorAll("[data-task-id]");
 		if (rows.length === 0) return;
 
@@ -473,19 +431,19 @@ function createDependencySVG(
 		});
 
 		taskMap.forEach((task) => {
-			if (!task._forbid) return;
-			const tKey = `${task.path}:${task.line}`;
+			if (!task.forbid) return;
+			const tKey = task.uid;
 			const tPos = barPositions.get(tKey);
 			if (!tPos) return;
 
-			task._forbid
+			task.forbid
 				.split(",")
 				.map((s) => s.trim())
 				.filter(Boolean)
 				.forEach((fid) => {
 					const sTask = taskMap.get(fid);
 					if (!sTask) return;
-					const sKey = `${sTask.path}:${sTask.line}`;
+					const sKey = sTask.uid;
 					const sPos = barPositions.get(sKey);
 					if (!sPos) return;
 
@@ -495,7 +453,6 @@ function createDependencySVG(
 
 					const sy = sPos.y;
 					const ty = tPos.y;
-
 					const d = calcDependencyPath(sx, sy, tx, ty);
 
 					const g = document.createElementNS(
@@ -547,8 +504,8 @@ function createDependencySVG(
 						"pointer-events: auto; cursor: pointer;";
 
 					const tip = [
-						`🆔 ${fid} → 🆔 ${task._id || "?"}`,
-						`📅 ${sTask._due || sTask._done || "?"} → 🛫 ${task._scheduled || task._starts || "?"}`,
+						`🆔 ${fid} → 🆔 ${task.id || "?"}`,
+						`📅 ${sTask.due ? DateUtils.formatDate(new Date(sTask.due)) : "?"} → 🛫 ${task.scheduled ? DateUtils.formatDate(new Date(task.scheduled)) : "?"}`,
 					].join("<br>");
 
 					hit.addEventListener("mouseenter", (e) =>
@@ -558,7 +515,6 @@ function createDependencySVG(
 						tooltip.move(e.clientX, e.clientY),
 					);
 					hit.addEventListener("mouseleave", () => tooltip.hide());
-
 					g.appendChild(hit);
 					svg.appendChild(g);
 				});
@@ -574,13 +530,11 @@ function createDependencySVG(
 	return svg;
 }
 
-// ========== 主入口 ==========
-
 export function renderGanttWithTree(
 	container: HTMLElement,
-	treeRoots: TreeNode[],
+	treeRoots: TaskTreeNode[],
 	options?: {
-		onTaskClick?: (task: TaskItem) => void;
+		onTaskClick?: (task: TaskTreeNode) => void;
 		intervalMode?: string;
 		sort?: { type: string; order: "asc" | "desc" };
 		dateRange?: {
@@ -617,7 +571,7 @@ export function renderGanttWithTree(
 		totalDays,
 	};
 
-	const taskMap = new Map<string, TaskItem>();
+	const taskMap = new Map<string, TaskTreeNode>();
 	let isDragging = false;
 	let lastDragX = 0;
 	let dragStartScrollLeft = 0;
@@ -640,7 +594,6 @@ export function renderGanttWithTree(
 		const timelineWidth = zoomState.totalWidth;
 		const totalWidth = treeWidth + timelineWidth;
 
-		// 时间轴头部
 		scrollArea.appendChild(
 			createTimelineHeader(
 				timeRange,
@@ -651,16 +604,11 @@ export function renderGanttWithTree(
 			),
 		);
 
-		// 内容区
 		const content = document.createElement("div");
 		content.className = "gantt-content";
 		content.style.cssText = `
-      position: relative;
-      width: ${totalWidth}px;
-      min-width: ${totalWidth}px;
-      min-height: 200px;
-      padding-bottom: 40px;
-      overflow: hidden;
+      position: relative; width: ${totalWidth}px; min-width: ${totalWidth}px;
+      min-height: 200px; padding-bottom: 40px; overflow: hidden;
     `;
 
 		applyGridBackground(
@@ -671,7 +619,6 @@ export function renderGanttWithTree(
 			timeRange,
 		);
 
-		// 今日线
 		const today = DateUtils.setStart(new Date()).getTime();
 		if (today >= timeRange.minTime && today <= timeRange.maxTime) {
 			const ox =
@@ -682,8 +629,7 @@ export function renderGanttWithTree(
           position: absolute; left: ${treeWidth + ox}px; top: 0;
           width: 2px; height: 100%;
           background: var(--interactive-accent, #7fb8f0);
-          opacity: 0.5;
-          z-index: 0; pointer-events: none;
+          opacity: 0.5; z-index: 0; pointer-events: none;
         `;
 				content.appendChild(line);
 			}
@@ -691,47 +637,41 @@ export function renderGanttWithTree(
 
 		scrollArea.appendChild(content);
 
-		// 树容器
 		const treeContainer = document.createElement("div");
 		treeContainer.className = "gantt-tree-container";
 		treeContainer.style.cssText = "position: relative; z-index: 2;";
 		content.appendChild(treeContainer);
 
-		// SVG 依赖箭头
 		const svg = createDependencySVG(taskMap, totalWidth, treeContainer);
 		content.appendChild(svg);
 
-		// 渲染任务树 + 甘特条
 		renderTaskTree(treeContainer, {
 			roots: treeRoots,
-			onClick: (node: any) => {
-				const task = node._task || node;
-				if (task) {
-					const edges = calcBarEdges(
-						task,
-						timeRange,
-						timelineWidth,
-						intervalMode,
-					);
-					if (edges) {
-						const targetX = treeWidth + edges.left - 20;
-						scrollArea.scrollLeft = Math.max(0, targetX);
-					}
+			onClick: (node: TaskTreeNode) => {
+				const edges = calcBarEdges(
+					node,
+					timeRange,
+					timelineWidth,
+					intervalMode,
+				);
+				if (edges) {
+					const targetX = treeWidth + edges.left - 20;
+					scrollArea.scrollLeft = Math.max(0, targetX);
 				}
 			},
 			sort: options?.sort,
-			onRowRender: (rowEl, _node, task) => {
+			onRowRender: (rowEl, node) => {
 				rowEl.style.position = "relative";
 				rowEl.style.width = "100%";
 
-				if (task) {
-					const taskId = `${task.path}:${task.line}`;
+				if (node) {
+					const taskId = node.uid;
 					rowEl.setAttribute("data-task-id", taskId);
-					taskMap.set(taskId, task);
-					if (task._id) taskMap.set(task._id, task);
+					taskMap.set(taskId, node);
+					if (node.id) taskMap.set(node.id, node);
 
 					const edges = calcBarEdges(
-						task,
+						node,
 						timeRange,
 						timelineWidth,
 						intervalMode,
@@ -743,27 +683,20 @@ export function renderGanttWithTree(
 						bar.className = "gantt-bar";
 						bar.setAttribute("data-task-bar", "true");
 						bar.style.cssText = `
-              position: absolute;
-              left: ${left}px;
-              top: 50%;
+              position: absolute; left: ${left}px; top: 50%;
               transform: translateY(-50%);
               width: ${edges.width}px;
               height: ${GANTT_CONFIG.TASK_BAR_HEIGHT}px;
-              background: ${GANTT_CONFIG.STATUS_COLORS[task._status] || GANTT_CONFIG.STATUS_COLORS["todo"]};
+              background: ${GANTT_CONFIG.STATUS_COLORS[node.status] || GANTT_CONFIG.STATUS_COLORS["todo"]};
               border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
-              cursor: pointer;
-              opacity: 0.85;
-              z-index: 2;
-              display: flex;
-              align-items: center;
-              overflow: hidden;
+              cursor: pointer; opacity: 0.85; z-index: 2;
+              display: flex; align-items: center; overflow: hidden;
               transition: opacity 0.1s;
             `;
 
-						// 完成进度覆盖层
-						const interval = getTaskInterval(task, intervalMode);
-						if (interval && task._done) {
-							const doneTime = new Date(task._done).getTime();
+						const interval = getTaskInterval(node, intervalMode);
+						if (interval && node.done) {
+							const doneTime = node.done;
 							if (
 								doneTime >= interval.start.getTime() &&
 								doneTime <= interval.end.getTime()
@@ -776,8 +709,7 @@ export function renderGanttWithTree(
 									document.createElement("div");
 								progressEl.style.cssText = `
                   position: absolute; left: 0; top: 0;
-                  width: ${Math.round(progressRatio * 100)}%;
-                  height: 100%;
+                  width: ${Math.round(progressRatio * 100)}%; height: 100%;
                   background: rgba(46, 125, 50, 0.5);
                   border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px 0 0 ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
                   pointer-events: none;
@@ -809,13 +741,40 @@ export function renderGanttWithTree(
 							bar.appendChild(label);
 						}
 
-						if (task._tooltipHtml) {
+						const tooltipHtml = [
+							`${node.status} ${node.content}`,
+							node.priority !== 5
+								? ["🔺", "⏫", "🔼", "🔽", "⏬"][node.priority]
+								: "",
+							node.repeat ? `🔁 ${node.repeat}` : "",
+							node.created
+								? `➕ ${DateUtils.formatDate(new Date(node.created))}`
+								: "",
+							node.scheduled
+								? `⏳ ${DateUtils.formatDate(new Date(node.scheduled))}`
+								: "",
+							node.starts
+								? `🛫 ${DateUtils.formatDate(new Date(node.starts))}`
+								: "",
+							node.due
+								? `📅 ${DateUtils.formatDate(new Date(node.due))}`
+								: "",
+							node.done
+								? `✅ ${DateUtils.formatDate(new Date(node.done))}`
+								: "",
+							node.cancelled
+								? `❌ ${DateUtils.formatDate(new Date(node.cancelled))}`
+								: "",
+							node.tag ? `🏁 ${node.tag}` : "",
+							node.id ? `🆔 ${node.id}` : "",
+							node.forbid ? `⛔ ${node.forbid}` : "",
+						]
+							.filter(Boolean)
+							.join("<br>");
+
+						if (tooltipHtml) {
 							bar.addEventListener("mouseenter", (e) =>
-								tooltip.show(
-									task._tooltipHtml,
-									e.clientX,
-									e.clientY,
-								),
+								tooltip.show(tooltipHtml, e.clientX, e.clientY),
 							);
 							bar.addEventListener("mousemove", (e) =>
 								tooltip.move(e.clientX, e.clientY),
@@ -829,10 +788,11 @@ export function renderGanttWithTree(
 							const rect = bar.getBoundingClientRect();
 							const clickX = e.clientX - rect.left;
 							const barWidth = rect.width;
-							const margin = barWidth * 0.15;
-							if (clickX > margin && clickX < barWidth - margin) {
-								if (task?.path)
-									options?.onTaskClick?.(task as TaskItem);
+							if (
+								clickX > barWidth * 0.15 &&
+								clickX < barWidth * 0.85
+							) {
+								if (node?.path) options?.onTaskClick?.(node);
 							}
 						});
 
@@ -843,14 +803,12 @@ export function renderGanttWithTree(
 		});
 
 		requestAnimationFrame(() => (svg as any).__redraw?.());
-
 		scrollArea.scrollLeft = Math.max(0, savedScrollLeft);
 		if (savedScrollTop > 0) scrollArea.scrollTop = savedScrollTop;
 	}
 
 	rebuild();
 
-	// Alt+滚轮缩放
 	const onWheel = (e: WheelEvent) => {
 		if (!e.altKey) return;
 		e.preventDefault();
@@ -875,7 +833,6 @@ export function renderGanttWithTree(
 		}
 		zoomState.totalWidth = Math.ceil(totalDays * zoomState.dayWidth);
 		saveZoomState(zoomState.dayWidth);
-
 		rebuild();
 
 		const newMouseX =
@@ -888,7 +845,6 @@ export function renderGanttWithTree(
 	};
 	scrollArea.addEventListener("wheel", onWheel, { passive: false });
 
-	// 鼠标拖拽平移
 	scrollArea.addEventListener("mousedown", (e: MouseEvent) => {
 		if ((e.target as HTMLElement).closest(".gantt-bar")) return;
 		isDragging = true;
@@ -904,7 +860,6 @@ export function renderGanttWithTree(
 		const dx = e.clientX - lastDragX;
 		scrollArea.scrollLeft = dragStartScrollLeft - dx;
 	};
-
 	const onMouseUp = () => {
 		if (!isDragging) return;
 		isDragging = false;

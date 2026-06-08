@@ -1,25 +1,27 @@
 // src/process/task/task-editor.ts
-import { TaskItem } from "../../types";
+
 import { RX } from "../config/config";
+import { TaskTreeNode } from "./task-tree";
 
 const AUTOCOMPLETE_DAYS = 3;
 const MAX_SNAPSHOTS = 5;
 const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";
 
-// ---------- 辅助函数 ----------
 export function isIncomplete(s: string): boolean {
 	return s === "todo" || s === "planned" || s === "in-progress";
 }
+
 export function isCompleted(s: string): boolean {
 	return s === "completed" || s === "cancelled";
 }
-export function hasEssentialTags(t: TaskItem): boolean {
+
+export function hasEssentialTags(node: TaskTreeNode): boolean {
 	return !!(
-		t._priorityIcon &&
-		t._created &&
-		t._scheduled &&
-		t._starts &&
-		t._due
+		node.priority !== 5 &&
+		node.created &&
+		node.scheduled &&
+		node.starts &&
+		node.due
 	);
 }
 
@@ -41,7 +43,6 @@ function replaceMark(
 	return (line + " " + newMark).replace(/\s{2,}/g, " ").trim();
 }
 
-// ---------- 编辑操作库 ----------
 export const Op = {
 	setPriority(line: string, emoji: string): string {
 		return replaceMark(line, RX.priority, emoji);
@@ -85,11 +86,11 @@ export const Op = {
 	delDone(line: string): string {
 		return replaceMark(line, RX.done, undefined);
 	},
-	setCancel(line: string, date: string): string {
-		return replaceMark(line, RX.cancel, "❌ " + date);
+	setCancelled(line: string, date: string): string {
+		return replaceMark(line, RX.cancelled, "❌ " + date);
 	},
-	delCancel(line: string): string {
-		return replaceMark(line, RX.cancel, undefined);
+	delCancelled(line: string): string {
+		return replaceMark(line, RX.cancelled, undefined);
 	},
 	setTag(line: string, keyword: string): string {
 		return replaceMark(line, RX.tag, "🏁 " + keyword.replace(/^🏁\s*/, ""));
@@ -158,7 +159,7 @@ export const Op = {
 			"starts",
 			"due",
 			"done",
-			"cancel",
+			"cancelled",
 			"tag",
 			"id",
 			"forbid",
@@ -193,10 +194,7 @@ export function loadSnapshots(): Array<{
 }
 
 export function saveSnapshots(
-	snapshots: Array<{
-		time: string;
-		snapshot: Record<string, string>;
-	}>,
+	snapshots: Array<{ time: string; snapshot: Record<string, string> }>,
 ): void {
 	try {
 		localStorage.setItem(STORAGE_KEY_SNAPSHOTS, JSON.stringify(snapshots));
@@ -206,10 +204,7 @@ export function saveSnapshots(
 }
 
 export function addSnapshot(
-	snapshots: Array<{
-		time: string;
-		snapshot: Record<string, string>;
-	}>,
+	snapshots: Array<{ time: string; snapshot: Record<string, string> }>,
 	map: Record<string, string>,
 ): void {
 	snapshots.unshift({ time: new Date().toLocaleString(), snapshot: map });
@@ -217,21 +212,20 @@ export function addSnapshot(
 	saveSnapshots(snapshots);
 }
 
-// ---------- 文件写入 ----------
 export async function writeToFiles(
 	app: any,
-	tasks: TaskItem[],
+	nodes: TaskTreeNode[],
 	taskIds: string[],
 	linesMap: Record<string, string>,
 ): Promise<number> {
 	const groups: Record<string, Array<{ line: number; newLine: string }>> = {};
 	for (const id of taskIds) {
-		const task = tasks.find((t) => t.path + "|" + t.lineNumber === id);
-		if (!task) continue;
+		const node = nodes.find((n) => n.uid === id);
+		if (!node) continue;
 		const newLine = linesMap[id];
-		if (!newLine || newLine === task._fullLine) continue;
-		if (!groups[task.path]) groups[task.path] = [];
-		groups[task.path].push({ line: task.lineNumber, newLine });
+		if (!newLine || newLine === node.rawLine) continue;
+		if (!groups[node.path]) groups[node.path] = [];
+		groups[node.path].push({ line: node.line, newLine });
 	}
 	let count = 0;
 	for (const [path, items] of Object.entries(groups)) {
