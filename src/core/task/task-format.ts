@@ -93,7 +93,21 @@ export function buildTooltip(node: TaskTreeNode): string {
 
 	return parts.join("<br>");
 }
+// src/core/task/task-format.ts 中新增导出函数
 
+/** 获取任务树节点显示文本（带类型标记：📄 文件任务、H 标题任务、● 列表任务） */
+export function getDisplayText(node: TaskTreeNode): string {
+	switch (node.type) {
+		case "file":
+			return "📄 " + node.text;
+		case "heading":
+			return "H" + (node.headingLevel || node.depth) + " " + node.text;
+		case "list":
+			return "● " + node.text;
+		default:
+			return node.text;
+	}
+}
 /**
  * 构建描述文本
  * 标题任务去除 number headings 序号，所有模式添加类型标记

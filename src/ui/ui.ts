@@ -7,7 +7,7 @@ import { Store } from "../core/store/store";
 import { Panels } from "./panel/panel";
 import { SidebarPanel } from "./sidebar/sidebar";
 
-export class NavigatorView extends ItemView {
+export class ManageView extends ItemView {
 	protected store: Store;
 	protected cleanup?: () => void;
 
@@ -17,7 +17,7 @@ export class NavigatorView extends ItemView {
 	}
 
 	getViewType(): string {
-		return "navigator-view";
+		return "manage-view";
 	}
 
 	getDisplayText(): string {
@@ -25,7 +25,7 @@ export class NavigatorView extends ItemView {
 	}
 
 	getIcon(): string {
-		return "compass";
+		return "list-checks";
 	}
 
 	async onOpen() {
@@ -38,7 +38,7 @@ export class NavigatorView extends ItemView {
 				"none",
 				"important",
 			);
-		this.cleanup = createNavigatorLayout(container, this.store, this.app);
+		this.cleanup = createManageLayout(container, this.store, this.app);
 	}
 
 	async onClose() {
@@ -128,25 +128,24 @@ export class ViewContainer {
 	}
 }
 
-export function createNavigatorLayout(
+export function createManageLayout(
 	container: HTMLElement,
 	store: Store,
 	app: any,
 ) {
-	container.addClass("navigator-root");
+	container.addClass("manage-root");
 	container.style.display = "flex";
 	container.style.height = "100%";
 
-	const sidebarEl = container.createDiv({ cls: "navigator-sidebar" });
-	const mainEl = container.createDiv({ cls: "navigator-main" });
+	const sidebarEl = container.createDiv({ cls: "manage-sidebar" });
+	const mainEl = container.createDiv({ cls: "manage-main" });
 	mainEl.style.cssText =
-		"flex:1;display:flex;flex-direction:column;min-height:0;padding:0;margin:0;position:relative;";
-
-	const toolbarEl = mainEl.createDiv({ cls: "navigator-toolbar" });
+		"flex:1;display:flex;flex-direction:column;min-height:0;min-width:0;padding:0;margin:0;position:relative;";
+	const toolbarEl = mainEl.createDiv({ cls: "manage-toolbar" });
 	toolbarEl.style.cssText =
 		"position:absolute;top:0;left:0;right:0;z-index:10;pointer-events:none;";
 
-	const viewEl = mainEl.createDiv({ cls: "navigator-view" });
+	const viewEl = mainEl.createDiv({ cls: "manage-view" });
 	viewEl.style.cssText =
 		"flex:1;overflow:hidden;min-height:0;padding:0;padding-top:0px;position:relative;";
 

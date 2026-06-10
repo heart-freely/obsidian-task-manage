@@ -1,7 +1,6 @@
 // src/ui/panel/time-panel.ts
 // 任务时间面板
 
-import { DateUtils } from "../../util/date-utils";
 import { DataManager } from "../../core/data/data-manager";
 import {
 	calcDynamicOffset,
@@ -14,6 +13,7 @@ import {
 	weeksInYear,
 } from "../../core/panel/panel-config";
 import { Store } from "../../core/store/store";
+import { DateUtils } from "../../util/date-utils";
 import {
 	createEnhancedSlider,
 	EnhancedSliderRef,
@@ -248,7 +248,6 @@ export class TimePanel {
 		}
 		this.rebuildStaticSliders();
 
-		// 只有时间模式选中时才刷新视图
 		if (this.intervalMode !== "none") {
 			this.updatePreset({ dateRange: true });
 		}
@@ -348,7 +347,6 @@ export class TimePanel {
 		}
 	}
 
-	// ========== 格式化 ==========
 	private fmtYear(x: number): string {
 		return `${x}年`;
 	}
@@ -379,7 +377,6 @@ export class TimePanel {
 		const d = dayToDate(y, Math.max(1, r));
 		return `${y}/${d.getMonth() + 1}/${d.getDate()}日`;
 	}
-
 	private fmtDynamicValue(v: number): string {
 		if (v === 0) {
 			const u = this.dynamicUnit;
@@ -398,7 +395,6 @@ export class TimePanel {
 		if (u === "year") return `${p}${abs}年`;
 		return `${p}${abs}日`;
 	}
-
 	private fmtDynamicLabel(a: number, b: number): string {
 		return a === b
 			? this.fmtDynamicValue(a)
@@ -475,6 +471,7 @@ export class TimePanel {
 			todayValue: 0,
 			midValue: 0,
 		});
+		result.refs.row.style.paddingLeft = "calc(4em + 6px)";
 		result.refs.labelSpan.textContent = this.fmtDynamicLabel(minV, maxV);
 		this.enhancedSliders.set("dynamic", result.refs);
 		this.updateMidLines.set("dynamic", result.updateMidLine);
@@ -613,6 +610,7 @@ export class TimePanel {
 			todayValue: todayVal,
 			midValue: todayVal,
 		});
+		result.refs.row.style.paddingLeft = "calc(4em + 6px)";
 		this.enhancedSliders.set(key, result.refs);
 		this.updateMidLines.set(key, result.updateMidLine);
 	}
@@ -791,7 +789,6 @@ export class TimePanel {
 			this.childSlidersDrivenByYear = true;
 		}
 
-		// 时间筛选（主按钮 + 子按钮三选一）
 		const mr = this.container.createDiv({ cls: "panel-row" });
 		mr.createSpan({ text: "时间筛选", cls: "panel-label" });
 
@@ -806,7 +803,6 @@ export class TimePanel {
 			this.intervalMode = newMode;
 			this.updateModeButtons();
 			this.updatePreset({ intervalMode: this.intervalMode });
-			// 从不选中切换到选中时，用当前静态时间刷新一次视图
 			if (newMode !== "none") {
 				this.updatePreset({
 					dateRange: true,
@@ -824,7 +820,6 @@ export class TimePanel {
 			{ key: "scheduled-due", label: "计划时间" },
 			{ key: "starts-done", label: "执行时间" },
 		];
-
 		modes.forEach(({ key, label }) => {
 			const btn = subPanel.createEl("button", {
 				text: label,
@@ -835,7 +830,6 @@ export class TimePanel {
 			this.modeBtns.set(key, btn);
 		});
 
-		// 动态时间
 		this.dynamicSection = this.container.createDiv({
 			cls: "panel-section",
 		});
@@ -865,7 +859,6 @@ export class TimePanel {
 		this.useDynamicBtn.onclick = () => this.onToggleDynamic();
 		this.rebuildDynamicSlider();
 
-		// 静态时间
 		this.staticSection = this.container.createDiv({ cls: "panel-section" });
 		this.staticSection
 			.createDiv({ cls: "panel-row" })

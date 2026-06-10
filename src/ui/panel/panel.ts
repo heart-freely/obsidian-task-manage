@@ -38,14 +38,13 @@ export class Panels {
 
 	private buttonBarEl: HTMLElement | null = null;
 	private panelsContainer: HTMLElement | null = null;
+	private panelContentInner: HTMLElement | null = null;
 	private resizeHandle: HTMLElement | null = null;
 	private headPanel: HeadPanel | null = null;
 	private panelEls: Map<string, HTMLElement> = new Map();
 	private panelInstances: Map<string, any> = new Map();
 	private styleEl: HTMLStyleElement | null = null;
-	private expandHandler: (() => void) | null = null;
 
-	public isVisible: boolean = false;
 	private isPanelsCollapsed: boolean = false;
 	private panelHeight: number = 300;
 
@@ -71,15 +70,15 @@ export class Panels {
 		this.panelHost.style.zIndex = "50";
 		this.panelHost.style.pointerEvents = "auto";
 
-		this.headPanel = new HeadPanel(container, store);
-		this.buttonBarEl = this.headPanel.getElement();
-		if (this.buttonBarEl) {
-			this.buttonBarEl.style.position = "relative";
-			this.buttonBarEl.style.zIndex = "51";
-			this.buttonBarEl.style.marginBottom = "0";
-			this.panelHost.appendChild(this.buttonBarEl);
-		}
+		// 标题栏按钮条
+		this.buttonBarEl = document.createElement("div");
+		this.buttonBarEl.className = "panel-header";
+		this.buttonBarEl.style.cssText =
+			"padding:4px 6px;display:flex;flex-wrap:nowrap;overflow-x:auto;background:var(--background-secondary);border:none;border-bottom:1px solid var(--background-modifier-border);border-radius:6px 6px 0 0;box-sizing:border-box;gap:0;position:sticky;top:0;z-index:1;flex-shrink:0;";
 
+		this.headPanel = new HeadPanel(this.buttonBarEl, store);
+
+		// 面板容器
 		this.panelsContainer = document.createElement("div");
 		this.panelsContainer.className = "panel-container";
 		this.panelsContainer.style.position = "relative";
@@ -87,19 +86,29 @@ export class Panels {
 		this.panelsContainer.style.background = "var(--background-primary)";
 		this.panelsContainer.style.border =
 			"1px solid var(--background-modifier-border)";
-		this.panelsContainer.style.borderTop = "none";
-		this.panelsContainer.style.borderRadius = "0 0 6px 6px";
+		this.panelsContainer.style.borderRadius = "6px";
 		this.panelsContainer.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
-		this.panelsContainer.style.padding = "4px 4px 0 4px";
+		this.panelsContainer.style.padding = "0";
 		this.panelsContainer.style.marginBottom = "0";
 		this.panelsContainer.style.marginTop = "0";
 		this.panelsContainer.style.display = "none";
 		this.panelsContainer.style.flexDirection = "column";
-		this.panelsContainer.style.gap = "4px";
+		this.panelsContainer.style.gap = "0";
 		this.panelsContainer.style.overflowY = "auto";
+		this.panelsContainer.style.overflowX = "hidden";
 		this.panelsContainer.style.boxSizing = "border-box";
+
+		this.panelsContainer.appendChild(this.buttonBarEl);
+
+		// 面板内容区域
+		this.panelContentInner = document.createElement("div");
+		this.panelContentInner.style.cssText =
+			"padding:4px 6px 0 6px;display:flex;flex-direction:column;gap:4px;";
+		this.panelsContainer.appendChild(this.panelContentInner);
+
 		this.panelHost.appendChild(this.panelsContainer);
 
+		// 拖拽手柄
 		this.resizeHandle = document.createElement("div");
 		this.resizeHandle.className = "panel-resize-handle";
 		this.resizeHandle.style.cssText =
@@ -160,12 +169,6 @@ export class Panels {
 			document.addEventListener("mouseup", onMouseUp);
 		});
 
-		this.expandHandler = () => {
-			const p = this.store.getActivePreset();
-			if (p?.toolbarPanelsCollapsed) this.showPanels();
-		};
-		document.addEventListener("panel-expand", this.expandHandler);
-
 		this.injectStyles();
 		this.store.subscribe(() => this.syncState());
 		requestAnimationFrame(() => this.syncState());
@@ -177,6 +180,7 @@ export class Panels {
 		this.styleEl.textContent = `
       .panel-btn{padding:3px 6px!important;font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;line-height:var(--line-height-normal)!important;margin:2px 4px 2px 0!important;text-align:left!important;white-space:nowrap;display:inline-flex!important;align-items:center;justify-content:flex-start;flex-grow:0!important;flex-shrink:0!important;width:auto!important;min-width:auto!important;height:auto!important;border-radius:16px;background:var(--interactive-normal);border:none;cursor:pointer}
       .panel-btn.active{background:var(--interactive-accent)!important;color:white!important}
+      .panel-btn.sub-btn{padding:2px 5px!important;font-size:var(--font-ui-smaller)!important;border-radius:12px}
       .panel-label{font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;font-weight:normal!important;color:var(--text-normal)!important;text-align:justify!important;text-align-last:justify!important;text-justify:inter-character!important;width:4em;flex-shrink:0;margin:0!important;margin-right:6px!important;padding:0!important;border:none!important;box-sizing:border-box!important;overflow:hidden;white-space:normal!important;word-break:keep-all}
       .panel-row{display:flex;align-items:center;justify-content:flex-start;margin-bottom:4px;flex-wrap:wrap}
       .panel-sub{margin-left:8px;gap:4px}
@@ -206,7 +210,6 @@ export class Panels {
 					instance.onPresetChanged();
 			}
 			(this as any)._prevPresetId = state.activePresetId;
-			this.isVisible = preset.showToolbar === true;
 			this.isPanelsCollapsed = preset.toolbarPanelsCollapsed ?? false;
 			this.panelHeight = preset.toolbarPanelsHeight ?? 300;
 			this.applyVisibility();
@@ -224,40 +227,25 @@ export class Panels {
 	}
 
 	public applyVisibility() {
-		if (!this.buttonBarEl || !this.panelsContainer || !this.resizeHandle)
-			return;
-		if (this.isVisible) {
-			this.buttonBarEl.style.display = "flex";
-			this.buttonBarEl.style.marginBottom = "0";
-			this.resizeHandle.style.display = "flex";
-			if (this.isPanelsCollapsed) {
-				this.panelsContainer.style.display = "none";
-				this.panelsContainer.style.height = "0px";
-				this.panelsContainer.style.padding = "0";
-				this.panelsContainer.style.border = "none";
-				this.panelsContainer.style.borderTop = "none";
-			} else {
-				this.panelsContainer.style.display = "flex";
-				this.panelsContainer.style.height = this.panelHeight + "px";
-				this.panelsContainer.style.padding = "4px 4px 0 4px";
-				this.panelsContainer.style.border =
-					"1px solid var(--background-modifier-border)";
-				this.panelsContainer.style.borderTop = "none";
-				this.panelsContainer.style.marginTop = "0";
-				this.panelsContainer.style.marginBottom = "0";
-			}
-			this.updateViewPadding();
-		} else {
-			this.buttonBarEl.style.display = "none";
+		if (!this.panelsContainer || !this.resizeHandle) return;
+		this.resizeHandle.style.display = "flex";
+		if (this.isPanelsCollapsed) {
 			this.panelsContainer.style.display = "none";
-			this.resizeHandle.style.display = "none";
-			this.viewEl.style.paddingTop = "0px";
+			this.panelsContainer.style.height = "0px";
+			this.panelsContainer.style.padding = "0";
+			this.panelsContainer.style.border = "none";
+		} else {
+			this.panelsContainer.style.display = "flex";
+			this.panelsContainer.style.height = this.panelHeight + "px";
+			this.panelsContainer.style.border =
+				"1px solid var(--background-modifier-border)";
 		}
 		this.updateArrow();
+		this.updateViewPadding();
 	}
 
 	private refreshContent() {
-		if (!this.panelsContainer) return;
+		if (!this.panelsContainer || !this.panelContentInner) return;
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
 		const barVisibility = preset.barVisibility ?? {};
@@ -306,7 +294,7 @@ export class Panels {
 			}
 		}
 
-		const currentChildren = Array.from(this.panelsContainer.children);
+		const currentChildren = Array.from(this.panelContentInner.children);
 		const expectedOrder = visibleKeys
 			.map((key) => this.panelEls.get(key))
 			.filter(Boolean);
@@ -324,7 +312,7 @@ export class Panels {
 			for (const panel of expectedOrder) {
 				fragment.appendChild(panel!);
 			}
-			this.panelsContainer.appendChild(fragment);
+			this.panelContentInner.appendChild(fragment);
 		}
 	}
 
@@ -333,21 +321,23 @@ export class Panels {
 		if (arrow) {
 			arrow.textContent = this.isPanelsCollapsed ? "▼" : "▲";
 			arrow.title = this.isPanelsCollapsed
-				? "点击展开面板"
-				: "点击折叠面板";
+				? "展开视图配置面板"
+				: "折叠视图配置面板";
 		}
 	}
 
 	private updateViewPadding() {
-		if (!this.buttonBarEl || !this.isVisible) {
+		if (!this.panelsContainer) {
 			this.viewEl.style.paddingTop = "0px";
 			return;
 		}
-		const barHeight = this.buttonBarEl.offsetHeight;
 		const handleHeight = 8;
-		this.viewEl.style.paddingTop = this.isPanelsCollapsed
-			? barHeight + handleHeight + "px"
-			: barHeight + this.panelHeight + handleHeight + "px";
+		if (this.isPanelsCollapsed) {
+			this.viewEl.style.paddingTop = handleHeight + "px";
+		} else {
+			this.viewEl.style.paddingTop =
+				this.panelHeight + handleHeight + "px";
+		}
 	}
 
 	private togglePanels() {
@@ -384,8 +374,6 @@ export class Panels {
 			this.headPanel = null;
 		}
 		this.panelEls.clear();
-		if (this.expandHandler)
-			document.removeEventListener("panel-expand", this.expandHandler);
 		if (this.styleEl) {
 			this.styleEl.remove();
 			this.styleEl = null;

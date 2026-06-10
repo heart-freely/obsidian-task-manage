@@ -1,13 +1,13 @@
-// src/ui/panels/head-panel.ts
+// src/ui/panel/head-panel.ts
 // 面板标题栏
 
 import { Store } from "../../core/store/store";
 
 const PANEL_LABELS: Record<string, string> = {
-	time: "任务时间",
-	excut: "任务状态",
-	search: "任务描述",
-	mark: "任务标记",
+	time: "筛选时间",
+	excut: "筛选状态",
+	search: "筛选描述",
+	mark: "筛选标记",
 	view: "任务视图",
 	hide: "视图隐藏",
 	sort: "视图排序",
@@ -15,13 +15,12 @@ const PANEL_LABELS: Record<string, string> = {
 };
 
 export class HeadPanel {
-	private container: HTMLElement;
+	private buttonBar: HTMLElement;
 	private store: Store;
-	private buttonBar: HTMLElement | null = null;
 	private unsub: (() => void) | null = null;
 
-	constructor(container: HTMLElement, store: Store) {
-		this.container = container;
+	constructor(buttonBar: HTMLElement, store: Store) {
+		this.buttonBar = buttonBar;
 		this.store = store;
 		this.unsub = store.subscribe(() => this.renderContent());
 		this.renderContent();
@@ -30,16 +29,9 @@ export class HeadPanel {
 	destroy() {
 		this.unsub?.();
 		this.unsub = null;
-		if (this.buttonBar?.parentNode)
-			this.buttonBar.parentNode.removeChild(this.buttonBar);
-		this.buttonBar = null;
 	}
 
 	renderContent() {
-		if (!this.buttonBar) {
-			this.buttonBar = document.createElement("div");
-			this.buttonBar.className = "panel-header";
-		}
 		this.buttonBar.innerHTML = "";
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
@@ -58,13 +50,14 @@ export class HeadPanel {
 		];
 
 		Object.assign(this.buttonBar.style, {
-			paddingLeft: "0",
+			padding: "4px 6px",
 			display: "flex",
 			flexWrap: "nowrap",
 			overflowX: "auto",
 			background: "var(--background-secondary)",
-			border: "1px solid var(--background-modifier-border)",
-			borderRadius: "6px",
+			border: "none",
+			borderBottom: "1px solid var(--background-modifier-border)",
+			borderRadius: "0",
 			boxSizing: "border-box",
 			gap: "0",
 		});
@@ -157,9 +150,5 @@ export class HeadPanel {
 
 			this.buttonBar.appendChild(btnDiv);
 		});
-	}
-
-	getElement(): HTMLElement | null {
-		return this.buttonBar;
 	}
 }

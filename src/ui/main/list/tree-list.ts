@@ -93,6 +93,53 @@ export function renderTaskTree(
 	const tree = document.createElement("div");
 	tree.className = "task-tree";
 
+	// 虚拟根节点：标题 + 进度条 + 任务数（统计子节点，排除自身）
+	const { counts, total } = countNodeStatuses(root);
+
+	const rootRow = document.createElement("div");
+	rootRow.style.cssText =
+		"display:flex; align-items:center; gap:4px; padding:2px 4px;";
+
+	const rootTitle = document.createElement("span");
+	rootTitle.style.cssText =
+		"font-size:var(--font-ui-small); color:var(--text-muted);";
+	rootTitle.textContent = "🗂️ 任务管理";
+	rootRow.appendChild(rootTitle);
+
+	// 排除虚拟根节点自身的统计
+	const childTotal = root.children.reduce((sum, child) => {
+		const childStats = countNodeStatuses(child);
+		return sum + childStats.total;
+	}, 0);
+
+	if (childTotal > 0) {
+		// 合并所有子节点的状态计数
+		const mergedCounts: Record<string, number> = {};
+		for (const child of root.children) {
+			const childStats = countNodeStatuses(child);
+			for (const [status, count] of Object.entries(childStats.counts)) {
+				mergedCounts[status] = (mergedCounts[status] || 0) + count;
+			}
+		}
+
+		const pb = createProgressBar({
+			counts: mergedCounts,
+			total: childTotal,
+			height: "8px",
+			showPercent: true,
+		});
+		pb.style.cssText += "width:60px; min-width:60px; flex-shrink:0;";
+		rootRow.appendChild(pb);
+
+		const badge = document.createElement("span");
+		badge.style.cssText =
+			"font-size:var(--font-ui-smaller); color:var(--text-muted); flex-shrink:0;";
+		badge.textContent = "(" + childTotal + ")";
+		rootRow.appendChild(badge);
+	}
+
+	tree.appendChild(rootRow);
+
 	const sortedChildren =
 		options.sort && options.sort.type
 			? sortFileNodes(root.children, options.sort)
@@ -104,7 +151,6 @@ export function renderTaskTree(
 
 	container.appendChild(tree);
 }
-
 function renderNode(
 	node: TaskTreeNode,
 	parentEl: HTMLElement,

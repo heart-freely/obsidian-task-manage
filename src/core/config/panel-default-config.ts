@@ -61,8 +61,6 @@ export function getDefaultPresets(): Preset[] {
 
 	const basePreset = {
 		groupId: "basic",
-		showToolbar: false,
-		toolbarEverShown: false,
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
 		toolbarOrder: [
@@ -85,7 +83,6 @@ export function getDefaultPresets(): Preset[] {
 			sort: true,
 			config: true,
 		} as Record<string, boolean>,
-		// 时间模式默认不选中（none）
 		intervalMode: "none" as string,
 		taskTreeNavCollapsed: true,
 		taskTreeNavWidth: 280,

@@ -31,11 +31,16 @@ export function collectAllTasksFromNode(node: TaskTreeNode): TaskTreeNode[] {
 	return all;
 }
 
+// src/core/component/tree-view-process.ts
+
 export function countNodeStatuses(node: TaskTreeNode): {
 	counts: Record<string, number>;
 	total: number;
 } {
-	const tasks = collectAllTasksFromNode(node);
+	// 排除虚拟根节点自身
+	const tasks = collectAllTasksFromNode(node).filter(
+		(t) => t.uid !== "__task_root__",
+	);
 	return countTaskStatuses(tasks);
 }
 

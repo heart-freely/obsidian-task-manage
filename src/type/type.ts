@@ -105,12 +105,8 @@ export interface Preset {
 	icon?: string;
 	filter: GlobalFilter;
 	sort: { type: string; order: "asc" | "desc" };
-	showToolbar?: boolean;
 	toolbarOrder?: string[];
 	barVisibility?: Record<string, boolean>;
-	showHidden?: boolean;
-	toolbarEverShown?: boolean;
-	searchText?: string;
 	tableColumns?: Record<string, boolean>;
 	toolbarPanelsCollapsed?: boolean;
 	toolbarPanelsHeight?: number;

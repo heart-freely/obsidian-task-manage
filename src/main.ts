@@ -1,4 +1,5 @@
 // src/main.ts
+// src/main.ts
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
@@ -10,7 +11,7 @@ import {
 	TaskManageSettings,
 } from "./setting/setting";
 import { AppState, GlobalFilter, Preset } from "./type/type";
-import { NavigatorView } from "./ui/ui";
+import { ManageView } from "./ui/ui";
 
 export default class TaskManagePlugin extends Plugin {
 	store!: Store;
@@ -144,21 +145,21 @@ export default class TaskManagePlugin extends Plugin {
 		this.addSettingTab(new TaskManageSettingTab(this.app, this));
 
 		this.registerView(
-			"navigator-view",
-			(leaf) => new NavigatorView(leaf, this.store),
+			"manage-view",
+			(leaf) => new ManageView(leaf, this.store),
 		);
 
-		this.addRibbonIcon("compass", "任务管理", () => {
-			this.activateView("navigator-view");
+		this.addRibbonIcon("list-checks", "任务管理", () => {
+			this.activateView("manage-view");
 		});
 
 		const wasViewOpen = savedData.wasViewOpen === true;
 		this.app.workspace.onLayoutReady(() => {
-			const leaves = this.app.workspace.getLeavesOfType("navigator-view");
+			const leaves = this.app.workspace.getLeavesOfType("manage-view");
 			if (leaves.length > 0) {
 				this.app.workspace.revealLeaf(leaves[0]);
 			} else if (wasViewOpen) {
-				this.activateView("navigator-view");
+				this.activateView("manage-view");
 			}
 		});
 	}

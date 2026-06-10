@@ -58,23 +58,6 @@ export class SidebarPanel {
 			});
 		};
 
-		const settingBtn = topRow.createEl("button", {
-			text: "⚙️",
-			cls: "preset-btn",
-			title: "视图配置栏",
-		});
-		if (collapsed) settingBtn.className = "preset-btn side-icon-btn";
-		settingBtn.onclick = () => {
-			const st = this.store.getState();
-			const cp = st.presets.find((p) => p.id === st.activePresetId);
-			if (!cp) return;
-			this.store.update({
-				presets: st.presets.map((p) =>
-					p.id === cp.id ? { ...p, showToolbar: !p.showToolbar } : p,
-				),
-			});
-		};
-
 		const contentDiv = this.container.createDiv({ cls: "side-content" });
 		contentDiv.style.cssText = "overflow-y:auto;flex:1;overflow-x:hidden;";
 

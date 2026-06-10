@@ -1,14 +1,10 @@
 // ui/sidebar/preset/base-task-preset.ts
 // 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染（带防抖）
 
-import { GlobalFilter } from "../../../type/types";
+import { GlobalFilter } from "../../../type/type";
 import { renderKanban } from "../../../ui/main/board/kanban-board";
 import { renderMatrix } from "../../../ui/main/board/matrix-board";
-import { renderCalendarDay } from "../../../ui/main/calendar/day-calendar";
-import { renderCalendarMonth } from "../../../ui/main/calendar/month-calendar";
-import { renderCalendarQuarter } from "../../../ui/main/calendar/quarter-calendar";
-import { renderCalendarWeek } from "../../../ui/main/calendar/week-calendar";
-import { renderCalendarYear } from "../../../ui/main/calendar/year-calendar";
+import { renderCalendarView } from "../../../ui/main/calendar/calendar";
 import { renderCards } from "../../../ui/main/card/grid-card";
 import { renderDetail } from "../../../ui/main/chart/detailc-chart";
 import { renderStatistics } from "../../../ui/main/chart/statistics-chart";
@@ -25,6 +21,8 @@ import { renderTimeline } from "../../../ui/main/list/timeline-list";
 import { renderTaskTree } from "../../../ui/main/list/tree-list";
 import { renderUniqueId } from "../../../ui/main/list/uniqueId-list";
 import { renderTaskTable } from "../../../ui/main/table/table";
+import { formatDate } from "../../component/calendar-view-process";
+import { STATUS_NAMES } from "../../config/config";
 import {
 	getDefaultFilter,
 	getDefaultHideConfig,
@@ -46,6 +44,7 @@ export abstract class BaseTaskView {
 	protected app: any;
 	protected unsub?: () => void;
 	protected calendarSubView: string = "month";
+	protected calendarSelectedDate: Date = new Date();
 	protected dataManager: DataManager;
 
 	protected taskTreeNavContainer: HTMLElement | null = null;
@@ -104,6 +103,7 @@ export abstract class BaseTaskView {
 
 		try {
 			const { nodes } = await this.dataManager.loadData(this.app);
+
 			if (nodes.length === 0) {
 				this.renderEmpty();
 				return;
@@ -119,6 +119,7 @@ export abstract class BaseTaskView {
 				includeMarks: activeFilter.includeMarks,
 			};
 			const panelFilteredTree = filterTree(fullTree, panelOptions);
+
 			const dateFilteredTree = filterTreeByDateRange(
 				panelFilteredTree,
 				activeFilter.dateRange,
@@ -134,7 +135,6 @@ export abstract class BaseTaskView {
 			} else {
 				flatNodes = flattenTree(dateFilteredTree);
 			}
-			// 过滤 display: false 的节点和虚拟根节点
 			flatNodes = flatNodes.filter(
 				(n) => n.display && n.uid !== "__task_root__",
 			);
@@ -226,38 +226,12 @@ export abstract class BaseTaskView {
 		layoutContainer.style.cssText =
 			"display:flex;height:100%;position:relative;overflow:hidden;";
 
-		if (panelCollapsed) {
-			const toggleBtn = layoutContainer.createDiv({
-				cls: "task-tree-nav-toggle",
-			});
-			toggleBtn.style.cssText =
-				"width:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--background-secondary);border-right:1px solid var(--background-modifier-border);color:var(--text-muted);font-size:10px;flex-shrink:0;writing-mode:vertical-lr;letter-spacing:2px;user-select:none;";
-			toggleBtn.createSpan({ text: "任 务 树" });
-			toggleBtn.addEventListener("click", () =>
-				this.toggleTaskTreeNav(false),
-			);
-		}
-
 		this.taskTreeNavContainer = layoutContainer.createDiv({
 			cls: "task-tree-nav",
 		});
 		this.taskTreeNavContainer.style.cssText = `width:${panelCollapsed ? "0px" : panelWidth + "px"};min-width:${panelCollapsed ? "0px" : "200px"};max-width:500px;border-right:${panelCollapsed ? "none" : "1px solid var(--background-modifier-border)"};background:var(--background-primary);overflow:hidden;transition:width 0.2s ease,min-width 0.2s ease;display:flex;flex-direction:column;flex-shrink:0;`;
 
 		if (!panelCollapsed) {
-			const header = this.taskTreeNavContainer.createDiv({
-				cls: "task-tree-nav-header",
-			});
-			header.style.cssText =
-				"display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-bottom:1px solid var(--background-modifier-border);background:var(--background-secondary);flex-shrink:0;";
-			header.createSpan({ text: "任务树" }).style.cssText =
-				"font-size:var(--font-ui-smaller);font-weight:600;";
-			const collapseBtn = header.createEl("button", { text: "◀" });
-			collapseBtn.style.cssText =
-				"border:none;background:transparent;cursor:pointer;font-size:10px;padding:2px 6px;color:var(--text-muted);flex-shrink:0;";
-			collapseBtn.addEventListener("click", () =>
-				this.toggleTaskTreeNav(true),
-			);
-
 			const treeContent = this.taskTreeNavContainer.createDiv({
 				cls: "task-tree-nav-content",
 			});
@@ -272,23 +246,71 @@ export abstract class BaseTaskView {
 				sort,
 			});
 
+			// 拖动条
 			this.resizeHandle = layoutContainer.createDiv({
 				cls: "task-tree-nav-resize",
 			});
 			this.resizeHandle.style.cssText =
-				"width:4px;cursor:col-resize;background:transparent;flex-shrink:0;transition:background 0.15s;";
+				"width:8px;min-width:8px;cursor:col-resize;background:rgba(128,128,128,0.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;flex-shrink:0;position:relative;";
+
+			const arrow = document.createElement("span");
+			arrow.style.cssText =
+				"cursor:pointer;font-size:8px;color:rgba(255,255,255,0.8);line-height:1;user-select:none;writing-mode:vertical-lr;";
+			arrow.textContent = "◀";
+			arrow.title = "折叠任务树";
+			arrow.addEventListener("mousedown", (e) => {
+				e.stopPropagation();
+				e.preventDefault();
+			});
+			arrow.addEventListener("click", (e) => {
+				e.stopPropagation();
+				this.toggleTaskTreeNav(true);
+			});
+			this.resizeHandle.appendChild(arrow);
+
 			this.resizeHandle.addEventListener("mouseenter", () => {
 				if (!this.isResizing && this.resizeHandle)
-					this.resizeHandle.style.background =
-						"var(--interactive-accent)";
+					this.resizeHandle.style.opacity = "1";
 			});
 			this.resizeHandle.addEventListener("mouseleave", () => {
 				if (!this.isResizing && this.resizeHandle)
-					this.resizeHandle.style.background = "transparent";
+					this.resizeHandle.style.opacity = "0";
 			});
-			this.resizeHandle.addEventListener("mousedown", (e) =>
-				this.startResize(e),
-			);
+			this.resizeHandle.addEventListener("mousedown", (e) => {
+				if (e.target === arrow) return;
+				this.startResize(e);
+			});
+		} else {
+			// 折叠状态：显示拖动条用于展开
+			const resizeHandle = layoutContainer.createDiv({
+				cls: "task-tree-nav-resize",
+			});
+			resizeHandle.style.cssText =
+				"width:8px;min-width:8px;cursor:col-resize;background:rgba(128,128,128,0.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;flex-shrink:0;position:relative;";
+
+			const arrow = document.createElement("span");
+			arrow.style.cssText =
+				"cursor:pointer;font-size:8px;color:rgba(255,255,255,0.8);line-height:1;user-select:none;writing-mode:vertical-lr;";
+			arrow.textContent = "▶";
+			arrow.title = "展开任务树";
+			arrow.addEventListener("mousedown", (e) => {
+				e.stopPropagation();
+				e.preventDefault();
+			});
+			arrow.addEventListener("click", (e) => {
+				e.stopPropagation();
+				this.toggleTaskTreeNav(false);
+			});
+			resizeHandle.appendChild(arrow);
+
+			resizeHandle.addEventListener("mouseenter", () => {
+				resizeHandle.style.opacity = "1";
+			});
+			resizeHandle.addEventListener("mouseleave", () => {
+				resizeHandle.style.opacity = "0";
+			});
+
+			this.resizeHandle = resizeHandle;
 		}
 
 		this.rightContentContainer = layoutContainer.createDiv({
@@ -476,37 +498,63 @@ export abstract class BaseTaskView {
 				renderDepends(container, nodes, { onClick: h });
 				break;
 			case "calendar": {
-				const bar = container.createDiv({ cls: "calendar-toolbar" });
-				["day", "week", "month", "quarter", "year"].forEach((v) => {
-					const lb: Record<string, string> = {
-						day: "日",
-						week: "周",
-						month: "月",
-						quarter: "季",
-						year: "年",
-					};
-					const b = bar.createEl("button", {
-						text: lb[v],
-						cls: "bar-btn",
-					});
-					if (v === this.calendarSubView) b.addClass("active");
-					b.onclick = () => {
-						this.calendarSubView = v;
-						this.render();
-					};
-				});
 				const cc = container.createDiv({ cls: "calendar-content" });
 				cc.style.padding = "0";
-				const cm: Record<string, Function> = {
-					day: renderCalendarDay,
-					week: renderCalendarWeek,
-					month: renderCalendarMonth,
-					quarter: renderCalendarQuarter,
-					year: renderCalendarYear,
-				};
-				(cm[this.calendarSubView] || renderCalendarMonth)(cc, nodes, {
-					onClick: h,
+
+				const titleParts: string[] = [];
+				// 时间范围
+				if (
+					intervalMode !== "none" &&
+					filter.dateRange &&
+					!filter.dateRange.isAll &&
+					filter.dateRange.start &&
+					filter.dateRange.end
+				) {
+					titleParts.push(
+						`${formatDate(new Date(filter.dateRange.start))} ~ ${formatDate(new Date(filter.dateRange.end))}`,
+					);
+				} else if (intervalMode === "none") {
+					titleParts.push("任意时间");
+				}
+				// 状态筛选
+				if (filter.statuses && filter.statuses.length > 0) {
+					titleParts.push(
+						filter.statuses
+							.map((s: string) => STATUS_NAMES[s] || s)
+							.join("、"),
+					);
+				}
+				// 时间模式
+				if (intervalMode === "any-date") {
+					titleParts.push("任意时间");
+				} else if (intervalMode === "scheduled-due") {
+					titleParts.push("计划~截止");
+				} else if (intervalMode === "starts-done") {
+					titleParts.push("开始~取消/完成");
+				}
+				const listCount = nodes.length;
+				const filterTitle =
+					titleParts.join(" · ") + ` · ${listCount}个任务`;
+
+				renderCalendarView(cc, nodes, {
+					subView: this.calendarSubView as
+						| "day"
+						| "week"
+						| "month"
+						| "quarter"
+						| "year",
 					intervalMode,
+					onClick: h,
+					onSubViewChange: (v) => {
+						this.calendarSubView = v;
+						this.render();
+					},
+					onDaySelect: (date) => {
+						this.calendarSelectedDate = date;
+					},
+					selectedDate: this.calendarSelectedDate || new Date(),
+					dateRange: filter.dateRange,
+					filterTitle,
 				});
 				break;
 			}

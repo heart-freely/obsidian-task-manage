@@ -1,6 +1,5 @@
-// src/ui/main/gantt/gantt.ts
+// ui/main/gantt/gantt.ts
 // 甘特图组件 — 整体视图，甘特条作为树行内元素
-
 import {
 	advanceGridLineDate,
 	calcBarEdges,
@@ -19,7 +18,7 @@ import {
 	loadZoomState,
 	saveZoomState,
 } from "../../../core/component/gantt-view-process";
-import { buildTooltip } from "../../../core/task/task-format";
+import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
 import { tooltip } from "../../component/tooltip/tooltip";
@@ -36,13 +35,13 @@ function createTimelineLabel(
 ): HTMLElement {
 	const el = document.createElement("div");
 	el.style.cssText = `
-    position: absolute; left: ${left}px; top: 0;
-    height: 100%; width: ${width}px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${color};
-    ${hasBorder ? "border-right: 1px solid var(--background-modifier-border);" : ""}
-    overflow: hidden; white-space: nowrap;
-  `;
+		position: absolute; left: ${left}px; top: 0;
+		height: 100%; width: ${width}px;
+		display: flex; align-items: center; justify-content: center;
+		font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${color};
+		${hasBorder ? "border-right: 1px solid var(--background-modifier-border);" : ""}
+		overflow: hidden; white-space: nowrap;
+	`;
 	return el;
 }
 
@@ -56,10 +55,10 @@ function applyGridBackground(
 	const dark = isDarkTheme();
 	const gridContainer = document.createElement("div");
 	gridContainer.style.cssText = `
-    position: absolute; top: 0; left: 0;
-    width: ${totalWidth}px; height: 100%;
-    pointer-events: none; z-index: 0;
-  `;
+		position: absolute; top: 0; left: 0;
+		width: ${totalWidth}px; height: 100%;
+		pointer-events: none; z-index: 0;
+	`;
 	const gridLevels = getGridLevels(dayWidth);
 	const reversed = [...gridLevels].reverse();
 	reversed.forEach((level) => {
@@ -76,10 +75,10 @@ function applyGridBackground(
 			if (x >= treeWidth && x <= totalWidth) {
 				const line = document.createElement("div");
 				line.style.cssText = `
-          position: absolute; left: ${x}px; top: 0;
-          width: ${style.width}; height: 100%;
-          background: ${style.color};
-        `;
+					position: absolute; left: ${x}px; top: 0;
+					width: ${style.width}; height: 100%;
+					background: ${style.color};
+				`;
 				gridContainer.appendChild(line);
 			}
 			advanceGridLineDate(lineDate, level.intervalDays);
@@ -103,30 +102,30 @@ function createTimelineHeader(
 	const header = document.createElement("div");
 	header.className = "gantt-header";
 	header.style.cssText = `
-    position: sticky; top: 0; z-index: 3;
-    height: ${GANTT_CONFIG.HEADER_HEIGHT}px;
-    width: ${totalWidth}px; min-width: ${totalWidth}px;
-    background: var(--background-primary);
-    border-bottom: 1px solid var(--background-modifier-border);
-    overflow: hidden; flex-shrink: 0;
-  `;
+		position: sticky; top: 0; z-index: 3;
+		height: ${GANTT_CONFIG.HEADER_HEIGHT}px;
+		width: ${totalWidth}px;
+		background: var(--background-primary);
+		border-bottom: 1px solid var(--background-modifier-border);
+		overflow: hidden; flex-shrink: 0;
+	`;
 
 	const treeSpacer = document.createElement("div");
 	treeSpacer.style.cssText = `
-    position: absolute; top: 0; left: 0;
-    width: ${treeWidth}px; height: 100%;
-    background: var(--background-primary); z-index: 5;
-  `;
+		position: absolute; top: 0; left: 0;
+		width: ${treeWidth}px; height: 100%;
+		background: var(--background-primary); z-index: 5;
+	`;
 	header.appendChild(treeSpacer);
 
 	const inner = document.createElement("div");
 	inner.style.cssText = `
-    position: absolute; top: 0; left: ${treeWidth}px;
-    height: 100%; width: ${timelineWidth}px;
-  `;
+		position: absolute; top: 0; left: ${treeWidth}px;
+		height: 100%; width: ${timelineWidth}px;
+	`;
 
-	let currentTop = 0;
-	let layerIdx = 0;
+	let currentTop = 0,
+		layerIdx = 0;
 
 	const yearStyle = getLayerStyle(layerIdx, layerCount, dark);
 	const yearLayer = document.createElement("div");
@@ -422,7 +421,6 @@ function createDependencySVG(
 			const tKey = task.uid;
 			const tPos = barPositions.get(tKey);
 			if (!tPos) return;
-
 			task.forbid
 				.split(",")
 				.map((s) => s.trim())
@@ -433,15 +431,12 @@ function createDependencySVG(
 					const sKey = sTask.uid;
 					const sPos = barPositions.get(sKey);
 					if (!sPos) return;
-
 					const sx = sPos.right,
 						tx = tPos.left;
 					if (tx <= sx + 4) return;
-
 					const sy = sPos.y,
 						ty = tPos.y;
 					const d = calcDependencyPath(sx, sy, tx, ty);
-
 					const g = document.createElementNS(
 						"http://www.w3.org/2000/svg",
 						"g",
@@ -463,7 +458,6 @@ function createDependencySVG(
 					path.setAttribute("stroke-linecap", "round");
 					path.setAttribute("stroke-linejoin", "round");
 					g.appendChild(path);
-
 					const as = GANTT_CONFIG.DEPENDENCY_ARROW_SIZE;
 					const arrow = document.createElementNS(
 						"http://www.w3.org/2000/svg",
@@ -478,7 +472,6 @@ function createDependencySVG(
 						GANTT_CONFIG.DEPENDENCY_LINE_COLOR,
 					);
 					g.appendChild(arrow);
-
 					const hit = document.createElementNS(
 						"http://www.w3.org/2000/svg",
 						"path",
@@ -489,12 +482,10 @@ function createDependencySVG(
 					hit.setAttribute("stroke-width", "14");
 					hit.style.cssText =
 						"pointer-events: auto; cursor: pointer;";
-
 					const tip = [
 						`🆔 ${fid} → 🆔 ${task.id || "?"}`,
 						`📅 ${sTask.due ? DateUtils.formatDate(new Date(sTask.due)) : "?"} → 🛫 ${task.scheduled ? DateUtils.formatDate(new Date(task.scheduled)) : "?"}`,
 					].join("<br>");
-
 					hit.addEventListener("mouseenter", (e) =>
 						tooltip.show(tip, e.clientX, e.clientY),
 					);
@@ -509,10 +500,6 @@ function createDependencySVG(
 	}
 
 	requestAnimationFrame(() => redraw());
-	const onToggle = () => requestAnimationFrame(() => redraw());
-	treeContainer.addEventListener("tree-toggle", onToggle);
-	(svg as any).__cleanup = () =>
-		treeContainer.removeEventListener("tree-toggle", onToggle);
 	(svg as any).__redraw = redraw;
 	return svg;
 }
@@ -533,7 +520,10 @@ export function renderGanttWithTree(
 ) {
 	container.empty();
 
-	const intervalMode = options?.intervalMode || "scheduled-due";
+	const intervalMode =
+		options?.intervalMode && options.intervalMode !== "none"
+			? options.intervalMode
+			: "any-date";
 	const treeWidth = calcTreeMaxWidth([treeRoot]);
 	const timeRange = calcRangeFromRoots(
 		[treeRoot],
@@ -562,6 +552,7 @@ export function renderGanttWithTree(
 	let isDragging = false,
 		lastDragX = 0,
 		dragStartScrollLeft = 0;
+	let currentSvg: SVGSVGElement | null = null;
 
 	container.style.cssText =
 		"display: flex; flex-direction: column; height: 100%; background: transparent; user-select: none;";
@@ -593,7 +584,10 @@ export function renderGanttWithTree(
 
 		const content = document.createElement("div");
 		content.className = "gantt-content";
-		content.style.cssText = `position: relative; width: ${totalWidth}px; min-width: ${totalWidth}px; min-height: 200px; padding-bottom: 40px; overflow: hidden;`;
+		content.style.cssText = `
+			position: relative; width: ${totalWidth}px;
+			min-height: 200px; padding-bottom: 40px; overflow: hidden;
+		`;
 
 		applyGridBackground(
 			content,
@@ -609,7 +603,12 @@ export function renderGanttWithTree(
 				((today - timeRange.minTime) / 86400000) * zoomState.dayWidth;
 			if (ox < timelineWidth) {
 				const line = document.createElement("div");
-				line.style.cssText = `position: absolute; left: ${treeWidth + ox}px; top: 0; width: 2px; height: 100%; background: var(--interactive-accent, #7fb8f0); opacity: 0.5; z-index: 0; pointer-events: none;`;
+				line.style.cssText = `
+					position: absolute; left: ${treeWidth + ox}px; top: 0;
+					width: 2px; height: 100%;
+					background: var(--interactive-accent, #7fb8f0);
+					opacity: 0.5; z-index: 0; pointer-events: none;
+				`;
 				content.appendChild(line);
 			}
 		}
@@ -618,11 +617,12 @@ export function renderGanttWithTree(
 
 		const treeContainer = document.createElement("div");
 		treeContainer.className = "gantt-tree-container";
-		treeContainer.style.cssText = "position: relative; z-index: 2;";
+		treeContainer.style.cssText =
+			"position: relative; z-index: 2; display: inline-block;";
 		content.appendChild(treeContainer);
 
-		const svg = createDependencySVG(taskMap, totalWidth, treeContainer);
-		content.appendChild(svg);
+		currentSvg = createDependencySVG(taskMap, totalWidth, treeContainer);
+		content.appendChild(currentSvg);
 
 		renderTaskTree(treeContainer, {
 			root: treeRoot,
@@ -662,7 +662,17 @@ export function renderGanttWithTree(
 						const bar = document.createElement("div");
 						bar.className = "gantt-bar";
 						bar.setAttribute("data-task-bar", "true");
-						bar.style.cssText = `position: absolute; left: ${left}px; top: 50%; transform: translateY(-50%); width: ${edges.width}px; height: ${GANTT_CONFIG.TASK_BAR_HEIGHT}px; background: ${GANTT_CONFIG.STATUS_COLORS[node.status] || GANTT_CONFIG.STATUS_COLORS["todo"]}; border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px; cursor: pointer; opacity: 0.85; z-index: 2; display: flex; align-items: center; overflow: hidden; transition: opacity 0.1s;`;
+						bar.style.cssText = `
+							position: absolute; left: ${left}px; top: 50%;
+							transform: translateY(-50%);
+							width: ${edges.width}px;
+							height: ${GANTT_CONFIG.TASK_BAR_HEIGHT}px;
+							background: ${GANTT_CONFIG.STATUS_COLORS[node.status] || GANTT_CONFIG.STATUS_COLORS["todo"]};
+							border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
+							cursor: pointer; opacity: 0.85; z-index: 2;
+							display: flex; align-items: center; overflow: hidden;
+							transition: opacity 0.1s;
+						`;
 
 						const interval = getTaskInterval(node, intervalMode);
 						if (interval && node.done) {
@@ -677,7 +687,13 @@ export function renderGanttWithTree(
 										interval.start.getTime());
 								const progressEl =
 									document.createElement("div");
-								progressEl.style.cssText = `position: absolute; left: 0; top: 0; width: ${Math.round(progressRatio * 100)}%; height: 100%; background: rgba(46, 125, 50, 0.5); border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px 0 0 ${GANTT_CONFIG.TASK_BAR_RADIUS}px; pointer-events: none;`;
+								progressEl.style.cssText = `
+									position: absolute; left: 0; top: 0;
+									width: ${Math.round(progressRatio * 100)}%; height: 100%;
+									background: rgba(46, 125, 50, 0.5);
+									border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px 0 0 ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
+									pointer-events: none;
+								`;
 								bar.appendChild(progressEl);
 							}
 						}
@@ -705,7 +721,8 @@ export function renderGanttWithTree(
 							bar.appendChild(label);
 						}
 
-						const tipHtml = buildTooltip(node);
+						const tipHtml =
+							getDisplayText(node) + "<br>" + buildTooltip(node);
 						if (tipHtml) {
 							bar.addEventListener("mouseenter", (e) =>
 								tooltip.show(tipHtml, e.clientX, e.clientY),
@@ -735,7 +752,97 @@ export function renderGanttWithTree(
 			},
 		});
 
-		requestAnimationFrame(() => (svg as any).__redraw?.());
+		// 树折叠/展开时更新右侧位置
+		const onTreeToggle = () => {
+			requestAnimationFrame(() => {
+				const newTreeWidth = treeContainer.offsetWidth || treeWidth;
+				const newTotalWidth = newTreeWidth + timelineWidth;
+
+				content.style.width = newTotalWidth + "px";
+
+				const header = scrollArea.querySelector(
+					".gantt-header",
+				) as HTMLElement;
+				if (header) {
+					const spacer = header.children[0] as HTMLElement;
+					if (spacer) spacer.style.width = newTreeWidth + "px";
+					const inner = header.children[1] as HTMLElement;
+					if (inner) inner.style.left = newTreeWidth + "px";
+					header.style.width = newTotalWidth + "px";
+				}
+
+				const oldGrids = content.querySelectorAll("div");
+				oldGrids.forEach((el) => {
+					if (
+						el.style.pointerEvents === "none" &&
+						el.style.position === "absolute" &&
+						el.style.zIndex === "0"
+					) {
+						el.remove();
+					}
+				});
+				applyGridBackground(
+					content,
+					zoomState.dayWidth,
+					newTreeWidth,
+					newTotalWidth,
+					timeRange,
+				);
+
+				const todayLines = content.querySelectorAll(
+					"div[style*='var(--interactive-accent']",
+				);
+				todayLines.forEach((l) => {
+					if ((l as HTMLElement).style.zIndex === "0") l.remove();
+				});
+				const todayTs = DateUtils.setStart(new Date()).getTime();
+				if (
+					todayTs >= timeRange.minTime &&
+					todayTs <= timeRange.maxTime
+				) {
+					const oxToday =
+						((todayTs - timeRange.minTime) / 86400000) *
+						zoomState.dayWidth;
+					if (oxToday < timelineWidth) {
+						const todayLine = document.createElement("div");
+						todayLine.style.cssText = `
+							position: absolute; left: ${newTreeWidth + oxToday}px; top: 0;
+							width: 2px; height: 100%;
+							background: var(--interactive-accent, #7fb8f0);
+							opacity: 0.5; z-index: 0; pointer-events: none;
+						`;
+						content.appendChild(todayLine);
+					}
+				}
+
+				const allBars = treeContainer.querySelectorAll(
+					"[data-task-bar]",
+				) as NodeListOf<HTMLElement>;
+				allBars.forEach((bar) => {
+					const rowEl = bar.parentElement;
+					if (!rowEl) return;
+					const taskId = rowEl.getAttribute("data-task-id");
+					if (!taskId) return;
+					const taskNode = taskMap.get(taskId);
+					if (!taskNode) return;
+					const taskEdges = calcBarEdges(
+						taskNode,
+						timeRange,
+						timelineWidth,
+						intervalMode,
+					);
+					if (taskEdges) {
+						bar.style.left = newTreeWidth + taskEdges.left + "px";
+					}
+				});
+
+				(currentSvg as any)?.__redraw?.();
+			});
+		};
+
+		treeContainer.addEventListener("tree-toggle", onTreeToggle);
+
+		requestAnimationFrame(() => (currentSvg as any)?.__redraw?.());
 		scrollArea.scrollLeft = Math.max(0, savedScrollLeft);
 		if (savedScrollTop > 0) scrollArea.scrollTop = savedScrollTop;
 	}

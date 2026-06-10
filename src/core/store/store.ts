@@ -18,39 +18,7 @@ export class Store {
 	}
 
 	update(partial: Partial<AppState>) {
-		const oldActiveId = this.state.activePresetId;
-		const newActiveId = partial.activePresetId;
-
-		if (newActiveId !== undefined && newActiveId !== oldActiveId) {
-			let presets = partial.presets ?? this.state.presets;
-
-			const currentPreset = this.state.presets.find(
-				(p) => p.id === oldActiveId,
-			);
-			const targetPreset = presets.find((p) => p.id === newActiveId);
-			if (currentPreset && targetPreset) {
-				if (
-					currentPreset.showToolbar === true &&
-					targetPreset.showToolbar === false &&
-					targetPreset.toolbarEverShown !== true
-				) {
-					presets = presets.map((p) =>
-						p.id === newActiveId
-							? {
-									...p,
-									showToolbar: true,
-									toolbarEverShown: true,
-								}
-							: p,
-					);
-				}
-			}
-
-			this.state = { ...this.state, ...partial, presets };
-		} else {
-			this.state = { ...this.state, ...partial };
-		}
-
+		this.state = { ...this.state, ...partial };
 		this.notify();
 		this.save();
 	}

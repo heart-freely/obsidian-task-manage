@@ -54,7 +54,7 @@ export function createSlider(options: SliderOptions): {
 
 	const track = row.createDiv();
 	track.style.cssText =
-		"flex:0.5;position:relative;height:4px;margin:0 8px;cursor:pointer;background:var(--background-modifier-border);border-radius:2px;min-width:60px;";
+		"flex:1;position:relative;height:4px;cursor:pointer;background:var(--background-modifier-border);border-radius:2px;min-width:60px;overflow:visible;";
 
 	const step = Math.max(1, Math.ceil((max - min) / 20));
 	const range = max - min || 1;
@@ -255,37 +255,22 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	const step = tickStep ?? Math.max(1, Math.ceil((max - min) / 20));
 
 	const trackWrapper = outerRow.createDiv();
-	trackWrapper.style.cssText = "flex:0.5;position:relative;min-width:60px;";
-
-	// 刻度标记
-	for (let v = min; v <= max; v += step) {
-		const isToday = todayValue !== undefined && v === todayValue;
-		const mark = trackWrapper.createDiv();
-		mark.style.cssText = `position:absolute;top:0;left:${((v - min) / range) * 100}%;transform:translateX(-50%);width:${isToday ? "2px" : "1px"};height:8px;background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
-	}
-	if (
-		todayValue !== undefined &&
-		todayValue >= min &&
-		todayValue <= max &&
-		(todayValue - min) % step !== 0
-	) {
-		const mark = trackWrapper.createDiv();
-		mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:8px;background:var(--text-accent);opacity:1;z-index:1;`;
-	}
-
-	// 中位线
-	const midLine = trackWrapper.createDiv();
-	midLine.style.cssText =
-		"position:absolute;top:-2px;width:1px;height:8px;background:var(--text-muted);opacity:0.5;z-index:1;";
-	if (midValue !== undefined) {
-		midLine.style.left = `${((clamp(midValue, min, max) - min) / range) * 100}%`;
-	} else {
-		midLine.style.display = "none";
-	}
+	trackWrapper.style.cssText = "flex:1;position:relative;min-width:60px;";
 
 	// 右侧文字
 	const labelSpan = outerRow.createSpan();
-	labelSpan.style.cssText = `font-size:var(--font-ui-smaller);width:${labelWidth || "160px"};min-width:${labelWidth || "160px"};max-width:${labelWidth || "160px"};text-align:left;flex-shrink:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+	labelSpan.style.cssText = `
+		font-size:var(--font-ui-smaller);
+		width:${labelWidth || "160px"};
+		min-width:${labelWidth || "160px"};
+		max-width:${labelWidth || "160px"};
+		text-align:left;
+		flex-shrink:0;
+		color:var(--text-muted);
+		white-space:nowrap;
+		overflow:hidden;
+		text-overflow:ellipsis;
+	`;
 
 	const initS = clamp(Math.min(start, end), min, max);
 	const initE = clamp(Math.max(start, end), min, max);
@@ -310,6 +295,33 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		rowCls: "slider-inner-row",
 	});
 	slider.refs.row.style.cssText = "width:100%;";
+
+	// 刻度标记放在实际轨道 slider.refs.track 中
+	const track = slider.refs.track;
+	for (let v = min; v <= max; v += step) {
+		const isToday = todayValue !== undefined && v === todayValue;
+		const mark = track.createDiv();
+		mark.style.cssText = `position:absolute;top:0;left:${((v - min) / range) * 100}%;transform:translateX(-50%);width:${isToday ? "2px" : "1px"};height:8px;background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
+	}
+	if (
+		todayValue !== undefined &&
+		todayValue >= min &&
+		todayValue <= max &&
+		(todayValue - min) % step !== 0
+	) {
+		const mark = track.createDiv();
+		mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:8px;background:var(--text-accent);opacity:1;z-index:1;`;
+	}
+
+	// 中位线放在实际轨道中
+	const midLine = track.createDiv();
+	midLine.style.cssText =
+		"position:absolute;top:-2px;width:1px;height:8px;background:var(--text-muted);opacity:0.5;z-index:1;";
+	if (midValue !== undefined) {
+		midLine.style.left = `${((clamp(midValue, min, max) - min) / range) * 100}%`;
+	} else {
+		midLine.style.display = "none";
+	}
 
 	const updateAll = (s: number, e: number) => {
 		const cs = clamp(Math.min(s, e), min, max);
