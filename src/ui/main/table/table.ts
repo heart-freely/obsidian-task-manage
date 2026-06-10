@@ -1,0 +1,186 @@
+// src/ui/main/table/table.ts
+
+import { removeHeadingNumber } from "../../../core/component/tree-view-process";
+import {
+	DEFAULT_TABLE_COLUMNS,
+	STATUS_ICONS,
+	STATUS_NAMES,
+	formatDisplayDate,
+} from "../../../core/config/config";
+import {
+	getPriorityIcon,
+	getPriorityName,
+} from "../../../core/task/task-derived";
+import { TaskTreeNode } from "../../../core/task/task-tree";
+
+interface TaskTableOptions {
+	onClick?: (node: TaskTreeNode) => void;
+	columnsVisibility?: Record<string, boolean>;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+	file: "📄 文件任务",
+	heading: "H 标题任务",
+	list: "● 列表任务",
+};
+
+interface ColumnDef {
+	key: string;
+	label: string;
+	getValue: (node: TaskTreeNode) => string;
+}
+
+export function renderTaskTable(
+	container: HTMLElement,
+	nodes: TaskTreeNode[],
+	options: TaskTableOptions = {},
+) {
+	const visibility = options.columnsVisibility ?? DEFAULT_TABLE_COLUMNS;
+
+	const allColumns: ColumnDef[] = [
+		{
+			key: "type",
+			label: "类型",
+			getValue: (n) => TYPE_LABELS[n.type] || "",
+		},
+		{
+			key: "status",
+			label: "状态",
+			getValue: (n) =>
+				`${STATUS_ICONS[n.status] || "🔲"} ${STATUS_NAMES[n.status] || "待办中"}`,
+		},
+		{
+			key: "content",
+			label: "描述",
+			getValue: (n) => {
+				let text = n.text || n.content || "";
+				// 标题任务去除 number headings 序号
+				if (n.type === "heading") {
+					text = removeHeadingNumber(text);
+				}
+				return text;
+			},
+		},
+		{
+			key: "priority",
+			label: "优先级",
+			getValue: (n) => {
+				const icon = getPriorityIcon(n);
+				return icon
+					? `${icon} ${getPriorityName(n)}`
+					: getPriorityName(n);
+			},
+		},
+		{
+			key: "repeat",
+			label: "循环",
+			getValue: (n) => (n.repeat ? `🔁 ${n.repeat}` : ""),
+		},
+		{
+			key: "created",
+			label: "创建",
+			getValue: (n) =>
+				n.created ? formatDisplayDate(new Date(n.created)) : "",
+		},
+		{
+			key: "scheduled",
+			label: "计划",
+			getValue: (n) =>
+				n.scheduled ? formatDisplayDate(new Date(n.scheduled)) : "",
+		},
+		{
+			key: "starts",
+			label: "开始",
+			getValue: (n) =>
+				n.starts ? formatDisplayDate(new Date(n.starts)) : "",
+		},
+		{
+			key: "cancelled",
+			label: "取消",
+			getValue: (n) =>
+				n.cancelled ? formatDisplayDate(new Date(n.cancelled)) : "",
+		},
+		{
+			key: "done",
+			label: "完成",
+			getValue: (n) =>
+				n.done ? formatDisplayDate(new Date(n.done)) : "",
+		},
+		{
+			key: "due",
+			label: "截止",
+			getValue: (n) => (n.due ? formatDisplayDate(new Date(n.due)) : ""),
+		},
+		{ key: "id", label: "唯一ID", getValue: (n) => n.id || "" },
+		{ key: "forbid", label: "引用ID", getValue: (n) => n.forbid || "" },
+		{ key: "tag", label: "标签", getValue: (n) => n.tag || "" },
+	];
+
+	const visibleColumns = allColumns.filter((col) => {
+		if (col.key === "type") return true;
+		if (!visibility[col.key]) return false;
+		return nodes.some((n) => col.getValue(n) !== "");
+	});
+
+	const table = document.createElement("table");
+	table.className = "task-table";
+	table.style.width = "100%";
+	table.style.borderCollapse = "collapse";
+
+	const thead = document.createElement("thead");
+	const headerRow = document.createElement("tr");
+	visibleColumns.forEach((col) => {
+		const mode = col.key === "content" ? "wrap" : "nowrap";
+		headerRow.appendChild(createTh(col.label, mode));
+	});
+	thead.appendChild(headerRow);
+	table.appendChild(thead);
+
+	const tbody = document.createElement("tbody");
+	nodes.forEach((node) => {
+		const row = document.createElement("tr");
+		row.className = "task-row";
+		row.addEventListener("click", () => options.onClick?.(node));
+
+		visibleColumns.forEach((col) => {
+			const value = col.getValue(node);
+			const wrap = col.key === "content";
+			row.appendChild(createTd(value, wrap));
+		});
+		tbody.appendChild(row);
+	});
+	table.appendChild(tbody);
+	container.appendChild(table);
+}
+
+function createTh(text: string, mode: "nowrap" | "wrap"): HTMLTableCellElement {
+	const th = document.createElement("th");
+	th.textContent = text;
+	th.style.padding = "4px 8px";
+	th.style.textAlign = "left";
+	th.style.borderBottom = "1px solid var(--background-modifier-border)";
+	th.style.fontSize = "var(--font-ui-smaller)";
+	th.style.color = "var(--text-muted)";
+	th.style.fontWeight = "600";
+	th.style.whiteSpace = "nowrap";
+	if (mode === "nowrap") th.style.width = "1px";
+	else th.style.width = "66%";
+	return th;
+}
+
+function createTd(text: string, wrap: boolean): HTMLTableCellElement {
+	const td = document.createElement("td");
+	td.textContent = text;
+	td.style.padding = "4px 8px";
+	td.style.borderBottom = "1px solid var(--background-modifier-border)";
+	td.style.fontSize = "var(--font-ui-smaller)";
+	td.style.verticalAlign = "top";
+	if (wrap) {
+		td.style.whiteSpace = "normal";
+		td.style.wordBreak = "break-word";
+		td.style.overflowWrap = "break-word";
+	} else {
+		td.style.whiteSpace = "nowrap";
+	}
+	return td;
+}

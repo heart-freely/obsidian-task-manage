@@ -2,10 +2,10 @@
 // UI 统一入口
 
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import { Store } from "../process/store/store";
+import { BaseTaskView } from "../core/store/preset/base-task-preset";
+import { Store } from "../core/store/store";
 import { Panels } from "./panel/panel";
-import { SidebarPanel } from "./panel/sidebar-panel";
-import { BaseTaskView } from "./view/base-view";
+import { SidebarPanel } from "./sidebar/sidebar";
 
 export class NavigatorView extends ItemView {
 	protected store: Store;
@@ -19,9 +19,11 @@ export class NavigatorView extends ItemView {
 	getViewType(): string {
 		return "navigator-view";
 	}
+
 	getDisplayText(): string {
-		return "任务导航中心";
+		return "任务管理";
 	}
+
 	getIcon(): string {
 		return "compass";
 	}
@@ -49,13 +51,30 @@ const VIEW_LOADERS: Record<
 	string,
 	() => Promise<{ new (c: HTMLElement, s: Store, a: any): BaseTaskView }>
 > = {
-	allTasks: () => import("./view/all-view").then((m) => m.AllTasksView),
-	inbox: () => import("./view/inbox-view").then((m) => m.InboxView),
+	allTasks: () =>
+		import("../core/store/preset/all-task-preset").then(
+			(m) => m.AllTasksView,
+		),
+	inbox: () =>
+		import("../core/store/preset/inbox-task-preset").then(
+			(m) => m.InboxView,
+		),
 	important: () =>
-		import("./view/important-view").then((m) => m.ImportantView),
-	today: () => import("./view/today-view").then((m) => m.TodayView),
-	future: () => import("./view/future-view").then((m) => m.FutureView),
-	organize: () => import("./view/organize-view").then((m) => m.OrganizeView),
+		import("../core/store/preset/important-task-preset").then(
+			(m) => m.ImportantView,
+		),
+	today: () =>
+		import("../core/store/preset/today-task-preset").then(
+			(m) => m.TodayView,
+		),
+	future: () =>
+		import("../core/store/preset/future-task-preset").then(
+			(m) => m.FutureView,
+		),
+	organize: () =>
+		import("../core/store/preset/organize-task-preset").then(
+			(m) => m.OrganizeView,
+		),
 };
 
 export class ViewContainer {

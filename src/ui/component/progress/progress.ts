@@ -5,8 +5,8 @@ import {
 	STATUS_COLORS,
 	STATUS_ICONS,
 	STATUS_NAMES,
-} from "../../../process/config/config";
-import { TaskTreeNode } from "../../../process/task/task-tree";
+} from "../../../core/config/config";
+import { TaskTreeNode } from "../../../core/task/task-tree";
 import { tooltip } from "../tooltip/tooltip";
 
 export interface ProgressBarOptions {
@@ -32,7 +32,14 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		barHeight +
 		";border-radius:3px;overflow:hidden;background:var(--background-modifier-border);display:flex;";
 
-	const order = ["todo", "planned", "in-progress", "completed", "cancelled"];
+	// 修复：planned → scheduled
+	const order = [
+		"todo",
+		"scheduled",
+		"in-progress",
+		"completed",
+		"cancelled",
+	];
 	let accumulated = 0;
 
 	order.forEach((status) => {
@@ -84,16 +91,17 @@ function buildProgressTooltip(
 	total: number,
 ): string {
 	const parts: string[] = [];
+	// 修复：planned → scheduled
 	const statusConfig: Array<{ key: string; icon: string; label: string }> = [
 		{
 			key: "todo",
 			icon: STATUS_ICONS["todo"] || "🔲",
-			label: STATUS_NAMES["todo"] || "未开始",
+			label: STATUS_NAMES["todo"] || "待办中",
 		},
 		{
-			key: "planned",
-			icon: STATUS_ICONS["planned"] || "❔",
-			label: STATUS_NAMES["planned"] || "计划中",
+			key: "scheduled",
+			icon: STATUS_ICONS["scheduled"] || "❔",
+			label: STATUS_NAMES["scheduled"] || "计划中",
 		},
 		{
 			key: "in-progress",

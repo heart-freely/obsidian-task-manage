@@ -1,6 +1,24 @@
 // src/ui/panel/status-panel.ts
-import { ALLOWED_STATUSES, STATUS_NAMES } from "../../process/config/config";
-import { Store } from "../../process/store/store";
+import { STATUS_NAMES } from "../../core/config/config";
+import { Store } from "../../core/store/store";
+
+// 第一版兼容：暂不添加新状态，使用5种基础状态
+const BASIC_STATUSES = [
+	"todo",
+	"scheduled",
+	"in-progress",
+	"completed",
+	"cancelled",
+];
+
+// 面板按钮文字覆盖（仅影响面板显示，不改变全局 STATUS_NAMES）
+const PANEL_STATUS_LABELS: Record<string, string> = {
+	todo: "待办中",
+	scheduled: "计划中",
+	"in-progress": "进行中",
+	completed: "已完成",
+	cancelled: "已取消",
+};
 
 export class StatusPanel {
 	private container: HTMLElement;
@@ -44,7 +62,7 @@ export class StatusPanel {
 			const st = this.store.getState();
 			const pr = this.store.getActivePreset();
 			if (!pr) return;
-			const ns = noneSelected ? [...ALLOWED_STATUSES] : [];
+			const ns = noneSelected ? [...BASIC_STATUSES] : [];
 			this.store.update({
 				presets: st.presets.map((p) =>
 					p.id === pr.id
@@ -58,9 +76,9 @@ export class StatusPanel {
 		subPanel.style.cssText =
 			"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
 
-		ALLOWED_STATUSES.forEach((st) => {
+		BASIC_STATUSES.forEach((st) => {
 			const btn = subPanel.createEl("button", {
-				text: STATUS_NAMES[st] || st,
+				text: PANEL_STATUS_LABELS[st] || STATUS_NAMES[st] || st,
 				cls: "panel-btn sub-btn",
 			});
 			if (selected.includes(st)) btn.addClass("active");

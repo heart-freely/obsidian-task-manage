@@ -1,39 +1,63 @@
 // src/main.ts
 import { Plugin } from "obsidian";
-import { registerAllCommands } from "./command";
+import { registerAllCommands } from "./core/command";
+import { updateTaskFileConfig } from "./core/config/config";
+import { getDefaultPresets } from "./core/config/panel-default-config";
+import { Store } from "./core/store/store";
 import {
-	DEFAULT_HEADING_TASK_PATTERN,
-	DEFAULT_TASK_FILE_PATTERN,
-	DEFAULT_TASK_ROOT_PATH,
-	updateTaskFileConfig,
-} from "./process/config/config";
-import { getDefaultPresets } from "./process/config/panel-default-config";
-import { Store } from "./process/store/store";
-import { TaskManageSettingTab } from "./settings";
-import { AppState, GlobalFilter, Preset } from "./types";
+	DEFAULT_SETTINGS,
+	TaskManageSettingTab,
+	TaskManageSettings,
+} from "./setting/setting";
+import { AppState, GlobalFilter, Preset } from "./type/type";
 import { NavigatorView } from "./ui/ui";
 
 export default class TaskManagePlugin extends Plugin {
 	store!: Store;
+	settings!: TaskManageSettings;
+
+	saveAllSettings!: () => Promise<void>;
 
 	async onload() {
-		const savedData = (await this.loadData()) || {};
+		let savedData: any = {};
+
+		try {
+			savedData = (await this.loadData()) || {};
+			this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+		} catch (e) {
+			console.warn("[TaskManage] 加载设置失败:", e);
+			this.settings = { ...DEFAULT_SETTINGS };
+		}
+
+		this.settings.taskRootPath = this.settings.taskRootPath || "";
+		this.settings.folderFilters =
+			this.settings.folderFilters || DEFAULT_SETTINGS.folderFilters;
+		this.settings.fileFilters =
+			this.settings.fileFilters || DEFAULT_SETTINGS.fileFilters;
+		this.settings.headingFilters =
+			this.settings.headingFilters || DEFAULT_SETTINGS.headingFilters;
+		this.settings.taskItemFilters =
+			this.settings.taskItemFilters || DEFAULT_SETTINGS.taskItemFilters;
+
+		this.saveAllSettings = async () => {
+			const existingData = (await this.loadData()) || {};
+			await this.saveData({
+				...existingData,
+				...(this.store?.getState() || {}),
+				taskRootPath: this.settings.taskRootPath,
+				folderFilters: this.settings.folderFilters,
+				fileFilters: this.settings.fileFilters,
+				headingFilters: this.settings.headingFilters,
+				taskItemFilters: this.settings.taskItemFilters,
+			});
+		};
 
 		updateTaskFileConfig({
-			rootPath: savedData.taskRootPath || DEFAULT_TASK_ROOT_PATH,
-			filePattern: savedData.taskFilePattern || DEFAULT_TASK_FILE_PATTERN,
-			headingPattern:
-				savedData.headingTaskPattern || DEFAULT_HEADING_TASK_PATTERN,
-			whitelist: {
-				enabled: savedData.whitelistEnabled ?? false,
-				useRegex: savedData.whitelistUseRegex ?? false,
-				pattern: savedData.whitelistPattern || "",
-			},
-			blacklist: {
-				enabled: savedData.blacklistEnabled ?? false,
-				useRegex: savedData.blacklistUseRegex ?? false,
-				pattern: savedData.blacklistPattern || "",
-			},
+			rootPath: this.settings.taskRootPath,
+			folderFilters: this.settings.folderFilters,
+			fileFilters: this.settings.fileFilters,
+			headingFilters: this.settings.headingFilters,
+			taskItemFilters: this.settings.taskItemFilters,
 		});
 
 		const defaultPresets = getDefaultPresets();
@@ -112,19 +136,8 @@ export default class TaskManagePlugin extends Plugin {
 		};
 
 		this.store = new Store(initialState);
-		this.store.setSaveFn(async (state) => {
-			await this.saveData({
-				...state,
-				taskRootPath: savedData.taskRootPath,
-				taskFilePattern: savedData.taskFilePattern,
-				headingTaskPattern: savedData.headingTaskPattern,
-				whitelistEnabled: savedData.whitelistEnabled,
-				whitelistUseRegex: savedData.whitelistUseRegex,
-				whitelistPattern: savedData.whitelistPattern,
-				blacklistEnabled: savedData.blacklistEnabled,
-				blacklistUseRegex: savedData.blacklistUseRegex,
-				blacklistPattern: savedData.blacklistPattern,
-			});
+		this.store.setSaveFn(async () => {
+			await this.saveAllSettings();
 		});
 
 		registerAllCommands(this, this.store);
@@ -135,7 +148,7 @@ export default class TaskManagePlugin extends Plugin {
 			(leaf) => new NavigatorView(leaf, this.store),
 		);
 
-		this.addRibbonIcon("compass", "任务导航中心", () => {
+		this.addRibbonIcon("compass", "任务管理", () => {
 			this.activateView("navigator-view");
 		});
 
@@ -151,11 +164,8 @@ export default class TaskManagePlugin extends Plugin {
 	}
 
 	async onunload() {
-		if (this.store) {
-			const state = this.store.getState();
-			const wasViewOpen =
-				this.app.workspace.getLeavesOfType("navigator-view").length > 0;
-			await this.saveData({ ...state, wasViewOpen });
+		if (this.saveAllSettings) {
+			await this.saveAllSettings();
 		}
 		document
 			.querySelectorAll(".toolbar-buttons")

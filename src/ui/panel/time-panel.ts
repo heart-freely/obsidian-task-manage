@@ -1,7 +1,8 @@
 // src/ui/panel/time-panel.ts
 // 任务时间面板
 
-import { DataManager } from "../../process/core/data-manager";
+import { DateUtils } from "../../util/date-utils";
+import { DataManager } from "../../core/data/data-manager";
 import {
 	calcDynamicOffset,
 	datesFromLevel,
@@ -11,9 +12,8 @@ import {
 	maxDynamicRange,
 	staticSliderRanges,
 	weeksInYear,
-} from "../../process/panel/panel-config";
-import { DateUtils } from "../../process/process";
-import { Store } from "../../process/store/store";
+} from "../../core/panel/panel-config";
+import { Store } from "../../core/store/store";
 import {
 	createEnhancedSlider,
 	EnhancedSliderRef,

@@ -1,7 +1,7 @@
 // src/ui/panels/head-panel.ts
 // 面板标题栏
 
-import { Store } from "../../process/store/store";
+import { Store } from "../../core/store/store";
 
 const PANEL_LABELS: Record<string, string> = {
 	time: "任务时间",

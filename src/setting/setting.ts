@@ -1,0 +1,549 @@
+// setting/settings.ts
+import { App, PluginSettingTab } from "obsidian";
+import { updateTaskFileConfig } from "../core/config/config";
+
+export interface PathFilterConfig {
+	pattern: string;
+	caseSensitive: boolean;
+	wholeWord: boolean;
+	useRegex: boolean;
+	exclude: boolean;
+}
+
+export interface TaskItemFilterConfig {
+	pattern: string;
+	exclude: boolean;
+}
+
+export interface TaskManageSettings {
+	taskRootPath: string;
+	folderFilters: PathFilterConfig[];
+	fileFilters: PathFilterConfig[];
+	headingFilters: PathFilterConfig[];
+	taskItemFilters: TaskItemFilterConfig[];
+}
+
+export const DEFAULT_SETTINGS: TaskManageSettings = {
+	taskRootPath: "",
+	folderFilters: [
+		{
+			pattern: "",
+			caseSensitive: false,
+			wholeWord: false,
+			useRegex: false,
+			exclude: false,
+		},
+	],
+	fileFilters: [
+		{
+			pattern: "",
+			caseSensitive: false,
+			wholeWord: false,
+			useRegex: false,
+			exclude: false,
+		},
+	],
+	headingFilters: [
+		{
+			pattern: "",
+			caseSensitive: false,
+			wholeWord: false,
+			useRegex: false,
+			exclude: false,
+		},
+	],
+	taskItemFilters: [{ pattern: "", exclude: false }],
+};
+
+export class TaskManageSettingTab extends PluginSettingTab {
+	plugin: any;
+	private folderCache: string[] | null = null;
+
+	constructor(app: App, plugin: any) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	private async saveSettings() {
+		updateTaskFileConfig({
+			rootPath: this.plugin.settings.taskRootPath || "",
+			folderFilters: this.plugin.settings.folderFilters,
+			fileFilters: this.plugin.settings.fileFilters,
+			headingFilters: this.plugin.settings.headingFilters,
+			taskItemFilters: this.plugin.settings.taskItemFilters,
+		});
+		await this.plugin.saveAllSettings();
+	}
+
+	display(): void {
+		this.folderCache = null;
+		const { containerEl } = this;
+		containerEl.empty();
+
+		// ========== 任务路径 ==========
+		containerEl.createEl("h2", {
+			text: "任务路径",
+			attr: { style: "margin-bottom:12px;" },
+		});
+
+		const pathListContainer = containerEl.createDiv({ cls: "path-list" });
+
+		const rootPath = this.plugin.settings.taskRootPath || "";
+		const paths = rootPath
+			.split(",")
+			.map((p: string) => p.trim())
+			.filter(Boolean);
+		if (paths.length === 0) paths.push("");
+
+		const saveAllPaths = async () => {
+			this.plugin.settings.taskRootPath = paths.filter(Boolean).join(",");
+			await this.saveSettings();
+		};
+
+		const renderPaths = () => {
+			pathListContainer.empty();
+
+			paths.forEach((path: string, index: number) => {
+				const pathRow = pathListContainer.createDiv({
+					cls: "path-row",
+				});
+				pathRow.style.cssText =
+					"display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;position:relative;";
+
+				const inputWrapper = pathRow.createDiv();
+				inputWrapper.style.cssText = "flex:1;position:relative;";
+
+				const pathInput = inputWrapper.createEl("input", {
+					type: "text",
+					attr: { placeholder: "输入关键字搜索文件夹，默认根目录" },
+				});
+				pathInput.value = path;
+				pathInput.style.cssText = "width:100%;";
+
+				const dropdown = inputWrapper.createDiv({
+					cls: "folder-dropdown",
+				});
+				dropdown.style.cssText =
+					"display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--background-primary);border:1px solid var(--background-modifier-border);border-radius:4px;z-index:1000;";
+
+				let dropdownTimer: ReturnType<typeof setTimeout> | null = null;
+				let hasUserInteracted = false;
+
+				const showDropdown = (keyword: string) => {
+					if (dropdownTimer) clearTimeout(dropdownTimer);
+					if (
+						dropdown.style.display === "block" &&
+						dropdown.dataset["keyword"] === keyword
+					)
+						return;
+					dropdown.dataset["keyword"] = keyword;
+					dropdownTimer = setTimeout(() => {
+						try {
+							this.renderFolderDropdown(
+								dropdown,
+								keyword,
+								(selectedPath) => {
+									pathInput.value = selectedPath;
+									dropdown.style.display = "none";
+									paths[index] = selectedPath;
+									saveAllPaths();
+								},
+							);
+							dropdown.style.display = "block";
+						} catch (e) {
+							console.warn("[TaskManage] 下拉渲染失败:", e);
+						}
+					}, 200);
+				};
+
+				pathInput.addEventListener("mousedown", () => {
+					hasUserInteracted = true;
+				});
+
+				pathInput.addEventListener("focus", () => {
+					if (hasUserInteracted) {
+						showDropdown(pathInput.value.trim());
+					}
+				});
+
+				pathInput.addEventListener("input", () => {
+					if (hasUserInteracted) {
+						showDropdown(pathInput.value.trim());
+					}
+				});
+
+				pathInput.addEventListener("blur", () => {
+					hasUserInteracted = false;
+					const value = pathInput.value.trim();
+					if (value !== paths[index]) {
+						paths[index] = value;
+						saveAllPaths();
+					}
+					setTimeout(() => {
+						dropdown.style.display = "none";
+					}, 150);
+				});
+
+				pathInput.addEventListener("keydown", (e: KeyboardEvent) => {
+					if (e.key === "Enter") {
+						e.preventDefault();
+						const value = pathInput.value.trim();
+						if (value && value !== paths[index]) {
+							paths[index] = value;
+							saveAllPaths();
+						}
+						dropdown.style.display = "none";
+					}
+				});
+
+				const delBtn = pathRow.createEl("button", {
+					text: "✕",
+					cls: "path-del-btn",
+				});
+				delBtn.style.cssText =
+					"border:none;background:transparent;cursor:pointer;color:var(--text-muted);flex-shrink:0;margin-top:4px;";
+				delBtn.addEventListener("click", async () => {
+					paths.splice(index, 1);
+					if (paths.length === 0) paths.push("");
+					saveAllPaths();
+					renderPaths();
+				});
+			});
+		};
+
+		renderPaths();
+
+		const addPathBtn = containerEl.createEl("button", {
+			text: "+ 添加任务路径",
+			cls: "filter-add-btn",
+		});
+		addPathBtn.style.cssText =
+			"margin-top:4px;margin-bottom:8px;padding:4px 12px;";
+		addPathBtn.addEventListener("click", async () => {
+			paths.push("");
+			saveAllPaths();
+			renderPaths();
+		});
+
+		// ========== 匹配任务 ==========
+		containerEl.createEl("h2", {
+			text: "匹配任务",
+			attr: { style: "margin-top:24px;margin-bottom:8px;" },
+		});
+
+		const row1 = containerEl.createDiv({ cls: "filter-two-col" });
+		row1.style.cssText =
+			"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;";
+
+		const folderCol = row1.createDiv();
+		folderCol.createEl("h3", {
+			text: "任务文件夹",
+			attr: { style: "margin-bottom:4px;" },
+		});
+		this.renderFilterList(folderCol, "folderFilters", "任务文件夹匹配");
+
+		const fileCol = row1.createDiv();
+		fileCol.createEl("h3", {
+			text: "任务文件",
+			attr: { style: "margin-bottom:4px;" },
+		});
+		this.renderFilterList(fileCol, "fileFilters", "任务文件名匹配");
+
+		const row2 = containerEl.createDiv({ cls: "filter-two-col" });
+		row2.style.cssText =
+			"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;";
+
+		const headingCol = row2.createDiv();
+		headingCol.createEl("h3", {
+			text: "任务标题",
+			attr: { style: "margin-bottom:4px;" },
+		});
+		this.renderFilterList(headingCol, "headingFilters", "任务标题匹配");
+
+		const taskItemCol = row2.createDiv();
+		taskItemCol.createEl("h3", {
+			text: "任务项",
+			attr: { style: "margin-bottom:4px;" },
+		});
+		this.renderTaskItemList(taskItemCol);
+	}
+
+	private getFolders(): string[] {
+		if (this.folderCache) return this.folderCache;
+		try {
+			const files = this.app.vault.getAllLoadedFiles();
+			const folders = new Set<string>();
+			for (const file of files) {
+				if (file && (file as any).children) {
+					const p = (file as any).path || "";
+					if (p) folders.add(p);
+				}
+			}
+			this.folderCache = [...folders].sort();
+			return this.folderCache;
+		} catch (e) {
+			console.warn("[TaskManage] 获取文件夹列表失败:", e);
+			return [];
+		}
+	}
+
+	private renderFolderDropdown(
+		container: HTMLElement,
+		keyword: string,
+		callback: (path: string) => void,
+	) {
+		container.empty();
+		const folders = this.getFolders();
+		const filtered = keyword
+			? folders.filter((p) =>
+					p.toLowerCase().includes(keyword.toLowerCase()),
+				)
+			: folders;
+
+		if (filtered.length === 0) {
+			container.createDiv({
+				text: "未找到匹配的文件夹",
+				cls: "dropdown-empty",
+			}).style.cssText =
+				"padding:8px;color:var(--text-muted);font-size:12px;";
+			return;
+		}
+
+		const limit = 50;
+		const displayItems = filtered.slice(0, limit);
+
+		displayItems.forEach((path) => {
+			const item = container.createDiv({ cls: "dropdown-item" });
+			item.style.cssText =
+				"padding:4px 8px;cursor:pointer;font-size:13px;";
+			item.textContent = path;
+			item.addEventListener("mouseenter", () => {
+				item.style.backgroundColor = "var(--background-modifier-hover)";
+			});
+			item.addEventListener("mouseleave", () => {
+				item.style.backgroundColor = "";
+			});
+			item.addEventListener("mousedown", (e) => {
+				e.preventDefault();
+				callback(path);
+			});
+		});
+
+		if (filtered.length > limit) {
+			container.createDiv({
+				text: `... 还有 ${filtered.length - limit} 个结果`,
+				cls: "dropdown-empty",
+			}).style.cssText =
+				"padding:4px 8px;color:var(--text-muted);font-size:11px;";
+		}
+	}
+
+	private renderFilterList(
+		containerEl: HTMLElement,
+		key: string,
+		label: string,
+	) {
+		const filters: PathFilterConfig[] = this.plugin.settings[key] || [];
+		const listContainer = containerEl.createDiv({ cls: "filter-list" });
+
+		filters.forEach((filter, index) => {
+			this.renderFilterRow(listContainer, filter, key, index, label);
+		});
+
+		const addBtn = containerEl.createEl("button", {
+			text: "+ 添加" + label,
+			cls: "filter-add-btn",
+		});
+		addBtn.style.cssText = "margin-top:4px;padding:4px 12px;";
+		addBtn.addEventListener("click", async () => {
+			filters.push({
+				pattern: "",
+				caseSensitive: false,
+				wholeWord: false,
+				useRegex: false,
+				exclude: false,
+			});
+			this.plugin.settings[key] = filters;
+			await this.saveSettings();
+			this.renderFilterRow(
+				listContainer,
+				filters[filters.length - 1],
+				key,
+				filters.length - 1,
+				label,
+			);
+		});
+	}
+
+	private renderFilterRow(
+		containerEl: HTMLElement,
+		filter: PathFilterConfig,
+		key: string,
+		index: number,
+		label: string,
+	) {
+		const row = containerEl.createDiv({ cls: "filter-row" });
+		row.style.cssText =
+			"display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;";
+
+		const input = row.createEl("input", {
+			type: "text",
+			attr: { placeholder: label + "模式" },
+		});
+		input.value = filter.pattern || "";
+		input.style.cssText = "flex:1;min-width:100px;";
+		input.addEventListener("input", async () => {
+			filter.pattern = input.value;
+			await this.saveSettings();
+		});
+
+		const caseBtn = row.createEl("button", {
+			text: "Aa",
+			cls: "filter-toggle-btn",
+		});
+		caseBtn.style.cssText = this.toggleStyle(filter.caseSensitive);
+		caseBtn.title = "区分大小写";
+		caseBtn.addEventListener("click", async () => {
+			filter.caseSensitive = !filter.caseSensitive;
+			caseBtn.style.cssText = this.toggleStyle(filter.caseSensitive);
+			await this.saveSettings();
+		});
+
+		const wordBtn = row.createEl("button", {
+			text: "ab",
+			cls: "filter-toggle-btn",
+		});
+		wordBtn.style.cssText = this.toggleStyle(filter.wholeWord);
+		wordBtn.title = "全字匹配";
+		wordBtn.addEventListener("click", async () => {
+			filter.wholeWord = !filter.wholeWord;
+			wordBtn.style.cssText = this.toggleStyle(filter.wholeWord);
+			await this.saveSettings();
+		});
+
+		const regexBtn = row.createEl("button", {
+			text: "正则",
+			cls: "filter-toggle-btn",
+		});
+		regexBtn.style.cssText = this.toggleStyle(filter.useRegex);
+		regexBtn.title = "使用正则表达式匹配";
+		regexBtn.addEventListener("click", async () => {
+			filter.useRegex = !filter.useRegex;
+			regexBtn.style.cssText = this.toggleStyle(filter.useRegex);
+			await this.saveSettings();
+		});
+
+		const excludeBtn = row.createEl("button", {
+			text: "排除",
+			cls: "filter-toggle-btn",
+		});
+		excludeBtn.style.cssText = this.toggleStyle(filter.exclude, "#c3393e");
+		excludeBtn.title = "排除匹配项";
+		excludeBtn.addEventListener("click", async () => {
+			filter.exclude = !filter.exclude;
+			excludeBtn.style.cssText = this.toggleStyle(
+				filter.exclude,
+				"#c3393e",
+			);
+			await this.saveSettings();
+		});
+
+		const delBtn = row.createEl("button", {
+			text: "✕",
+			cls: "filter-del-btn",
+		});
+		delBtn.style.cssText =
+			"border:none;background:transparent;cursor:pointer;color:var(--text-muted);";
+		delBtn.addEventListener("click", async () => {
+			const filters: PathFilterConfig[] = this.plugin.settings[key] || [];
+			filters.splice(index, 1);
+			this.plugin.settings[key] = filters;
+			await this.saveSettings();
+			row.remove();
+		});
+	}
+
+	private renderTaskItemList(containerEl: HTMLElement) {
+		const filters: TaskItemFilterConfig[] =
+			this.plugin.settings.taskItemFilters || [];
+		const listContainer = containerEl.createDiv({ cls: "filter-list" });
+
+		filters.forEach((filter, index) => {
+			this.renderTaskItemRow(listContainer, filter, index);
+		});
+
+		const addBtn = containerEl.createEl("button", {
+			text: "+ 添加任务项匹配",
+			cls: "filter-add-btn",
+		});
+		addBtn.style.cssText = "margin-top:12px;padding:4px 12px;";
+		addBtn.addEventListener("click", async () => {
+			filters.push({ pattern: "", exclude: false });
+			this.plugin.settings.taskItemFilters = filters;
+			await this.saveSettings();
+			this.renderTaskItemRow(
+				listContainer,
+				filters[filters.length - 1],
+				filters.length - 1,
+			);
+		});
+	}
+
+	private renderTaskItemRow(
+		containerEl: HTMLElement,
+		filter: TaskItemFilterConfig,
+		index: number,
+	) {
+		const row = containerEl.createDiv({ cls: "filter-row" });
+		row.style.cssText =
+			"display:flex;align-items:center;gap:6px;margin-bottom:4px;";
+
+		const input = row.createEl("input", {
+			type: "text",
+			attr: { placeholder: "输入状态符号，如 x" },
+		});
+		input.value = filter.pattern || "";
+		input.style.cssText = "flex:1;min-width:100px;max-width:200px;";
+		input.addEventListener("input", async () => {
+			filter.pattern = input.value;
+			await this.saveSettings();
+		});
+
+		const excludeBtn = row.createEl("button", {
+			text: "排除",
+			cls: "filter-toggle-btn",
+		});
+		excludeBtn.style.cssText = this.toggleStyle(filter.exclude, "#c3393e");
+		excludeBtn.title = "排除匹配项";
+		excludeBtn.addEventListener("click", async () => {
+			filter.exclude = !filter.exclude;
+			excludeBtn.style.cssText = this.toggleStyle(
+				filter.exclude,
+				"#c3393e",
+			);
+			await this.saveSettings();
+		});
+
+		const delBtn = row.createEl("button", {
+			text: "✕",
+			cls: "filter-del-btn",
+		});
+		delBtn.style.cssText =
+			"border:none;background:transparent;cursor:pointer;color:var(--text-muted);";
+		delBtn.addEventListener("click", async () => {
+			const list: TaskItemFilterConfig[] =
+				this.plugin.settings.taskItemFilters || [];
+			list.splice(index, 1);
+			this.plugin.settings.taskItemFilters = list;
+			await this.saveSettings();
+			row.remove();
+		});
+	}
+
+	private toggleStyle(active: boolean, activeColor?: string): string {
+		if (active) {
+			return `background:${activeColor || "var(--interactive-accent)"};color:white;border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:11px;`;
+		}
+		return "background:var(--background-modifier-border);color:var(--text-muted);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:11px;";
+	}
+}

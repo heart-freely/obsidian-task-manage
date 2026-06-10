@@ -39,7 +39,7 @@
 
 1. 从 [GitHub Releases](https://github.com/heart-freely/obsidian-task-manage/releases) 下载最新版本。
 2. 解压并将整个文件夹复制到你的库的插件目录：`<vault>/.obsidian/plugins/obsidian-task-manage/`。
-3. 重启 Obsidian，在 **设置 → 社区插件** 中启用 **任务面板**。
+3. 重启 Obsidian，在 **设置 → 社区插件** 中启用 **任务管理**。
 
 ## 使用方法
 
@@ -94,7 +94,7 @@ _批量编辑标记，实时预览与快照撤回_
 
 ## 配置
 
-在 **设置 → 任务面板** 中可配置：
+在 **设置 → 任务管理** 中可配置：
 
 - **任务文件夹**：设置读取任务的文件夹路径（支持多个，每行一个）。
 - **根路径**：任务树的根目录。

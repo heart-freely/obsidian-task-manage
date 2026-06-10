@@ -1,7 +1,7 @@
 // src/ui/panel/panel.ts
 // 面板管理器
 
-import { Store } from "../../process/store/store";
+import { Store } from "../../core/store/store";
 import { HeadPanel } from "./head-panel";
 import { HidePanel } from "./hide-panel";
 import { MarkPanel } from "./mark-panel";

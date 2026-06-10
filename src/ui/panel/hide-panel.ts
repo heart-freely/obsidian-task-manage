@@ -1,16 +1,24 @@
 // src/ui/panel/hide-panel.ts
 import {
-	ALLOWED_STATUSES,
 	MARK_NAMES,
 	PRIORITY_ORDER,
 	REPEAT_ORDER,
 	STATUS_NAMES,
-} from "../../process/config/config";
-import { getDefaultHideConfig } from "../../process/config/panel-default-config";
-import { Store } from "../../process/store/store";
-import { HideConfig } from "../../types";
+} from "../../core/config/config";
+import { getDefaultHideConfig } from "../../core/config/panel-default-config";
+import { Store } from "../../core/store/store";
+import { HideConfig } from "../../type/type";
 
 const PRIORITY_ICONS = [...PRIORITY_ORDER].reverse();
+
+// 第一版兼容：使用5种基础状态
+const BASIC_STATUSES = [
+	"todo",
+	"scheduled",
+	"in-progress",
+	"completed",
+	"cancelled",
+];
 
 const HIDE_GROUPS = [
 	{ label: "隐藏状态", type: "statuses" },
@@ -81,12 +89,12 @@ export class HidePanel {
 				if (!noneHidden) mainBtn.addClass("active");
 				mainBtn.onclick = () =>
 					updateHideConfig({
-						hideStatuses: noneHidden ? [...ALLOWED_STATUSES] : [],
+						hideStatuses: noneHidden ? [...BASIC_STATUSES] : [],
 					});
 				const subPanel = row.createDiv({ cls: "panel-sub" });
 				subPanel.style.cssText =
 					"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
-				ALLOWED_STATUSES.forEach((st) => {
+				BASIC_STATUSES.forEach((st) => {
 					const isHidden = hidden.includes(st);
 					const btn = subPanel.createEl("button", {
 						text: STATUS_NAMES[st] || st,

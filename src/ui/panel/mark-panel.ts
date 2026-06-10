@@ -3,8 +3,8 @@ import {
 	MARK_NAMES,
 	PRIORITY_ORDER,
 	REPEAT_ORDER,
-} from "../../process/config/config";
-import { Store } from "../../process/store/store";
+} from "../../core/config/config";
+import { Store } from "../../core/store/store";
 
 const PRIORITY_ICONS = [...PRIORITY_ORDER].reverse();
 

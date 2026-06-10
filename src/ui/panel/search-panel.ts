@@ -1,7 +1,7 @@
 // src/ui/panel/search-panel.ts
 // 任务描述面板
 
-import { Store } from "../../process/store/store";
+import { Store } from "../../core/store/store";
 
 export class SearchPanel {
 	private container: HTMLElement;

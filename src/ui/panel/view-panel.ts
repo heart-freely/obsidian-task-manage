@@ -1,7 +1,7 @@
 // src/ui/panel/view-panel.ts
 // 任务视图面板
 
-import { Store } from "../../process/store/store";
+import { Store } from "../../core/store/store";
 
 const VIEW_STYLES = [
 	{ key: "list", label: "列表", group: "基础" },

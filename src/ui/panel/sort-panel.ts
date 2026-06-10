@@ -1,7 +1,7 @@
 // src/ui/panel/sort-panel.ts
 // 视图排序面板
 
-import { Store } from "../../process/store/store";
+import { Store } from "../../core/store/store";
 
 const SORT_OPTIONS = [
 	{ type: "status", label: "状态" },
@@ -11,7 +11,7 @@ const SORT_OPTIONS = [
 	{ type: "created", label: "创建" },
 	{ type: "scheduled", label: "计划" },
 	{ type: "starts", label: "开始" },
-	{ type: "cancel", label: "取消" },
+	{ type: "cancelled", label: "取消" },
 	{ type: "done", label: "完成" },
 	{ type: "due", label: "截止" },
 	{ type: "id", label: "唯一ID" },
@@ -44,9 +44,28 @@ export class SortPanel {
 		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
-		const currentSort = preset?.sort ?? { type: "status", order: "asc" };
+		const currentSort = preset?.sort ?? { type: "", order: "asc" };
 		const row = this.container.createDiv({ cls: "panel-row" });
 		row.createSpan({ text: "任务排序", cls: "panel-label" });
+
+		// 原始顺序按钮（默认选中）
+		const defaultBtn = row.createEl("button", {
+			text: "原始",
+			cls: "panel-btn",
+		});
+		if (currentSort.type === "") defaultBtn.addClass("active");
+		defaultBtn.onclick = () => {
+			const st = this.store.getState();
+			const pr = this.store.getActivePreset();
+			if (!pr) return;
+			this.store.update({
+				presets: st.presets.map((p) =>
+					p.id === pr.id
+						? { ...p, sort: { type: "", order: "asc" as const } }
+						: p,
+				),
+			});
+		};
 
 		SORT_OPTIONS.forEach((opt) => {
 			const btn = row.createEl("button", {

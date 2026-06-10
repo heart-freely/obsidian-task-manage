@@ -1,6 +1,6 @@
 {
 	"id": "obsidian-task-manage",
-	"name": "任务面板",
+	"name": "任务管理",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "任务汇总分析面板，支持任务收集、整理、组织、回顾、执行、统计、归档全流程管理，支持习惯追踪",
