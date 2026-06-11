@@ -1,6 +1,8 @@
 // src/ui/component/lists/uniqueId-renderer.ts
 
+import { ID_COLOR_DEF } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { getThemeColor } from "../../../util/color-utils";
 import { createGroupCard } from "../card/group-card";
 
 export function renderUniqueId(
@@ -15,7 +17,7 @@ export function renderUniqueId(
 		return;
 	}
 
-	// 有ID的排前面
+	const color = getThemeColor(ID_COLOR_DEF);
 	const sorted = [...uniqueIdNodes].sort(
 		(a, b) => (b.id ? 1 : 0) - (a.id ? 1 : 0),
 	);
@@ -25,7 +27,7 @@ export function renderUniqueId(
 		count: sorted.length,
 		tasks: sorted,
 		onClick: options?.onClick,
-		color: "rgba(140, 120, 200, 0.25)",
+		color: color,
 	});
 	container.appendChild(card);
 }

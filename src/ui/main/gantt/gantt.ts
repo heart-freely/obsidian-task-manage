@@ -1,5 +1,5 @@
-// ui/main/gantt/gantt.ts
-// 甘特图组件 — 整体视图，甘特条作为树行内元素
+// src/ui/main/gantt/gantt.ts
+
 import {
 	advanceGridLineDate,
 	calcBarEdges,
@@ -18,6 +18,7 @@ import {
 	loadZoomState,
 	saveZoomState,
 } from "../../../core/component/gantt-view-process";
+import { getStatusColors } from "../../../core/config/config";
 import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
@@ -516,17 +517,21 @@ export function renderGanttWithTree(
 			end: number | null;
 			isAll: boolean;
 		};
+		focusRoot?: TaskTreeNode;
 	},
 ) {
 	container.empty();
+
+	const statusColors = getStatusColors();
 
 	const intervalMode =
 		options?.intervalMode && options.intervalMode !== "none"
 			? options.intervalMode
 			: "any-date";
-	const treeWidth = calcTreeMaxWidth([treeRoot]);
+	const displayRoot = options?.focusRoot || treeRoot;
+	const treeWidth = calcTreeMaxWidth([displayRoot]);
 	const timeRange = calcRangeFromRoots(
-		[treeRoot],
+		[displayRoot],
 		intervalMode,
 		options?.dateRange,
 	);
@@ -625,7 +630,8 @@ export function renderGanttWithTree(
 		content.appendChild(currentSvg);
 
 		renderTaskTree(treeContainer, {
-			root: treeRoot,
+			root: displayRoot,
+			focusRoot: options?.focusRoot,
 			onClick: (node: TaskTreeNode) => {
 				if (node.uid === "__task_root__") return;
 				const edges = calcBarEdges(
@@ -667,7 +673,7 @@ export function renderGanttWithTree(
 							transform: translateY(-50%);
 							width: ${edges.width}px;
 							height: ${GANTT_CONFIG.TASK_BAR_HEIGHT}px;
-							background: ${GANTT_CONFIG.STATUS_COLORS[node.status] || GANTT_CONFIG.STATUS_COLORS["todo"]};
+							background: ${statusColors[node.status] || statusColors["todo"]};
 							border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
 							cursor: pointer; opacity: 0.85; z-index: 2;
 							display: flex; align-items: center; overflow: hidden;
@@ -752,7 +758,6 @@ export function renderGanttWithTree(
 			},
 		});
 
-		// 树折叠/展开时更新右侧位置
 		const onTreeToggle = () => {
 			requestAnimationFrame(() => {
 				const newTreeWidth = treeContainer.offsetWidth || treeWidth;

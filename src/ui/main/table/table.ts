@@ -5,13 +5,13 @@ import {
 	DEFAULT_TABLE_COLUMNS,
 	STATUS_ICONS,
 	STATUS_NAMES,
-	formatDisplayDate,
 } from "../../../core/config/config";
 import {
 	getPriorityIcon,
 	getPriorityName,
 } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { formatDisplayDate } from "../../../util/date-utils";
 
 interface TaskTableOptions {
 	onClick?: (node: TaskTreeNode) => void;
@@ -54,7 +54,6 @@ export function renderTaskTable(
 			label: "描述",
 			getValue: (n) => {
 				let text = n.text || n.content || "";
-				// 标题任务去除 number headings 序号
 				if (n.type === "heading") {
 					text = removeHeadingNumber(text);
 				}

@@ -111,3 +111,14 @@ export const DateUtils = {
 		return DateUtils.getDayRange(d);
 	},
 };
+
+// ========== 日期格式化 ==========
+
+export const DATE_FORMAT = "YYYY-MM-DD";
+
+export function formatDisplayDate(d: any): string {
+	if (!d) return "";
+	if (typeof d === "string") return d.substring(0, 10);
+	if (d instanceof Date) return d.toISOString().substring(0, 10);
+	return String(d).substring(0, 10);
+}

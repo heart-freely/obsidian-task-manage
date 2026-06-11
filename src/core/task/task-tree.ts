@@ -22,6 +22,7 @@ export interface TaskTreeNode {
 
 	text: string;
 	display: boolean;
+	match: boolean;
 
 	status: TaskStatus;
 	content: string;
@@ -60,9 +61,6 @@ export interface FileRelations {
 
 export interface TreeFilterOptions {
 	statuses?: string[];
-	hideRepeat?: boolean;
-	hideCompleted?: boolean;
-	hideCancelled?: boolean;
 	searchText?: string;
 	priorityValues?: string[];
 	repeatCycles?: string[];
@@ -156,6 +154,7 @@ export function buildTaskTree(
 			children: [],
 			text: name,
 			display: true,
+			match: true,
 			status: taskData.status,
 			content: taskData.content,
 			priority: taskData.priority,
@@ -182,13 +181,10 @@ export function buildTaskTree(
 	}
 
 	// 2. 解析文件间关系
-	// 🔴 修复：处理每个文件时，检查 node.fileRelations 是否已被其他文件创建。
-	// 如果已存在则复用，避免覆盖其他文件已经设置的数据（如 linkedParents）。
 	for (const file of files) {
 		const node = nodeMap.get(file.path);
 		if (!node) continue;
 
-		// 复用已有的 fileRelations，避免覆盖
 		if (!node.fileRelations) {
 			node.fileRelations = {
 				declaredParentName: null,
@@ -203,7 +199,6 @@ export function buildTaskTree(
 		}
 		const relations = node.fileRelations;
 
-		// 解析 YAML 中声明的父任务（仅在未设置时解析）
 		if (!relations.declaredParentName) {
 			const metaParent = parseParentField(
 				file.yaml["父任务"] || file.yaml["任务父任务"],
@@ -230,10 +225,8 @@ export function buildTaskTree(
 			}
 		}
 
-		// 解析正文中的 Wiki 链接
 		const bodyLinks = getBodyLinks(file.content);
 		for (const linkName of bodyLinks) {
-			// 去重
 			if (!relations.linkedChildrenNames.includes(linkName)) {
 				relations.linkedChildrenNames.push(linkName);
 			}
@@ -276,7 +269,6 @@ export function buildTaskTree(
 	}
 
 	// 4. 建立父子关系
-	// 优先使用 YAML 声明的父节点，回退使用 Wiki 链接的父节点（取第一个）
 	const roots: TaskTreeNode[] = [];
 	for (const node of nodeMap.values()) {
 		const declaredParent = node.fileRelations?.declaredParent ?? null;
@@ -320,6 +312,7 @@ function createRootNode(children: TaskTreeNode[]): TaskTreeNode {
 		children,
 		text: "🗂️ 任务管理",
 		display: true,
+		match: true,
 		status: "todo",
 		content: "任务管理",
 		priority: 5,
@@ -420,6 +413,7 @@ function convertContentNodes(
 			children: [],
 			text: cn.text,
 			display: true,
+			match: true,
 			status: cn.task?.status ?? "todo",
 			content: cn.task?.content ?? cn.text,
 			priority: cn.task?.priority ?? 5,
@@ -469,6 +463,9 @@ function filterNode(
 	const hasChildren = fc.length > 0;
 	const self = taskMatchesFilter(node, options);
 
+	// 设置匹配标志：自身是否匹配筛选条件
+	node.match = self;
+
 	if (!hasChildren && !self) return null;
 
 	return { ...node, children: fc };
@@ -478,10 +475,6 @@ function taskMatchesFilter(
 	node: TaskTreeNode,
 	options: TreeFilterOptions,
 ): boolean {
-	if (options.hideRepeat && node.repeat) return false;
-	if (options.hideCompleted && node.status === "completed") return false;
-	if (options.hideCancelled && node.status === "cancelled") return false;
-
 	const activeGroups: Array<() => boolean> = [];
 
 	const statuses = options.statuses || [];
@@ -649,7 +642,7 @@ function taskInDateRange(
 	return start <= dateRange.end && end >= dateRange.start;
 }
 
-// ========== 隐藏配置筛选（设置 display 标志，不删除节点）==========
+// ========== 隐藏配置筛选 ==========
 
 export function applyHideConfig(
 	root: TaskTreeNode,

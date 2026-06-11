@@ -1,6 +1,7 @@
 // src/ui/main/card/card.ts
 // 统一任务卡片组件 — 纯 DOM 创建和事件绑定
 
+import { getStatusColors } from "../../../core/config/config";
 import {
 	buildDescription,
 	buildMetaRow,
@@ -32,14 +33,19 @@ export function createTaskCard(
 	li.setAttribute("data-path", node.path);
 	li.setAttribute("data-line-number", String(node.line));
 
+	// 根据执行状态获取左侧色条颜色
+	const statusColors = getStatusColors();
+	const statusColor = statusColors[node.status] || statusColors["todo"];
+
 	if (compact) {
 		li.style.cssText =
-			"margin:0;padding:1px 0;background:transparent;border-radius:4px;font-size:var(--font-ui-small);cursor:pointer;border:none;display:block;list-style:none;border-left:none;";
+			"margin:0;padding:1px 0;background:transparent;border-radius:4px;font-size:var(--font-ui-small);cursor:pointer;border:none;display:block;list-style:none;";
 		li.innerHTML = `<div class="task-desc" style="font-weight:normal;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;line-height:1.5;">${descHtml}</div>`;
 	} else {
 		const metaHtml = buildMetaRow(node);
 		li.style.cssText =
-			"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; border-left:3px solid var(--interactive-accent); display:flex; flex-direction:column; color:var(--text-normal); transition:background 0.1s;";
+			"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; display:flex; flex-direction:column; color:var(--text-normal); transition:background 0.1s;";
+		li.style.borderLeft = `3px solid ${statusColor}`;
 		li.innerHTML = `<div class="task-desc" style="font-weight:500;margin-bottom:4px;">${descHtml}</div><div class="task-meta" style="font-size:0.8em;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;">${metaHtml}</div>`;
 	}
 

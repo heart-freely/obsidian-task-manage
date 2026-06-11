@@ -255,7 +255,8 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	const step = tickStep ?? Math.max(1, Math.ceil((max - min) / 20));
 
 	const trackWrapper = outerRow.createDiv();
-	trackWrapper.style.cssText = "flex:1;position:relative;min-width:60px;";
+	trackWrapper.style.cssText =
+		"flex:1;position:relative;min-width:60px;margin-right:8px;";
 
 	// 右侧文字
 	const labelSpan = outerRow.createSpan();
@@ -270,6 +271,7 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		white-space:nowrap;
 		overflow:hidden;
 		text-overflow:ellipsis;
+		padding-right:8px;
 	`;
 
 	const initS = clamp(Math.min(start, end), min, max);
@@ -296,7 +298,6 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	});
 	slider.refs.row.style.cssText = "width:100%;";
 
-	// 刻度标记放在实际轨道 slider.refs.track 中
 	const track = slider.refs.track;
 	for (let v = min; v <= max; v += step) {
 		const isToday = todayValue !== undefined && v === todayValue;
@@ -313,7 +314,6 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:8px;background:var(--text-accent);opacity:1;z-index:1;`;
 	}
 
-	// 中位线放在实际轨道中
 	const midLine = track.createDiv();
 	midLine.style.cssText =
 		"position:absolute;top:-2px;width:1px;height:8px;background:var(--text-muted);opacity:0.5;z-index:1;";

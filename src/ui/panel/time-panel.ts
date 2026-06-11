@@ -777,12 +777,14 @@ export class TimePanel {
 					new Date(cf.dateRange.start),
 				);
 				this.staticEnd = DateUtils.setEnd(new Date(cf.dateRange.end));
-				this.dynamicStart = DateUtils.setStart(
-					new Date(cf.dateRange.start),
-				);
-				this.dynamicEnd = DateUtils.setStart(
-					new Date(cf.dateRange.end),
-				);
+				if (this.useDynamic) {
+					this.dynamicStart = DateUtils.setStart(
+						new Date(cf.dateRange.start),
+					);
+					this.dynamicEnd = DateUtils.setStart(
+						new Date(cf.dateRange.end),
+					);
+				}
 			}
 			this.currentMinYear = this.staticStart.getFullYear();
 			this.currentMaxYear = this.staticEnd.getFullYear();

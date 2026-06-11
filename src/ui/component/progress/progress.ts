@@ -2,7 +2,7 @@
 
 import {
 	ALLOWED_STATUSES,
-	STATUS_COLORS,
+	getStatusColors,
 	STATUS_ICONS,
 	STATUS_NAMES,
 } from "../../../core/config/config";
@@ -32,7 +32,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		barHeight +
 		";border-radius:3px;overflow:hidden;background:var(--background-modifier-border);display:flex;";
 
-	// 修复：planned → scheduled
+	const statusColors = getStatusColors();
 	const order = [
 		"todo",
 		"scheduled",
@@ -52,7 +52,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 				"width:" +
 				pct +
 				"%;height:100%;background:" +
-				(STATUS_COLORS[status] || "var(--text-muted)") +
+				(statusColors[status] || "var(--text-muted)") +
 				";flex-shrink:0;";
 			barWrapper.appendChild(segment);
 		}
@@ -91,7 +91,6 @@ function buildProgressTooltip(
 	total: number,
 ): string {
 	const parts: string[] = [];
-	// 修复：planned → scheduled
 	const statusConfig: Array<{ key: string; icon: string; label: string }> = [
 		{
 			key: "todo",

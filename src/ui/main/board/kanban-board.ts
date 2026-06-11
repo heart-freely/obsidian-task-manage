@@ -1,18 +1,18 @@
 // src/ui/main/board/kanban-board.ts
 
+import { getStatusColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
 
-	// 修复：planned → scheduled
+	const statusColors = getStatusColors();
 	const validStatuses = ["todo", "scheduled", "in-progress"];
 	const filteredNodes = nodes.filter((n) => validStatuses.includes(n.status));
 
 	const groups: Record<string, TaskTreeNode[]> = {
 		todo: [],
-		// 修复：planned → scheduled
 		scheduled: [],
 		"in-progress": [],
 	};
@@ -21,13 +21,12 @@ export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
 	});
 
 	const columns = [
-		{ key: "todo", label: "待办中", color: "rgba(180,180,180,0.25)" },
-		// 修复：planned → scheduled
-		{ key: "scheduled", label: "计划中", color: "rgba(97,175,239,0.25)" },
+		{ key: "todo", label: "待办中", color: statusColors["todo"] },
+		{ key: "scheduled", label: "计划中", color: statusColors["scheduled"] },
 		{
 			key: "in-progress",
 			label: "进行中",
-			color: "rgba(224,108,117,0.25)",
+			color: statusColors["in-progress"],
 		},
 	];
 

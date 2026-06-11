@@ -1,14 +1,8 @@
 // src/ui/main/list/recurring-list.ts
 
+import { getRepeatColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createGroupCard } from "../card/group-card";
-
-const REPEAT_COLORS = [
-	"rgba(100,150,200,0.25)",
-	"rgba(100,180,150,0.25)",
-	"rgba(180,150,100,0.25)",
-	"rgba(170,130,160,0.25)",
-];
 
 export function renderRecurring(
 	container: HTMLElement,
@@ -22,6 +16,7 @@ export function renderRecurring(
 		return;
 	}
 
+	const repeatColors = getRepeatColors();
 	const groups: Record<string, TaskTreeNode[]> = {};
 	recurringNodes.forEach((node) => {
 		const cycle = node.repeat || "其他";
@@ -45,7 +40,7 @@ export function renderRecurring(
 			count: tasksInGroup.length,
 			tasks: tasksInGroup,
 			onClick: options?.onClick,
-			color: REPEAT_COLORS[index % REPEAT_COLORS.length],
+			color: repeatColors[index],
 		});
 		grid.appendChild(card);
 	});

@@ -1,10 +1,9 @@
 // src/ui/component/lists/time-list.ts
 
-import { formatDisplayDate } from "../../../core/config/config";
+import { getDateMarkColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { formatDisplayDate } from "../../../util/date-utils";
 import { createGroupCard } from "../card/group-card";
-
-const COLOR = "rgba(97,175,239,0.25)";
 
 export function renderTimeList(
 	container: HTMLElement,
@@ -13,6 +12,7 @@ export function renderTimeList(
 ) {
 	container.empty();
 
+	const dateMarkColors = getDateMarkColors();
 	const groups: Record<string, TaskTreeNode[]> = {};
 	nodes.forEach((node) => {
 		const date = node.scheduled
@@ -33,7 +33,7 @@ export function renderTimeList(
 			title: `⏳ ${date}`,
 			count: groups[date].length,
 			tasks: groups[date],
-			color: COLOR,
+			color: dateMarkColors["scheduled"],
 			onClick: options?.onClick,
 		});
 		container.appendChild(card);

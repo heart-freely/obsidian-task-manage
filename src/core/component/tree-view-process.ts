@@ -33,13 +33,14 @@ export function collectAllTasksFromNode(node: TaskTreeNode): TaskTreeNode[] {
 
 // src/core/component/tree-view-process.ts
 
+// src/core/component/tree-view-process.ts — countNodeStatuses
+
 export function countNodeStatuses(node: TaskTreeNode): {
 	counts: Record<string, number>;
 	total: number;
 } {
-	// 排除虚拟根节点自身
 	const tasks = collectAllTasksFromNode(node).filter(
-		(t) => t.uid !== "__task_root__",
+		(t) => t.display && t.uid !== "__task_root__",
 	);
 	return countTaskStatuses(tasks);
 }

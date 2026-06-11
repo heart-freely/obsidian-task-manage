@@ -70,11 +70,11 @@ export class Panels {
 		this.panelHost.style.zIndex = "50";
 		this.panelHost.style.pointerEvents = "auto";
 
-		// 标题栏按钮条
+		// 标题栏按钮条 — 作为面板内容的一部分
 		this.buttonBarEl = document.createElement("div");
 		this.buttonBarEl.className = "panel-header";
 		this.buttonBarEl.style.cssText =
-			"padding:4px 6px;display:flex;flex-wrap:nowrap;overflow-x:auto;background:var(--background-secondary);border:none;border-bottom:1px solid var(--background-modifier-border);border-radius:6px 6px 0 0;box-sizing:border-box;gap:0;position:sticky;top:0;z-index:1;flex-shrink:0;";
+			"padding:4px 6px;display:flex;flex-wrap:nowrap;overflow-x:auto;background-color:var(--background-primary);border:none;border-bottom:1px solid var(--background-modifier-border);border-radius:0;box-sizing:border-box;gap:0;flex-shrink:0;";
 
 		this.headPanel = new HeadPanel(this.buttonBarEl, store);
 
@@ -98,12 +98,11 @@ export class Panels {
 		this.panelsContainer.style.overflowX = "hidden";
 		this.panelsContainer.style.boxSizing = "border-box";
 
-		this.panelsContainer.appendChild(this.buttonBarEl);
-
-		// 面板内容区域
+		// 面板内容区域 — 标题栏 + 功能面板
 		this.panelContentInner = document.createElement("div");
 		this.panelContentInner.style.cssText =
-			"padding:4px 6px 0 6px;display:flex;flex-direction:column;gap:4px;";
+			"display:flex;flex-direction:column;gap:0;";
+		this.panelContentInner.appendChild(this.buttonBarEl);
 		this.panelsContainer.appendChild(this.panelContentInner);
 
 		this.panelHost.appendChild(this.panelsContainer);
@@ -192,6 +191,7 @@ export class Panels {
       .panel-view-btn{min-width:80px}
       .panel-input{padding:4px 8px;border-radius:12px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);font-size:13px;min-width:200px}
       .panel-input-sm{width:48px;min-width:48px;padding:3px 4px;font-size:14px;text-align:center}
+      .panel-content{padding:4px 6px;background:var(--background-secondary);}
     `;
 		document.head.appendChild(this.styleEl);
 	}
@@ -278,9 +278,6 @@ export class Panels {
 			if (!this.panelEls.has(key)) {
 				const panel = document.createElement("div");
 				panel.className = "panel-content";
-				panel.style.background = "var(--background-secondary)";
-				panel.style.opacity = "1";
-				panel.style.backdropFilter = "none";
 				panel.setAttribute("data-panel-key", key);
 				this.panelEls.set(key, panel);
 				if (PANEL_COMPONENTS[key]) {
@@ -295,13 +292,15 @@ export class Panels {
 		}
 
 		const currentChildren = Array.from(this.panelContentInner.children);
+		// 第一个子元素是 buttonBarEl，后面的才是功能面板
 		const expectedOrder = visibleKeys
 			.map((key) => this.panelEls.get(key))
 			.filter(Boolean);
 
 		let needReorder = false;
 		for (let i = 0; i < expectedOrder.length; i++) {
-			if (currentChildren[i] !== expectedOrder[i]) {
+			// panelContentInner.children[0] 是 buttonBarEl, children[1+] 是功能面板
+			if (currentChildren[i + 1] !== expectedOrder[i]) {
 				needReorder = true;
 				break;
 			}

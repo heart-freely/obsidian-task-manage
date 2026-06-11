@@ -1,26 +1,61 @@
-// src/ui/component/charts/detailc-charts.ts
+// src/ui/component/charts/detail-chart.ts
 
 import {
 	ALLOWED_STATUSES,
-	STATUS_COLORS,
+	getStatusColors,
+	STATUS_ICONS,
 	STATUS_NAMES,
 } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
 import { echarts } from "./echart";
 
-export function renderDetail(container: HTMLElement, nodes: TaskTreeNode[]) {
+export function renderDetail(
+	container: HTMLElement,
+	nodes: TaskTreeNode[],
+	options?: {
+		dateRange?: {
+			start: number | null;
+			end: number | null;
+			isAll: boolean;
+		};
+		intervalMode?: string;
+	},
+) {
 	container.empty();
-	const today = new Date();
-	let minDate = new Date(today),
+
+	const statusColors = getStatusColors();
+
+	// 确定时间范围：优先使用静态日历时间，否则从任务数据推断
+	const intervalMode = options?.intervalMode ?? "any-date";
+	const dateRange = options?.dateRange;
+
+	let minDate: Date;
+	let maxDate: Date;
+
+	if (
+		intervalMode !== "none" &&
+		dateRange &&
+		!dateRange.isAll &&
+		dateRange.start != null &&
+		dateRange.end != null
+	) {
+		minDate = DateUtils.setStart(new Date(dateRange.start));
+		maxDate = DateUtils.setEnd(new Date(dateRange.end));
+	} else {
+		// 回退：从任务数据推断时间范围
+		const today = new Date();
+		minDate = new Date(today);
 		maxDate = new Date(today);
-	nodes.forEach((n) => {
-		if (n.scheduled !== null) {
-			const d = new Date(n.scheduled);
-			if (d < minDate) minDate = d;
-			if (d > maxDate) maxDate = d;
-		}
-	});
+		nodes.forEach((n) => {
+			if (n.scheduled !== null) {
+				const d = new Date(n.scheduled);
+				if (d < minDate) minDate = d;
+				if (d > maxDate) maxDate = d;
+			}
+		});
+	}
+
 	const dates: string[] = [];
 	let cur = DateUtils.setStart(minDate);
 	const endTime = DateUtils.setEnd(maxDate).getTime();
@@ -61,7 +96,17 @@ export function renderDetail(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.appendChild(wrapper);
 	const chart = echarts.init(chartDiv);
 	const option = {
-		tooltip: { trigger: "axis" },
+		tooltip: {
+			trigger: "axis",
+			backgroundColor: "rgba(0, 0, 0, 0.85)",
+			borderColor: "transparent",
+			textStyle: {
+				color: "#fff",
+				fontSize: 11,
+			},
+			extraCssText:
+				"border-radius:6px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);",
+		},
 		xAxis: {
 			type: "category",
 			data: dates,
@@ -69,11 +114,11 @@ export function renderDetail(container: HTMLElement, nodes: TaskTreeNode[]) {
 		},
 		yAxis: { type: "value" },
 		series: ALLOWED_STATUSES.map((st) => ({
-			name: STATUS_NAMES[st] || st,
+			name: STATUS_ICONS[st] + " " + STATUS_NAMES[st],
 			type: "bar",
 			stack: "total",
 			data: seriesData[st],
-			itemStyle: { color: STATUS_COLORS[st] || undefined },
+			itemStyle: { color: statusColors[st] || undefined },
 		})),
 		grid: { left: "8%", right: "5%", top: "15%", bottom: "25%" },
 		legend: { bottom: 0, textStyle: { fontSize: 10 } },

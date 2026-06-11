@@ -1,4 +1,6 @@
 // src/ui/panel/hide-panel.ts
+// 视图隐藏面板 — 修改 hideConfig
+
 import {
 	MARK_NAMES,
 	PRIORITY_ORDER,
@@ -11,7 +13,6 @@ import { HideConfig } from "../../type/type";
 
 const PRIORITY_ICONS = [...PRIORITY_ORDER].reverse();
 
-// 第一版兼容：使用5种基础状态
 const BASIC_STATUSES = [
 	"todo",
 	"scheduled",
@@ -31,7 +32,7 @@ const HIDE_GROUPS = [
 		keys: ["created", "scheduled", "starts", "cancelled", "done", "due"],
 	},
 	{ label: "隐藏依赖", type: "marks", keys: ["id", "forbid"] },
-	{ label: "隐藏标签", type: "marks", keys: ["tag"] },
+	{ label: "隐藏标签", type: "marks", 优先: ["tag"] },
 ];
 
 export class HidePanel {
@@ -78,6 +79,42 @@ export class HidePanel {
 		HIDE_GROUPS.forEach((group) => {
 			const row = this.container.createDiv({ cls: "panel-row" });
 			row.createSpan({ text: group.label, cls: "panel-label" });
+
+			if (group.type === "repeatTasks") {
+				const isHidden = hideConfig.hideRepeatTasks ?? true;
+				const btn = row.createEl("button", {
+					text: isHidden ? "显示循环" : "隐藏循环",
+					cls: "panel-btn",
+				});
+				if (isHidden) btn.addClass("active");
+				btn.onclick = () =>
+					updateHideConfig({ hideRepeatTasks: !isHidden });
+				return;
+			}
+
+			if (group.type === "completedTasks") {
+				const isHidden = hideConfig.hideCompletedTasks ?? true;
+				const btn = row.createEl("button", {
+					text: isHidden ? "显示已完成" : "隐藏已完成",
+					cls: "panel-btn",
+				});
+				if (isHidden) btn.addClass("active");
+				btn.onclick = () =>
+					updateHideConfig({ hideCompletedTasks: !isHidden });
+				return;
+			}
+
+			if (group.type === "cancelledTasks") {
+				const isHidden = hideConfig.hideCancelledTasks ?? true;
+				const btn = row.createEl("button", {
+					text: isHidden ? "显示已取消" : "隐藏已取消",
+					cls: "panel-btn",
+				});
+				if (isHidden) btn.addClass("active");
+				btn.onclick = () =>
+					updateHideConfig({ hideCancelledTasks: !isHidden });
+				return;
+			}
 
 			if (group.type === "statuses") {
 				const hidden = hideConfig.hideStatuses || [];
@@ -140,7 +177,7 @@ export class HidePanel {
 				const hidden = hideConfig.hidePriorityValues || [];
 				const noneHidden = hidden.length === 0;
 				const mainBtn = row.createEl("button", {
-					text: "优先",
+					text: "优先级",
 					cls: "panel-btn",
 				});
 				if (!noneHidden) mainBtn.addClass("active");

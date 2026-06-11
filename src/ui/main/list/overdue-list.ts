@@ -1,12 +1,12 @@
 // src/ui/main/list/overdue-list.ts
 
+import { getStatusColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 function getEffectiveStatus(node: TaskTreeNode): string {
 	const incomplete =
 		node.status === "todo" ||
-		// 修复：planned → scheduled
 		node.status === "scheduled" ||
 		node.status === "in-progress";
 	if (incomplete && node.done) return "completed";
@@ -21,6 +21,7 @@ export function renderOverdueList(
 ) {
 	container.empty();
 
+	const statusColors = getStatusColors();
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
 	const todayTime = today.getTime();
@@ -29,7 +30,6 @@ export function renderOverdueList(
 		const effectiveStatus = getEffectiveStatus(node);
 		const isIncomplete =
 			effectiveStatus === "todo" ||
-			// 修复：planned → scheduled
 			effectiveStatus === "scheduled" ||
 			effectiveStatus === "in-progress";
 
@@ -80,7 +80,7 @@ export function renderOverdueList(
 			title: `⏰ ${key}`,
 			count: groups[key].length,
 			tasks: groups[key],
-			color: "rgba(224,108,117,0.25)",
+			color: statusColors["cancelled"],
 			onClick: options?.onClick,
 		});
 		container.appendChild(card);

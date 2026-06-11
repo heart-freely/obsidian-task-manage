@@ -1,4 +1,5 @@
 // src/core/task/task-filter.ts
+// 扁平任务筛选——纯函数
 
 import { GlobalFilter } from "../../type/type";
 import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "../config/config";
@@ -53,18 +54,6 @@ export function filterTasks(
 				(m) => marks[m as keyof typeof marks],
 			);
 		});
-	}
-
-	if (filter.hideRepeat) {
-		result = result.filter((node) => !node.repeat);
-	}
-
-	if (filter.hideCompleted) {
-		result = result.filter((node) => node.status !== "completed");
-	}
-
-	if (filter.hideCancelled) {
-		result = result.filter((node) => node.status !== "cancelled");
 	}
 
 	if (filter.rootPath) {

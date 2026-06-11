@@ -17,7 +17,10 @@ import {
 	setEnd,
 	setStart,
 } from "../../../core/component/calendar-view-process";
-import { STATUS_COLORS } from "../../../core/config/config";
+import {
+	getStatusColors,
+	STATUS_SORT_ORDER,
+} from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createTaskCard } from "../card/card";
 
@@ -35,20 +38,29 @@ function padTwo(n: number): string {
 	return n < 10 ? "0" + n : String(n);
 }
 
-// ========== 样式注入（仅首次） ==========
+// ========== 样式注入（每次主题切换时重新注入） ==========
 
 let styleInjected = false;
+let currentStyleEl: HTMLStyleElement | null = null;
 
 function injectCalendarStyles() {
-	if (styleInjected) return;
-	styleInjected = true;
+	// 移除旧样式标签
+	if (currentStyleEl) {
+		currentStyleEl.remove();
+		currentStyleEl = null;
+	}
 
 	const styleEl = document.createElement("style");
 	styleEl.id = "task-calendar-custom-style";
+	currentStyleEl = styleEl;
 
+	const statusColors = getStatusColors();
 	let lineColorStyles = "";
-	for (const [status, color] of Object.entries(STATUS_COLORS)) {
-		lineColorStyles += `.cal-span-line.${status} { background: ${color}; opacity: 0.6; }\n`;
+	for (const status of STATUS_SORT_ORDER) {
+		const color = statusColors[status];
+		if (color) {
+			lineColorStyles += `.cal-span-line.${status} { background: ${color}; opacity: 0.6; }\n`;
+		}
 	}
 
 	styleEl.textContent = `
@@ -150,6 +162,7 @@ function injectCalendarStyles() {
 		}
 	`;
 	document.head.appendChild(styleEl);
+	styleInjected = true;
 }
 
 // ========== DOM 组件 ==========
@@ -454,6 +467,7 @@ export function renderCalendarView(
 		filterTitle?: string;
 	},
 ) {
+	// 每次渲染时重新注入样式以适配当前主题
 	injectCalendarStyles();
 	container.empty();
 

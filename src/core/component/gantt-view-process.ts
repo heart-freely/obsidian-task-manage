@@ -1,7 +1,6 @@
 // src/core/component/gantt-view-process.ts
 
 import { DateUtils } from "../../util/date-utils";
-import { STATUS_COLORS } from "../config/config";
 import { YEAR_RANGE_OFFSET } from "../config/panel-default-config";
 import { getTaskTimeRange, IntervalMode } from "../task/task-derived";
 import { TaskTreeNode } from "../task/task-tree";
@@ -14,7 +13,6 @@ export interface GanttTaskRow {
 }
 
 export const GANTT_CONFIG = {
-	STATUS_COLORS,
 	TASK_BAR_RADIUS: 4,
 	TASK_BAR_HEIGHT: 20,
 	DEPENDENCY_LINE_COLOR: "#3a6ea5",

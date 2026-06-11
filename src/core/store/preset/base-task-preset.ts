@@ -6,8 +6,9 @@ import { renderKanban } from "../../../ui/main/board/kanban-board";
 import { renderMatrix } from "../../../ui/main/board/matrix-board";
 import { renderCalendarView } from "../../../ui/main/calendar/calendar";
 import { renderCards } from "../../../ui/main/card/grid-card";
-import { renderDetail } from "../../../ui/main/chart/detailc-chart";
-import { renderStatistics } from "../../../ui/main/chart/statistics-chart";
+import { renderDetail } from "../../../ui/main/chart/detail-chart";
+import { renderMarkChart } from "../../../ui/main/chart/mark-chart";
+import { renderTimeChart } from "../../../ui/main/chart/time-chart";
 import { renderGanttWithTree } from "../../../ui/main/gantt/gantt";
 import { renderDepends } from "../../../ui/main/list/depends-list";
 import { renderTaskList } from "../../../ui/main/list/list";
@@ -55,6 +56,7 @@ export abstract class BaseTaskView {
 	private stopResizeBound: (() => void) | null = null;
 
 	protected selectedTreeNode: TaskTreeNode | null = null;
+	protected focusedTreeNode: TaskTreeNode | null = null;
 
 	private renderDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 	private static DEBOUNCE_DELAY = 50;
@@ -103,7 +105,6 @@ export abstract class BaseTaskView {
 
 		try {
 			const { nodes } = await this.dataManager.loadData(this.app);
-
 			if (nodes.length === 0) {
 				this.renderEmpty();
 				return;
@@ -119,7 +120,6 @@ export abstract class BaseTaskView {
 				includeMarks: activeFilter.includeMarks,
 			};
 			const panelFilteredTree = filterTree(fullTree, panelOptions);
-
 			const dateFilteredTree = filterTreeByDateRange(
 				panelFilteredTree,
 				activeFilter.dateRange,
@@ -135,9 +135,11 @@ export abstract class BaseTaskView {
 			} else {
 				flatNodes = flattenTree(dateFilteredTree);
 			}
-			flatNodes = flatNodes.filter(
-				(n) => n.display && n.uid !== "__task_root__",
-			);
+			flatNodes = flatNodes.filter((n) => {
+				if (!n.display || n.uid === "__task_root__") return false;
+				if (!n.match) return false;
+				return true;
+			});
 
 			if (flatNodes.length === 0) {
 				this.renderEmpty();
@@ -155,6 +157,7 @@ export abstract class BaseTaskView {
 				viewContainer.style.margin = "0";
 				renderTaskTree(viewContainer, {
 					root: dateFilteredTree,
+					focusRoot: this.focusedTreeNode || undefined,
 					hideFolders: activeFilter.hideFolders ?? true,
 					onClick: (node: TaskTreeNode) => this.openTaskAtLine(node),
 					sort,
@@ -173,6 +176,7 @@ export abstract class BaseTaskView {
 						intervalMode,
 						sort: sort as { type: string; order: "asc" | "desc" },
 						dateRange: activeFilter.dateRange,
+						focusRoot: this.focusedTreeNode || undefined,
 					},
 				);
 			} else {
@@ -240,13 +244,13 @@ export abstract class BaseTaskView {
 
 			renderTaskTree(treeContent, {
 				root: displayTree,
+				focusRoot: this.focusedTreeNode || undefined,
 				hideFolders: filter.hideFolders ?? true,
 				onClick: (node: TaskTreeNode) =>
 					this.onTaskTreeNavClick(node, viewStyle),
 				sort,
 			});
 
-			// 拖动条
 			this.resizeHandle = layoutContainer.createDiv({
 				cls: "task-tree-nav-resize",
 			});
@@ -281,7 +285,6 @@ export abstract class BaseTaskView {
 				this.startResize(e);
 			});
 		} else {
-			// 折叠状态：显示拖动条用于展开
 			const resizeHandle = layoutContainer.createDiv({
 				cls: "task-tree-nav-resize",
 			});
@@ -336,7 +339,13 @@ export abstract class BaseTaskView {
 			this.openTaskAtLine(node);
 			return;
 		}
-		this.selectedTreeNode = this.selectedTreeNode === node ? null : node;
+		if (this.focusedTreeNode === node) {
+			this.focusedTreeNode = null;
+			this.selectedTreeNode = null;
+		} else {
+			this.focusedTreeNode = node;
+			this.selectedTreeNode = node;
+		}
 		this.render();
 	}
 
@@ -502,7 +511,6 @@ export abstract class BaseTaskView {
 				cc.style.padding = "0";
 
 				const titleParts: string[] = [];
-				// 时间范围
 				if (
 					intervalMode !== "none" &&
 					filter.dateRange &&
@@ -516,7 +524,6 @@ export abstract class BaseTaskView {
 				} else if (intervalMode === "none") {
 					titleParts.push("任意时间");
 				}
-				// 状态筛选
 				if (filter.statuses && filter.statuses.length > 0) {
 					titleParts.push(
 						filter.statuses
@@ -524,7 +531,6 @@ export abstract class BaseTaskView {
 							.join("、"),
 					);
 				}
-				// 时间模式
 				if (intervalMode === "any-date") {
 					titleParts.push("任意时间");
 				} else if (intervalMode === "scheduled-due") {
@@ -558,11 +564,17 @@ export abstract class BaseTaskView {
 				});
 				break;
 			}
-			case "statistics":
-				renderStatistics(container, nodes);
+			case "mark":
+				renderMarkChart(container, nodes);
+				break;
+			case "timeChart":
+				renderTimeChart(container, nodes);
 				break;
 			case "detail":
-				renderDetail(container, nodes);
+				renderDetail(container, nodes, {
+					dateRange: filter.dateRange,
+					intervalMode: intervalMode,
+				});
 				break;
 			default:
 				container.createDiv({ text: `未支持的视图样式：${style}` });
@@ -598,8 +610,8 @@ export abstract class BaseTaskView {
 					todo: 0,
 					scheduled: 1,
 					"in-progress": 2,
-					completed: 3,
-					cancelled: 4,
+					cancelled: 3,
+					completed: 4,
 				};
 				return so[node.status] ?? 5;
 			}

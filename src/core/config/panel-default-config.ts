@@ -1,14 +1,8 @@
 // src/core/config/panel-default-config.ts
-// 面板默认配置 — 所有功能面板的默认值和共用常量统一来源
 
 import { GlobalFilter, HideConfig, Preset } from "../../type/type";
 
-// ========== 共用常量 ==========
-
-/** 年份范围偏移（用于"全部"时间范围和动态年滑动条） */
 export const YEAR_RANGE_OFFSET = 10;
-
-// ========== 默认筛选条件 ==========
 
 export function getDefaultFilter(): GlobalFilter {
 	return {
@@ -16,17 +10,12 @@ export function getDefaultFilter(): GlobalFilter {
 		statuses: [],
 		includeMarks: [],
 		excludeMarks: [],
-		hideRepeat: true,
-		hideCompleted: true,
-		hideCancelled: true,
 		rootPath: null,
 		hideFolders: true,
 		priorityValues: [],
 		repeatCycles: [],
 	};
 }
-
-// ========== 默认隐藏配置 ==========
 
 export function getDefaultHideConfig(): HideConfig {
 	return {
@@ -52,8 +41,6 @@ export function getDefaultHideConfig(): HideConfig {
 		},
 	};
 }
-
-// ========== 默认预设 ==========
 
 export function getDefaultPresets(): Preset[] {
 	const defaultFilter = getDefaultFilter();
@@ -95,7 +82,7 @@ export function getDefaultPresets(): Preset[] {
 			id: "inbox",
 			name: "待办任务",
 			businessView: "inbox",
-			viewStyle: "list",
+			viewStyle: "kanban",
 			icon: "📥",
 			filter: { ...defaultFilter, statuses: ["todo", "scheduled"] },
 			sort: { type: "", order: "asc" as const },
@@ -106,12 +93,16 @@ export function getDefaultPresets(): Preset[] {
 			id: "important",
 			name: "重要任务",
 			businessView: "important",
-			viewStyle: "list",
+			viewStyle: "priority",
 			icon: "⭐",
 			filter: {
 				...defaultFilter,
-				statuses: ["todo", "scheduled", "in-progress"],
+				statuses: [],
 				priorityValues: ["🔺", "⏫", "🔼"],
+			},
+			hideConfig: {
+				...defaultHideConfig,
+				hideStatuses: ["completed", "cancelled"],
 			},
 			sort: { type: "", order: "asc" as const },
 			useDynamic: false,
@@ -125,7 +116,7 @@ export function getDefaultPresets(): Preset[] {
 			icon: "📅",
 			filter: {
 				...defaultFilter,
-				statuses: ["todo", "scheduled", "in-progress"],
+				statuses: [],
 				dateRange: {
 					start: new Date(
 						new Date().getFullYear(),
@@ -144,6 +135,7 @@ export function getDefaultPresets(): Preset[] {
 					isAll: false,
 				},
 			},
+			intervalMode: "any-date",
 			sort: { type: "", order: "asc" as const },
 			useDynamic: true,
 		},
@@ -152,11 +144,11 @@ export function getDefaultPresets(): Preset[] {
 			id: "future",
 			name: "未来任务",
 			businessView: "future",
-			viewStyle: "list",
+			viewStyle: "timeline",
 			icon: "🔜",
 			filter: {
 				...defaultFilter,
-				statuses: ["todo", "scheduled", "in-progress"],
+				statuses: [],
 				dateRange: {
 					start: new Date(
 						new Date().getFullYear(),
@@ -175,6 +167,7 @@ export function getDefaultPresets(): Preset[] {
 					isAll: false,
 				},
 			},
+			intervalMode: "any-date",
 			sort: { type: "", order: "asc" as const },
 			useDynamic: true,
 		},
@@ -183,7 +176,7 @@ export function getDefaultPresets(): Preset[] {
 			id: "all-tasks",
 			name: "所有任务",
 			businessView: "allTasks",
-			viewStyle: "list",
+			viewStyle: "table",
 			icon: "📋",
 			filter: { ...defaultFilter },
 			sort: { type: "", order: "asc" as const },

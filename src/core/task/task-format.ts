@@ -1,13 +1,9 @@
 // src/core/task/task-format.ts
 // 任务格式化 — HTML 内容构建，纯字符串拼接，不涉及 DOM
 
-import { DateUtils } from "../../util/date-utils";
+import { DateUtils, formatDisplayDate } from "../../util/date-utils";
 import { removeHeadingNumber } from "../component/tree-view-process";
-import {
-	STATUS_ICONS,
-	STATUS_NAMES,
-	formatDisplayDate,
-} from "../config/config";
+import { STATUS_ICONS, STATUS_NAMES } from "../config/config";
 import { TaskTreeNode } from "./task-tree";
 
 /** 任务类型显示标记 */
@@ -63,7 +59,7 @@ export function buildMetaRow(node: TaskTreeNode): string {
 
 /**
  * 构建 tooltip HTML
- * 顺序：状态 → 优先级 → 循环 → 创建 → 计划 → 开始 → 取消 → 完成 → 截止 → id → forbid → tag
+ * 顺序：状态 → 优先级 → 循环 → 创建 → 计划 → 开始 → 截止 → 完成 → 取消 → id → forbid → tag
  */
 export function buildTooltip(node: TaskTreeNode): string {
 	const parts: string[] = [];
@@ -93,7 +89,6 @@ export function buildTooltip(node: TaskTreeNode): string {
 
 	return parts.join("<br>");
 }
-// src/core/task/task-format.ts 中新增导出函数
 
 /** 获取任务树节点显示文本（带类型标记：📄 文件任务、H 标题任务、● 列表任务） */
 export function getDisplayText(node: TaskTreeNode): string {
@@ -108,6 +103,7 @@ export function getDisplayText(node: TaskTreeNode): string {
 			return node.text;
 	}
 }
+
 /**
  * 构建描述文本
  * 标题任务去除 number headings 序号，所有模式添加类型标记
@@ -118,17 +114,14 @@ export function buildDescription(
 ): string {
 	let text = node.text || node.content || "（无描述）";
 
-	// 标题任务去除 number headings 序号
 	if (node.type === "heading") {
 		text = removeHeadingNumber(text);
 	}
 
-	// 添加类型标记（视图层展示，不修改原始数据）
 	const prefix = TYPE_PREFIX[node.type] || "";
 	if (prefix && !text.startsWith(prefix)) {
 		text = prefix + text;
 	}
-	// 标题任务特殊处理：添加 H 级别前缀
 	if (node.type === "heading") {
 		const hPrefix = "H" + (node.headingLevel || node.depth) + " ";
 		if (!text.startsWith(hPrefix)) {

@@ -2,6 +2,12 @@
 // core/config/config.ts
 
 import { PathFilterConfig, TaskItemFilterConfig } from "../../setting/setting";
+import {
+	getThemeColorArray,
+	getThemeColorMap,
+	makeColor,
+	ThemeColor,
+} from "../../util/color-utils";
 
 // ========== 任务元素统一定义（通用）==========
 
@@ -20,6 +26,42 @@ export const TASK_ELEMENT_ORDER = [
 	"tag",
 ] as const;
 
+// ========== 颜色定义（深浅双值）==========
+// 深色：muted、低饱和度、偏冷色调
+// 浅色：适中饱和度、在白底上清晰可见
+
+const C = {
+	// 执行状态
+	statusTodo: { dark: "rgba(85, 90, 100, 0.75)", light: "#6b7280" },
+	statusScheduled: { dark: "rgba(105, 125, 170, 0.75)", light: "#6b7ea8" },
+	statusInProgress: { dark: "rgba(80, 140, 210, 0.80)", light: "#3b82c4" },
+	statusCancelled: { dark: "rgba(190, 80, 80, 0.65)", light: "#d14343" },
+	statusCompleted: { dark: "rgba(80, 150, 120, 0.75)", light: "#4a8c6a" },
+	// 优先级
+	prioHighest: { dark: "rgba(200, 85, 85, 0.65)", light: "#d14343" },
+	prioHigh: { dark: "rgba(210, 120, 80, 0.70)", light: "#d4784a" },
+	prioMedium: { dark: "rgba(200, 160, 80, 0.70)", light: "#c8963a" },
+	prioLow: { dark: "rgba(80, 150, 215, 0.75)", light: "#4a8ec7" },
+	prioLowest: { dark: "rgba(90, 155, 115, 0.75)", light: "#5a946e" },
+	// 循环
+	repeatDay: { dark: "rgba(95, 155, 220, 0.75)", light: "#4a8ec7" },
+	repeatWeek: { dark: "rgba(85, 185, 200, 0.75)", light: "#3d9ba8" },
+	repeatMonth: { dark: "rgba(195, 135, 75, 0.70)", light: "#c47a3a" },
+	repeatYear: { dark: "rgba(180, 175, 85, 0.70)", light: "#a8a040" },
+	// 日期标记
+	created: { dark: "rgba(145, 155, 220, 0.75)", light: "#7a82c4" },
+	scheduled: { dark: "rgba(210, 120, 130, 0.75)", light: "#c46a7a" },
+	starts: { dark: "rgba(200, 130, 80, 0.75)", light: "#c47a40" },
+	cancelled: { dark: "rgba(185, 155, 100, 0.70)", light: "#a88450" },
+	done: { dark: "rgba(100, 160, 125, 0.75)", light: "#5a946e" },
+	due: { dark: "rgba(100, 185, 170, 0.75)", light: "#4a9e92" },
+	// 其他
+	tag: { dark: "rgba(165, 140, 210, 0.75)", light: "#8a76b8" },
+	id: { dark: "rgba(115, 150, 215, 0.75)", light: "#5a82c4" },
+	forbid: { dark: "rgba(200, 115, 115, 0.75)", light: "#c46a6a" },
+	both: { dark: "rgba(150, 125, 180, 0.70)", light: "#8a72a8" },
+};
+
 export const TASK_ELEMENTS = {
 	status: {
 		key: "status" as const,
@@ -33,31 +75,36 @@ export const TASK_ELEMENTS = {
 				key: "todo" as const,
 				zhName: "待办中",
 				icon: "🔲",
-				color: "#2e333b",
-			},
-			{
-				key: "in-progress" as const,
-				zhName: "进行中",
-				icon: "⏩",
-				color: "#7fb8f0",
-			},
-			{
-				key: "completed" as const,
-				zhName: "已完成",
-				icon: "✅",
-				color: "#47852f",
-			},
-			{
-				key: "cancelled" as const,
-				zhName: "已取消",
-				icon: "❎",
-				color: "#c3393e",
+				darkColor: C.statusTodo.dark,
+				lightColor: C.statusTodo.light,
 			},
 			{
 				key: "scheduled" as const,
 				zhName: "计划中",
 				icon: "❔",
-				color: "#4b525b",
+				darkColor: C.statusScheduled.dark,
+				lightColor: C.statusScheduled.light,
+			},
+			{
+				key: "in-progress" as const,
+				zhName: "进行中",
+				icon: "⏩",
+				darkColor: C.statusInProgress.dark,
+				lightColor: C.statusInProgress.light,
+			},
+			{
+				key: "cancelled" as const,
+				zhName: "已取消",
+				icon: "❎",
+				darkColor: C.statusCancelled.dark,
+				lightColor: C.statusCancelled.light,
+			},
+			{
+				key: "completed" as const,
+				zhName: "已完成",
+				icon: "✅",
+				darkColor: C.statusCompleted.dark,
+				lightColor: C.statusCompleted.light,
 			},
 		],
 	},
@@ -74,35 +121,40 @@ export const TASK_ELEMENTS = {
 				zhName: "最低",
 				enName: "Lowest",
 				icon: "⏬" as const,
-				color: "#98c379",
+				darkColor: C.prioLowest.dark,
+				lightColor: C.prioLowest.light,
 			},
 			{
 				key: "3" as const,
 				zhName: "低",
 				enName: "Low",
 				icon: "🔽" as const,
-				color: "#61afef",
+				darkColor: C.prioLow.dark,
+				lightColor: C.prioLow.light,
 			},
 			{
 				key: "2" as const,
 				zhName: "中",
 				enName: "Medium",
 				icon: "🔼" as const,
-				color: "#d19a66",
+				darkColor: C.prioMedium.dark,
+				lightColor: C.prioMedium.light,
 			},
 			{
 				key: "1" as const,
 				zhName: "高",
 				enName: "High",
 				icon: "⏫" as const,
-				color: "#e06c75",
+				darkColor: C.prioHigh.dark,
+				lightColor: C.prioHigh.light,
 			},
 			{
 				key: "0" as const,
 				zhName: "最高",
 				enName: "Highest",
 				icon: "🔺" as const,
-				color: "#c3393e",
+				darkColor: C.prioHighest.dark,
+				lightColor: C.prioHighest.light,
 			},
 		],
 	},
@@ -118,25 +170,29 @@ export const TASK_ELEMENTS = {
 				key: "every day" as const,
 				zhName: "每天",
 				enName: "Every Day",
-				color: "#a0c4ff",
+				darkColor: C.repeatDay.dark,
+				lightColor: C.repeatDay.light,
 			},
 			{
 				key: "every week" as const,
 				zhName: "每周",
 				enName: "Every Week",
-				color: "#9bf6ff",
+				darkColor: C.repeatWeek.dark,
+				lightColor: C.repeatWeek.light,
 			},
 			{
 				key: "every month" as const,
 				zhName: "每月",
 				enName: "Every Month",
-				color: "#ffd6a5",
+				darkColor: C.repeatMonth.dark,
+				lightColor: C.repeatMonth.light,
 			},
 			{
 				key: "every year" as const,
 				zhName: "每年",
 				enName: "Every Year",
-				color: "#fdffb6",
+				darkColor: C.repeatYear.dark,
+				lightColor: C.repeatYear.light,
 			},
 		],
 	},
@@ -147,6 +203,8 @@ export const TASK_ELEMENTS = {
 		icon: "➕",
 		inMarkSequence: true,
 		yaName: "任务创建",
+		darkColor: C.created.dark,
+		lightColor: C.created.light,
 	},
 	scheduled: {
 		key: "scheduled" as const,
@@ -155,6 +213,8 @@ export const TASK_ELEMENTS = {
 		icon: "⏳",
 		inMarkSequence: true,
 		yaName: "任务计划",
+		darkColor: C.scheduled.dark,
+		lightColor: C.scheduled.light,
 	},
 	starts: {
 		key: "starts" as const,
@@ -163,6 +223,8 @@ export const TASK_ELEMENTS = {
 		icon: "🛫",
 		inMarkSequence: true,
 		yaName: "任务开始",
+		darkColor: C.starts.dark,
+		lightColor: C.starts.light,
 	},
 	cancelled: {
 		key: "cancelled" as const,
@@ -171,6 +233,8 @@ export const TASK_ELEMENTS = {
 		icon: "❌",
 		inMarkSequence: true,
 		yaName: "任务取消",
+		darkColor: C.cancelled.dark,
+		lightColor: C.cancelled.light,
 	},
 	done: {
 		key: "done" as const,
@@ -179,6 +243,8 @@ export const TASK_ELEMENTS = {
 		icon: "✅",
 		inMarkSequence: true,
 		yaName: "任务完成",
+		darkColor: C.done.dark,
+		lightColor: C.done.light,
 	},
 	due: {
 		key: "due" as const,
@@ -187,6 +253,8 @@ export const TASK_ELEMENTS = {
 		icon: "📅",
 		inMarkSequence: true,
 		yaName: "任务截止",
+		darkColor: C.due.dark,
+		lightColor: C.due.light,
 	},
 	tag: {
 		key: "tag" as const,
@@ -195,6 +263,8 @@ export const TASK_ELEMENTS = {
 		icon: "🏁",
 		inMarkSequence: true,
 		yaName: "任务标签",
+		darkColor: C.tag.dark,
+		lightColor: C.tag.light,
 	},
 	id: {
 		key: "id" as const,
@@ -203,6 +273,8 @@ export const TASK_ELEMENTS = {
 		icon: "🆔",
 		inMarkSequence: true,
 		yaName: "任务唯一ID",
+		darkColor: C.id.dark,
+		lightColor: C.id.light,
 	},
 	forbid: {
 		key: "forbid" as const,
@@ -211,10 +283,61 @@ export const TASK_ELEMENTS = {
 		icon: "⛔",
 		inMarkSequence: true,
 		yaName: "任务引用ID",
+		darkColor: C.forbid.dark,
+		lightColor: C.forbid.light,
 	},
 } as const;
 
-// ========== 状态符号映射（与第一版一致）==========
+// ========== 颜色定义 ==========
+
+const STATUS_COLOR_DEFS: Record<string, ThemeColor> = {};
+TASK_ELEMENTS.status.children.forEach((c) => {
+	STATUS_COLOR_DEFS[c.key] = makeColor(
+		(c as any).darkColor,
+		(c as any).lightColor,
+	);
+});
+
+const PRIORITY_COLOR_DEFS: ThemeColor[] = TASK_ELEMENTS.priority.children.map(
+	(c) => makeColor((c as any).darkColor, (c as any).lightColor),
+);
+
+const REPEAT_COLOR_DEFS: ThemeColor[] = TASK_ELEMENTS.repeat.children.map((c) =>
+	makeColor((c as any).darkColor, (c as any).lightColor),
+);
+
+const DATE_MARK_ORDER_INTERNAL = [
+	"created",
+	"scheduled",
+	"starts",
+	"cancelled",
+	"done",
+	"due",
+] as const;
+
+const DATE_MARK_COLOR_DEFS: Record<string, ThemeColor> = {};
+DATE_MARK_ORDER_INTERNAL.forEach((k) => {
+	DATE_MARK_COLOR_DEFS[k] = makeColor(
+		(TASK_ELEMENTS as any)[k].darkColor,
+		(TASK_ELEMENTS as any)[k].lightColor,
+	);
+});
+
+// 标签调色板
+const TAG_PALETTE_DEFS: ThemeColor[] = [
+	makeColor("rgba(165, 140, 210, 0.75)", "#8a76b8"),
+	makeColor("rgba(200, 115, 115, 0.75)", "#c46a6a"),
+	makeColor("rgba(115, 150, 215, 0.75)", "#5a82c4"),
+	makeColor("rgba(100, 160, 125, 0.75)", "#5a946e"),
+	makeColor("rgba(185, 155, 100, 0.70)", "#a88450"),
+	makeColor("rgba(200, 130, 80, 0.75)", "#c47a40"),
+	makeColor("rgba(210, 120, 130, 0.75)", "#c46a7a"),
+	makeColor("rgba(145, 155, 220, 0.75)", "#7a82c4"),
+	makeColor("rgba(100, 185, 170, 0.75)", "#4a9e92"),
+	makeColor("rgba(180, 175, 85, 0.70)", "#a8a040"),
+];
+
+// ========== 状态符号映射 ==========
 
 export const STATUS_ALL_SYMBOLS: Record<string, string[]> = {
 	todo: [" "],
@@ -242,27 +365,28 @@ export const STATUS_ICONS: Record<string, string> = {};
 TASK_ELEMENTS.status.children.forEach((c) => {
 	STATUS_ICONS[c.key] = c.icon;
 });
-export const STATUS_SORT_ORDER = TASK_ELEMENTS.status.children.map(
-	(c) => c.key,
-);
+export const STATUS_SORT_ORDER: string[] = [
+	"todo",
+	"scheduled",
+	"in-progress",
+	"cancelled",
+	"completed",
+];
 export const STATUS_SYMBOL_MAP: Record<string, string> = {};
 for (const [statusKey, symbols] of Object.entries(STATUS_ALL_SYMBOLS)) {
 	for (const s of symbols) {
 		STATUS_SYMBOL_MAP[s] = statusKey;
 	}
 }
-export const STATUS_COLORS: Record<string, string> = {};
-TASK_ELEMENTS.status.children.forEach((c) => {
-	STATUS_COLORS[c.key] = c.color!;
-});
+
+export function getStatusColors(): Record<string, string> {
+	return getThemeColorMap(STATUS_COLOR_DEFS);
+}
 
 // ========== 优先级相关 ==========
 
 export const PRIORITY_ORDER = TASK_ELEMENTS.priority.children.map(
 	(c) => c.icon,
-);
-export const PRIORITY_COLORS = TASK_ELEMENTS.priority.children.map(
-	(c) => c.color!,
 );
 export const PRIORITY_ICONS: Record<string, string> = {};
 TASK_ELEMENTS.priority.children.forEach((c) => {
@@ -274,50 +398,58 @@ TASK_ELEMENTS.priority.children.forEach((c) => {
 });
 PRIORITY_LABELS["none"] = "None|无";
 
+export function getPriorityColors(): string[] {
+	return getThemeColorArray(PRIORITY_COLOR_DEFS);
+}
+
 // ========== 循环相关 ==========
 
 export const REPEAT_ORDER = TASK_ELEMENTS.repeat.children.map((c) => c.key);
-export const REPEAT_COLORS = TASK_ELEMENTS.repeat.children.map((c) => c.color!);
 export const REPEAT_ICON = TASK_ELEMENTS.repeat.icon;
 export const REPEAT_LABELS: Record<string, string> = {};
 TASK_ELEMENTS.repeat.children.forEach((c) => {
 	REPEAT_LABELS[c.key] = c.zhName;
 });
 
+export function getRepeatColors(): string[] {
+	return getThemeColorArray(REPEAT_COLOR_DEFS);
+}
+
 // ========== 日期标记相关 ==========
 
-export const DATE_MARK_ORDER = [
-	"created",
-	"scheduled",
-	"starts",
-	"cancelled",
-	"done",
-	"due",
-] as const;
+export const DATE_MARK_ORDER = DATE_MARK_ORDER_INTERNAL as unknown as string[];
 export const DATE_MARK_ICONS: Record<string, string> = {};
-DATE_MARK_ORDER.forEach((k) => {
+DATE_MARK_ORDER_INTERNAL.forEach((k) => {
 	DATE_MARK_ICONS[k] = (TASK_ELEMENTS as any)[k].icon;
 });
 export const DATE_MARK_NAMES: Record<string, string> = {};
-DATE_MARK_ORDER.forEach((k) => {
+DATE_MARK_ORDER_INTERNAL.forEach((k) => {
 	DATE_MARK_NAMES[k] =
 		(TASK_ELEMENTS as any)[k].icon + " " + (TASK_ELEMENTS as any)[k].zhName;
 });
-export const DATE_MARK_COLORS: Record<string, string> = {
-	created: "#b7bdf8",
-	scheduled: "#ed8796",
-	starts: "#f5a97f",
-	cancelled: "#eed49f",
-	done: "#a6da95",
-	due: "#8bd5ca",
-};
-export const DATE_FIELD_SORT_ORDER = [...DATE_MARK_ORDER];
+export const DATE_FIELD_SORT_ORDER = [...DATE_MARK_ORDER_INTERNAL];
 
-// ========== 图标常量 ==========
+export function getDateMarkColors(): Record<string, string> {
+	return getThemeColorMap(DATE_MARK_COLOR_DEFS);
+}
+
+// ========== 图标与颜色常量 ==========
 
 export const ID_ICON = TASK_ELEMENTS.id.icon;
 export const DEPENDS_ICON = TASK_ELEMENTS.forbid.icon;
 export const TAG_ICON = TASK_ELEMENTS.tag.icon;
+
+export const ID_COLOR_DEF: ThemeColor = makeColor(C.id.dark, C.id.light);
+export const DEPENDS_COLOR_DEF: ThemeColor = makeColor(
+	C.forbid.dark,
+	C.forbid.light,
+);
+export const TAG_COLOR_DEF: ThemeColor = makeColor(C.tag.dark, C.tag.light);
+export const BOTH_COLOR_DEF: ThemeColor = makeColor(C.both.dark, C.both.light);
+
+export function getTagPalette(): string[] {
+	return getThemeColorArray(TAG_PALETTE_DEFS);
+}
 
 // ========== 标记相关 ==========
 
@@ -480,17 +612,22 @@ export function matchTaskItem(symbol: string): boolean {
 	return includeFilters.some((f) => !f.pattern || f.pattern.includes(symbol));
 }
 
-export function isTaskFile(fileName: string, parsed: ParsedFileData): boolean {
+interface ParsedFileDataForConfig {
+	contentRoots: any[];
+	fileTask: any;
+}
+export function isTaskFile(
+	fileName: string,
+	parsed: ParsedFileDataForConfig,
+): boolean {
 	if (matchTaskFileName(fileName)) return true;
 	if (parsed.contentRoots.length > 0) return true;
 	if (parsed.fileTask) return true;
 	return false;
 }
-
 export function isWhitelisted(filePath: string): boolean {
 	return matchTaskFilePath(filePath);
 }
-
 export function isBlacklisted(filePath: string): boolean {
 	return false;
 }
@@ -542,16 +679,6 @@ export function updateTaskFileConfig(config: {
 	}
 }
 
-// ========== 日期格式化 ==========
-
-export const DATE_FORMAT = "YYYY-MM-DD";
-export function formatDisplayDate(d: any): string {
-	if (!d) return "";
-	if (typeof d === "string") return d.substring(0, 10);
-	if (d instanceof Date) return d.toISOString().substring(0, 10);
-	return String(d).substring(0, 10);
-}
-
 // ========== 派生类型 ==========
 
 export type TaskStatus = (typeof TASK_ELEMENTS.status.children)[number]["key"];
@@ -559,5 +686,5 @@ export type PriorityIcon =
 	| (typeof TASK_ELEMENTS.priority.children)[number]["icon"]
 	| "";
 export type RepeatCycle = (typeof TASK_ELEMENTS.repeat.children)[number]["key"];
-export type DateMarkKey = (typeof DATE_MARK_ORDER)[number];
+export type DateMarkKey = (typeof DATE_MARK_ORDER_INTERNAL)[number];
 export type MarkKey = (typeof ALL_MARKS)[number];

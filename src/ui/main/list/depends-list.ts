@@ -1,6 +1,8 @@
 // src/ui/main/list/depends-list.ts
 
+import { DEPENDS_COLOR_DEF } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { getThemeColor } from "../../../util/color-utils";
 import { createGroupCard } from "../card/group-card";
 
 export function renderDepends(
@@ -15,7 +17,7 @@ export function renderDepends(
 		return;
 	}
 
-	// 有依赖的任务排前面
+	const color = getThemeColor(DEPENDS_COLOR_DEF);
 	const sorted = [...dependsNodes].sort(
 		(a, b) => (b.forbid ? 1 : 0) - (a.forbid ? 1 : 0),
 	);
@@ -25,7 +27,7 @@ export function renderDepends(
 		count: sorted.length,
 		tasks: sorted,
 		onClick: options?.onClick,
-		color: "rgba(224,108,117,0.25)",
+		color: color,
 	});
 	container.appendChild(card);
 }

@@ -1,11 +1,13 @@
 // src/ui/main/board/matrix-board.ts
 
+import { getPriorityColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createGroupCard } from "../card/group-card";
 
 export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
 
+	const priorityColors = getPriorityColors();
 	const filteredNodes = nodes.filter((n) => n.priority !== 5);
 
 	const quadrants: TaskTreeNode[][] = [[], [], [], []];
@@ -24,10 +26,10 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 		"🔽⏬ 不紧急也不重要",
 	];
 	const colors = [
-		"rgba(255,130,130,0.25)",
-		"rgba(255,180,100,0.25)",
-		"rgba(200,200,200,0.15)",
-		"rgba(100,180,255,0.2)",
+		priorityColors[0],
+		priorityColors[1],
+		priorityColors[2],
+		priorityColors[3],
 	];
 
 	const grid = document.createElement("div");

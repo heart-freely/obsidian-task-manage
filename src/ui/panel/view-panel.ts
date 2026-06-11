@@ -21,7 +21,8 @@ const VIEW_STYLES = [
 	{ key: "calendar", label: "日历图", group: "管理" },
 	{ key: "tree", label: "任务树", group: "管理" },
 	{ key: "gantt", label: "甘特图", group: "管理" },
-	{ key: "statistics", label: "基础统计", group: "统计" },
+	{ key: "mark", label: "标记统计", group: "统计" },
+	{ key: "timeChart", label: "时间统计", group: "统计" },
 	{ key: "detail", label: "详细统计", group: "统计" },
 ];
 

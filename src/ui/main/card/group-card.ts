@@ -31,9 +31,21 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	header.style.fontWeight = "600";
 	header.style.borderBottom = "1px solid var(--background-modifier-border)";
 	header.style.display = "flex";
-	header.style.justifyContent = "space-between";
+	header.style.justifyContent = "flex-start";
 	header.style.alignItems = "center";
-	header.innerHTML = `<span>${title}</span><span class="group-card-count" style="color:var(--text-muted)">${count}</span>`;
+	header.style.gap = "8px";
+
+	const titleSpan = document.createElement("span");
+	titleSpan.textContent = title;
+
+	const countSpan = document.createElement("span");
+	countSpan.className = "group-card-count";
+	countSpan.style.color = "var(--text-muted)";
+	countSpan.style.whiteSpace = "nowrap";
+	countSpan.textContent = String(count);
+
+	header.appendChild(titleSpan);
+	header.appendChild(countSpan);
 
 	const body = document.createElement("div");
 	body.className = "group-card-body";

@@ -1,5 +1,4 @@
 // src/main.ts
-// src/main.ts
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
@@ -86,11 +85,6 @@ export default class TaskManagePlugin extends Plugin {
 							: dp.filter.includeMarks,
 					excludeMarks:
 						spFilter.excludeMarks ?? dp.filter.excludeMarks,
-					hideRepeat: spFilter.hideRepeat ?? dp.filter.hideRepeat,
-					hideCompleted:
-						spFilter.hideCompleted ?? dp.filter.hideCompleted,
-					hideCancelled:
-						spFilter.hideCancelled ?? dp.filter.hideCancelled,
 					rootPath: spFilter.rootPath ?? dp.filter.rootPath,
 					hideFolders: spFilter.hideFolders ?? dp.filter.hideFolders,
 					searchText: spFilter.searchText ?? dp.filter.searchText,

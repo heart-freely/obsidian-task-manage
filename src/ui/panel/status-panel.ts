@@ -7,8 +7,8 @@ const BASIC_STATUSES = [
 	"todo",
 	"scheduled",
 	"in-progress",
-	"completed",
 	"cancelled",
+	"completed",
 ];
 
 // 面板按钮文字覆盖（仅影响面板显示，不改变全局 STATUS_NAMES）
