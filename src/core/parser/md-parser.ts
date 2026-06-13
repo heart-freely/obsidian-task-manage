@@ -126,6 +126,33 @@ function parseFrontmatter(content: string): Record<string, any> {
 	return result;
 }
 
+/**
+ * 计算 frontmatter 占用的行数（包含开头空白行和 --- 标记行）
+ */
+function calcFrontmatterLineOffset(content: string): number {
+	if (!content) return 0;
+
+	// 计算开头空白行数
+	const leadingLen = content.length - content.trimStart().length;
+	const leadingLines =
+		leadingLen > 0
+			? content.substring(0, leadingLen).split("\n").length - 1
+			: 0;
+
+	const trimmed = content.trimStart();
+	if (!trimmed.startsWith("---")) return 0;
+
+	// 找到结束的 ---
+	const endIdx = trimmed.indexOf("---", 3);
+	if (endIdx === -1) return 0;
+
+	// frontmatter 部分（从开头到结束的 --- 之后）
+	const fmPart = trimmed.substring(0, endIdx + 3);
+	const fmLines = fmPart.split("\n").length;
+
+	return leadingLines + fmLines;
+}
+
 function stripFrontmatter(content: string): string {
 	if (!content) return "";
 	const trimmed = content.trimStart();
@@ -144,8 +171,14 @@ export function parseFile(
 ): ParsedFileData {
 	const yaml = parseFrontmatter(content);
 	const fileTask = parseTaskFromYaml(yaml);
+
+	// 计算 frontmatter 行数偏移
+	const frontmatterLineOffset = calcFrontmatterLineOffset(content);
+
 	const body = stripFrontmatter(content);
-	const contentRoots = body ? parseFileContent(body, filePath) : [];
+	const contentRoots = body
+		? parseFileContent(body, filePath, frontmatterLineOffset)
+		: [];
 	const hasMarkedTasks = hasAnyTask("file", contentRoots, null, yaml);
 	return {
 		path: filePath,
@@ -160,7 +193,11 @@ export function parseFile(
 
 // ========== 文件内容解析 ==========
 
-function parseFileContent(content: string, filePath?: string): ContentNode[] {
+function parseFileContent(
+	content: string,
+	filePath?: string,
+	lineOffset: number = 0,
+): ContentNode[] {
 	if (!content) return [];
 
 	const lines = content.split("\n");
@@ -175,10 +212,6 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 		const trimmed = line.trim();
 
 		// ─── 标题 YAML 块（插件自定义语法）───
-		// 标题 YAML 块是附属于标题任务的特殊代码块，与普通代码块语义不同。
-		// 它以 ```yaml 或 ```yml 开始，以 ``` 结束。
-		// 内容要求存在任意预设任务字段（如"任务名称"）才有意义。
-		// 使用独立的 inHeadingYaml 标志跟踪，避免与 inCodeBlock 状态混淆。
 		if (trimmed === "```yaml" || trimmed === "```yml") {
 			inHeadingYaml = true;
 			continue;
@@ -210,7 +243,7 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 				type: "heading",
 				text: title,
 				raw: trimmed,
-				line: i,
+				line: i + lineOffset,
 				depth: level,
 				children: [],
 				task: null,
@@ -232,9 +265,6 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 			indentStack.length = 0;
 
 			// ─── 标题 YAML 块解析 ───
-			// 对所有标题都尝试解析其下的 YAML 块，不依赖 matchTaskHeading。
-			// 如果 YAML 中包含预设任务字段，则将其解析为标题任务数据。
-			// 这确保标题下的 YAML 任务标记始终被正确解析。
 			{
 				const { yamlData, yamlStartLine, yamlEndLine } =
 					parseHeadingYamlBlock(lines, i, level);
@@ -243,16 +273,18 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 					if (taskData) {
 						node.task = taskData;
 						node.yamlStartLine =
-							yamlStartLine >= 0 ? yamlStartLine : undefined;
+							yamlStartLine >= 0
+								? yamlStartLine + lineOffset
+								: undefined;
 						node.yamlEndLine =
-							yamlEndLine >= 0 ? yamlEndLine : undefined;
+							yamlEndLine >= 0
+								? yamlEndLine + lineOffset
+								: undefined;
 					}
 				}
 			}
 
 			// ─── 指定识别（通过插件设置缩小范围）───
-			// matchTaskHeading 用于用户配置的标题匹配规则。
-			// 如果匹配但 YAML 块未提供 task，则创建默认 task。
 			if (!node.task && matchTaskHeading(title)) {
 				node.task = {
 					rawLine: trimmed,
@@ -274,7 +306,7 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 			continue;
 		}
 
-		// ─── 当前标题的 YAML 块区域跳过（已通过 parseHeadingYamlBlock 解析）───
+		// ─── 当前标题的 YAML 块区域跳过 ───
 		const currentHeading =
 			headingStack.length > 0
 				? headingStack[headingStack.length - 1]
@@ -282,8 +314,8 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 		if (
 			currentHeading?.yamlStartLine !== undefined &&
 			currentHeading?.yamlEndLine !== undefined &&
-			i > currentHeading.yamlStartLine &&
-			i < currentHeading.yamlEndLine
+			i + lineOffset > currentHeading.yamlStartLine &&
+			i + lineOffset < currentHeading.yamlEndLine
 		) {
 			continue;
 		}
@@ -291,14 +323,14 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 		const taskMatch = trimmed.match(TASK_REGEX);
 		if (!taskMatch) continue;
 
-		const taskData = parseTaskLine(trimmed, filePath || "", i);
+		const taskData = parseTaskLine(trimmed, filePath || "", i + lineOffset);
 		if (!taskData) continue;
 
 		const node: ContentNode = {
 			type: "task",
 			text: taskData.content,
 			raw: trimmed,
-			line: i,
+			line: i + lineOffset,
 			depth: 0,
 			children: [],
 			task: taskData,
@@ -326,15 +358,6 @@ function parseFileContent(content: string, filePath?: string): ContentNode[] {
 	return roots;
 }
 
-/**
- * 自动识别标题任务
- *
- * 标题 YAML 块是插件自定义语法，附属于标题任务。
- * 已在 parseFileContent 中解析，node.task 已设置。
- *
- * 自动识别规则：只要有子列表任务（匹配 TASK_REGEX），就提升为标题任务。
- * 空格 " " 也是预设状态标记。
- */
 function promoteToHeadingTasks(nodes: ContentNode[]) {
 	for (const node of nodes) {
 		if (node.type === "heading" && !node.task) {

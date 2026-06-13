@@ -510,6 +510,8 @@ export function renderGanttWithTree(
 	treeRoot: TaskTreeNode,
 	options?: {
 		onTaskClick?: (task: TaskTreeNode) => void;
+		onRestore?: () => void;
+		onNodeClick?: (node: TaskTreeNode) => void;
 		intervalMode?: string;
 		sort?: { type: string; order: "asc" | "desc" };
 		dateRange?: {
@@ -632,19 +634,9 @@ export function renderGanttWithTree(
 		renderTaskTree(treeContainer, {
 			root: displayRoot,
 			focusRoot: options?.focusRoot,
-			onClick: (node: TaskTreeNode) => {
-				if (node.uid === "__task_root__") return;
-				const edges = calcBarEdges(
-					node,
-					timeRange,
-					timelineWidth,
-					intervalMode,
-				);
-				if (edges) {
-					const targetX = treeWidth + edges.left - 20;
-					scrollArea.scrollLeft = Math.max(0, targetX);
-				}
-			},
+			onClick: options?.onNodeClick,
+			onDoubleClick: options?.onTaskClick,
+			onRestore: options?.onRestore,
 			sort: options?.sort,
 			onRowRender: (rowEl, node) => {
 				rowEl.style.position = "relative";
@@ -741,7 +733,7 @@ export function renderGanttWithTree(
 							);
 						}
 
-						bar.addEventListener("click", (e) => {
+						bar.addEventListener("dblclick", (e) => {
 							const rect = bar.getBoundingClientRect();
 							const clickX = e.clientX - rect.left;
 							if (
@@ -753,6 +745,40 @@ export function renderGanttWithTree(
 						});
 
 						rowEl.appendChild(bar);
+					}
+
+					// 在节点名后添加定位按钮
+					const contentContainer = rowEl.querySelector(
+						"div",
+					) as HTMLElement;
+					if (contentContainer && node.uid !== "__task_root__") {
+						const locateBtn = document.createElement("span");
+						locateBtn.textContent = "➤";
+						locateBtn.style.cssText =
+							"cursor:pointer;font-size:11px;margin-left:2px;opacity:0.5;flex-shrink:0;";
+						locateBtn.title = "定位到甘特条";
+						locateBtn.addEventListener("click", (e) => {
+							e.stopPropagation();
+							const taskEdges = calcBarEdges(
+								node,
+								timeRange,
+								timelineWidth,
+								intervalMode,
+							);
+							if (taskEdges) {
+								const targetX = treeWidth + taskEdges.left - 20;
+								scrollArea.scrollLeft = Math.max(0, targetX);
+							}
+						});
+						const firstChild = contentContainer.firstChild;
+						if (firstChild?.nextSibling) {
+							contentContainer.insertBefore(
+								locateBtn,
+								firstChild.nextSibling,
+							);
+						} else {
+							contentContainer.appendChild(locateBtn);
+						}
 					}
 				}
 			},

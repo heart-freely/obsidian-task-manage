@@ -139,7 +139,7 @@ export function renderTaskTable(
 	nodes.forEach((node) => {
 		const row = document.createElement("tr");
 		row.className = "task-row";
-		row.addEventListener("click", () => options.onClick?.(node));
+		row.addEventListener("dblclick", () => options.onClick?.(node));
 
 		visibleColumns.forEach((col) => {
 			const value = col.getValue(node);

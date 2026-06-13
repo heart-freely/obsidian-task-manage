@@ -58,3 +58,22 @@ class TooltipManager {
 }
 
 export const tooltip = new TooltipManager();
+// ========== ECharts tooltip 通用配置 ==========
+
+/**
+ * 获取 ECharts tooltip 通用配置
+ * 深色背景风格，与卡片简洁模式 tooltip 样式一致
+ */
+export function getEChartsTooltipConfig(trigger: "item" | "axis" = "item") {
+	return {
+		trigger,
+		backgroundColor: "rgba(0, 0, 0, 0.85)",
+		borderColor: "transparent",
+		textStyle: {
+			color: "#fff",
+			fontSize: 11,
+		},
+		extraCssText:
+			"border-radius:6px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);",
+	};
+}

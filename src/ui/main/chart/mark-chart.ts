@@ -1,5 +1,4 @@
 // src/ui/component/charts/mark-chart.ts
-
 import {
 	BOTH_COLOR_DEF,
 	DATE_MARK_ICONS,
@@ -17,30 +16,24 @@ import {
 	STATUS_NAMES,
 	STATUS_SORT_ORDER,
 	TAG_COLOR_DEF,
+	TASK_ELEMENTS,
 } from "../../../core/config/config";
 import { getTaskMarks } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { getThemeColor } from "../../../util/color-utils";
+import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
+// 优先级中文名映射 — 从 TASK_ELEMENTS 动态生成
+const PRIORITY_ZH_NAMES: Record<string, string> = {};
+TASK_ELEMENTS.priority.children.forEach((c) => {
+	PRIORITY_ZH_NAMES[c.icon] = c.zhName;
+});
 
-// 日期标记中文名映射
-const DATE_MARK_ZH_NAMES: Record<string, string> = {
-	created: "创建",
-	scheduled: "计划",
-	starts: "开始",
-	cancelled: "取消",
-	done: "完成",
-	due: "截止",
-};
-
-// 优先级中文名映射
-const PRIORITY_ZH_NAMES: Record<string, string> = {
-	"🔺": "最高",
-	"⏫": "高",
-	"🔼": "中",
-	"🔽": "低",
-	"⏬": "最低",
-};
+// 日期标记中文名映射 — 从 TASK_ELEMENTS 动态生成
+const DATE_MARK_ZH_NAMES: Record<string, string> = {};
+DATE_MARK_ORDER.forEach((k) => {
+	DATE_MARK_ZH_NAMES[k] = (TASK_ELEMENTS as any)[k].zhName;
+});
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
@@ -99,17 +92,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		chart.setOption({
 			backgroundColor: "transparent",
 			textStyle: { color: textColor },
-			tooltip: {
-				trigger: "item",
-				backgroundColor: "rgba(0, 0, 0, 0.85)",
-				borderColor: "transparent",
-				textStyle: {
-					color: "#fff",
-					fontSize: 11,
-				},
-				extraCssText:
-					"border-radius:6px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);",
-			},
+			tooltip: getEChartsTooltipConfig("item"),
 			legend: {
 				orient: "horizontal",
 				bottom: 0,

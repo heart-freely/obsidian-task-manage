@@ -15,8 +15,10 @@ export interface TaskCardOptions {
 	showTooltip?: boolean;
 	/** 简洁模式：单行显示，隐藏元数据行，默认 false（详细模式） */
 	compact?: boolean;
-	/** 点击回调，传入被点击的任务节点 */
+	/** 双击回调，传入被点击的任务节点 */
 	onClick?: (node: TaskTreeNode) => void;
+	/** 单击回调，传入被点击的任务节点（用于聚焦子树等） */
+	onSingleClick?: (node: TaskTreeNode) => void;
 }
 
 export function createTaskCard(
@@ -77,8 +79,18 @@ export function createTaskCard(
 		}
 	}
 
-	if (options?.onClick) {
+	// 单击 — 延迟聚焦，让双击事件有机会触发
+	if (options?.onSingleClick) {
 		li.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const nodeRef = node;
+			const callback = options.onSingleClick!;
+			setTimeout(() => callback(nodeRef), 150);
+		});
+	}
+	// 双击 — 跳转到文件位置
+	if (options?.onClick) {
+		li.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			options.onClick!(node);
 		});

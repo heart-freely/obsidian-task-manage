@@ -8,8 +8,8 @@ import {
 } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
+import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
-
 export function renderDetail(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
@@ -96,17 +96,7 @@ export function renderDetail(
 	container.appendChild(wrapper);
 	const chart = echarts.init(chartDiv);
 	const option = {
-		tooltip: {
-			trigger: "axis",
-			backgroundColor: "rgba(0, 0, 0, 0.85)",
-			borderColor: "transparent",
-			textStyle: {
-				color: "#fff",
-				fontSize: 11,
-			},
-			extraCssText:
-				"border-radius:6px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);",
-		},
+		tooltip: getEChartsTooltipConfig("axis"),
 		xAxis: {
 			type: "category",
 			data: dates,

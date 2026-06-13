@@ -2,6 +2,7 @@
 
 import {
 	countNodeStatuses,
+	removeHeadingNumber,
 	sortFileNodes,
 } from "../../../core/component/tree-view-process";
 import { TaskTreeNode } from "../../../core/task/task-tree";
@@ -15,6 +16,8 @@ export interface TreeListOptions {
 	root: TaskTreeNode;
 	focusRoot?: TaskTreeNode;
 	onClick?: (node: TaskTreeNode) => void;
+	onDoubleClick?: (node: TaskTreeNode) => void;
+	onRestore?: () => void;
 	sort?: { type: string; order: "asc" | "desc" };
 	onRowRender?: (rowEl: HTMLElement, node: TaskTreeNode) => void;
 }
@@ -89,12 +92,35 @@ export function renderTaskTree(
 ) {
 	container.empty();
 	const displayRoot = options.focusRoot || options.root;
+	const depthOffset = options.focusRoot?.depth ?? 0;
 
 	const tree = document.createElement("div");
 	tree.className = "task-tree";
 
-	// 虚拟根节点：仅在全树模式下显示
-	if (!options.focusRoot) {
+	// 聚焦模式：显示"返回全树"标题栏
+	if (options.focusRoot) {
+		const focusBar = document.createElement("div");
+		focusBar.style.cssText =
+			"padding:2px 4px; cursor:pointer; font-size:var(--font-ui-small); color:var(--text-accent);";
+
+		// 根据节点类型显示对应符号
+		const typeIcons: Record<string, string> = {
+			file: "📄",
+			heading: "H" + (displayRoot.headingLevel || displayRoot.depth),
+			list: "●",
+		};
+		const icon = typeIcons[displayRoot.type] || "📂";
+		let displayText = displayRoot.text;
+		// 标题任务去除 number headings 序号
+		if (displayRoot.type === "heading") {
+			displayText = removeHeadingNumber(displayText);
+		}
+		focusBar.textContent = icon + " " + displayText;
+		focusBar.title = "点击返回全树，双击跳转到文件";
+		focusBar.addEventListener("click", () => options.onRestore?.());
+		tree.appendChild(focusBar);
+	} else {
+		// 全树模式：虚拟根节点
 		const { counts, total } = countNodeStatuses(options.root);
 
 		const rootRow = document.createElement("div");
@@ -139,17 +165,6 @@ export function renderTaskTree(
 		}
 
 		tree.appendChild(rootRow);
-	} else {
-		// 聚焦模式：显示"返回全树"标题
-		const focusBar = document.createElement("div");
-		focusBar.style.cssText =
-			"padding:2px 4px; cursor:pointer; font-size:var(--font-ui-small); color:var(--text-accent);";
-		focusBar.textContent = "📂 " + displayRoot.text;
-		focusBar.title = "点击恢复全树";
-		focusBar.addEventListener("click", () =>
-			options.onClick?.(displayRoot),
-		);
-		tree.appendChild(focusBar);
 	}
 
 	const sortedChildren =
@@ -158,7 +173,7 @@ export function renderTaskTree(
 			: displayRoot.children;
 
 	for (const child of sortedChildren) {
-		renderNode(child, tree, options);
+		renderNode(child, tree, options, depthOffset);
 	}
 
 	container.appendChild(tree);
@@ -168,6 +183,7 @@ function renderNode(
 	node: TaskTreeNode,
 	parentEl: HTMLElement,
 	options?: TreeListOptions,
+	depthOffset: number = 0,
 ) {
 	if (!node.display) return;
 	if (!node.match && node.children.length === 0) return;
@@ -176,7 +192,9 @@ function renderNode(
 	const childContainer = document.createElement("div");
 	const { counts, total } = countNodeStatuses(node);
 
-	const rowWrapper = createRowWrapper(node.depth);
+	// 使用修正后的深度
+	const displayDepth = Math.max(0, node.depth - depthOffset);
+	const rowWrapper = createRowWrapper(displayDepth);
 	if (hasChildren) rowWrapper.appendChild(createToggleBtn(childContainer));
 	else rowWrapper.appendChild(createSpacer());
 
@@ -187,7 +205,8 @@ function renderNode(
 	const card = createTaskCard(node, {
 		showTooltip: true,
 		compact: true,
-		onClick: options?.onClick,
+		onClick: options?.onDoubleClick,
+		onSingleClick: options?.onClick,
 	});
 	contentContainer.appendChild(card);
 	if (total > 0 && hasChildren)
@@ -207,7 +226,7 @@ function renderNode(
 			: node.children;
 
 	for (const child of sortedChildren) {
-		renderNode(child, childContainer, options);
+		renderNode(child, childContainer, options, depthOffset);
 	}
 	parentEl.appendChild(childContainer);
 }

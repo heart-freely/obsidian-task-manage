@@ -1,7 +1,7 @@
 // ui/sidebar/preset/base-task-preset.ts
 // 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染（带防抖）
 
-import { GlobalFilter } from "../../../type/type";
+import { GlobalFilter } from "../../../type/types";
 import { renderKanban } from "../../../ui/main/board/kanban-board";
 import { renderMatrix } from "../../../ui/main/board/matrix-board";
 import { renderCalendarView } from "../../../ui/main/calendar/calendar";
@@ -57,6 +57,7 @@ export abstract class BaseTaskView {
 
 	protected selectedTreeNode: TaskTreeNode | null = null;
 	protected focusedTreeNode: TaskTreeNode | null = null;
+	private focusHistory: TaskTreeNode[] = [];
 
 	private renderDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 	private static DEBOUNCE_DELAY = 50;
@@ -159,7 +160,11 @@ export abstract class BaseTaskView {
 					root: dateFilteredTree,
 					focusRoot: this.focusedTreeNode || undefined,
 					hideFolders: activeFilter.hideFolders ?? true,
-					onClick: (node: TaskTreeNode) => this.openTaskAtLine(node),
+					onClick: (node: TaskTreeNode) =>
+						this.onTaskTreeNavClick(node),
+					onDoubleClick: (node: TaskTreeNode) =>
+						this.openTaskAtLine(node),
+					onRestore: () => this.restoreFocus(),
 					sort,
 				});
 			} else if (currentStyle === "gantt") {
@@ -173,6 +178,9 @@ export abstract class BaseTaskView {
 					{
 						onTaskClick: (node: TaskTreeNode) =>
 							this.openTaskAtLine(node),
+						onRestore: () => this.restoreFocus(),
+						onNodeClick: (node: TaskTreeNode) =>
+							this.onTaskTreeNavClick(node),
 						intervalMode,
 						sort: sort as { type: string; order: "asc" | "desc" },
 						dateRange: activeFilter.dateRange,
@@ -196,6 +204,21 @@ export abstract class BaseTaskView {
 					"加载失败：" + (e instanceof Error ? e.message : String(e)),
 			});
 		}
+	}
+
+	private restoreFocus() {
+		// 弹出当前节点
+		this.focusHistory.pop();
+		// 回退到上一个节点
+		if (this.focusHistory.length > 0) {
+			this.focusedTreeNode =
+				this.focusHistory[this.focusHistory.length - 1];
+			this.selectedTreeNode = this.focusedTreeNode;
+		} else {
+			this.focusedTreeNode = null;
+			this.selectedTreeNode = null;
+		}
+		this.render();
 	}
 
 	private collectNodeTasksDeep(node: TaskTreeNode): TaskTreeNode[] {
@@ -246,8 +269,10 @@ export abstract class BaseTaskView {
 				root: displayTree,
 				focusRoot: this.focusedTreeNode || undefined,
 				hideFolders: filter.hideFolders ?? true,
-				onClick: (node: TaskTreeNode) =>
-					this.onTaskTreeNavClick(node, viewStyle),
+				onClick: (node: TaskTreeNode) => this.onTaskTreeNavClick(node),
+				onDoubleClick: (node: TaskTreeNode) =>
+					this.openTaskAtLine(node),
+				onRestore: () => this.restoreFocus(),
 				sort,
 			});
 
@@ -330,22 +355,21 @@ export abstract class BaseTaskView {
 			displayTree,
 			sort,
 		);
+
 		document.addEventListener("mousemove", this.onResizeBound!);
 		document.addEventListener("mouseup", this.stopResizeBound!);
 	}
 
-	private onTaskTreeNavClick(node: TaskTreeNode, currentViewStyle: string) {
-		if (currentViewStyle === "gantt" || currentViewStyle === "tree") {
-			this.openTaskAtLine(node);
+	private onTaskTreeNavClick(node: TaskTreeNode) {
+		if (this.focusedTreeNode === node) {
+			// 再次点击同一节点：回退
+			this.restoreFocus();
 			return;
 		}
-		if (this.focusedTreeNode === node) {
-			this.focusedTreeNode = null;
-			this.selectedTreeNode = null;
-		} else {
-			this.focusedTreeNode = node;
-			this.selectedTreeNode = node;
-		}
+		// 新节点：压入历史栈
+		this.focusHistory.push(node);
+		this.focusedTreeNode = node;
+		this.selectedTreeNode = node;
 		this.render();
 	}
 
@@ -354,35 +378,58 @@ export abstract class BaseTaskView {
 		const file = this.app.vault.getAbstractFileByPath(node.path);
 		if (!file) return;
 		const targetLine = node.line;
+
 		const leaf = this.app.workspace.getLeaf(false);
-		leaf.openFile(file).then(() => {
+		leaf.openFile(file, { active: true }).then(() => {
 			const tryScroll = (retries: number) => {
 				const editor = leaf.view?.editor;
-				if (editor) {
-					editor.setCursor({ line: targetLine, ch: 0 });
-					editor.scrollIntoView(
-						{
-							from: { line: Math.max(0, targetLine - 1), ch: 0 },
-							to: { line: targetLine + 5, ch: 0 },
-						},
-						true,
-					);
-					setTimeout(
-						() =>
-							editor.scrollIntoView(
-								{
-									from: { line: targetLine, ch: 0 },
-									to: { line: targetLine, ch: 0 },
-								},
-								true,
-							),
-						50,
-					);
-				} else if (retries > 0) {
-					setTimeout(() => tryScroll(retries - 1), 100);
+				if (!editor && retries > 0) {
+					setTimeout(() => tryScroll(retries - 1), 250);
+					return;
 				}
+				if (!editor) return;
+
+				const lineCount = editor.lineCount();
+				const clampedLine = Math.min(targetLine, lineCount - 1);
+
+				const cm = (editor as any).cm;
+				if (cm) {
+					cm.setCursor({ line: clampedLine, ch: 0 });
+					cm.scrollIntoView(
+						{ line: clampedLine, ch: 0 },
+						cm.getScrollInfo().clientHeight * 0.3,
+					);
+					cm.setSelection(
+						{ line: clampedLine, ch: 0 },
+						{
+							line: clampedLine,
+							ch: cm.getLine(clampedLine)?.length || 0,
+						},
+					);
+					cm.focus();
+					return;
+				}
+
+				editor.setCursor({ line: clampedLine, ch: 0 });
+				editor.scrollIntoView(
+					{
+						from: { line: clampedLine, ch: 0 },
+						to: {
+							line: Math.min(clampedLine + 10, lineCount - 1),
+							ch: 0,
+						},
+					},
+					true,
+				);
+				editor.setSelection(
+					{ line: clampedLine, ch: 0 },
+					{
+						line: clampedLine,
+						ch: editor.getLine(clampedLine)?.length || 0,
+					},
+				);
 			};
-			setTimeout(() => tryScroll(5), 150);
+			setTimeout(() => tryScroll(8), 300);
 		});
 	}
 
