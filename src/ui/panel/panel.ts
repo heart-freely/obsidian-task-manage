@@ -2,6 +2,7 @@
 // 面板管理器
 
 import { Store } from "../../core/store/store";
+import { EditPanel } from "./edit-panel";
 import { HeadPanel } from "./head-panel";
 import { HidePanel } from "./hide-panel";
 import { MarkPanel } from "./mark-panel";
@@ -27,6 +28,7 @@ const PANEL_COMPONENTS: Record<string, PanelComponentClass> = {
 	view: ViewPanel,
 	sort: SortPanel,
 	hide: HidePanel,
+	edit: EditPanel,
 };
 
 export class Panels {
@@ -292,14 +294,12 @@ export class Panels {
 		}
 
 		const currentChildren = Array.from(this.panelContentInner.children);
-		// 第一个子元素是 buttonBarEl，后面的才是功能面板
 		const expectedOrder = visibleKeys
 			.map((key) => this.panelEls.get(key))
 			.filter(Boolean);
 
 		let needReorder = false;
 		for (let i = 0; i < expectedOrder.length; i++) {
-			// panelContentInner.children[0] 是 buttonBarEl, children[1+] 是功能面板
 			if (currentChildren[i + 1] !== expectedOrder[i]) {
 				needReorder = true;
 				break;

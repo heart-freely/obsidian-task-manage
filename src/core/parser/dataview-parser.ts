@@ -1,7 +1,7 @@
 // core/parser/dataview-parser.ts
 // Dataview 格式任务解析器
 
-import { TaskData, TaskStatus } from "../../type/types";
+import { TaskData, TaskStatus } from "../../type/type";
 import {
 	DATAVIEW_EMOJI_DATE_REGEX,
 	DATAVIEW_EMOJI_FIELD_MAP,

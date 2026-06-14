@@ -27,28 +27,27 @@ export const TASK_ELEMENT_ORDER = [
 ] as const;
 
 // ========== 颜色定义（深浅双值）==========
-// 深色：muted、低饱和度、偏冷色调
-// 浅色：适中饱和度、在白底上清晰可见
 
 const C = {
 	// 执行状态
+	statusNone: { dark: "transparent", light: "transparent" },
 	statusTodo: { dark: "rgba(85, 90, 100, 0.75)", light: "#6b7280" },
 	statusScheduled: { dark: "rgba(105, 125, 170, 0.75)", light: "#6b7ea8" },
 	statusInProgress: { dark: "rgba(80, 140, 210, 0.80)", light: "#3b82c4" },
 	statusCancelled: { dark: "rgba(175, 62, 68, 0.70)", light: "#d14343" },
 	statusCompleted: { dark: "rgba(80, 150, 120, 0.75)", light: "#4a8c6a" },
-	// 优先级 — 从高到低，颜色从深到浅（深色模式）
+	// 优先级
 	prioHighest: { dark: "rgba(200, 65, 65, 0.80)", light: "#c93030" },
 	prioHigh: { dark: "rgba(210, 110, 90, 0.80)", light: "#d47040" },
 	prioMedium: { dark: "rgba(200, 155, 85, 0.80)", light: "#c89038" },
 	prioLow: { dark: "rgba(80, 150, 215, 0.80)", light: "#4a8ec7" },
 	prioLowest: { dark: "rgba(110, 160, 100, 0.80)", light: "#5a946e" },
-	// 循环 — 从短到长，颜色从深到浅（深色模式）
+	// 循环
 	repeatDay: { dark: "rgba(80, 130, 200, 0.75)", light: "#4a7ec4" },
 	repeatWeek: { dark: "rgba(85, 170, 195, 0.75)", light: "#3d9ba8" },
 	repeatMonth: { dark: "rgba(170, 135, 90, 0.70)", light: "#b8783a" },
 	repeatYear: { dark: "rgba(155, 160, 100, 0.70)", light: "#9e9a40" },
-	// 日期标记 — 从浅到深：创建→计划→开始→取消→完成→截止，偏蓝绿色系
+	// 日期标记
 	created: { dark: "rgba(140, 160, 210, 0.70)", light: "#8a9cc8" },
 	scheduled: { dark: "rgba(120, 175, 200, 0.72)", light: "#6aa0b8" },
 	starts: { dark: "rgba(100, 185, 185, 0.72)", light: "#5aa8a0" },
@@ -71,6 +70,13 @@ export const TASK_ELEMENTS = {
 		inMarkSequence: true,
 		yaName: "任务状态",
 		children: [
+			{
+				key: "none" as const,
+				zhName: "无状态",
+				icon: "",
+				darkColor: C.statusNone.dark,
+				lightColor: C.statusNone.light,
+			},
 			{
 				key: "todo" as const,
 				zhName: "待办中",
@@ -115,7 +121,6 @@ export const TASK_ELEMENTS = {
 		icon: "",
 		inMarkSequence: true,
 		yaName: "任务优先级",
-		// children 按 key 从高到低排列（0→4），与 PRIORITY_ORDER 一致
 		children: [
 			{
 				key: "0" as const,
@@ -324,7 +329,6 @@ DATE_MARK_ORDER_INTERNAL.forEach((k) => {
 	);
 });
 
-// 标签调色板
 const TAG_PALETTE_DEFS: ThemeColor[] = [
 	makeColor("rgba(165, 140, 210, 0.75)", "#8a76b8"),
 	makeColor("rgba(200, 115, 115, 0.75)", "#c46a6a"),
@@ -367,6 +371,7 @@ TASK_ELEMENTS.status.children.forEach((c) => {
 	STATUS_ICONS[c.key] = c.icon;
 });
 export const STATUS_SORT_ORDER: string[] = [
+	"none",
 	"todo",
 	"scheduled",
 	"in-progress",

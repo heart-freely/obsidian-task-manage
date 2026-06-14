@@ -1,4 +1,5 @@
 // src/ui/main/list/list.ts
+// src/ui/main/list/list.ts
 
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createTaskCard } from "../card/card";
@@ -14,6 +15,8 @@ export function renderTaskList(
 	options: TaskListOptions = {},
 ) {
 	const ul = container.createEl("ul", { cls: "task-list" });
+	ul.style.paddingLeft = "0";
+	ul.style.listStyle = "none";
 	nodes.forEach((node) => {
 		const card = createTaskCard(node, {
 			compact: options.compact,

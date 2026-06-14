@@ -1,7 +1,7 @@
 // core/data/data-manager.ts
 // 数据管理器 — 统一数据加载、缓存、筛选、排序、收集
 
-import { GlobalFilter } from "../../type/types";
+import { GlobalFilter } from "../../type/type";
 import { loadAllTaskFiles, ParsedFileData } from "../parser/md-parser";
 import {
 	buildTaskTree,
@@ -154,7 +154,6 @@ export class DataManager {
 		}
 		const tree = this.getFilteredTree(filter);
 		const nodes = flattenTree(tree);
-		// 修复：过滤 display: false 的节点和虚拟根节点
 		const filtered = nodes.filter(
 			(n) => n.display && n.uid !== "__task_root__",
 		);
@@ -189,6 +188,16 @@ export class DataManager {
 
 	getTaskIdMap(): Map<string, TaskTreeNode> {
 		return this.cache.taskIdMap;
+	}
+
+	/**
+	 * 根据 uid 查找任务节点
+	 */
+	getNodeByUid(uid: string): TaskTreeNode | undefined {
+		const allNodes = this.cache.fullTree
+			? flattenTree(this.cache.fullTree)
+			: [];
+		return allNodes.find((n) => n.uid === uid);
 	}
 
 	invalidate() {

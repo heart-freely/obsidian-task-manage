@@ -47,8 +47,6 @@ export interface GlobalFilter {
 	repeatCycles?: string[];
 }
 
-// src/type/type.ts — HideConfig
-
 export interface HideConfig {
 	hideStatuses: string[];
 	hidePriorityValues: string[];
@@ -86,10 +84,26 @@ export interface PresetGroup {
 	order?: number;
 }
 
+export interface EditState {
+	editMode: boolean;
+	batchMode: boolean;
+	selectedTasks: Set<string>;
+	previews: Map<string, string>;
+	savedTasks: Set<string>;
+	expandedButton: string | null;
+}
+
+export interface EditPanelState {
+	batchMode: boolean;
+	selectedCount: number;
+	hasSnapshots: boolean;
+}
+
 export interface AppState {
 	activePresetId: string | null;
 	presets: Preset[];
 	presetGroups: PresetGroup[];
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
+	editPanelState?: EditPanelState;
 }

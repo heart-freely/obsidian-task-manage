@@ -1,10 +1,9 @@
+// src/core/parser/task-parser.ts
 // core/parser/task-parser.ts
 // YAML 属性解析（文件任务 + 标题任务共用）
 
 import { TaskData, TaskStatus } from "../../type/type";
 import { TASK_ELEMENTS, YAML_DATE_FIELDS } from "../config/config";
-
-// core/parser/task-parser.ts — parseTaskFromYaml
 
 export function parseTaskFromYaml(
 	yamlData: Record<string, any>,
@@ -18,9 +17,9 @@ export function parseTaskFromYaml(
 		pm[c.zhName] = 4 - idx;
 	});
 
-	const rawStatus = yamlData["任务状态"] || "待办中";
+	const rawStatus = yamlData["任务状态"] || "无状态";
 	const rawPriority = yamlData["任务优先级"] || "none";
-	const sk = (sm[rawStatus] || "todo") as TaskStatus;
+	const sk = (sm[rawStatus] || "none") as TaskStatus;
 	const pi = rawPriority === "none" ? 5 : (pm[rawPriority] ?? 5);
 
 	const fd = (val: any): number | null => {

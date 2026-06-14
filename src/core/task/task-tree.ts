@@ -1,3 +1,4 @@
+// src/core/task/task-tree.ts
 // core/task/task-tree.ts
 // 统一任务树数据结构 + 构建 + 筛选 + 扁平化
 
@@ -128,7 +129,7 @@ export function buildTaskTree(
 		if (!file.fileTask && !hasContentRoots) continue;
 
 		const taskData = file.fileTask || {
-			status: "todo" as TaskStatus,
+			status: "none" as TaskStatus,
 			content: name,
 			priority: 5,
 			repeat: "",
@@ -148,7 +149,7 @@ export function buildTaskTree(
 			type: "file",
 			path: file.path,
 			line: 0,
-			rawLine: "",
+			rawLine: file.fileTask?.rawLine || name,
 			depth: 0,
 			parent: null,
 			children: [],
@@ -313,7 +314,7 @@ function createRootNode(children: TaskTreeNode[]): TaskTreeNode {
 		text: "🗂️ 任务管理",
 		display: true,
 		match: true,
-		status: "todo",
+		status: "none",
 		content: "任务管理",
 		priority: 5,
 		repeat: "",
@@ -414,7 +415,7 @@ function convertContentNodes(
 			text: cn.text,
 			display: true,
 			match: true,
-			status: cn.task?.status ?? "todo",
+			status: cn.task?.status ?? "none",
 			content: cn.task?.content ?? cn.text,
 			priority: cn.task?.priority ?? 5,
 			repeat: cn.task?.repeat ?? "",
@@ -463,7 +464,6 @@ function filterNode(
 	const hasChildren = fc.length > 0;
 	const self = taskMatchesFilter(node, options);
 
-	// 设置匹配标志：自身是否匹配筛选条件
 	node.match = self;
 
 	if (!hasChildren && !self) return null;

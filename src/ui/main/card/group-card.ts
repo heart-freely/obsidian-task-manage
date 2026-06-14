@@ -53,6 +53,8 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 
 	const list = document.createElement("ul");
 	list.className = "task-list";
+	list.style.paddingLeft = "0";
+	list.style.listStyle = "none";
 	tasks.forEach((node) => {
 		const card = createTaskCard(node, { onClick });
 		list.appendChild(card);

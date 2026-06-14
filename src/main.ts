@@ -1,4 +1,5 @@
 // src/main.ts
+
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
@@ -39,18 +40,26 @@ export default class TaskManagePlugin extends Plugin {
 		this.settings.taskItemFilters =
 			this.settings.taskItemFilters || DEFAULT_SETTINGS.taskItemFilters;
 
-		this.saveAllSettings = async () => {
-			const existingData = (await this.loadData()) || {};
-			await this.saveData({
-				...existingData,
-				...(this.store?.getState() || {}),
-				taskRootPath: this.settings.taskRootPath,
-				folderFilters: this.settings.folderFilters,
-				fileFilters: this.settings.fileFilters,
-				headingFilters: this.settings.headingFilters,
-				taskItemFilters: this.settings.taskItemFilters,
-			});
+		const persistData = async () => {
+			try {
+				const state = this.store?.getState();
+				const dataToSave: any = {
+					taskRootPath: this.settings.taskRootPath,
+					folderFilters: this.settings.folderFilters,
+					fileFilters: this.settings.fileFilters,
+					headingFilters: this.settings.headingFilters,
+					taskItemFilters: this.settings.taskItemFilters,
+				};
+				if (state) {
+					Object.assign(dataToSave, state);
+				}
+				await this.saveData(dataToSave);
+			} catch (e) {
+				console.error("[TaskManage] 持久化失败:", e);
+			}
 		};
+
+		this.saveAllSettings = persistData;
 
 		updateTaskFileConfig({
 			rootPath: this.settings.taskRootPath,
@@ -63,6 +72,18 @@ export default class TaskManagePlugin extends Plugin {
 		const defaultPresets = getDefaultPresets();
 		const savedPresets: Preset[] = savedData.presets || [];
 		const mergedPresets: Preset[] = [];
+
+		const defaultVisibility = {
+			time: true,
+			excut: true,
+			search: true,
+			mark: true,
+			view: true,
+			hide: true,
+			edit: true,
+			sort: true,
+			config: true,
+		};
 
 		for (const dp of defaultPresets) {
 			const sp = savedPresets.find((p: Preset) => p.id === dp.id);
@@ -99,7 +120,8 @@ export default class TaskManagePlugin extends Plugin {
 							? spFilter.repeatCycles
 							: dp.filter.repeatCycles,
 				};
-				mergedPresets.push({
+
+				const merged: Preset = {
 					...dp,
 					...sp,
 					filter: mergedFilter,
@@ -110,7 +132,25 @@ export default class TaskManagePlugin extends Plugin {
 					taskTreeNavWidth:
 						sp.taskTreeNavWidth ?? dp.taskTreeNavWidth,
 					hideConfig: sp.hideConfig ?? dp.hideConfig,
-				});
+				};
+
+				if (merged.barVisibility) {
+					merged.barVisibility = {
+						...defaultVisibility,
+						...merged.barVisibility,
+					};
+				} else {
+					merged.barVisibility = { ...defaultVisibility };
+				}
+
+				if (
+					merged.toolbarOrder &&
+					!merged.toolbarOrder.includes("edit")
+				) {
+					merged.toolbarOrder = [...merged.toolbarOrder, "edit"];
+				}
+
+				mergedPresets.push(merged);
 			} else {
 				mergedPresets.push(dp);
 			}
@@ -118,6 +158,17 @@ export default class TaskManagePlugin extends Plugin {
 
 		for (const sp of savedPresets) {
 			if (!mergedPresets.find((p) => p.id === sp.id)) {
+				if (sp.barVisibility) {
+					sp.barVisibility = {
+						...defaultVisibility,
+						...sp.barVisibility,
+					};
+				} else {
+					sp.barVisibility = { ...defaultVisibility };
+				}
+				if (sp.toolbarOrder && !sp.toolbarOrder.includes("edit")) {
+					sp.toolbarOrder = [...sp.toolbarOrder, "edit"];
+				}
 				mergedPresets.push(sp);
 			}
 		}
@@ -132,7 +183,7 @@ export default class TaskManagePlugin extends Plugin {
 
 		this.store = new Store(initialState);
 		this.store.setSaveFn(async () => {
-			await this.saveAllSettings();
+			await persistData();
 		});
 
 		registerAllCommands(this, this.store);
@@ -155,12 +206,21 @@ export default class TaskManagePlugin extends Plugin {
 			} else if (wasViewOpen) {
 				this.activateView("manage-view");
 			}
+			setTimeout(() => {
+				persistData().catch((e) =>
+					console.error("[TaskManage] 初始持久化失败:", e),
+				);
+			}, 1000);
 		});
 	}
 
 	async onunload() {
 		if (this.saveAllSettings) {
-			await this.saveAllSettings();
+			try {
+				await this.saveAllSettings();
+			} catch (e) {
+				console.error("[TaskManage] 卸载持久化失败:", e);
+			}
 		}
 		document
 			.querySelectorAll(".toolbar-buttons")

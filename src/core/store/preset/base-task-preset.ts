@@ -1,10 +1,13 @@
+// src/core/store/preset/base-task-preset.ts
 // ui/sidebar/preset/base-task-preset.ts
 // 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染（带防抖）
+// 编辑功能采用 CSS 类切换，避免 DOM 重建
 
-import { GlobalFilter } from "../../../type/types";
+import { GlobalFilter } from "../../../type/type";
 import { renderKanban } from "../../../ui/main/board/kanban-board";
 import { renderMatrix } from "../../../ui/main/board/matrix-board";
 import { renderCalendarView } from "../../../ui/main/calendar/calendar";
+import { getEditContext, setEditContext } from "../../../ui/main/card/card";
 import { renderCards } from "../../../ui/main/card/grid-card";
 import { renderDetail } from "../../../ui/main/chart/detail-chart";
 import { renderMarkChart } from "../../../ui/main/chart/mark-chart";
@@ -38,6 +41,7 @@ import {
 	TreeFilterOptions,
 } from "../../task/task-tree";
 import { Store } from "../store";
+import { EditStore } from "../task-edit-store";
 
 export abstract class BaseTaskView {
 	protected container: HTMLElement;
@@ -64,14 +68,229 @@ export abstract class BaseTaskView {
 
 	private ganttInstance: any = null;
 
+	protected editStore: EditStore;
+
+	protected scrollPositions: Map<string, number> = new Map();
+
+	private previouslyEditedUids: Set<string> = new Set();
+
+	private _needsEditRefresh: boolean = false;
+	private _lastActivePresetId: string | null = null;
+	private _lastSidebarCollapsed: boolean | null = null;
+
 	constructor(container: HTMLElement, store: Store, app: any) {
 		this.container = container;
 		this.store = store;
 		this.app = app;
 		this.dataManager = DataManager.getInstance();
-		this.unsub = store.subscribe(() => this.render());
+
+		this.editStore = new EditStore(
+			this.app,
+			(uid) => this.dataManager.getNodeByUid(uid),
+			this.store,
+		);
+		this.store.setEditStore(this.editStore);
+
+		// 初始化追踪变量
+		const state = store.getState();
+		this._lastActivePresetId = state.activePresetId;
+		this._lastSidebarCollapsed = state.sidebarCollapsed;
+
+		this.unsub = store.subscribe(() => {
+			const state = store.getState();
+			const presetChanged =
+				this._lastActivePresetId !== state.activePresetId;
+			const sidebarChanged =
+				this._lastSidebarCollapsed !== state.sidebarCollapsed;
+
+			this._lastActivePresetId = state.activePresetId;
+			this._lastSidebarCollapsed = state.sidebarCollapsed;
+
+			if (presetChanged || sidebarChanged) {
+				this.render();
+			}
+		});
+
 		this.onResizeBound = (e: MouseEvent) => this.onResize(e);
 		this.stopResizeBound = () => this.stopResize();
+	}
+
+	private getEditSearchRoot(): HTMLElement {
+		return this.rightContentContainer || this.container;
+	}
+
+	private onEditStateChange() {
+		const state = this.editStore.getState();
+		const currentUids = new Set(state.selectedTasks);
+
+		if (!state.editMode) {
+			requestAnimationFrame(() => {
+				this.restoreEditedCards();
+				this.previouslyEditedUids.clear();
+			});
+			return;
+		}
+
+		for (const uid of this.previouslyEditedUids) {
+			if (!currentUids.has(uid)) {
+				this.setCardReadMode(uid);
+			}
+		}
+
+		for (const uid of currentUids) {
+			if (!this.previouslyEditedUids.has(uid)) {
+				this.setCardEditMode(uid);
+			} else {
+				const uidCopy = uid;
+				requestAnimationFrame(() => {
+					this.refreshCardEditContent(uidCopy);
+				});
+			}
+		}
+
+		this.applyEditContext();
+		this.previouslyEditedUids = new Set(currentUids);
+	}
+
+	private setCardEditMode(uid: string) {
+		const searchRoot = this.getEditSearchRoot();
+		const card = searchRoot.querySelector(
+			`[data-uid="${uid}"]`,
+		) as HTMLElement;
+		if (!card) return;
+
+		const node = this.dataManager.getNodeByUid(uid);
+		if (!node) return;
+
+		const editCtx = getEditContext();
+		if (!editCtx) return;
+
+		card.classList.add("task-item-editing");
+		card.style.cursor = "default";
+		this.refreshCardEditContent(uid);
+	}
+
+	private setCardReadMode(uid: string) {
+		const searchRoot = this.getEditSearchRoot();
+		const card = searchRoot.querySelector(
+			`[data-uid="${uid}"].task-item-editing`,
+		) as HTMLElement;
+		if (!card) return;
+
+		card.classList.remove("task-item-editing");
+		card.style.cursor = "pointer";
+
+		const descEl = card.querySelector(".task-desc") as HTMLElement;
+		if (descEl) {
+			descEl.style.color = "var(--text-normal)";
+			descEl.style.cursor = "pointer";
+			descEl.removeAttribute("contenteditable");
+		}
+
+		const previewRow = card.querySelector(
+			".task-preview-row",
+		) as HTMLElement;
+		if (previewRow) {
+			previewRow.innerHTML = "";
+			previewRow.style.display = "none";
+			previewRow.style.background = "";
+		}
+
+		// 刷新编辑栏，隐藏无值按钮
+		const editBar = card.querySelector(".task-edit-bar");
+		if (editBar && editBar.parentNode) {
+			const node = this.dataManager.getNodeByUid(uid);
+			if (node) {
+				import("../../../util/edit-utils").then(({ createEditBar }) => {
+					const newEditBar = createEditBar(node, {
+						expandedButton: null,
+						previewText: null,
+						isEditing: false,
+						onEdit: () => {},
+					});
+					try {
+						editBar.parentNode!.replaceChild(newEditBar, editBar);
+					} catch (e) {
+						// 忽略
+					}
+				});
+			}
+		}
+	}
+
+	private refreshCardEditContent(uid: string) {
+		const searchRoot = this.getEditSearchRoot();
+		const card = searchRoot.querySelector(
+			`[data-uid="${uid}"].task-item-editing`,
+		) as HTMLElement;
+		if (!card) return;
+
+		const node = this.dataManager.getNodeByUid(uid);
+		if (!node) return;
+
+		const editCtx = getEditContext();
+		if (!editCtx) return;
+
+		const previewText = editCtx.previews.get(uid);
+		const hasEdits = previewText !== null && previewText !== node.rawLine;
+		const saved = editCtx.savedTasks.has(node.uid);
+
+		const descEl = card.querySelector(".task-desc") as HTMLElement;
+		if (descEl) {
+			descEl.style.color = hasEdits
+				? "var(--text-accent)"
+				: "var(--text-normal)";
+			descEl.style.cursor = "text";
+		}
+
+		let previewRow = card.querySelector(".task-preview-row") as HTMLElement;
+		if (previewRow) previewRow.remove();
+		if (previewText) {
+			import("../../../util/edit-utils").then(({ createPreviewRow }) => {
+				const newPreviewRow = createPreviewRow(
+					previewText,
+					saved,
+					saved ? null : () => editCtx.onSave(node),
+					saved ? () => editCtx.onRevert(node) : null,
+					hasEdits,
+					hasEdits && editCtx.onRestore
+						? () => editCtx.onRestore!(node)
+						: null,
+				);
+				card.appendChild(newPreviewRow);
+			});
+		}
+
+		const editBar = card.querySelector(".task-edit-bar");
+		if (editBar && editBar.parentNode) {
+			import("../../../util/edit-utils").then(({ createEditBar }) => {
+				const newEditBar = createEditBar(node, {
+					expandedButton: editCtx.expandedButton,
+					previewText: previewText ?? null,
+					isEditing: true,
+					onEdit: (n, markKey, value) => {
+						if (markKey.endsWith("_toggle")) {
+							editCtx.onEdit(n, markKey, null);
+						} else {
+							editCtx.onEdit(n, markKey, value);
+						}
+					},
+				});
+				try {
+					editBar.parentNode!.replaceChild(newEditBar, editBar);
+				} catch (e) {
+					// 忽略
+				}
+			});
+		}
+	}
+
+	private restoreEditedCards() {
+		const searchRoot = this.getEditSearchRoot();
+		const uids = Array.from(this.previouslyEditedUids);
+		for (const uid of uids) {
+			this.setCardReadMode(uid);
+		}
 	}
 
 	getDefaultFilter(): GlobalFilter {
@@ -89,7 +308,204 @@ export abstract class BaseTaskView {
 		});
 	}
 
+	protected renderImmediate(): void {
+		if (this.renderDebounceTimer) clearTimeout(this.renderDebounceTimer);
+		this.renderDebounceTimer = null;
+		this.doRender();
+	}
+
+	private applyEditContext() {
+		const state = this.editStore.getState();
+		if (state.editMode) {
+			setEditContext({
+				editMode: true,
+				batchMode: state.batchMode,
+				selectedTasks: state.selectedTasks,
+				previews: state.previews,
+				savedTasks: state.savedTasks,
+				expandedButton: state.expandedButton,
+				onEdit: (node, markKey, value) => {
+					if (markKey.endsWith("_toggle")) {
+						this.editStore.toggleExpandedButton(
+							markKey.replace("_toggle", ""),
+						);
+					} else {
+						this.editStore.applyEdit(markKey, value);
+					}
+					this._needsEditRefresh = true;
+					requestAnimationFrame(() => this.onEditStateChange());
+				},
+				onContentEdit: (node, newContent) => {
+					this.editStore.applyContentEdit(node, newContent);
+					this._needsEditRefresh = true;
+					requestAnimationFrame(() => this.onEditStateChange());
+				},
+				onCheckChange: (node, checked) => {
+					this.editStore.toggleSelection(node);
+					this._needsEditRefresh = true;
+					requestAnimationFrame(() => this.onEditStateChange());
+				},
+				onSave: (node) => {
+					this.editStore.saveSingle(node);
+				},
+				onRevert: (node) => {
+					this.editStore.revertSingle(node);
+				},
+				onRestore: (node) => {
+					this.editStore.applyContentEdit(
+						node,
+						node.rawLine || node.content || node.text,
+					);
+					this._needsEditRefresh = true;
+					requestAnimationFrame(() => this.onEditStateChange());
+				},
+			});
+		} else {
+			setEditContext(null);
+		}
+	}
+
+	private onGlobalClick = (e: MouseEvent) => {
+		const target = e.target as HTMLElement;
+		const es = this.editStore;
+		const isEditMode = es.getState().editMode;
+		const isBatchMode = es.getState().batchMode;
+
+		if (isEditMode) {
+			if (
+				target.closest(".task-edit-bar") ||
+				target.closest(".task-preview-row") ||
+				target.closest(".organize-edit-toolbar") ||
+				target.closest(".organize-bottom-bar") ||
+				target.closest(".organize-mode-row") ||
+				target.getAttribute("contenteditable") === "true"
+			) {
+				return;
+			}
+
+			if (isBatchMode && target.closest(".panel-host")) {
+				if (
+					target.closest("button") ||
+					target.closest("input") ||
+					target.closest("select") ||
+					target.closest(".panel-header-btn") ||
+					target.closest(".panel-eye")
+				) {
+					return;
+				}
+			}
+
+			if (target.closest(".panel-host")) {
+				es.exitEditMode(false);
+				requestAnimationFrame(() => this.onEditStateChange());
+				return;
+			}
+
+			if (target.closest(".manage-sidebar")) {
+				if (
+					target.closest(".side-top-row") ||
+					target.closest("[title*='折叠']") ||
+					target.closest("[title*='展开']")
+				) {
+					return;
+				}
+				es.exitEditMode(false);
+				requestAnimationFrame(() => this.onEditStateChange());
+				return;
+			}
+
+			const taskItem = target.closest(".task-item") as HTMLElement;
+			if (taskItem) {
+				const uid = taskItem.getAttribute("data-uid");
+				if (uid) {
+					const node = this.dataManager.getNodeByUid(uid);
+					if (node) {
+						const clickedOnContent =
+							target.closest(".task-desc") ||
+							target.closest(".task-edit-bar") ||
+							target.closest(".task-preview-row") ||
+							target.closest(".task-meta") ||
+							(target.tagName === "INPUT" &&
+								target.getAttribute("type") === "checkbox");
+
+						if (clickedOnContent) {
+							es.enterEditMode(node);
+							this._needsEditRefresh = true;
+							requestAnimationFrame(() =>
+								this.onEditStateChange(),
+							);
+							return;
+						}
+
+						es.exitEditMode(false);
+						requestAnimationFrame(() => this.onEditStateChange());
+						return;
+					}
+				}
+			}
+
+			es.exitEditMode(false);
+			requestAnimationFrame(() => this.onEditStateChange());
+			return;
+		}
+
+		const taskItem = target.closest(".task-item") as HTMLElement;
+		if (taskItem) {
+			const uid = taskItem.getAttribute("data-uid");
+			if (!uid) return;
+			const node = this.dataManager.getNodeByUid(uid);
+			if (!node) return;
+
+			es.enterEditMode(node);
+			this._needsEditRefresh = true;
+			requestAnimationFrame(() => this.onEditStateChange());
+			return;
+		}
+	};
+
+	private getScrollContainer(): HTMLElement | null {
+		if (this.rightContentContainer) {
+			return this.rightContentContainer;
+		}
+		const viewContent = this.container.querySelector(
+			".view-content",
+		) as HTMLElement;
+		if (
+			viewContent &&
+			viewContent.scrollHeight > viewContent.clientHeight
+		) {
+			return viewContent;
+		}
+		if (this.container.scrollHeight > this.container.clientHeight) {
+			return this.container;
+		}
+		return null;
+	}
+
+	private getScrollKey(): string {
+		const preset = this.store.getActivePreset();
+		if (!preset) return "default";
+		return `${preset.id}-${preset.viewStyle}-${preset.businessView}`;
+	}
+
+	private getRootElement(): HTMLElement | null {
+		return this.container.closest(".manage-root") as HTMLElement;
+	}
+
 	private async doRender() {
+		const scrollContainer = this.getScrollContainer();
+		const scrollKey = this.getScrollKey();
+		if (scrollContainer && scrollKey) {
+			this.scrollPositions.set(scrollKey, scrollContainer.scrollTop);
+		}
+
+		const rootEl = this.getRootElement();
+		if (rootEl) {
+			rootEl.removeEventListener("click", this.onGlobalClick);
+		} else {
+			this.container.removeEventListener("click", this.onGlobalClick);
+		}
+
 		this.container.empty();
 		this.cleanupSplitLayout();
 		if (this.ganttInstance) {
@@ -108,6 +524,8 @@ export abstract class BaseTaskView {
 			const { nodes } = await this.dataManager.loadData(this.app);
 			if (nodes.length === 0) {
 				this.renderEmpty();
+				this.restoreScrollPosition(scrollKey);
+				this.bindClickEvent();
 				return;
 			}
 
@@ -144,11 +562,15 @@ export abstract class BaseTaskView {
 
 			if (flatNodes.length === 0) {
 				this.renderEmpty();
+				this.restoreScrollPosition(scrollKey);
+				this.bindClickEvent();
 				return;
 			}
 
 			const sort = preset?.sort ?? { type: "status", order: "asc" };
 			const sorted = this.applySort(flatNodes, sort);
+
+			this.applyEditContext();
 
 			if (currentStyle === "tree") {
 				const viewContainer = this.container.createDiv({
@@ -197,6 +619,14 @@ export abstract class BaseTaskView {
 					sorted,
 				);
 			}
+
+			if (this.editStore.getState().editMode) {
+				this.previouslyEditedUids = new Set(
+					this.editStore.getState().selectedTasks,
+				);
+			}
+
+			this.restoreScrollPosition(scrollKey);
 		} catch (e) {
 			console.warn("[TaskManage] 视图渲染失败:", e);
 			this.container.createDiv({
@@ -204,12 +634,35 @@ export abstract class BaseTaskView {
 					"加载失败：" + (e instanceof Error ? e.message : String(e)),
 			});
 		}
+
+		this.bindClickEvent();
+	}
+
+	private bindClickEvent() {
+		setTimeout(() => {
+			const rootEl = this.getRootElement();
+			if (rootEl) {
+				rootEl.addEventListener("click", this.onGlobalClick);
+			} else {
+				this.container.addEventListener("click", this.onGlobalClick);
+			}
+		}, 100);
+	}
+
+	private restoreScrollPosition(scrollKey: string | null) {
+		if (!scrollKey) return;
+		const savedScrollTop = this.scrollPositions.get(scrollKey);
+		if (savedScrollTop === undefined) return;
+		requestAnimationFrame(() => {
+			const newScrollContainer = this.getScrollContainer();
+			if (newScrollContainer) {
+				newScrollContainer.scrollTop = savedScrollTop;
+			}
+		});
 	}
 
 	private restoreFocus() {
-		// 弹出当前节点
 		this.focusHistory.pop();
-		// 回退到上一个节点
 		if (this.focusHistory.length > 0) {
 			this.focusedTreeNode =
 				this.focusHistory[this.focusHistory.length - 1];
@@ -362,11 +815,9 @@ export abstract class BaseTaskView {
 
 	private onTaskTreeNavClick(node: TaskTreeNode) {
 		if (this.focusedTreeNode === node) {
-			// 再次点击同一节点：回退
 			this.restoreFocus();
 			return;
 		}
-		// 新节点：压入历史栈
 		this.focusHistory.push(node);
 		this.focusedTreeNode = node;
 		this.selectedTreeNode = node;
@@ -391,24 +842,6 @@ export abstract class BaseTaskView {
 
 				const lineCount = editor.lineCount();
 				const clampedLine = Math.min(targetLine, lineCount - 1);
-
-				const cm = (editor as any).cm;
-				if (cm) {
-					cm.setCursor({ line: clampedLine, ch: 0 });
-					cm.scrollIntoView(
-						{ line: clampedLine, ch: 0 },
-						cm.getScrollInfo().clientHeight * 0.3,
-					);
-					cm.setSelection(
-						{ line: clampedLine, ch: 0 },
-						{
-							line: clampedLine,
-							ch: cm.getLine(clampedLine)?.length || 0,
-						},
-					);
-					cm.focus();
-					return;
-				}
 
 				editor.setCursor({ line: clampedLine, ch: 0 });
 				editor.scrollIntoView(
@@ -436,7 +869,22 @@ export abstract class BaseTaskView {
 	private toggleTaskTreeNav(collapsed: boolean) {
 		const p = this.store.getActivePreset();
 		if (!p) return;
-		this.store.update({
+
+		if (this.taskTreeNavContainer) {
+			if (collapsed) {
+				this.taskTreeNavContainer.style.width = "0px";
+				this.taskTreeNavContainer.style.minWidth = "0px";
+				this.taskTreeNavContainer.style.borderRight = "none";
+			} else {
+				const width = p.taskTreeNavWidth || 280;
+				this.taskTreeNavContainer.style.width = width + "px";
+				this.taskTreeNavContainer.style.minWidth = "200px";
+				this.taskTreeNavContainer.style.borderRight =
+					"1px solid var(--background-modifier-border)";
+			}
+		}
+
+		this.store.updateSilent({
 			presets: this.store
 				.getState()
 				.presets.map((x) =>
@@ -445,7 +893,7 @@ export abstract class BaseTaskView {
 						: x,
 				),
 		});
-		this.render();
+		this.store.saveSilent();
 	}
 
 	private startResize(e: MouseEvent) {
@@ -454,6 +902,7 @@ export abstract class BaseTaskView {
 		document.body.style.cursor = "col-resize";
 		document.body.style.userSelect = "none";
 	}
+
 	private onResize(e: MouseEvent) {
 		if (!this.isResizing || !this.taskTreeNavContainer) return;
 		const r =
@@ -462,6 +911,7 @@ export abstract class BaseTaskView {
 		this.taskTreeNavContainer.style.width =
 			Math.min(500, Math.max(200, e.clientX - r.left)) + "px";
 	}
+
 	private stopResize() {
 		if (!this.isResizing) return;
 		this.isResizing = false;
@@ -470,8 +920,8 @@ export abstract class BaseTaskView {
 		if (this.taskTreeNavContainer) {
 			const w = parseInt(this.taskTreeNavContainer.style.width) || 280;
 			const p = this.store.getActivePreset();
-			if (p)
-				this.store.update({
+			if (p) {
+				this.store.updateSilent({
 					presets: this.store
 						.getState()
 						.presets.map((x) =>
@@ -480,8 +930,11 @@ export abstract class BaseTaskView {
 								: x,
 						),
 				});
+				this.store.saveSilent();
+			}
 		}
 	}
+
 	private cleanupSplitLayout() {
 		if (this.onResizeBound)
 			document.removeEventListener("mousemove", this.onResizeBound);
@@ -654,6 +1107,7 @@ export abstract class BaseTaskView {
 		switch (type) {
 			case "status": {
 				const so: Record<string, number> = {
+					none: -1,
 					todo: 0,
 					scheduled: 1,
 					"in-progress": 2,
@@ -686,10 +1140,20 @@ export abstract class BaseTaskView {
 	destroy() {
 		if (this.unsub) this.unsub();
 		if (this.renderDebounceTimer) clearTimeout(this.renderDebounceTimer);
+
+		const rootEl = this.getRootElement();
+		if (rootEl) {
+			rootEl.removeEventListener("click", this.onGlobalClick);
+		} else {
+			this.container.removeEventListener("click", this.onGlobalClick);
+		}
+
 		if (this.ganttInstance) {
 			this.ganttInstance.destroy?.();
 			this.ganttInstance = null;
 		}
 		this.cleanupSplitLayout();
+		this.scrollPositions.clear();
+		this.previouslyEditedUids.clear();
 	}
 }

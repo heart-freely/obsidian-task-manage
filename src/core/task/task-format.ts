@@ -1,4 +1,5 @@
 // src/core/task/task-format.ts
+// src/core/task/task-format.ts
 // 任务格式化 — HTML 内容构建，纯字符串拼接，不涉及 DOM
 
 import { DateUtils, formatDisplayDate } from "../../util/date-utils";
@@ -17,11 +18,12 @@ const TYPE_PREFIX: Record<string, string> = {
  * 构建详细模式元数据行 HTML（第二行）
  * 顺序：状态 → 优先级 → 循环 → 创建 → 计划 → 开始 → 取消 → 完成 → 截止 → id → forbid → tag → 文件名
  */
+
 export function buildMetaRow(node: TaskTreeNode): string {
 	const prioIcon = getPriorityIconStr(node);
 	const zhName = getPriorityNameStr(node);
-	const statusIcon = STATUS_ICONS[node.status] || "🔲";
-	const statusName = STATUS_NAMES[node.status] || "待办中";
+	const statusIcon = STATUS_ICONS[node.status] || "";
+	const statusName = STATUS_NAMES[node.status] || "";
 	const due = node.due ? formatDisplayDate(new Date(node.due)) : "";
 	const scheduled = node.scheduled
 		? formatDisplayDate(new Date(node.scheduled))
@@ -37,10 +39,10 @@ export function buildMetaRow(node: TaskTreeNode): string {
 	const fileName = node.path.split("/").pop()?.replace(".md", "") || "";
 
 	return [
-		`<span>${statusIcon} ${statusName}</span>`,
-		prioIcon
-			? `<span>${prioIcon} ${zhName}</span>`
-			: `<span>${zhName}</span>`,
+		node.status !== "none"
+			? `<span>${statusIcon} ${statusName}</span>`
+			: "",
+		prioIcon ? `<span>${prioIcon} ${zhName}</span>` : "",
 		node.repeat ? `<span>🔁 ${node.repeat}</span>` : "",
 		created ? `<span>➕ ${created}</span>` : "",
 		scheduled ? `<span>⏳ ${scheduled}</span>` : "",
@@ -64,11 +66,16 @@ export function buildMetaRow(node: TaskTreeNode): string {
 export function buildTooltip(node: TaskTreeNode): string {
 	const parts: string[] = [];
 
-	parts.push(`${STATUS_ICONS[node.status]} ${STATUS_NAMES[node.status]}`);
+	if (node.status !== "none") {
+		parts.push(`${STATUS_ICONS[node.status]} ${STATUS_NAMES[node.status]}`);
+	}
 
 	if (node.priority !== 5) {
 		const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-		parts.push(icons[node.priority] || "");
+		const names = ["最高", "高", "中", "低", "最低"];
+		const icon = icons[node.priority] || "";
+		const name = names[node.priority] || "";
+		parts.push(`${icon} ${name}`);
 	}
 
 	if (node.repeat) parts.push(`🔁 ${node.repeat}`);
@@ -90,7 +97,7 @@ export function buildTooltip(node: TaskTreeNode): string {
 	return parts.join("<br>");
 }
 
-/** 获取任务树节点显示文本（带类型标记：📄 文件任务、H 标题任务、● 列表任务） */
+/** 获取任务树节点显示文本（带类型标记） */
 export function getDisplayText(node: TaskTreeNode): string {
 	switch (node.type) {
 		case "file":

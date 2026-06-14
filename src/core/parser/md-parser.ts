@@ -1,3 +1,4 @@
+// src/core/parser/md-parser.ts
 // core/parser/md-parser.ts
 // Markdown 文件解析器 — 文件读取、YAML 提取、标题识别、内容结构
 
@@ -40,7 +41,7 @@ export { TASK_REGEX };
 // ========== 工具函数 ==========
 
 function hasTaskMarks(task: TaskData): boolean {
-	if (task.status && task.status !== "todo") return true;
+	if (task.status && task.status !== "none") return true;
 	if (task.priority !== 5) return true;
 	if (task.repeat) return true;
 	if (
@@ -126,13 +127,9 @@ function parseFrontmatter(content: string): Record<string, any> {
 	return result;
 }
 
-/**
- * 计算 frontmatter 占用的行数（包含开头空白行和 --- 标记行）
- */
 function calcFrontmatterLineOffset(content: string): number {
 	if (!content) return 0;
 
-	// 计算开头空白行数
 	const leadingLen = content.length - content.trimStart().length;
 	const leadingLines =
 		leadingLen > 0
@@ -142,11 +139,9 @@ function calcFrontmatterLineOffset(content: string): number {
 	const trimmed = content.trimStart();
 	if (!trimmed.startsWith("---")) return 0;
 
-	// 找到结束的 ---
 	const endIdx = trimmed.indexOf("---", 3);
 	if (endIdx === -1) return 0;
 
-	// frontmatter 部分（从开头到结束的 --- 之后）
 	const fmPart = trimmed.substring(0, endIdx + 3);
 	const fmLines = fmPart.split("\n").length;
 
@@ -172,7 +167,6 @@ export function parseFile(
 	const yaml = parseFrontmatter(content);
 	const fileTask = parseTaskFromYaml(yaml);
 
-	// 计算 frontmatter 行数偏移
 	const frontmatterLineOffset = calcFrontmatterLineOffset(content);
 
 	const body = stripFrontmatter(content);
@@ -211,7 +205,7 @@ function parseFileContent(
 		const line = lines[i];
 		const trimmed = line.trim();
 
-		// ─── 标题 YAML 块（插件自定义语法）───
+		// ─── 标题 YAML 块 ───
 		if (trimmed === "```yaml" || trimmed === "```yml") {
 			inHeadingYaml = true;
 			continue;
@@ -284,11 +278,11 @@ function parseFileContent(
 				}
 			}
 
-			// ─── 指定识别（通过插件设置缩小范围）───
+			// ─── 指定识别 ───
 			if (!node.task && matchTaskHeading(title)) {
 				node.task = {
 					rawLine: trimmed,
-					status: "todo" as TaskStatus,
+					status: "none" as TaskStatus,
 					content: title,
 					priority: 5,
 					repeat: "",
@@ -364,7 +358,7 @@ function promoteToHeadingTasks(nodes: ContentNode[]) {
 			if (hasListTasks(node.children)) {
 				node.task = {
 					rawLine: node.raw,
-					status: "todo" as TaskStatus,
+					status: "none" as TaskStatus,
 					content: node.text,
 					priority: 5,
 					repeat: "",

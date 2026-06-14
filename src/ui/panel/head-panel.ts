@@ -10,6 +10,7 @@ const PANEL_LABELS: Record<string, string> = {
 	mark: "筛选标记",
 	view: "任务视图",
 	hide: "视图隐藏",
+	edit: "视图编辑", // 新增
 	sort: "视图排序",
 	config: "视图配置",
 };
