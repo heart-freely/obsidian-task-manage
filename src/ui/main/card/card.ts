@@ -1,5 +1,4 @@
 // src/ui/main/card/card.ts
-// src/ui/main/card/card.ts
 // 统一任务卡片组件 — 入口文件
 
 import { TaskTreeNode } from "../../../core/task/task-tree";

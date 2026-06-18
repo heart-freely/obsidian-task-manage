@@ -17,9 +17,6 @@ export class FutureView extends BaseTaskView {
 			end: futureEnd.getTime(),
 			isAll: false,
 		};
-		filter.hideRepeat = true;
-		filter.hideCompleted = true;
-		filter.hideCancelled = true;
 		return filter;
 	}
 	protected renderEmpty() {

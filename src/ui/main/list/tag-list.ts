@@ -8,7 +8,10 @@ import { createGroupCard } from "../card/group-card";
 export function renderTag(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 	const taggedNodes = nodes.filter((n) => n.tag);
@@ -38,6 +41,7 @@ export function renderTag(
 			count: tagNodes.length,
 			tasks: tagNodes,
 			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 			color: color,
 		});
 		container.appendChild(card);

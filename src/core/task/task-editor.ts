@@ -1,9 +1,8 @@
 // src/core/task/task-editor.ts
 
 import { TASKS_RX } from "../config/tasks-config";
-import { EditState } from "./task-edit-state";
 import { TaskTreeNode } from "./task-tree";
-
+import { EditState } from "../../type/type";
 const AUTOCOMPLETE_DAYS = 3;
 const MAX_SNAPSHOTS = 5;
 const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";

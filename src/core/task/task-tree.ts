@@ -2,7 +2,7 @@
 // core/task/task-tree.ts
 // 统一任务树数据结构 + 构建 + 筛选 + 扁平化
 
-import { HideConfig, TaskStatus } from "../../type/types";
+import { HideConfig, TaskStatus } from "../../type/type";
 import { TASK_ROOT_PATHS } from "../config/config";
 import { ContentNode, ParsedFileData } from "../parser/md-parser";
 import { getTaskMarks } from "./task-derived";

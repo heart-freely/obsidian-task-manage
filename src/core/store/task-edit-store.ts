@@ -19,6 +19,7 @@ export class EditStore {
 	private getNode: (uid: string) => TaskTreeNode | undefined;
 	private store: Store | null = null;
 	private panelListeners: Array<() => void> = [];
+	private _pendingNotify: boolean = false;
 
 	constructor(
 		app: any,
@@ -52,12 +53,87 @@ export class EditStore {
 				hasSnapshots: loadSnapshots().length > 0,
 			});
 		}
-		this.notifyPanel();
+		if (!this._pendingNotify) {
+			this._pendingNotify = true;
+			requestAnimationFrame(() => {
+				this._pendingNotify = false;
+				this.notifyPanel();
+			});
+		}
 	}
 
 	getState(): EditState {
 		return this.state;
 	}
+
+	// ========== 模式切换 ==========
+
+	/** 进入单个编辑模式 */
+	enterSingleEditMode(node: TaskTreeNode) {
+		this.state.editMode = true;
+		this.state.batchMode = false;
+		this.state.selectedTasks.clear();
+		this.state.previews.clear();
+		this.state.savedTasks.clear();
+		this.state.selectedTasks.add(node.uid);
+		this.state.previews.set(node.uid, node.rawLine || "");
+		this.state.expandedButton = null;
+		this.syncToStore();
+	}
+
+	/** 进入批量编辑模式（从阅读模式，无预选任务） */
+	enterBatchMode() {
+		this.state.editMode = true;
+		this.state.batchMode = true;
+		this.state.selectedTasks.clear();
+		this.state.previews.clear();
+		this.state.savedTasks.clear();
+		this.state.expandedButton = null;
+		this.syncToStore();
+	}
+
+	/** 进入批量编辑模式（从单个编辑模式，保留当前编辑任务为选中） */
+	enterBatchModeFromSingle(node: TaskTreeNode) {
+		this.state.editMode = true;
+		this.state.batchMode = true;
+		this.state.selectedTasks.clear();
+		this.state.previews.clear();
+		this.state.savedTasks.clear();
+		this.state.selectedTasks.add(node.uid);
+		this.state.previews.set(node.uid, node.rawLine || "");
+		this.state.expandedButton = null;
+		this.syncToStore();
+	}
+
+	/** 退出批量编辑模式到阅读模式 */
+	exitBatchToReading() {
+		this.state.editMode = false;
+		this.state.batchMode = false;
+		this.state.selectedTasks.clear();
+		this.state.previews.clear();
+		this.state.savedTasks.clear();
+		this.state.expandedButton = null;
+		this.syncToStore();
+	}
+
+	/** 切换批量编辑模式 */
+	toggleBatchMode() {
+		if (this.state.batchMode) {
+			this.exitBatchToReading();
+		} else if (this.state.editMode && !this.state.batchMode) {
+			const currentUid = this.state.selectedTasks.values().next().value;
+			const node = currentUid ? this.getNode(currentUid) : undefined;
+			if (node) {
+				this.enterBatchModeFromSingle(node);
+			} else {
+				this.enterBatchMode();
+			}
+		} else {
+			this.enterBatchMode();
+		}
+	}
+
+	// ========== 编辑模式 ==========
 
 	enterEditMode(node?: TaskTreeNode) {
 		this.state.editMode = true;
@@ -99,23 +175,7 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	toggleBatchMode() {
-		const wasBatchMode = this.state.batchMode;
-		this.state.batchMode = !this.state.batchMode;
-		this.state.selectedTasks.clear();
-		this.state.previews.clear();
-		this.state.savedTasks.clear();
-		this.state.expandedButton = null;
-
-		if (!wasBatchMode && this.state.batchMode && !this.state.editMode) {
-			this.state.editMode = true;
-		}
-		if (wasBatchMode && !this.state.batchMode) {
-			this.state.editMode = true;
-		}
-
-		this.syncToStore();
-	}
+	// ========== 选择操作 ==========
 
 	toggleSelection(node: TaskTreeNode) {
 		if (!this.state.batchMode) return;
@@ -161,6 +221,8 @@ export class EditStore {
 			this.state.expandedButton === buttonKey ? null : buttonKey;
 		this.syncToStore();
 	}
+
+	// ========== 编辑操作 ==========
 
 	applyEdit(markKey: string, value: string | null) {
 		if (this.state.selectedTasks.size === 0) return;
@@ -296,6 +358,8 @@ export class EditStore {
 		}
 		this.syncToStore();
 	}
+
+	// ========== 保存与撤回 ==========
 
 	async saveCurrent() {
 		if (this.state.batchMode) {

@@ -6,7 +6,10 @@ import { createTaskCard } from "./card";
 export function renderCards(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 
@@ -22,7 +25,10 @@ export function renderCards(
 	grid.style.gap = "12px";
 
 	nodes.forEach((node) => {
-		const card = createTaskCard(node, { onClick: options?.onClick });
+		const card = createTaskCard(node, {
+			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
+		});
 		card.style.borderLeft = "3px solid rgba(180,180,180,0.2)";
 		grid.appendChild(card);
 	});

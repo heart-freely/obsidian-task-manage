@@ -1,4 +1,4 @@
-// src/ui/component/lists/uniqueId-renderer.ts
+// src/ui/main/list/uniqueId-list.ts
 
 import { ID_COLOR_DEF } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
@@ -8,7 +8,10 @@ import { createGroupCard } from "../card/group-card";
 export function renderUniqueId(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 	const uniqueIdNodes = nodes.filter((n) => n.id);
@@ -27,6 +30,7 @@ export function renderUniqueId(
 		count: sorted.length,
 		tasks: sorted,
 		onClick: options?.onClick,
+		onEnterEdit: options?.onEnterEdit,
 		color: color,
 	});
 	container.appendChild(card);

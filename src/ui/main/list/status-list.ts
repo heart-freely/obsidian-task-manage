@@ -7,7 +7,10 @@ import { createGroupCard } from "../card/group-card";
 export function renderStatus(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 
@@ -45,6 +48,7 @@ export function renderStatus(
 			count: groups[status].length,
 			tasks: groups[status],
 			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 			color: statusColors[status],
 		});
 		container.appendChild(card);

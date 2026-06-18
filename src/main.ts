@@ -4,6 +4,7 @@ import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
 import { getDefaultPresets } from "./core/config/panel-default-config";
+import { DataManager } from "./core/data/data-manager";
 import { Store } from "./core/store/store";
 import {
 	DEFAULT_SETTINGS,
@@ -70,107 +71,114 @@ export default class TaskManagePlugin extends Plugin {
 		});
 
 		const defaultPresets = getDefaultPresets();
-		const savedPresets: Preset[] = savedData.presets || [];
-		const mergedPresets: Preset[] = [];
+		let mergedPresets: Preset[] = [];
 
-		const defaultVisibility = {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			edit: true,
-			sort: true,
-			config: true,
-		};
+		try {
+			const savedPresets: Preset[] = savedData.presets || [];
 
-		for (const dp of defaultPresets) {
-			const sp = savedPresets.find((p: Preset) => p.id === dp.id);
-			if (sp) {
-				const spFilter = sp.filter || ({} as GlobalFilter);
-				const mergedFilter: GlobalFilter = {
-					dateRange: {
-						...dp.filter.dateRange,
-						...(spFilter.dateRange || {}),
-					},
-					statuses:
-						Array.isArray(spFilter.statuses) &&
-						spFilter.statuses.length > 0
-							? spFilter.statuses
-							: dp.filter.statuses,
-					includeMarks:
-						spFilter.includeMarks &&
-						spFilter.includeMarks.length > 0
-							? spFilter.includeMarks
-							: dp.filter.includeMarks,
-					excludeMarks:
-						spFilter.excludeMarks ?? dp.filter.excludeMarks,
-					rootPath: spFilter.rootPath ?? dp.filter.rootPath,
-					hideFolders: spFilter.hideFolders ?? dp.filter.hideFolders,
-					searchText: spFilter.searchText ?? dp.filter.searchText,
-					priorityValues:
-						spFilter.priorityValues &&
-						spFilter.priorityValues.length > 0
-							? spFilter.priorityValues
-							: dp.filter.priorityValues,
-					repeatCycles:
-						spFilter.repeatCycles &&
-						spFilter.repeatCycles.length > 0
-							? spFilter.repeatCycles
-							: dp.filter.repeatCycles,
-				};
+			const defaultVisibility = {
+				time: true,
+				excut: true,
+				search: true,
+				mark: true,
+				view: true,
+				hide: true,
+				edit: true,
+				sort: true,
+				config: true,
+			};
 
-				const merged: Preset = {
-					...dp,
-					...sp,
-					filter: mergedFilter,
-					intervalMode: sp.intervalMode ?? dp.intervalMode,
-					useDynamic: sp.useDynamic ?? dp.useDynamic,
-					taskTreeNavCollapsed:
-						sp.taskTreeNavCollapsed ?? dp.taskTreeNavCollapsed,
-					taskTreeNavWidth:
-						sp.taskTreeNavWidth ?? dp.taskTreeNavWidth,
-					hideConfig: sp.hideConfig ?? dp.hideConfig,
-				};
-
-				if (merged.barVisibility) {
-					merged.barVisibility = {
-						...defaultVisibility,
-						...merged.barVisibility,
+			for (const dp of defaultPresets) {
+				const sp = savedPresets.find((p: Preset) => p.id === dp.id);
+				if (sp) {
+					const spFilter = sp.filter || ({} as GlobalFilter);
+					const mergedFilter: GlobalFilter = {
+						dateRange: {
+							...dp.filter.dateRange,
+							...(spFilter.dateRange || {}),
+						},
+						statuses:
+							Array.isArray(spFilter.statuses) &&
+							spFilter.statuses.length > 0
+								? spFilter.statuses
+								: dp.filter.statuses,
+						includeMarks:
+							spFilter.includeMarks &&
+							spFilter.includeMarks.length > 0
+								? spFilter.includeMarks
+								: dp.filter.includeMarks,
+						excludeMarks:
+							spFilter.excludeMarks ?? dp.filter.excludeMarks,
+						rootPath: spFilter.rootPath ?? dp.filter.rootPath,
+						hideFolders:
+							spFilter.hideFolders ?? dp.filter.hideFolders,
+						searchText: spFilter.searchText ?? dp.filter.searchText,
+						priorityValues:
+							spFilter.priorityValues &&
+							spFilter.priorityValues.length > 0
+								? spFilter.priorityValues
+								: dp.filter.priorityValues,
+						repeatCycles:
+							spFilter.repeatCycles &&
+							spFilter.repeatCycles.length > 0
+								? spFilter.repeatCycles
+								: dp.filter.repeatCycles,
 					};
-				} else {
-					merged.barVisibility = { ...defaultVisibility };
-				}
 
-				if (
-					merged.toolbarOrder &&
-					!merged.toolbarOrder.includes("edit")
-				) {
-					merged.toolbarOrder = [...merged.toolbarOrder, "edit"];
-				}
-
-				mergedPresets.push(merged);
-			} else {
-				mergedPresets.push(dp);
-			}
-		}
-
-		for (const sp of savedPresets) {
-			if (!mergedPresets.find((p) => p.id === sp.id)) {
-				if (sp.barVisibility) {
-					sp.barVisibility = {
-						...defaultVisibility,
-						...sp.barVisibility,
+					const merged: Preset = {
+						...dp,
+						...sp,
+						filter: mergedFilter,
+						intervalMode: sp.intervalMode ?? dp.intervalMode,
+						useDynamic: sp.useDynamic ?? dp.useDynamic,
+						taskTreeNavCollapsed:
+							sp.taskTreeNavCollapsed ?? dp.taskTreeNavCollapsed,
+						taskTreeNavWidth:
+							sp.taskTreeNavWidth ?? dp.taskTreeNavWidth,
+						hideConfig: sp.hideConfig ?? dp.hideConfig,
 					};
+
+					if (merged.barVisibility) {
+						merged.barVisibility = {
+							...defaultVisibility,
+							...merged.barVisibility,
+						};
+					} else {
+						merged.barVisibility = { ...defaultVisibility };
+					}
+
+					if (
+						merged.toolbarOrder &&
+						!merged.toolbarOrder.includes("edit")
+					) {
+						merged.toolbarOrder = [...merged.toolbarOrder, "edit"];
+					}
+
+					mergedPresets.push(merged);
 				} else {
-					sp.barVisibility = { ...defaultVisibility };
+					mergedPresets.push(dp);
 				}
-				if (sp.toolbarOrder && !sp.toolbarOrder.includes("edit")) {
-					sp.toolbarOrder = [...sp.toolbarOrder, "edit"];
-				}
-				mergedPresets.push(sp);
 			}
+
+			for (const sp of savedPresets) {
+				if (!mergedPresets.find((p) => p.id === sp.id)) {
+					if (sp.barVisibility) {
+						sp.barVisibility = {
+							...defaultVisibility,
+							...sp.barVisibility,
+						};
+					} else {
+						sp.barVisibility = { ...defaultVisibility };
+					}
+					if (sp.toolbarOrder && !sp.toolbarOrder.includes("edit")) {
+						sp.toolbarOrder = [...sp.toolbarOrder, "edit"];
+					}
+					mergedPresets.push(sp);
+				}
+			}
+		} catch (e) {
+			console.warn("[TaskManage] 预设合并失败，回退为默认预设:", e);
+			mergedPresets = [...defaultPresets];
 		}
 
 		const initialState: AppState = {
@@ -185,6 +193,14 @@ export default class TaskManagePlugin extends Plugin {
 		this.store.setSaveFn(async () => {
 			await persistData();
 		});
+
+		const dataManager = DataManager.getInstance();
+
+		this.registerEvent(
+			this.app.vault.on("modify", () => {
+				dataManager.invalidate();
+			}),
+		);
 
 		registerAllCommands(this, this.store);
 		this.addSettingTab(new TaskManageSettingTab(this.app, this));

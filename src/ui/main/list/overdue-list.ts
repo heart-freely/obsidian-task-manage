@@ -17,7 +17,10 @@ function getEffectiveStatus(node: TaskTreeNode): string {
 export function renderOverdueList(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 
@@ -82,6 +85,7 @@ export function renderOverdueList(
 			tasks: groups[key],
 			color: statusColors["cancelled"],
 			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 		});
 		container.appendChild(card);
 	});

@@ -24,9 +24,6 @@ interface DataCache {
 function filterFingerprint(filter: GlobalFilter): string {
 	return JSON.stringify({
 		statuses: filter.statuses?.sort(),
-		hideRepeat: filter.hideRepeat,
-		hideCompleted: filter.hideCompleted,
-		hideCancelled: filter.hideCancelled,
 		searchText: filter.searchText,
 		priorityValues: filter.priorityValues?.sort(),
 		repeatCycles: filter.repeatCycles?.sort(),
@@ -134,9 +131,6 @@ export class DataManager {
 
 		const options: TreeFilterOptions = {
 			statuses: filter.statuses,
-			hideRepeat: filter.hideRepeat,
-			hideCompleted: filter.hideCompleted,
-			hideCancelled: filter.hideCancelled,
 			searchText: filter.searchText,
 			priorityValues: filter.priorityValues,
 			repeatCycles: filter.repeatCycles,

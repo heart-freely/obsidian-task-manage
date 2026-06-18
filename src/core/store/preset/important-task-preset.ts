@@ -7,9 +7,6 @@ export class ImportantView extends BaseTaskView {
 		const filter = super.getDefaultFilter();
 		// 修复：planned → scheduled
 		filter.statuses = ["todo", "scheduled", "in-progress"];
-		filter.hideRepeat = true;
-		filter.hideCompleted = true;
-		filter.hideCancelled = true;
 		filter.priorityValues = ["🔺", "⏫", "🔼"];
 		return filter;
 	}

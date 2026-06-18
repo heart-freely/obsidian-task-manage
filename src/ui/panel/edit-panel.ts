@@ -13,24 +13,6 @@ export class EditPanel {
 		this.container = container;
 		this.store = store;
 		this.render();
-
-		// 重试订阅 EditStore，直到成功
-		const trySubscribe = () => {
-			const es = this.store.getEditStore();
-			console.log("[DEBUG] EditPanel.trySubscribe", {
-				hasEditStore: !!es,
-			});
-			if (es) {
-				this.unsubEdit = es.subscribePanel(() => {
-					console.log("[DEBUG] EditPanel notifyPanel 触发");
-					this.render();
-				});
-				console.log("[DEBUG] EditPanel 订阅成功");
-			} else {
-				setTimeout(trySubscribe, 50);
-			}
-		};
-		setTimeout(trySubscribe, 50);
 	}
 
 	destroy() {
@@ -41,12 +23,25 @@ export class EditPanel {
 	}
 
 	render() {
+		if (!this.unsubEdit) {
+			const es = this.store.getEditStore();
+			if (es) {
+				this.unsubEdit = es.subscribePanel(() => this.render());
+			}
+		}
+
 		this.container.empty();
 		const editPanelState = this.store.getState().editPanelState;
 		const isBatchMode = editPanelState?.batchMode ?? false;
 		const selectedCount = editPanelState?.selectedCount ?? 0;
 		const allSelected = selectedCount > 0;
-		const snapshots = this.store.getSnapshots();
+
+		let snapshots: any[] = [];
+		try {
+			snapshots = this.store.getSnapshots();
+		} catch (e) {
+			// EditStore 未初始化时忽略
+		}
 		const hasSnapshots = snapshots.length > 0;
 
 		const row1 = this.container.createDiv({ cls: "panel-row" });
@@ -54,8 +49,8 @@ export class EditPanel {
 		row1.createSpan({ text: "批量编辑", cls: "panel-label" });
 
 		const batchBtn = row1.createEl("button", {
-			text: isBatchMode ? "取消批量" : "批量编辑",
-			cls: "panel-btn",
+			text: "批量编辑",
+			cls: "panel-btn edit-batch-btn",
 		});
 		if (isBatchMode) batchBtn.addClass("active");
 		batchBtn.addEventListener("click", () => {

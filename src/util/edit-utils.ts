@@ -169,16 +169,10 @@ export function escapeHtml(str: string): string {
 		.replace(/>/g, "&gt;");
 }
 
-// ========== 编辑行 DOM ==========
+// ========== hasMarkValue — 导出 ==========
+// 【修改处1】function → export function
 
-export interface EditBarOptions {
-	expandedButton: string | null;
-	onEdit: (node: TaskTreeNode, markKey: string, value: string | null) => void;
-	previewText?: string | null;
-	isEditing?: boolean;
-}
-
-function hasMarkValue(node: TaskTreeNode, key: string): boolean {
+export function hasMarkValue(node: TaskTreeNode, key: string): boolean {
 	switch (key) {
 		case "status":
 			return node.status !== "none";
@@ -207,6 +201,15 @@ function hasMarkValue(node: TaskTreeNode, key: string): boolean {
 		default:
 			return false;
 	}
+}
+
+// ========== 编辑行 DOM ==========
+
+export interface EditBarOptions {
+	expandedButton: string | null;
+	onEdit: (node: TaskTreeNode, markKey: string, value: string | null) => void;
+	previewText?: string | null;
+	isEditing?: boolean;
 }
 
 function hasMarkBeenEdited(
@@ -538,6 +541,16 @@ export function createEditBar(
 		}
 	}
 
+	// 【修改处2】阅读模式：无可见按钮时隐藏编辑栏
+	if (!options.isEditing && !options.expandedButton) {
+		const hasAnyVisible = EDIT_BUTTONS.some((g) =>
+			hasMarkValue(node, g.key),
+		);
+		if (!hasAnyVisible) {
+			bar.style.display = "none";
+		}
+	}
+
 	return bar;
 }
 
@@ -572,30 +585,57 @@ export function createSubRow(
 	}
 
 	if (group.subType === "date") {
-		const dateInput = document.createElement("input");
-		dateInput.type = "date";
-		dateInput.value = getTodayStr();
-		dateInput.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:120px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
-		dateInput.addEventListener("change", () =>
-			onEdit(node, group.key, dateInput.value),
-		);
-		dateInput.addEventListener("click", (e) => e.stopPropagation());
-		subRow.appendChild(dateInput);
+		const currentValue = getNodeMarkValue(node, group.key);
+		const displayValue = currentValue || "年/月/日";
 
-		const todayBtn = document.createElement("button");
-		todayBtn.textContent = "今天";
-		todayBtn.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
-		todayBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			onEdit(node, group.key, getTodayStr());
+		const hiddenInput = document.createElement("input");
+		hiddenInput.type = "date";
+		hiddenInput.value = currentValue || "";
+		hiddenInput.style.cssText =
+			"position:absolute;opacity:0;pointer-events:none;width:0;height:0;";
+		hiddenInput.addEventListener("change", () => {
+			displaySpan.textContent = hiddenInput.value || "年/月/日";
+			displaySpan.style.color = hiddenInput.value
+				? "var(--text-normal)"
+				: "var(--text-muted)";
+			onEdit(node, group.key, hiddenInput.value || null);
 		});
-		subRow.appendChild(todayBtn);
+		subRow.appendChild(hiddenInput);
+
+		const displaySpan = document.createElement("span");
+		displaySpan.textContent = displayValue;
+		displaySpan.style.cssText =
+			"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;min-width:80px;text-align:center;box-sizing:border-box;background:var(--background-primary);color:" +
+			(currentValue ? "var(--text-normal)" : "var(--text-muted)") +
+			";cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;";
+		displaySpan.addEventListener("click", (e) => {
+			e.stopPropagation();
+			if (hiddenInput.showPicker) {
+				hiddenInput.showPicker();
+			} else {
+				hiddenInput.click();
+			}
+		});
+		subRow.appendChild(displaySpan);
 	}
 
 	if (group.subType === "custom") {
 		if (group.key === "id") {
+			const customInput = document.createElement("input");
+			customInput.type = "text";
+			customInput.placeholder = "自定义";
+			customInput.style.cssText =
+				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+			customInput.addEventListener("click", (e) => e.stopPropagation());
+			customInput.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault();
+					const val = customInput.value.trim();
+					if (val) onEdit(node, group.key, val);
+				}
+			});
+			subRow.appendChild(customInput);
+
 			const genBtn = document.createElement("button");
 			genBtn.textContent = "生成";
 			genBtn.style.cssText =
@@ -609,26 +649,80 @@ export function createSubRow(
 				);
 			});
 			subRow.appendChild(genBtn);
+		} else if (group.key === "forbid") {
+			const customInput = document.createElement("input");
+			customInput.type = "text";
+			customInput.placeholder = "输入引用ID";
+			customInput.style.cssText =
+				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:120px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+			customInput.addEventListener("click", (e) => e.stopPropagation());
+			customInput.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault();
+					const val = customInput.value.trim();
+					if (val) onEdit(node, group.key, val);
+				}
+			});
+			subRow.appendChild(customInput);
+		} else if (group.key === "tag") {
+			if (group.subOptions) {
+				group.subOptions.forEach((opt) => {
+					const btn = document.createElement("button");
+					btn.textContent = opt;
+					btn.style.cssText =
+						"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+					btn.addEventListener("click", (e) => {
+						e.stopPropagation();
+						onEdit(node, group.key, opt.replace("🏁 ", ""));
+					});
+					subRow.appendChild(btn);
+				});
+			}
+
+			const customInput = document.createElement("input");
+			customInput.type = "text";
+			customInput.placeholder = "自定义";
+			customInput.style.cssText =
+				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+			customInput.addEventListener("click", (e) => e.stopPropagation());
+			customInput.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault();
+					const val = customInput.value.trim();
+					if (val) onEdit(node, group.key, val);
+				}
+			});
+			subRow.appendChild(customInput);
+		} else {
+			if (group.subOptions) {
+				group.subOptions.forEach((opt) => {
+					const btn = document.createElement("button");
+					btn.textContent = opt;
+					btn.style.cssText =
+						"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+					btn.addEventListener("click", (e) => {
+						e.stopPropagation();
+						onEdit(node, group.key, opt);
+					});
+					subRow.appendChild(btn);
+				});
+			}
+
+			const customInput = document.createElement("input");
+			customInput.type = "text";
+			customInput.placeholder = "自定义";
+			customInput.style.cssText =
+				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+			customInput.addEventListener("click", (e) => e.stopPropagation());
+			customInput.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault();
+					const val = customInput.value.trim();
+					if (val) onEdit(node, group.key, val);
+				}
+			});
+			subRow.appendChild(customInput);
 		}
-
-		const customInput = document.createElement("input");
-		customInput.type = "text";
-		customInput.placeholder = "自定义";
-		customInput.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
-		customInput.addEventListener("click", (e) => e.stopPropagation());
-		subRow.appendChild(customInput);
-
-		const applyBtn = document.createElement("button");
-		applyBtn.textContent = "应用";
-		applyBtn.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
-		applyBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			const val = customInput.value.trim();
-			if (val) onEdit(node, group.key, val);
-		});
-		subRow.appendChild(applyBtn);
 	}
 
 	const delBtn = document.createElement("button");

@@ -7,7 +7,10 @@ import { createGroupCard } from "../card/group-card";
 export function renderRecurring(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 	const recurringNodes = nodes.filter((n) => n.repeat);
@@ -40,6 +43,7 @@ export function renderRecurring(
 			count: tasksInGroup.length,
 			tasks: tasksInGroup,
 			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 			color: repeatColors[index],
 		});
 		grid.appendChild(card);

@@ -194,6 +194,11 @@ export class Panels {
       .panel-input{padding:4px 8px;border-radius:12px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);font-size:13px;min-width:200px}
       .panel-input-sm{width:48px;min-width:48px;padding:3px 4px;font-size:14px;text-align:center}
       .panel-content{padding:4px 6px;background:var(--background-secondary);}
+
+      .edit-date-input::-webkit-calendar-picker-indicator{margin-left:1px;padding:0;cursor:pointer;opacity:0.7;width:14px;height:14px;}
+      .edit-date-input::-webkit-datetime-edit-fields-wrapper{padding:0 1px;}
+      .edit-date-input::-webkit-datetime-edit{padding:0;}
+      .edit-date-input::-webkit-datetime-edit-text{padding:0 1px;}
     `;
 		document.head.appendChild(this.styleEl);
 	}

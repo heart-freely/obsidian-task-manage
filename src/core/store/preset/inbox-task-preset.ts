@@ -7,9 +7,6 @@ export class InboxView extends BaseTaskView {
 		const filter = super.getDefaultFilter();
 		// 修复：planned → scheduled
 		filter.statuses = ["todo", "scheduled"];
-		filter.hideRepeat = true;
-		filter.hideCompleted = true;
-		filter.hideCancelled = true;
 		return filter;
 	}
 	protected renderEmpty() {

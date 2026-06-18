@@ -25,9 +25,6 @@ export class TodayView extends BaseTaskView {
 			).getTime(),
 			isAll: false,
 		};
-		filter.hideRepeat = true;
-		filter.hideCompleted = true;
-		filter.hideCancelled = true;
 		return filter;
 	}
 	protected renderEmpty() {

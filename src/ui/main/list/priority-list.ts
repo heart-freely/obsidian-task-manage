@@ -1,4 +1,4 @@
-// src/ui/component/lists/priority-renderer.ts
+// src/ui/main/list/priority-list.ts
 
 import {
 	getPriorityColors,
@@ -13,7 +13,10 @@ const PRIORITY_ICONS = ["🔺", "⏫", "🔼", "🔽", "⏬"];
 export function renderPriority(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 
@@ -60,6 +63,7 @@ export function renderPriority(
 			count: sorted.length,
 			tasks: sorted,
 			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 			color: priorityColors[index],
 		});
 		container.appendChild(card);

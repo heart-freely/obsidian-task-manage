@@ -8,11 +8,12 @@ export interface GroupCardOptions {
 	count: number;
 	tasks: TaskTreeNode[];
 	onClick?: (node: TaskTreeNode) => void;
+	onEnterEdit?: (node: TaskTreeNode) => void;
 	color?: string;
 }
 
 export function createGroupCard(options: GroupCardOptions): HTMLElement {
-	const { title, count, tasks, onClick, color } = options;
+	const { title, count, tasks, onClick, onEnterEdit, color } = options;
 
 	const colDiv = document.createElement("div");
 	colDiv.className = "group-card";
@@ -56,7 +57,10 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	list.style.paddingLeft = "0";
 	list.style.listStyle = "none";
 	tasks.forEach((node) => {
-		const card = createTaskCard(node, { onClick });
+		const card = createTaskCard(node, {
+			onClick,
+			onEnterEdit,
+		});
 		list.appendChild(card);
 	});
 	body.appendChild(list);

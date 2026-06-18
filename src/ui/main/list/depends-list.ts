@@ -8,7 +8,10 @@ import { createGroupCard } from "../card/group-card";
 export function renderDepends(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
-	options?: { onClick?: (node: TaskTreeNode) => void },
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
 ) {
 	container.empty();
 	const dependsNodes = nodes.filter((n) => n.forbid);
@@ -27,6 +30,7 @@ export function renderDepends(
 		count: sorted.length,
 		tasks: sorted,
 		onClick: options?.onClick,
+		onEnterEdit: options?.onEnterEdit,
 		color: color,
 	});
 	container.appendChild(card);

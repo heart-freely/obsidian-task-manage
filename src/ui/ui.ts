@@ -71,10 +71,6 @@ const VIEW_LOADERS: Record<
 		import("../core/store/preset/future-task-preset").then(
 			(m) => m.FutureView,
 		),
-	organize: () =>
-		import("../core/store/preset/organize-task-preset").then(
-			(m) => m.OrganizeView,
-		),
 };
 
 export class ViewContainer {

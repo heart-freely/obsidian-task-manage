@@ -1,5 +1,4 @@
 // src/ui/main/list/list.ts
-// src/ui/main/list/list.ts
 
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createTaskCard } from "../card/card";
@@ -7,6 +6,7 @@ import { createTaskCard } from "../card/card";
 interface TaskListOptions {
 	onClick?: (node: TaskTreeNode) => void;
 	compact?: boolean;
+	onEnterEdit?: (node: TaskTreeNode) => void;
 }
 
 export function renderTaskList(
@@ -21,6 +21,7 @@ export function renderTaskList(
 		const card = createTaskCard(node, {
 			compact: options.compact,
 			onClick: options.onClick,
+			onEnterEdit: options.onEnterEdit,
 		});
 		if (options.compact) {
 			card.classList.add("task-item-compact");

@@ -1,6 +1,5 @@
 // src/ui/main/card/view-card.ts
-// src/ui/main/card/view-card.ts
-// 统一任务卡片组件 — 阅读模式和编辑模式共用同一 DOM 节点
+// 统一任务卡片组件 — 根据当前模式渲染对应 UI
 
 import { getStatusColors } from "../../../core/config/config";
 import { buildDescription, buildTooltip } from "../../../core/task/task-format";
@@ -13,16 +12,60 @@ import {
 import { tooltip } from "../../component/tooltip/tooltip";
 import { EditContext } from "./card";
 
-// ========== 卡片选项 ==========
-
 export interface TaskCardOptions {
 	showTooltip?: boolean;
 	compact?: boolean;
 	onClick?: (node: TaskTreeNode) => void;
 	onSingleClick?: (node: TaskTreeNode) => void;
+	onEnterEdit?: (node: TaskTreeNode) => void;
 }
 
-// ========== 统一卡片 ==========
+function bindDescriptionEdit(
+	descEl: HTMLElement,
+	node: TaskTreeNode,
+	editCtx: EditContext,
+) {
+	descEl.addEventListener("click", (e) => {
+		e.stopPropagation();
+		if (descEl.getAttribute("contenteditable") === "true") return;
+		descEl.setAttribute("contenteditable", "true");
+		descEl.focus();
+		const range = document.createRange();
+		range.selectNodeContents(descEl);
+		const sel = window.getSelection();
+		sel?.removeAllRanges();
+		sel?.addRange(range);
+
+		const onBlur = () => {
+			descEl.removeAttribute("contenteditable");
+			const newContent = descEl.textContent?.trim();
+			if (newContent && newContent !== (node.content || node.text)) {
+				editCtx.onContentEdit(node, newContent);
+			}
+			descEl.removeEventListener("blur", onBlur);
+		};
+		descEl.addEventListener("blur", onBlur);
+
+		const onKeyDown = (ke: KeyboardEvent) => {
+			if (ke.key === "Enter" && !ke.shiftKey) {
+				ke.preventDefault();
+				descEl.blur();
+			}
+			if (ke.key === "Escape") {
+				descEl.textContent = node.content || node.text;
+				descEl.blur();
+			}
+		};
+		descEl.addEventListener("keydown", onKeyDown);
+		descEl.addEventListener(
+			"blur",
+			() => {
+				descEl.removeEventListener("keydown", onKeyDown);
+			},
+			{ once: true },
+		);
+	});
+}
 
 export function createViewCard(
 	node: TaskTreeNode,
@@ -31,6 +74,7 @@ export function createViewCard(
 ): HTMLElement {
 	const showTooltip = options?.showTooltip ?? false;
 	const compact = options?.compact ?? false;
+	const isBatchMode = editCtx?.editMode && editCtx.batchMode;
 	const isEditing = editCtx?.editMode && editCtx.selectedTasks.has(node.uid);
 	const previewText = editCtx?.previews.get(node.uid) ?? null;
 	const saved = isEditing
@@ -69,14 +113,14 @@ export function createViewCard(
 		li.style.opacity = "0.4";
 	}
 
-	// ========== 第一行 ==========
 	if (compact) {
 		li.innerHTML = `<div class="task-desc" style="font-weight:normal;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;line-height:1.5;">${descHtml}</div>`;
 	} else {
 		const row1 = document.createElement("div");
 		row1.style.cssText = "display:flex;align-items:center;gap:4px;";
 
-		if (isEditing && editCtx?.batchMode) {
+		// 批量编辑模式：显示复选框
+		if (isBatchMode && editCtx) {
 			row1.appendChild(
 				createCheckbox(checked, (newChecked) => {
 					editCtx!.onCheckChange(node, newChecked);
@@ -87,56 +131,21 @@ export function createViewCard(
 		const descEl = document.createElement("span");
 		descEl.className = "task-desc";
 		descEl.innerHTML = descHtml;
-		descEl.style.cssText = `font-weight:500;flex:1;cursor:${isEditing ? "text" : "pointer"};margin-bottom:4px;color:${hasEdits ? "var(--text-accent)" : "var(--text-normal)"};`;
+		descEl.style.cssText =
+			"font-weight:500;flex:1;cursor:" +
+			(isEditing ? "text" : "pointer") +
+			";margin-bottom:4px;color:" +
+			(hasEdits ? "var(--text-accent)" : "var(--text-normal)") +
+			";";
 
-		if (isEditing) {
-			descEl.addEventListener("click", (e) => {
-				e.stopPropagation();
-				if (descEl.getAttribute("contenteditable") === "true") return;
-				descEl.setAttribute("contenteditable", "true");
-				descEl.focus();
-				const range = document.createRange();
-				range.selectNodeContents(descEl);
-				const sel = window.getSelection();
-				sel?.removeAllRanges();
-				sel?.addRange(range);
-				const onBlur = () => {
-					descEl.removeAttribute("contenteditable");
-					const newContent = descEl.textContent?.trim();
-					if (
-						newContent &&
-						newContent !== (node.content || node.text)
-					) {
-						editCtx!.onContentEdit(node, newContent);
-					}
-					descEl.removeEventListener("blur", onBlur);
-				};
-				descEl.addEventListener("blur", onBlur);
-				const onKeyDown = (ke: KeyboardEvent) => {
-					if (ke.key === "Enter" && !ke.shiftKey) {
-						ke.preventDefault();
-						descEl.blur();
-					}
-					if (ke.key === "Escape") {
-						descEl.textContent = node.content || node.text;
-						descEl.blur();
-					}
-				};
-				descEl.addEventListener("keydown", onKeyDown);
-				descEl.addEventListener(
-					"blur",
-					() => {
-						descEl.removeEventListener("keydown", onKeyDown);
-					},
-					{ once: true },
-				);
-			});
+		if (isEditing && editCtx) {
+			bindDescriptionEdit(descEl, node, editCtx);
 		}
 
 		row1.appendChild(descEl);
 		li.appendChild(row1);
 
-		// ========== 第二行：编辑栏（始终存在） ==========
+		// 编辑栏：仅选中任务显示
 		const editBar = createEditBar(node, {
 			expandedButton,
 			previewText,
@@ -153,7 +162,12 @@ export function createViewCard(
 		});
 		li.appendChild(editBar);
 
-		// ========== 第三行：预览行 ==========
+		// 批量模式下未选中任务隐藏编辑栏
+		if (isBatchMode && !isEditing) {
+			editBar.style.display = "none";
+		}
+
+		// 预览行：仅选中任务显示
 		if (previewText) {
 			const previewRow = createPreviewRow(
 				previewText,
@@ -167,7 +181,6 @@ export function createViewCard(
 			);
 			li.appendChild(previewRow);
 		} else {
-			// 始终创建预览行容器（隐藏）
 			const previewRow = document.createElement("div");
 			previewRow.className = "task-preview-row";
 			previewRow.style.display = "none";
@@ -175,26 +188,47 @@ export function createViewCard(
 		}
 	}
 
-	// ========== 事件 ==========
+	// ========== 阅读模式：单击进入编辑 ==========
+	if (!compact && !isEditing && options?.onEnterEdit) {
+		li.addEventListener("click", (e) => {
+			e.stopPropagation();
+			e.preventDefault();
+			options.onEnterEdit!(node);
+
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					const descEl = li.querySelector(
+						".task-desc",
+					) as HTMLElement;
+					if (descEl) {
+						descEl.click();
+					}
+				});
+			});
+		});
+	}
+
+	// ========== 双击跳转 ==========
+	if (options?.onClick && !isEditing && !compact) {
+		li.addEventListener("dblclick", (e) => {
+			e.stopPropagation();
+			options.onClick!(node);
+		});
+	}
+
+	// ========== hover ==========
 	li.addEventListener("mouseenter", () => {
-		if (!isEditing) {
-			li.style.backgroundColor = compact
-				? "var(--background-modifier-hover)"
-				: "var(--background-modifier-hover)";
-		} else {
-			li.style.backgroundColor = "var(--background-modifier-hover)";
-		}
+		li.style.backgroundColor = compact
+			? "var(--background-modifier-hover)"
+			: "var(--background-modifier-hover)";
 	});
 	li.addEventListener("mouseleave", () => {
-		if (!isEditing) {
-			li.style.backgroundColor = compact
-				? "transparent"
-				: "var(--background-primary)";
-		} else {
-			li.style.backgroundColor = "var(--background-primary)";
-		}
+		li.style.backgroundColor = compact
+			? "transparent"
+			: "var(--background-primary)";
 	});
 
+	// ========== tooltip ==========
 	if (showTooltip && compact) {
 		const tooltipHtml = buildTooltip(node);
 		if (tooltipHtml) {
@@ -206,20 +240,6 @@ export function createViewCard(
 			);
 			li.addEventListener("mouseleave", () => tooltip.hide());
 		}
-	}
-
-	if (options?.onSingleClick && !isEditing) {
-		li.addEventListener("click", (e) => {
-			e.stopPropagation();
-			setTimeout(() => options.onSingleClick!(node), 150);
-		});
-	}
-
-	if (options?.onClick && !isEditing) {
-		li.addEventListener("dblclick", (e) => {
-			e.stopPropagation();
-			options.onClick!(node);
-		});
 	}
 
 	return li;

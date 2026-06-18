@@ -5,7 +5,14 @@ import { TaskTreeNode } from "../../../core/task/task-tree";
 import { formatDisplayDate } from "../../../util/date-utils";
 import { createGroupCard } from "../card/group-card";
 
-export function renderTimeline(container: HTMLElement, nodes: TaskTreeNode[]) {
+export function renderTimeline(
+	container: HTMLElement,
+	nodes: TaskTreeNode[],
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
+) {
 	container.empty();
 
 	const dateMarkColors = getDateMarkColors();
@@ -30,6 +37,8 @@ export function renderTimeline(container: HTMLElement, nodes: TaskTreeNode[]) {
 			count: groups[date].length,
 			tasks: groups[date],
 			color: dateMarkColors["due"],
+			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 		});
 		container.appendChild(card);
 	});
