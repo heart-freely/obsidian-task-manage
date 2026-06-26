@@ -9,6 +9,7 @@ export class Store {
 	protected listeners: Listener[] = [];
 	protected saveFn?: (data: any) => Promise<void>;
 	protected editStore: any = null;
+	private taskView: any = null;
 
 	constructor(initial: AppState, saveFn?: (data: any) => Promise<void>) {
 		this.state = initial;
@@ -69,6 +70,7 @@ export class Store {
 		this.state = { ...this.state, editPanelState: panelState };
 		// 不调用 notify()
 	}
+
 	// ========== 编辑状态管理 ==========
 
 	setEditStore(es: any) {
@@ -79,12 +81,16 @@ export class Store {
 		return this.editStore;
 	}
 
+	setTaskView(view: any) {
+		this.taskView = view;
+	}
+
 	toggleBatchMode() {
-		this.editStore?.toggleBatchMode();
+		this.taskView?.toggleBatchMode();
 	}
 
 	toggleSelectAll(nodes: any[]) {
-		this.editStore?.toggleSelectAll(nodes);
+		this.taskView?.toggleSelectAll(nodes);
 	}
 
 	applyEdit(markKey: string, value: string | null) {

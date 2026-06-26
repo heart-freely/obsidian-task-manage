@@ -1,5 +1,6 @@
 // src/core/store/preset/base-task-preset.ts
 // 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染（带防抖）
+
 import { GlobalFilter } from "../../../type/type";
 import { renderKanban } from "../../../ui/main/board/kanban-board";
 import { renderMatrix } from "../../../ui/main/board/matrix-board";
@@ -22,6 +23,7 @@ import { renderTimeline } from "../../../ui/main/list/timeline-list";
 import { renderTaskTree } from "../../../ui/main/list/tree-list";
 import { renderUniqueId } from "../../../ui/main/list/uniqueId-list";
 import { renderTaskTable } from "../../../ui/main/table/table";
+import { Panels } from "../../../ui/panel/panel";
 import { createEditBar, createPreviewRow } from "../../../util/edit-utils";
 import { formatDate } from "../../component/calendar-view-process";
 import { STATUS_NAMES } from "../../config/config";
@@ -89,6 +91,10 @@ export abstract class BaseTaskView {
 			this.store,
 		);
 		this.store.setEditStore(this.editStore);
+		this.store.setTaskView(this);
+
+		const panels = Panels.getInstance();
+		panels.initPanelSubscriptions();
 
 		const state = store.getState();
 		this._lastActivePresetId = state.activePresetId;
@@ -153,6 +159,7 @@ export abstract class BaseTaskView {
 		const state = es.getState();
 
 		if (state.batchMode) {
+			// 批量 → 阅读
 			const prevUids = Array.from(this.previouslyEditedUids);
 			for (const prevUid of prevUids) {
 				this.setCardReadMode(prevUid);
@@ -160,7 +167,9 @@ export abstract class BaseTaskView {
 			es.exitBatchToReading();
 			this.applyEditContext();
 			this.previouslyEditedUids.clear();
+			this.refreshAllCardsForBatchMode();
 		} else if (state.editMode) {
+			// 单个编辑 → 批量（保留当前任务）
 			const currentUid = state.selectedTasks.values().next().value;
 			const node = currentUid
 				? this.dataManager.getNodeByUid(currentUid)
@@ -171,12 +180,63 @@ export abstract class BaseTaskView {
 				es.enterBatchMode();
 			}
 			this.applyEditContext();
-			this.onEditStateChange();
+			this.refreshAllCardsForBatchMode();
 		} else {
+			// 阅读 → 批量
 			es.enterBatchMode();
 			this.applyEditContext();
 			this.previouslyEditedUids.clear();
+			this.refreshAllCardsForBatchMode();
 		}
+
+		// 刷新编辑面板
+		this.refreshEditPanel();
+	}
+	private refreshAllCardsForBatchMode() {
+		const searchRoot = this.rightContentContainer || this.container;
+		const cards = searchRoot.querySelectorAll(
+			".task-item:not(.task-item-compact)",
+		) as NodeListOf<HTMLElement>;
+
+		const isBatchMode = this.editStore.getState().batchMode;
+
+		cards.forEach((card) => {
+			const uid = card.getAttribute("data-uid");
+			if (!uid) return;
+
+			if (isBatchMode) {
+				// 进入批量：添加复选框
+				if (card.querySelector("input[type='checkbox']")) return;
+
+				const node = this.dataManager.getNodeByUid(uid);
+				if (!node) return;
+
+				const row1 = card.querySelector(
+					":scope > div:first-child",
+				) as HTMLElement;
+				if (!row1) return;
+
+				const checked = this.editStore
+					.getState()
+					.selectedTasks.has(uid);
+				const cb = document.createElement("input");
+				cb.type = "checkbox";
+				cb.checked = checked;
+				cb.style.cssText =
+					"margin:0 2px 0 0;flex-shrink:0;cursor:pointer;width:12px;height:12px;";
+				cb.addEventListener("click", (e) => e.stopPropagation());
+				cb.addEventListener("change", () => {
+					this.editStore.toggleSelection(node);
+					this._needsEditRefresh = true;
+					requestAnimationFrame(() => this.onEditStateChange());
+				});
+				row1.insertBefore(cb, row1.firstChild);
+			} else {
+				// 退出批量：移除复选框
+				const cb = card.querySelector("input[type='checkbox']");
+				if (cb) cb.remove();
+			}
+		});
 	}
 
 	public toggleSelectAll(nodes: TaskTreeNode[]) {
@@ -258,7 +318,11 @@ export abstract class BaseTaskView {
 
 		for (const uid of this.previouslyEditedUids) {
 			if (!currentUids.has(uid)) {
-				this.setCardReadMode(uid);
+				if (state.batchMode) {
+					this.setCardBatchUnselected(uid);
+				} else {
+					this.setCardReadMode(uid);
+				}
 			}
 		}
 
@@ -266,15 +330,71 @@ export abstract class BaseTaskView {
 			if (!this.previouslyEditedUids.has(uid)) {
 				this.setCardEditMode(uid);
 			} else {
-				const uidCopy = uid;
 				requestAnimationFrame(() => {
-					this.refreshCardEditContent(uidCopy);
+					this.refreshCardEditContent(uid);
 				});
 			}
 		}
 
 		this.applyEditContext();
 		this.previouslyEditedUids = new Set(currentUids);
+
+		// 刷新编辑面板
+		this.refreshEditPanel();
+	}
+	private setCardBatchUnselected(uid: string) {
+		const searchRoot = this.getEditSearchRoot();
+		const card = searchRoot.querySelector(
+			`[data-uid="${uid}"]`,
+		) as HTMLElement;
+		if (!card) return;
+
+		const node = this.dataManager.getNodeByUid(uid);
+		if (!node) return;
+
+		card.classList.remove("task-item-editing");
+		card.style.cursor = "pointer";
+
+		const descEl = card.querySelector(".task-desc") as HTMLElement;
+		if (descEl) {
+			descEl.removeAttribute("contenteditable");
+			descEl.removeAttribute("data-edit-bound");
+			const newDescEl = descEl.cloneNode(true) as HTMLElement;
+			newDescEl.style.cssText =
+				"font-weight:500;flex:1;cursor:pointer;margin-bottom:4px;color:var(--text-normal);";
+			descEl.parentNode?.replaceChild(newDescEl, descEl);
+		}
+
+		const previewRow = card.querySelector(
+			".task-preview-row",
+		) as HTMLElement;
+		if (previewRow) {
+			previewRow.innerHTML = "";
+			previewRow.style.display = "none";
+			previewRow.style.background = "";
+		}
+
+		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
+		if (editBar && editBar.parentNode) {
+			const newEditBar = createEditBar(node, {
+				expandedButton: null,
+				previewText: null,
+				isEditing: false,
+				onEdit: () => {},
+			});
+			try {
+				editBar.parentNode.replaceChild(newEditBar, editBar);
+			} catch (e) {
+				// 忽略
+			}
+		}
+
+		const checkbox = card.querySelector(
+			"input[type='checkbox']",
+		) as HTMLInputElement;
+		if (checkbox) {
+			checkbox.checked = false;
+		}
 	}
 
 	private setCardEditMode(uid: string) {
@@ -305,11 +425,9 @@ export abstract class BaseTaskView {
 		card.classList.remove("task-item-editing");
 		card.style.cursor = "pointer";
 
-		// 复选框：移除
 		const checkbox = card.querySelector("input[type='checkbox']");
 		if (checkbox) checkbox.remove();
 
-		// 描述元素：恢复阅读模式
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			descEl.removeAttribute("contenteditable");
@@ -320,7 +438,6 @@ export abstract class BaseTaskView {
 			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
 
-		// 预览行：清空并隐藏
 		const previewRow = card.querySelector(
 			".task-preview-row",
 		) as HTMLElement;
@@ -330,7 +447,6 @@ export abstract class BaseTaskView {
 			previewRow.style.background = "";
 		}
 
-		// 编辑栏：重新创建为阅读模式
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
 		if (editBar && editBar.parentNode) {
 			const newEditBar = createEditBar(node, {
@@ -483,7 +599,15 @@ export abstract class BaseTaskView {
 			}
 		}
 	}
-
+	private refreshEditPanel() {
+		requestAnimationFrame(() => {
+			const panels = Panels.getInstance();
+			const editPanel = panels.getEditPanel();
+			if (editPanel) {
+				editPanel.render();
+			}
+		});
+	}
 	private restoreEditedCards() {
 		const searchRoot = this.getEditSearchRoot();
 		const uids = Array.from(this.previouslyEditedUids);
@@ -530,6 +654,8 @@ export abstract class BaseTaskView {
 						es.exitBatchToReading();
 						this.applyEditContext();
 						this.previouslyEditedUids.clear();
+						this.refreshAllCardsForBatchMode();
+						this.refreshEditPanel();
 						return;
 					}
 					return;
@@ -541,6 +667,8 @@ export abstract class BaseTaskView {
 				es.exitBatchToReading();
 				this.applyEditContext();
 				this.previouslyEditedUids.clear();
+				this.refreshAllCardsForBatchMode();
+				this.refreshEditPanel();
 				return;
 			} else {
 				const prevUids = Array.from(this.previouslyEditedUids);
@@ -562,6 +690,8 @@ export abstract class BaseTaskView {
 				es.exitBatchToReading();
 				this.applyEditContext();
 				this.previouslyEditedUids.clear();
+				this.refreshAllCardsForBatchMode();
+				this.refreshEditPanel();
 			} else {
 				es.exitEditMode(false);
 				requestAnimationFrame(() => this.onEditStateChange());
@@ -608,6 +738,8 @@ export abstract class BaseTaskView {
 			es.exitBatchToReading();
 			this.applyEditContext();
 			this.previouslyEditedUids.clear();
+			this.refreshAllCardsForBatchMode();
+			this.refreshEditPanel();
 		} else {
 			es.exitEditMode(false);
 			requestAnimationFrame(() => this.onEditStateChange());
@@ -1038,20 +1170,6 @@ export abstract class BaseTaskView {
 		const p = this.store.getActivePreset();
 		if (!p) return;
 
-		if (this.taskTreeNavContainer) {
-			if (collapsed) {
-				this.taskTreeNavContainer.style.width = "0px";
-				this.taskTreeNavContainer.style.minWidth = "0px";
-				this.taskTreeNavContainer.style.borderRight = "none";
-			} else {
-				const width = p.taskTreeNavWidth || 280;
-				this.taskTreeNavContainer.style.width = width + "px";
-				this.taskTreeNavContainer.style.minWidth = "200px";
-				this.taskTreeNavContainer.style.borderRight =
-					"1px solid var(--background-modifier-border)";
-			}
-		}
-
 		this.store.updateSilent({
 			presets: this.store
 				.getState()
@@ -1062,6 +1180,8 @@ export abstract class BaseTaskView {
 				),
 		});
 		this.store.saveSilent();
+
+		this.render();
 	}
 
 	private startResize(e: MouseEvent) {

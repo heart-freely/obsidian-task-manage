@@ -46,6 +46,14 @@ export class EditStore {
 	}
 
 	private syncToStore() {
+		console.log(
+			"[DEBUG] syncToStore 调用, editMode:",
+			this.state.editMode,
+			"batchMode:",
+			this.state.batchMode,
+			"selectedCount:",
+			this.state.selectedTasks.size,
+		);
 		if (this.store) {
 			this.store.updateEditPanelState({
 				batchMode: this.state.batchMode,

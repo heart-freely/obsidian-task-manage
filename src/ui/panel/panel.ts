@@ -364,7 +364,16 @@ export class Panels {
 		);
 		this.store.update({ presets: newPresets });
 	}
-
+	public initPanelSubscriptions() {
+		for (const [key, instance] of this.panelInstances) {
+			if (instance && typeof instance.initSubscription === "function") {
+				instance.initSubscription();
+			}
+		}
+	}
+	public getEditPanel(): EditPanel | undefined {
+		return this.panelInstances.get("edit") as EditPanel | undefined;
+	}
 	destroy() {}
 
 	cleanupAll() {
