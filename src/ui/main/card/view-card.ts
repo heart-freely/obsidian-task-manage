@@ -8,6 +8,7 @@ import {
 	createCheckbox,
 	createEditBar,
 	createPreviewRow,
+	hasContentBeenEdited,
 } from "../../../util/edit-utils";
 import { tooltip } from "../../component/tooltip/tooltip";
 import { EditContext } from "./card";
@@ -29,6 +30,9 @@ function bindDescriptionEdit(
 		e.stopPropagation();
 		if (descEl.getAttribute("contenteditable") === "true") return;
 		descEl.setAttribute("contenteditable", "true");
+
+		descEl.textContent = node.content || node.text || "";
+
 		descEl.focus();
 		const range = document.createRange();
 		range.selectNodeContents(descEl);
@@ -80,8 +84,9 @@ export function createViewCard(
 	const saved = isEditing
 		? (editCtx?.savedTasks.has(node.uid) ?? false)
 		: false;
-	const hasEdits = isEditing
-		? previewText !== null && previewText !== node.rawLine
+	const hasContentEdit = isEditing
+		? previewText !== null &&
+			hasContentBeenEdited(node.rawLine, previewText)
 		: false;
 	const checked = isEditing ? editCtx!.selectedTasks.has(node.uid) : false;
 	const expandedButton = isEditing ? (editCtx?.expandedButton ?? null) : null;
@@ -119,7 +124,6 @@ export function createViewCard(
 		const row1 = document.createElement("div");
 		row1.style.cssText = "display:flex;align-items:center;gap:4px;";
 
-		// 批量编辑模式：显示复选框
 		if (isBatchMode && editCtx) {
 			row1.appendChild(
 				createCheckbox(checked, (newChecked) => {
@@ -135,7 +139,7 @@ export function createViewCard(
 			"font-weight:500;flex:1;cursor:" +
 			(isEditing ? "text" : "pointer") +
 			";margin-bottom:4px;color:" +
-			(hasEdits ? "var(--text-accent)" : "var(--text-normal)") +
+			(hasContentEdit ? "var(--text-accent)" : "var(--text-normal)") +
 			";";
 
 		if (isEditing && editCtx) {
@@ -145,7 +149,6 @@ export function createViewCard(
 		row1.appendChild(descEl);
 		li.appendChild(row1);
 
-		// 编辑栏：仅选中任务显示
 		const editBar = createEditBar(node, {
 			expandedButton,
 			previewText,
@@ -162,20 +165,18 @@ export function createViewCard(
 		});
 		li.appendChild(editBar);
 
-		// 批量模式下未选中任务隐藏编辑栏
 		if (isBatchMode && !isEditing) {
 			editBar.style.display = "none";
 		}
 
-		// 预览行：仅选中任务显示
 		if (previewText) {
 			const previewRow = createPreviewRow(
 				previewText,
 				saved,
 				saved ? null : () => editCtx?.onSave(node),
 				saved ? () => editCtx?.onRevert(node) : null,
-				hasEdits,
-				hasEdits && editCtx?.onRestore
+				hasContentEdit,
+				hasContentEdit && editCtx?.onRestore
 					? () => editCtx.onRestore!(node)
 					: null,
 			);

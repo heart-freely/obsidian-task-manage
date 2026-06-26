@@ -1,5 +1,6 @@
 // src/ui/main/gantt/gantt.ts
 
+import { getStatusColors } from "../../../core/config/config";
 import {
 	advanceGridLineDate,
 	calcBarEdges,
@@ -17,8 +18,7 @@ import {
 	isDarkTheme,
 	loadZoomState,
 	saveZoomState,
-} from "../../../core/component/gantt-view-process";
-import { getStatusColors } from "../../../core/config/config";
+} from "../../../core/process/gantt-view-process";
 import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";

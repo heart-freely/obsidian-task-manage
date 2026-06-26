@@ -1,7 +1,7 @@
 // src/core/component/gantt-view-process.ts
 
 import { DateUtils } from "../../util/date-utils";
-import { YEAR_RANGE_OFFSET } from "../config/panel-default-config";
+import { YEAR_RANGE_OFFSET } from "../store/preset/panel-preset";
 import { getTaskTimeRange, IntervalMode } from "../task/task-derived";
 import { TaskTreeNode } from "../task/task-tree";
 

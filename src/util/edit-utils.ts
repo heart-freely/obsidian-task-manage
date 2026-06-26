@@ -169,8 +169,7 @@ export function escapeHtml(str: string): string {
 		.replace(/>/g, "&gt;");
 }
 
-// ========== hasMarkValue — 导出 ==========
-// 【修改处1】function → export function
+// ========== hasMarkValue — 导出供 view-card.ts 使用 ==========
 
 export function hasMarkValue(node: TaskTreeNode, key: string): boolean {
 	switch (key) {
@@ -202,7 +201,22 @@ export function hasMarkValue(node: TaskTreeNode, key: string): boolean {
 			return false;
 	}
 }
-
+export function hasContentBeenEdited(
+	originalLine: string,
+	previewLine: string,
+): boolean {
+	const extractContent = (line: string): string => {
+		let clean = line.replace(/^- \[.\]\s*/, "");
+		clean = clean.replace(/🔺|⏫|🔼|🔽|⏬/g, "");
+		clean = clean.replace(/🔁\s*\S+/g, "");
+		clean = clean.replace(/[➕⏳🛫📅✅❌]\s*\S+/g, "");
+		clean = clean.replace(/🏁\s*\S+/g, "");
+		clean = clean.replace(/🆔\s*\S+/g, "");
+		clean = clean.replace(/⛔\s*\S+/g, "");
+		return clean.replace(/\s+/g, " ").trim();
+	};
+	return extractContent(originalLine) !== extractContent(previewLine);
+}
 // ========== 编辑行 DOM ==========
 
 export interface EditBarOptions {
@@ -415,6 +429,53 @@ function getMarkDisplayText(node: TaskTreeNode, key: string): string {
 	}
 }
 
+/** 从行文本中提取标记值并格式化为显示文本 */
+function getMarkDisplayTextFromLine(line: string, key: string): string {
+	const extracted = extractMarkFromText(line, key);
+	if (!extracted) return "";
+
+	switch (key) {
+		case "status": {
+			const emoji = STATUS_EMOJI_MAP[extracted] || "";
+			const name = STATUS_LABEL_MAP[extracted] || extracted;
+			return `${emoji} ${name}`;
+		}
+		case "priority": {
+			const names: Record<string, string> = {
+				"🔺": "最高",
+				"⏫": "高",
+				"🔼": "中",
+				"🔽": "低",
+				"⏬": "最低",
+			};
+			const name = names[extracted] || "";
+			return `${extracted} ${name}`;
+		}
+		case "repeat":
+			return extracted ? `🔁 ${extracted}` : "";
+		case "created":
+			return extracted ? `➕ ${extracted}` : "";
+		case "scheduled":
+			return extracted ? `⏳ ${extracted}` : "";
+		case "starts":
+			return extracted ? `🛫 ${extracted}` : "";
+		case "cancelled":
+			return extracted ? `❌ ${extracted}` : "";
+		case "done":
+			return extracted ? `✅ ${extracted}` : "";
+		case "due":
+			return extracted ? `📅 ${extracted}` : "";
+		case "tag":
+			return extracted ? `🏁 ${extracted}` : "";
+		case "id":
+			return extracted ? `🆔 ${extracted}` : "";
+		case "forbid":
+			return extracted ? `⛔ ${extracted}` : "";
+		default:
+			return "";
+	}
+}
+
 export function createEditBar(
 	node: TaskTreeNode,
 	options: EditBarOptions,
@@ -436,10 +497,20 @@ export function createEditBar(
 	EDIT_BUTTONS.forEach((group) => {
 		const btn = document.createElement("button");
 		const hasValue = hasMarkValue(node, group.key);
+		const isEdited = hasMarkBeenEdited(node, group.key, options);
 
-		btn.textContent = hasValue
-			? getMarkDisplayText(node, group.key)
-			: `${group.icon} ${group.label}`;
+		// 按钮显示内容：编辑后显示预览中的值（保持格式一致），否则显示原始值
+		if (isEdited && options.previewText) {
+			const displayText = getMarkDisplayTextFromLine(
+				options.previewText,
+				group.key,
+			);
+			btn.textContent = displayText || `${group.icon} ${group.label}`;
+		} else {
+			btn.textContent = hasValue
+				? getMarkDisplayText(node, group.key)
+				: `${group.icon} ${group.label}`;
+		}
 
 		btn.title = group.label;
 		btn.setAttribute("data-mark-key", group.key);
@@ -541,7 +612,7 @@ export function createEditBar(
 		}
 	}
 
-	// 【修改处2】阅读模式：无可见按钮时隐藏编辑栏
+	// 阅读模式：无可见按钮时隐藏编辑栏
 	if (!options.isEditing && !options.expandedButton) {
 		const hasAnyVisible = EDIT_BUTTONS.some((g) =>
 			hasMarkValue(node, g.key),
@@ -566,26 +637,118 @@ export function createSubRow(
 
 	const onEdit = options.onEdit;
 
+	// 获取主按钮引用（通过 data-mark-key 查找）
+	const getMainBtn = (): HTMLElement | null => {
+		const editBar = subRow.closest(".task-edit-bar") as HTMLElement;
+		if (!editBar) return null;
+		return editBar.querySelector(
+			`[data-mark-key="${group.key}"]`,
+		) as HTMLElement;
+	};
+
+	// 更新主按钮文本
+	const updateMainBtnText = (displayText: string) => {
+		const mainBtn = getMainBtn();
+		if (mainBtn && displayText) {
+			mainBtn.textContent = displayText;
+		}
+	};
+
 	if (group.subType === "options" && group.subOptions) {
+		let previewValue: string | null = null;
+		if (options.previewText) {
+			previewValue = extractMarkFromText(options.previewText, group.key);
+		}
+
 		group.subOptions.forEach((opt) => {
 			const btn = document.createElement("button");
 			btn.textContent = opt;
+
+			let isActive = false;
+			if (group.key === "status") {
+				const statusKey = STATUS_KEY_MAP[opt];
+				if (previewValue) {
+					isActive = previewValue === statusKey;
+				} else {
+					isActive = node.status === statusKey;
+				}
+			} else if (group.key === "priority") {
+				const originalIcon =
+					["🔺", "⏫", "🔼", "🔽", "⏬"][node.priority] || "";
+				if (previewValue) {
+					isActive = previewValue === opt;
+				} else {
+					isActive = originalIcon === opt;
+				}
+			} else {
+				if (previewValue) {
+					isActive = previewValue === opt.replace("🏁 ", "");
+				} else {
+					const originalValue = getNodeMarkValue(node, group.key);
+					isActive =
+						originalValue === opt ||
+						originalValue === opt.replace("🏁 ", "");
+				}
+			}
+
 			btn.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+				"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
+				(isActive
+					? "background:var(--interactive-accent);color:white;"
+					: "background:var(--interactive-normal);color:var(--text-normal);");
+
 			btn.addEventListener("click", (e) => {
 				e.stopPropagation();
+				const value =
+					group.key === "status" ? STATUS_KEY_MAP[opt] || opt : opt;
+
+				// 更新子按钮样式
+				const allBtns = btn.parentElement?.querySelectorAll("button");
+				allBtns?.forEach((b: Element) => {
+					(b as HTMLElement).style.background =
+						"var(--interactive-normal)";
+					(b as HTMLElement).style.color = "var(--text-normal)";
+				});
+				btn.style.background = "var(--interactive-accent)";
+				btn.style.color = "white";
+
+				// 更新主按钮文本
 				if (group.key === "status") {
-					onEdit(node, group.key, STATUS_KEY_MAP[opt] || opt);
+					const statusKey = STATUS_KEY_MAP[opt] || opt;
+					const emoji = STATUS_EMOJI_MAP[statusKey] || "";
+					const name = STATUS_LABEL_MAP[statusKey] || statusKey;
+					updateMainBtnText(`${emoji} ${name}`);
+				} else if (group.key === "priority") {
+					const names: Record<string, string> = {
+						"🔺": "最高",
+						"⏫": "高",
+						"🔼": "中",
+						"🔽": "低",
+						"⏬": "最低",
+					};
+					updateMainBtnText(`${opt} ${names[opt] || ""}`);
 				} else {
-					onEdit(node, group.key, opt);
+					updateMainBtnText(opt);
 				}
+
+				onEdit(node, group.key, value);
 			});
 			subRow.appendChild(btn);
 		});
 	}
 
 	if (group.subType === "date") {
-		const currentValue = getNodeMarkValue(node, group.key);
+		let currentValue: string | null = null;
+		if (options.previewText) {
+			const extracted = extractMarkFromText(
+				options.previewText,
+				group.key,
+			);
+			if (extracted) currentValue = extracted;
+		}
+		if (!currentValue) {
+			currentValue = getNodeMarkValue(node, group.key);
+		}
 		const displayValue = currentValue || "年/月/日";
 
 		const hiddenInput = document.createElement("input");
@@ -598,6 +761,15 @@ export function createSubRow(
 			displaySpan.style.color = hiddenInput.value
 				? "var(--text-normal)"
 				: "var(--text-muted)";
+
+			// 更新主按钮文本
+			const icon = group.icon;
+			updateMainBtnText(
+				hiddenInput.value
+					? `${icon} ${hiddenInput.value}`
+					: `${icon} ${group.label}`,
+			);
+
 			onEdit(node, group.key, hiddenInput.value || null);
 		});
 		subRow.appendChild(hiddenInput);
@@ -631,7 +803,10 @@ export function createSubRow(
 				if (e.key === "Enter") {
 					e.preventDefault();
 					const val = customInput.value.trim();
-					if (val) onEdit(node, group.key, val);
+					if (val) {
+						updateMainBtnText(`🆔 ${val}`);
+						onEdit(node, group.key, val);
+					}
 				}
 			});
 			subRow.appendChild(customInput);
@@ -642,11 +817,9 @@ export function createSubRow(
 				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
 			genBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
-				onEdit(
-					node,
-					group.key,
-					Math.random().toString(36).substring(2, 8),
-				);
+				const generated = Math.random().toString(36).substring(2, 8);
+				updateMainBtnText(`🆔 ${generated}`);
+				onEdit(node, group.key, generated);
 			});
 			subRow.appendChild(genBtn);
 		} else if (group.key === "forbid") {
@@ -660,20 +833,40 @@ export function createSubRow(
 				if (e.key === "Enter") {
 					e.preventDefault();
 					const val = customInput.value.trim();
-					if (val) onEdit(node, group.key, val);
+					if (val) {
+						updateMainBtnText(`⛔ ${val}`);
+						onEdit(node, group.key, val);
+					}
 				}
 			});
 			subRow.appendChild(customInput);
 		} else if (group.key === "tag") {
 			if (group.subOptions) {
+				let previewTag: string | null = null;
+				if (options.previewText) {
+					previewTag = extractMarkFromText(
+						options.previewText,
+						"tag",
+					);
+				}
+
 				group.subOptions.forEach((opt) => {
 					const btn = document.createElement("button");
 					btn.textContent = opt;
+					const optValue = opt.replace("🏁 ", "");
+					const isActive = previewTag
+						? previewTag === optValue
+						: node.tag === optValue;
+
 					btn.style.cssText =
-						"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+						"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
+						(isActive
+							? "background:var(--interactive-accent);color:white;"
+							: "background:var(--interactive-normal);color:var(--text-normal);");
 					btn.addEventListener("click", (e) => {
 						e.stopPropagation();
-						onEdit(node, group.key, opt.replace("🏁 ", ""));
+						updateMainBtnText(opt);
+						onEdit(node, group.key, optValue);
 					});
 					subRow.appendChild(btn);
 				});
@@ -689,19 +882,39 @@ export function createSubRow(
 				if (e.key === "Enter") {
 					e.preventDefault();
 					const val = customInput.value.trim();
-					if (val) onEdit(node, group.key, val);
+					if (val) {
+						updateMainBtnText(`🏁 ${val}`);
+						onEdit(node, group.key, val);
+					}
 				}
 			});
 			subRow.appendChild(customInput);
 		} else {
 			if (group.subOptions) {
+				let previewValue: string | null = null;
+				if (options.previewText) {
+					previewValue = extractMarkFromText(
+						options.previewText,
+						group.key,
+					);
+				}
+
 				group.subOptions.forEach((opt) => {
 					const btn = document.createElement("button");
 					btn.textContent = opt;
+					const isActive = previewValue
+						? previewValue === opt.replace("🔁 ", "")
+						: getNodeMarkValue(node, group.key) ===
+							opt.replace("🔁 ", "");
+
 					btn.style.cssText =
-						"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+						"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
+						(isActive
+							? "background:var(--interactive-accent);color:white;"
+							: "background:var(--interactive-normal);color:var(--text-normal);");
 					btn.addEventListener("click", (e) => {
 						e.stopPropagation();
+						updateMainBtnText(opt);
 						onEdit(node, group.key, opt);
 					});
 					subRow.appendChild(btn);
@@ -718,7 +931,10 @@ export function createSubRow(
 				if (e.key === "Enter") {
 					e.preventDefault();
 					const val = customInput.value.trim();
-					if (val) onEdit(node, group.key, val);
+					if (val) {
+						updateMainBtnText(`${group.icon} ${val}`);
+						onEdit(node, group.key, val);
+					}
 				}
 			});
 			subRow.appendChild(customInput);
@@ -731,6 +947,7 @@ export function createSubRow(
 		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid rgba(200,80,80,0.3);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:rgba(200,80,80,0.08);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
 	delBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
+		updateMainBtnText(`${group.icon} ${group.label}`);
 		onEdit(node, group.key, null);
 	});
 	subRow.appendChild(delBtn);
@@ -744,8 +961,27 @@ export function createSubRow(
 		e.stopPropagation();
 		const originalValue = extractOriginalMarkValue(node.rawLine, group.key);
 		if (originalValue !== null) {
+			if (group.key === "status") {
+				const emoji = STATUS_EMOJI_MAP[originalValue] || "";
+				const name = STATUS_LABEL_MAP[originalValue] || originalValue;
+				updateMainBtnText(`${emoji} ${name}`);
+			} else if (group.key === "priority") {
+				const names: Record<string, string> = {
+					"🔺": "最高",
+					"⏫": "高",
+					"🔼": "中",
+					"🔽": "低",
+					"⏬": "最低",
+				};
+				updateMainBtnText(
+					`${originalValue} ${names[originalValue] || ""}`,
+				);
+			} else {
+				updateMainBtnText(`${group.icon} ${originalValue}`);
+			}
 			onEdit(node, group.key, originalValue);
 		} else {
+			updateMainBtnText(`${group.icon} ${group.label}`);
 			onEdit(node, group.key, null);
 		}
 	});

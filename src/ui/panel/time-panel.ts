@@ -11,7 +11,7 @@ import {
 	maxDynamicRange,
 	staticSliderRanges,
 	weeksInYear,
-} from "../../core/panel/panel-config";
+} from "../../core/date/date-calc";
 import { Store } from "../../core/store/store";
 import { DateUtils } from "../../util/date-utils";
 import {

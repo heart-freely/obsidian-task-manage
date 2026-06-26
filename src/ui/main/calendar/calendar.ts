@@ -2,6 +2,10 @@
 // 统一日历视图 — 日/周/月/季/年
 
 import {
+	getStatusColors,
+	STATUS_SORT_ORDER,
+} from "../../../core/config/config";
+import {
 	buildCellItems,
 	buildDateTaskMap,
 	buildGlobalOrder,
@@ -16,11 +20,7 @@ import {
 	inferDateRange,
 	setEnd,
 	setStart,
-} from "../../../core/component/calendar-view-process";
-import {
-	getStatusColors,
-	STATUS_SORT_ORDER,
-} from "../../../core/config/config";
+} from "../../../core/process/calendar-view-process";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createTaskCard } from "../card/card";
 

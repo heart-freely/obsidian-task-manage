@@ -7,7 +7,7 @@ import {
 	REPEAT_ORDER,
 	STATUS_NAMES,
 } from "../../core/config/config";
-import { getDefaultHideConfig } from "../../core/config/panel-default-config";
+import { getDefaultHideConfig } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
 import { HideConfig } from "../../type/type";
 

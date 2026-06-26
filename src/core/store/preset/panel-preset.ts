@@ -1,6 +1,6 @@
 // src/core/config/panel-default-config.ts
 
-import { GlobalFilter, HideConfig, Preset } from "../../type/type";
+import { GlobalFilter, HideConfig, Preset } from "../../../type/type";
 
 export const YEAR_RANGE_OFFSET = 10;
 

@@ -1,7 +1,7 @@
 // src/ui/panel/preset-panel.ts
 // 视图配置面板
 
-import { getDefaultPresets } from "../../core/config/panel-default-config";
+import { getDefaultPresets } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
 import { Preset } from "../../type/type";
 import { Panels } from "./panel";

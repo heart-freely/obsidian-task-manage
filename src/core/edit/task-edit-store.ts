@@ -2,6 +2,8 @@
 
 import { Notice } from "obsidian";
 import { EditState } from "../../type/type";
+import { Store } from "../store/store";
+import { TaskTreeNode } from "../task/task-tree";
 import {
 	loadSnapshots,
 	Op,
@@ -9,9 +11,7 @@ import {
 	revertSingleTask,
 	saveAllChanges,
 	saveSingleTask,
-} from "../task/task-editor";
-import { TaskTreeNode } from "../task/task-tree";
-import { Store } from "./store";
+} from "./task-editor";
 
 export class EditStore {
 	private state: EditState;
@@ -317,9 +317,21 @@ export class EditStore {
 	}
 
 	applyContentEdit(node: TaskTreeNode, newContent: string) {
+		// 移除类型标记前缀
+		let cleanContent = newContent;
+		const prefixes = ["📄 ", "● "];
+		for (const prefix of prefixes) {
+			if (cleanContent.startsWith(prefix)) {
+				cleanContent = cleanContent.substring(prefix.length);
+				break;
+			}
+		}
+		// 移除标题级别前缀 (如 "H2 ")
+		cleanContent = cleanContent.replace(/^H\d+\s+/, "");
+
 		const currentPreview =
 			this.state.previews.get(node.uid) || node.rawLine || "";
-		const newPreview = Op.setContent(currentPreview, newContent);
+		const newPreview = Op.setContent(currentPreview, cleanContent);
 		this.state.previews.set(node.uid, newPreview);
 		if (!this.state.selectedTasks.has(node.uid)) {
 			this.state.selectedTasks.add(node.uid);

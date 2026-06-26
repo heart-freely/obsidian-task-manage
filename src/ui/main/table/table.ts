@@ -1,11 +1,11 @@
 // src/ui/main/table/table.ts
 
-import { removeHeadingNumber } from "../../../core/component/tree-view-process";
 import {
 	DEFAULT_TABLE_COLUMNS,
 	STATUS_ICONS,
 	STATUS_NAMES,
 } from "../../../core/config/config";
+import { removeHeadingNumber } from "../../../core/process/tree-view-process";
 import {
 	getPriorityIcon,
 	getPriorityName,

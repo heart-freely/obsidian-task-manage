@@ -3,8 +3,8 @@
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
-import { getDefaultPresets } from "./core/config/panel-default-config";
 import { DataManager } from "./core/data/data-manager";
+import { getDefaultPresets } from "./core/store/preset/panel-preset";
 import { Store } from "./core/store/store";
 import {
 	DEFAULT_SETTINGS,

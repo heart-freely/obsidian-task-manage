@@ -682,5 +682,3 @@ export function staticSliderRanges(
 		maxYear: maxY,
 	};
 }
-
-export { filterTasks };

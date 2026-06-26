@@ -1,37 +1,16 @@
 // src/core/store/preset/base-task-preset.ts
-// 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染（带防抖）
+// 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染
 
-import { GlobalFilter } from "../../../type/type";
-import { renderKanban } from "../../../ui/main/board/kanban-board";
-import { renderMatrix } from "../../../ui/main/board/matrix-board";
-import { renderCalendarView } from "../../../ui/main/calendar/calendar";
-import { getEditContext, setEditContext } from "../../../ui/main/card/card";
-import { renderCards } from "../../../ui/main/card/grid-card";
-import { renderDetail } from "../../../ui/main/chart/detail-chart";
-import { renderMarkChart } from "../../../ui/main/chart/mark-chart";
-import { renderTimeChart } from "../../../ui/main/chart/time-chart";
-import { renderGanttWithTree } from "../../../ui/main/gantt/gantt";
-import { renderDepends } from "../../../ui/main/list/depends-list";
-import { renderTaskList } from "../../../ui/main/list/list";
-import { renderOverdueList } from "../../../ui/main/list/overdue-list";
-import { renderPriority } from "../../../ui/main/list/priority-list";
-import { renderRecurring } from "../../../ui/main/list/recurring-list";
-import { renderStatus } from "../../../ui/main/list/status-list";
-import { renderTag } from "../../../ui/main/list/tag-list";
-import { renderTimeList } from "../../../ui/main/list/time-list";
-import { renderTimeline } from "../../../ui/main/list/timeline-list";
-import { renderTaskTree } from "../../../ui/main/list/tree-list";
-import { renderUniqueId } from "../../../ui/main/list/uniqueId-list";
-import { renderTaskTable } from "../../../ui/main/table/table";
-import { Panels } from "../../../ui/panel/panel";
-import { createEditBar, createPreviewRow } from "../../../util/edit-utils";
-import { formatDate } from "../../component/calendar-view-process";
-import { STATUS_NAMES } from "../../config/config";
+import { STATUS_NAMES } from "../../core/config/config";
+import { DataManager } from "../../core/data/data-manager";
+import { BaseTaskEdit } from "../../core/edit/base-task-edit";
+import { EditStore } from "../../core/edit/task-edit-store";
+import { formatDate } from "../../core/process/calendar-view-process";
 import {
 	getDefaultFilter,
 	getDefaultHideConfig,
-} from "../../config/panel-default-config";
-import { DataManager } from "../../data/data-manager";
+} from "../../core/store/preset/panel-preset";
+import { Store } from "../../core/store/store";
 import {
 	applyHideConfig,
 	filterTree,
@@ -39,11 +18,31 @@ import {
 	flattenTree,
 	TaskTreeNode,
 	TreeFilterOptions,
-} from "../../task/task-tree";
-import { Store } from "../store";
-import { EditStore } from "../task-edit-store";
+} from "../../core/task/task-tree";
+import { GlobalFilter } from "../../type/type";
+import { renderKanban } from "../main/board/kanban-board";
+import { renderMatrix } from "../main/board/matrix-board";
+import { renderCalendarView } from "../main/calendar/calendar";
+import { renderCards } from "../main/card/grid-card";
+import { renderDetail } from "../main/chart/detail-chart";
+import { renderMarkChart } from "../main/chart/mark-chart";
+import { renderTimeChart } from "../main/chart/time-chart";
+import { renderGanttWithTree } from "../main/gantt/gantt";
+import { renderDepends } from "../main/list/depends-list";
+import { renderTaskList } from "../main/list/list";
+import { renderOverdueList } from "../main/list/overdue-list";
+import { renderPriority } from "../main/list/priority-list";
+import { renderRecurring } from "../main/list/recurring-list";
+import { renderStatus } from "../main/list/status-list";
+import { renderTag } from "../main/list/tag-list";
+import { renderTimeList } from "../main/list/time-list";
+import { renderTimeline } from "../main/list/timeline-list";
+import { renderTaskTree } from "../main/list/tree-list";
+import { renderUniqueId } from "../main/list/uniqueId-list";
+import { renderTaskTable } from "../main/table/table";
+import { Panels } from "../panel/panel";
 
-export abstract class BaseTaskView {
+export abstract class BaseTaskView extends BaseTaskEdit {
 	protected container: HTMLElement;
 	protected store: Store;
 	protected app: any;
@@ -72,14 +71,12 @@ export abstract class BaseTaskView {
 
 	protected scrollPositions: Map<string, number> = new Map();
 
-	private previouslyEditedUids: Set<string> = new Set();
-
-	private _needsEditRefresh: boolean = false;
 	private _lastActivePresetId: string | null = null;
 	private _lastSidebarCollapsed: boolean | null = null;
 	private _lastFilterStr: string | null = null;
 
 	constructor(container: HTMLElement, store: Store, app: any) {
+		super();
 		this.container = container;
 		this.store = store;
 		this.app = app;
@@ -128,623 +125,6 @@ export abstract class BaseTaskView {
 		this.onResizeBound = (e: MouseEvent) => this.onResize(e);
 		this.stopResizeBound = () => this.stopResize();
 	}
-
-	// ========== 编辑入口 ==========
-
-	private handleEnterEdit(node: TaskTreeNode) {
-		const es = this.editStore;
-		const state = es.getState();
-
-		if (
-			state.editMode &&
-			!state.batchMode &&
-			state.selectedTasks.has(node.uid)
-		)
-			return;
-		if (state.batchMode) return;
-
-		const prevUids = Array.from(this.previouslyEditedUids);
-		for (const prevUid of prevUids) {
-			this.setCardReadMode(prevUid);
-		}
-
-		es.enterSingleEditMode(node);
-		this.applyEditContext();
-		this.setCardEditMode(node.uid);
-		this.previouslyEditedUids = new Set([node.uid]);
-	}
-
-	public toggleBatchMode() {
-		const es = this.editStore;
-		const state = es.getState();
-
-		if (state.batchMode) {
-			// 批量 → 阅读
-			const prevUids = Array.from(this.previouslyEditedUids);
-			for (const prevUid of prevUids) {
-				this.setCardReadMode(prevUid);
-			}
-			es.exitBatchToReading();
-			this.applyEditContext();
-			this.previouslyEditedUids.clear();
-			this.refreshAllCardsForBatchMode();
-		} else if (state.editMode) {
-			// 单个编辑 → 批量（保留当前任务）
-			const currentUid = state.selectedTasks.values().next().value;
-			const node = currentUid
-				? this.dataManager.getNodeByUid(currentUid)
-				: undefined;
-			if (node) {
-				es.enterBatchModeFromSingle(node);
-			} else {
-				es.enterBatchMode();
-			}
-			this.applyEditContext();
-			this.refreshAllCardsForBatchMode();
-		} else {
-			// 阅读 → 批量
-			es.enterBatchMode();
-			this.applyEditContext();
-			this.previouslyEditedUids.clear();
-			this.refreshAllCardsForBatchMode();
-		}
-
-		// 刷新编辑面板
-		this.refreshEditPanel();
-	}
-	private refreshAllCardsForBatchMode() {
-		const searchRoot = this.rightContentContainer || this.container;
-		const cards = searchRoot.querySelectorAll(
-			".task-item:not(.task-item-compact)",
-		) as NodeListOf<HTMLElement>;
-
-		const isBatchMode = this.editStore.getState().batchMode;
-
-		cards.forEach((card) => {
-			const uid = card.getAttribute("data-uid");
-			if (!uid) return;
-
-			if (isBatchMode) {
-				// 进入批量：添加复选框
-				if (card.querySelector("input[type='checkbox']")) return;
-
-				const node = this.dataManager.getNodeByUid(uid);
-				if (!node) return;
-
-				const row1 = card.querySelector(
-					":scope > div:first-child",
-				) as HTMLElement;
-				if (!row1) return;
-
-				const checked = this.editStore
-					.getState()
-					.selectedTasks.has(uid);
-				const cb = document.createElement("input");
-				cb.type = "checkbox";
-				cb.checked = checked;
-				cb.style.cssText =
-					"margin:0 2px 0 0;flex-shrink:0;cursor:pointer;width:12px;height:12px;";
-				cb.addEventListener("click", (e) => e.stopPropagation());
-				cb.addEventListener("change", () => {
-					this.editStore.toggleSelection(node);
-					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
-				});
-				row1.insertBefore(cb, row1.firstChild);
-			} else {
-				// 退出批量：移除复选框
-				const cb = card.querySelector("input[type='checkbox']");
-				if (cb) cb.remove();
-			}
-		});
-	}
-
-	public toggleSelectAll(nodes: TaskTreeNode[]) {
-		const es = this.editStore;
-		if (!es.getState().batchMode) return;
-		es.toggleSelectAll(nodes);
-		this._needsEditRefresh = true;
-		requestAnimationFrame(() => this.onEditStateChange());
-	}
-
-	// ========== 编辑相关方法 ==========
-
-	private getEditSearchRoot(): HTMLElement {
-		return this.rightContentContainer || this.container;
-	}
-
-	private applyEditContext() {
-		const state = this.editStore.getState();
-		if (state.editMode) {
-			setEditContext({
-				editMode: true,
-				batchMode: state.batchMode,
-				selectedTasks: state.selectedTasks,
-				previews: state.previews,
-				savedTasks: state.savedTasks,
-				expandedButton: state.expandedButton,
-				onEdit: (node, markKey, value) => {
-					if (markKey.endsWith("_toggle")) {
-						this.editStore.toggleExpandedButton(
-							markKey.replace("_toggle", ""),
-						);
-					} else {
-						this.editStore.applyEdit(markKey, value);
-					}
-					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
-				},
-				onContentEdit: (node, newContent) => {
-					this.editStore.applyContentEdit(node, newContent);
-					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
-				},
-				onCheckChange: (node, checked) => {
-					this.editStore.toggleSelection(node);
-					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
-				},
-				onSave: (node) => {
-					this.editStore.saveSingle(node);
-				},
-				onRevert: (node) => {
-					this.editStore.revertSingle(node);
-				},
-				onRestore: (node) => {
-					this.editStore.applyContentEdit(
-						node,
-						node.rawLine || node.content || node.text,
-					);
-					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
-				},
-			});
-		} else {
-			setEditContext(null);
-		}
-	}
-
-	private onEditStateChange() {
-		const state = this.editStore.getState();
-		const currentUids = new Set(state.selectedTasks);
-
-		if (!state.editMode) {
-			requestAnimationFrame(() => {
-				this.restoreEditedCards();
-				this.previouslyEditedUids.clear();
-			});
-			return;
-		}
-
-		for (const uid of this.previouslyEditedUids) {
-			if (!currentUids.has(uid)) {
-				if (state.batchMode) {
-					this.setCardBatchUnselected(uid);
-				} else {
-					this.setCardReadMode(uid);
-				}
-			}
-		}
-
-		for (const uid of currentUids) {
-			if (!this.previouslyEditedUids.has(uid)) {
-				this.setCardEditMode(uid);
-			} else {
-				requestAnimationFrame(() => {
-					this.refreshCardEditContent(uid);
-				});
-			}
-		}
-
-		this.applyEditContext();
-		this.previouslyEditedUids = new Set(currentUids);
-
-		// 刷新编辑面板
-		this.refreshEditPanel();
-	}
-	private setCardBatchUnselected(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
-			`[data-uid="${uid}"]`,
-		) as HTMLElement;
-		if (!card) return;
-
-		const node = this.dataManager.getNodeByUid(uid);
-		if (!node) return;
-
-		card.classList.remove("task-item-editing");
-		card.style.cursor = "pointer";
-
-		const descEl = card.querySelector(".task-desc") as HTMLElement;
-		if (descEl) {
-			descEl.removeAttribute("contenteditable");
-			descEl.removeAttribute("data-edit-bound");
-			const newDescEl = descEl.cloneNode(true) as HTMLElement;
-			newDescEl.style.cssText =
-				"font-weight:500;flex:1;cursor:pointer;margin-bottom:4px;color:var(--text-normal);";
-			descEl.parentNode?.replaceChild(newDescEl, descEl);
-		}
-
-		const previewRow = card.querySelector(
-			".task-preview-row",
-		) as HTMLElement;
-		if (previewRow) {
-			previewRow.innerHTML = "";
-			previewRow.style.display = "none";
-			previewRow.style.background = "";
-		}
-
-		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
-		if (editBar && editBar.parentNode) {
-			const newEditBar = createEditBar(node, {
-				expandedButton: null,
-				previewText: null,
-				isEditing: false,
-				onEdit: () => {},
-			});
-			try {
-				editBar.parentNode.replaceChild(newEditBar, editBar);
-			} catch (e) {
-				// 忽略
-			}
-		}
-
-		const checkbox = card.querySelector(
-			"input[type='checkbox']",
-		) as HTMLInputElement;
-		if (checkbox) {
-			checkbox.checked = false;
-		}
-	}
-
-	private setCardEditMode(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
-			`[data-uid="${uid}"]`,
-		) as HTMLElement;
-		if (!card) return;
-
-		const node = this.dataManager.getNodeByUid(uid);
-		if (!node) return;
-
-		card.classList.add("task-item-editing");
-		card.style.cursor = "default";
-		this.refreshCardEditContent(uid);
-	}
-
-	private setCardReadMode(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
-			`[data-uid="${uid}"].task-item-editing`,
-		) as HTMLElement;
-		if (!card) return;
-
-		const node = this.dataManager.getNodeByUid(uid);
-		if (!node) return;
-
-		card.classList.remove("task-item-editing");
-		card.style.cursor = "pointer";
-
-		const checkbox = card.querySelector("input[type='checkbox']");
-		if (checkbox) checkbox.remove();
-
-		const descEl = card.querySelector(".task-desc") as HTMLElement;
-		if (descEl) {
-			descEl.removeAttribute("contenteditable");
-			descEl.removeAttribute("data-edit-bound");
-			const newDescEl = descEl.cloneNode(true) as HTMLElement;
-			newDescEl.style.cssText =
-				"font-weight:500;flex:1;cursor:pointer;margin-bottom:4px;color:var(--text-normal);";
-			descEl.parentNode?.replaceChild(newDescEl, descEl);
-		}
-
-		const previewRow = card.querySelector(
-			".task-preview-row",
-		) as HTMLElement;
-		if (previewRow) {
-			previewRow.innerHTML = "";
-			previewRow.style.display = "none";
-			previewRow.style.background = "";
-		}
-
-		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
-		if (editBar && editBar.parentNode) {
-			const newEditBar = createEditBar(node, {
-				expandedButton: null,
-				previewText: null,
-				isEditing: false,
-				onEdit: () => {},
-			});
-			try {
-				editBar.parentNode.replaceChild(newEditBar, editBar);
-			} catch (e) {
-				// 忽略
-			}
-		}
-	}
-
-	private refreshCardEditContent(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
-			`[data-uid="${uid}"].task-item-editing`,
-		) as HTMLElement;
-		if (!card) return;
-
-		const node = this.dataManager.getNodeByUid(uid);
-		if (!node) return;
-
-		const editCtx = getEditContext();
-		if (!editCtx) return;
-
-		const previewText = editCtx.previews.get(uid);
-		const hasEdits = previewText !== null && previewText !== node.rawLine;
-		const saved = editCtx.savedTasks.has(node.uid);
-
-		const descEl = card.querySelector(".task-desc") as HTMLElement;
-		if (descEl) {
-			descEl.style.color = hasEdits
-				? "var(--text-accent)"
-				: "var(--text-normal)";
-			descEl.style.setProperty("cursor", "text", "important");
-
-			if (!descEl.hasAttribute("data-edit-bound")) {
-				descEl.setAttribute("data-edit-bound", "true");
-				descEl.addEventListener("click", (e) => {
-					e.stopPropagation();
-					if (descEl.getAttribute("contenteditable") === "true")
-						return;
-					descEl.setAttribute("contenteditable", "true");
-					descEl.focus();
-					const range = document.createRange();
-					range.selectNodeContents(descEl);
-					const sel = window.getSelection();
-					sel?.removeAllRanges();
-					sel?.addRange(range);
-					const onBlur = () => {
-						descEl.removeAttribute("contenteditable");
-						const newContent = descEl.textContent?.trim();
-						const ctx = getEditContext();
-						if (
-							newContent &&
-							ctx &&
-							newContent !== (node.content || node.text)
-						) {
-							ctx.onContentEdit(node, newContent);
-						}
-						descEl.removeEventListener("blur", onBlur);
-					};
-					descEl.addEventListener("blur", onBlur);
-					const onKeyDown = (ke: KeyboardEvent) => {
-						if (ke.key === "Enter" && !ke.shiftKey) {
-							ke.preventDefault();
-							descEl.blur();
-						}
-						if (ke.key === "Escape") {
-							descEl.textContent = node.content || node.text;
-							descEl.blur();
-						}
-					};
-					descEl.addEventListener("keydown", onKeyDown);
-					descEl.addEventListener(
-						"blur",
-						() => {
-							descEl.removeEventListener("keydown", onKeyDown);
-						},
-						{ once: true },
-					);
-				});
-			}
-		}
-
-		let editBar = card.querySelector(".task-edit-bar") as HTMLElement;
-		const newEditBar = createEditBar(node, {
-			expandedButton: editCtx.expandedButton,
-			previewText: previewText ?? null,
-			isEditing: true,
-			onEdit: (n, markKey, value) => {
-				const ctx = getEditContext();
-				if (!ctx) return;
-				if (markKey.endsWith("_toggle")) {
-					ctx.onEdit(n, markKey, null);
-				} else {
-					ctx.onEdit(n, markKey, value);
-				}
-			},
-		});
-
-		if (editBar) {
-			try {
-				editBar.parentNode!.replaceChild(newEditBar, editBar);
-			} catch (e) {
-				// 忽略
-			}
-		} else {
-			card.appendChild(newEditBar);
-		}
-
-		let previewRow = card.querySelector(".task-preview-row") as HTMLElement;
-		if (previewText) {
-			const newPreviewRow = createPreviewRow(
-				previewText,
-				saved,
-				saved ? null : () => editCtx.onSave(node),
-				saved ? () => editCtx.onRevert(node) : null,
-				hasEdits,
-				hasEdits && editCtx.onRestore
-					? () => editCtx.onRestore!(node)
-					: null,
-			);
-			if (previewRow) {
-				try {
-					previewRow.parentNode!.replaceChild(
-						newPreviewRow,
-						previewRow,
-					);
-				} catch (e) {
-					// 忽略
-				}
-			} else {
-				card.appendChild(newPreviewRow);
-			}
-		} else {
-			if (!previewRow) {
-				previewRow = document.createElement("div");
-				previewRow.className = "task-preview-row";
-				previewRow.style.display = "none";
-				card.appendChild(previewRow);
-			} else {
-				previewRow.innerHTML = "";
-				previewRow.style.display = "none";
-				previewRow.style.background = "";
-			}
-		}
-	}
-	private refreshEditPanel() {
-		requestAnimationFrame(() => {
-			const panels = Panels.getInstance();
-			const editPanel = panels.getEditPanel();
-			if (editPanel) {
-				editPanel.render();
-			}
-		});
-	}
-	private restoreEditedCards() {
-		const searchRoot = this.getEditSearchRoot();
-		const uids = Array.from(this.previouslyEditedUids);
-		for (const uid of uids) {
-			this.setCardReadMode(uid);
-		}
-	}
-
-	// ========== 全局点击 ==========
-
-	private onGlobalClick = (e: MouseEvent) => {
-		const target = e.target as HTMLElement;
-		const es = this.editStore;
-		const state = es.getState();
-		const isEditMode = state.editMode;
-		const isBatchMode = state.batchMode;
-
-		if (!isEditMode) return;
-
-		if (
-			target.closest(".task-edit-bar") ||
-			target.closest(".task-preview-row") ||
-			target.getAttribute("contenteditable") === "true"
-		)
-			return;
-
-		if (target.closest(".manage-sidebar")) {
-			if (
-				target.closest(".side-top-row") ||
-				target.closest("[title*='折叠']") ||
-				target.closest("[title*='展开']")
-			)
-				return;
-		}
-
-		if (target.closest(".panel-host")) {
-			if (isBatchMode) {
-				if (target.closest("[data-panel-key='edit']")) {
-					if (target.closest(".edit-batch-btn")) {
-						const prevUids = Array.from(this.previouslyEditedUids);
-						for (const prevUid of prevUids) {
-							this.setCardReadMode(prevUid);
-						}
-						es.exitBatchToReading();
-						this.applyEditContext();
-						this.previouslyEditedUids.clear();
-						this.refreshAllCardsForBatchMode();
-						this.refreshEditPanel();
-						return;
-					}
-					return;
-				}
-				const prevUids = Array.from(this.previouslyEditedUids);
-				for (const prevUid of prevUids) {
-					this.setCardReadMode(prevUid);
-				}
-				es.exitBatchToReading();
-				this.applyEditContext();
-				this.previouslyEditedUids.clear();
-				this.refreshAllCardsForBatchMode();
-				this.refreshEditPanel();
-				return;
-			} else {
-				const prevUids = Array.from(this.previouslyEditedUids);
-				for (const prevUid of prevUids) {
-					this.setCardReadMode(prevUid);
-				}
-				es.exitEditMode(false);
-				requestAnimationFrame(() => this.onEditStateChange());
-				return;
-			}
-		}
-
-		if (target.closest(".manage-sidebar")) {
-			const prevUids = Array.from(this.previouslyEditedUids);
-			for (const prevUid of prevUids) {
-				this.setCardReadMode(prevUid);
-			}
-			if (isBatchMode) {
-				es.exitBatchToReading();
-				this.applyEditContext();
-				this.previouslyEditedUids.clear();
-				this.refreshAllCardsForBatchMode();
-				this.refreshEditPanel();
-			} else {
-				es.exitEditMode(false);
-				requestAnimationFrame(() => this.onEditStateChange());
-			}
-			return;
-		}
-
-		const editTaskItem = target.closest(".task-item") as HTMLElement;
-		if (
-			editTaskItem &&
-			!editTaskItem.classList.contains("task-item-compact")
-		) {
-			const uid = editTaskItem.getAttribute("data-uid");
-			if (!uid) return;
-
-			const node = this.dataManager.getNodeByUid(uid);
-			if (!node) return;
-
-			if (isBatchMode) {
-				es.toggleSelection(node);
-				this._needsEditRefresh = true;
-				requestAnimationFrame(() => this.onEditStateChange());
-				return;
-			} else {
-				if (state.selectedTasks.has(uid)) return;
-
-				const prevUids = Array.from(this.previouslyEditedUids);
-				for (const prevUid of prevUids) {
-					this.setCardReadMode(prevUid);
-				}
-				es.enterSingleEditMode(node);
-				this.applyEditContext();
-				this.setCardEditMode(uid);
-				this.previouslyEditedUids = new Set([uid]);
-				return;
-			}
-		}
-
-		const prevUids = Array.from(this.previouslyEditedUids);
-		for (const prevUid of prevUids) {
-			this.setCardReadMode(prevUid);
-		}
-		if (isBatchMode) {
-			es.exitBatchToReading();
-			this.applyEditContext();
-			this.previouslyEditedUids.clear();
-			this.refreshAllCardsForBatchMode();
-			this.refreshEditPanel();
-		} else {
-			es.exitEditMode(false);
-			requestAnimationFrame(() => this.onEditStateChange());
-		}
-	};
 
 	// ========== 渲染相关 ==========
 
@@ -1473,6 +853,5 @@ export abstract class BaseTaskView {
 		}
 		this.cleanupSplitLayout();
 		this.scrollPositions.clear();
-		this.previouslyEditedUids.clear();
 	}
 }

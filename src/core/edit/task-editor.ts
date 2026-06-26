@@ -1,8 +1,8 @@
 // src/core/task/task-editor.ts
 
-import { TASKS_RX } from "../config/tasks-config";
-import { TaskTreeNode } from "./task-tree";
 import { EditState } from "../../type/type";
+import { TASKS_RX } from "../config/tasks-config";
+import { TaskTreeNode } from "../task/task-tree";
 const AUTOCOMPLETE_DAYS = 3;
 const MAX_SNAPSHOTS = 5;
 const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";
@@ -91,27 +91,50 @@ export const Op = {
 	},
 
 	setContent(line: string, newContent: string): string {
-		let cleaned = line;
-		const allMarks = [
-			TASKS_RX.priority,
-			TASKS_RX.repeat,
-			TASKS_RX.created,
-			TASKS_RX.scheduled,
-			TASKS_RX.starts,
-			TASKS_RX.due,
-			TASKS_RX.done,
-			TASKS_RX.cancelled,
-			TASKS_RX.tag,
-			TASKS_RX.id,
-			TASKS_RX.forbid,
+		const order = [
+			"priority",
+			"repeat",
+			"created",
+			"scheduled",
+			"starts",
+			"due",
+			"done",
+			"cancelled",
+			"tag",
+			"id",
+			"forbid",
 		];
-		const prefix = cleaned.match(/^(- \[.\]\s*)/)?.[1] || "- [ ] ";
-		cleaned = cleaned.replace(/^(- \[.\]\s*)/, "");
-		for (const rx of allMarks) {
-			if (rx) cleaned = cleaned.replace(rx, "");
+
+		// 1. 收集所有标记
+		const parts: string[] = [];
+		for (const key of order) {
+			const rx = TASKS_RX[key];
+			if (rx) {
+				const m = line.match(rx);
+				parts.push(m ? m[0] : "");
+			} else {
+				parts.push("");
+			}
 		}
-		cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
-		return prefix + newContent + " " + cleaned;
+
+		// 2. 从行中移除所有标记
+		let clean = line;
+		for (const part of parts) {
+			if (part) clean = clean.replace(part, "");
+		}
+		clean = clean.replace(/\s+/g, " ").trim();
+
+		// 3. 移除前缀 "- [x] "
+		clean = clean.replace(/^- \[.\]\s*/, "").trim();
+
+		// 4. 拼接：前缀 + 新描述 + 标记
+		const prefixMatch = line.match(/^(- \[.\]\s*)/);
+		const prefix = prefixMatch ? prefixMatch[1] : "- [ ] ";
+
+		const tags = parts.filter(Boolean);
+		return (prefix + newContent + " " + tags.join(" "))
+			.replace(/\s+/g, " ")
+			.trim();
 	},
 
 	setPriority(line: string, emoji: string): string {
@@ -253,19 +276,31 @@ export const Op = {
 			"id",
 			"forbid",
 		];
+
+		// 1. 收集所有标记
 		const parts: string[] = [];
 		for (const key of order) {
-			const m = line.match(TASKS_RX[key]);
-			parts.push(m ? m[0] : "");
+			const rx = TASKS_RX[key];
+			if (rx) {
+				const m = line.match(rx);
+				parts.push(m ? m[0] : "");
+			} else {
+				parts.push("");
+			}
 		}
+
+		// 2. 从行中移除所有标记
 		let clean = line;
-		parts.forEach((p) => {
-			if (p) clean = clean.replace(p, "");
-		});
+		for (const part of parts) {
+			if (part) clean = clean.replace(part, "");
+		}
+
+		// 3. 清理多余空格
 		clean = clean.replace(/\s+/g, " ").trim();
-		return (clean + " " + parts.filter(Boolean).join(" "))
-			.replace(/\s+/g, " ")
-			.trim();
+
+		// 4. 拼接：清理后的文本 + 按顺序排列的标记
+		const tags = parts.filter(Boolean);
+		return (clean + " " + tags.join(" ")).replace(/\s+/g, " ").trim();
 	},
 };
 

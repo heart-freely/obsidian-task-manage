@@ -1,6 +1,6 @@
 // src/ui/main/inbox-view.ts
-import { GlobalFilter } from "../../../type/type";
-import { BaseTaskView } from "./base-task-preset";
+import { GlobalFilter } from "../../type/type";
+import { BaseTaskView } from "./base-task-view";
 
 export class InboxView extends BaseTaskView {
 	getDefaultFilter(): GlobalFilter {

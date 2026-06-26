@@ -4,7 +4,7 @@ import {
 	countNodeStatuses,
 	removeHeadingNumber,
 	sortFileNodes,
-} from "../../../core/component/tree-view-process";
+} from "../../../core/process/tree-view-process";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createProgressBar } from "../../component/progress/progress";
 import { createTaskCard } from "../card/card";
