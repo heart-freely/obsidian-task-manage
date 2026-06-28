@@ -45,6 +45,16 @@ export interface TaskTreeNode {
 	headingText?: string;
 
 	fileRelations?: FileRelations;
+
+	// YAML 编辑支持
+	/** YAML 起始行号（-1 表示不存在） */
+	yamlStartLine: number;
+	/** YAML 结束行号（-1 表示不存在） */
+	yamlEndLine: number;
+	/** 是否为 frontmatter YAML（文件任务）而非代码块 YAML（标题任务） */
+	isFrontmatter: boolean;
+	/** 是否存在 YAML 内容 */
+	hasYaml: boolean;
 }
 
 export interface FileRelations {
@@ -144,6 +154,8 @@ export function buildTaskTree(
 			forbid: "",
 		};
 
+		const hasFrontmatter = file.hasFrontmatter ?? false;
+
 		const fileNode: TaskTreeNode = {
 			uid,
 			type: "file",
@@ -169,6 +181,11 @@ export function buildTaskTree(
 			id: taskData.id,
 			forbid: taskData.forbid,
 			tag: taskData.tag,
+			// YAML 编辑支持
+			yamlStartLine: hasFrontmatter ? 0 : -1,
+			yamlEndLine: hasFrontmatter ? (file.yamlEndLine ?? -1) : -1,
+			isFrontmatter: true,
+			hasYaml: hasFrontmatter,
 		};
 
 		if (hasContentRoots) {
@@ -327,6 +344,10 @@ function createRootNode(children: TaskTreeNode[]): TaskTreeNode {
 		id: "",
 		forbid: "",
 		tag: "",
+		yamlStartLine: -1,
+		yamlEndLine: -1,
+		isFrontmatter: false,
+		hasYaml: false,
 	};
 }
 
@@ -403,6 +424,12 @@ function convertContentNodes(
 			continue;
 		}
 
+		const hasYaml =
+			cn.yamlStartLine !== undefined &&
+			cn.yamlStartLine >= 0 &&
+			cn.yamlEndLine !== undefined &&
+			cn.yamlEndLine >= 0;
+
 		const child: TaskTreeNode = {
 			uid: parent.path + ":" + cn.line,
 			type: cn.type === "task" ? "list" : "heading",
@@ -430,6 +457,11 @@ function convertContentNodes(
 			tag: cn.task?.tag ?? "",
 			headingLevel: cn.type === "heading" ? cn.depth : undefined,
 			headingText: cn.type === "heading" ? cn.text : undefined,
+			// YAML 编辑支持
+			yamlStartLine: hasYaml ? cn.yamlStartLine! : cn.line,
+			yamlEndLine: hasYaml ? cn.yamlEndLine! : -1,
+			isFrontmatter: false,
+			hasYaml,
 		};
 		child.children = convertContentNodes(cn.children, child);
 		result.push(child);

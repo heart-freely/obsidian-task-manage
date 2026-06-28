@@ -654,12 +654,18 @@ export function createSubRow(
 		}
 	};
 
-	if (group.subType === "options" && group.subOptions) {
-		let previewValue: string | null = null;
-		if (options.previewText) {
-			previewValue = extractMarkFromText(options.previewText, group.key);
-		}
+	// 原始值（删除和恢复按钮共用）
+	const originalValue = extractOriginalMarkValue(node.rawLine, group.key);
+	const hasOriginalMark = originalValue !== null && originalValue !== "";
 
+	// 预览值（恢复按钮判断用）
+	let previewValue: string | null = null;
+	if (options.previewText) {
+		previewValue = extractMarkFromText(options.previewText, group.key);
+	}
+	const hasChanged = originalValue !== previewValue;
+
+	if (group.subType === "options" && group.subOptions) {
 		group.subOptions.forEach((opt) => {
 			const btn = document.createElement("button");
 			btn.textContent = opt;
@@ -667,7 +673,7 @@ export function createSubRow(
 			let isActive = false;
 			if (group.key === "status") {
 				const statusKey = STATUS_KEY_MAP[opt];
-				if (previewValue) {
+				if (previewValue !== null) {
 					isActive = previewValue === statusKey;
 				} else {
 					isActive = node.status === statusKey;
@@ -675,19 +681,19 @@ export function createSubRow(
 			} else if (group.key === "priority") {
 				const originalIcon =
 					["🔺", "⏫", "🔼", "🔽", "⏬"][node.priority] || "";
-				if (previewValue) {
+				if (previewValue !== null) {
 					isActive = previewValue === opt;
 				} else {
 					isActive = originalIcon === opt;
 				}
 			} else {
-				if (previewValue) {
+				if (previewValue !== null) {
 					isActive = previewValue === opt.replace("🏁 ", "");
 				} else {
-					const originalValue = getNodeMarkValue(node, group.key);
+					const originalVal = getNodeMarkValue(node, group.key);
 					isActive =
-						originalValue === opt ||
-						originalValue === opt.replace("🏁 ", "");
+						originalVal === opt ||
+						originalVal === opt.replace("🏁 ", "");
 				}
 			}
 
@@ -702,7 +708,6 @@ export function createSubRow(
 				const value =
 					group.key === "status" ? STATUS_KEY_MAP[opt] || opt : opt;
 
-				// 更新子按钮样式
 				const allBtns = btn.parentElement?.querySelectorAll("button");
 				allBtns?.forEach((b: Element) => {
 					(b as HTMLElement).style.background =
@@ -712,7 +717,6 @@ export function createSubRow(
 				btn.style.background = "var(--interactive-accent)";
 				btn.style.color = "white";
 
-				// 更新主按钮文本
 				if (group.key === "status") {
 					const statusKey = STATUS_KEY_MAP[opt] || opt;
 					const emoji = STATUS_EMOJI_MAP[statusKey] || "";
@@ -762,7 +766,6 @@ export function createSubRow(
 				? "var(--text-normal)"
 				: "var(--text-muted)";
 
-			// 更新主按钮文本
 			const icon = group.icon;
 			updateMainBtnText(
 				hiddenInput.value
@@ -842,21 +845,14 @@ export function createSubRow(
 			subRow.appendChild(customInput);
 		} else if (group.key === "tag") {
 			if (group.subOptions) {
-				let previewTag: string | null = null;
-				if (options.previewText) {
-					previewTag = extractMarkFromText(
-						options.previewText,
-						"tag",
-					);
-				}
-
 				group.subOptions.forEach((opt) => {
 					const btn = document.createElement("button");
 					btn.textContent = opt;
 					const optValue = opt.replace("🏁 ", "");
-					const isActive = previewTag
-						? previewTag === optValue
-						: node.tag === optValue;
+					const isActive =
+						previewValue !== null
+							? previewValue === optValue
+							: node.tag === optValue;
 
 					btn.style.cssText =
 						"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
@@ -891,21 +887,14 @@ export function createSubRow(
 			subRow.appendChild(customInput);
 		} else {
 			if (group.subOptions) {
-				let previewValue: string | null = null;
-				if (options.previewText) {
-					previewValue = extractMarkFromText(
-						options.previewText,
-						group.key,
-					);
-				}
-
 				group.subOptions.forEach((opt) => {
 					const btn = document.createElement("button");
 					btn.textContent = opt;
-					const isActive = previewValue
-						? previewValue === opt.replace("🔁 ", "")
-						: getNodeMarkValue(node, group.key) ===
-							opt.replace("🔁 ", "");
+					const isActive =
+						previewValue !== null
+							? previewValue === opt.replace("🔁 ", "")
+							: getNodeMarkValue(node, group.key) ===
+								opt.replace("🔁 ", "");
 
 					btn.style.cssText =
 						"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
@@ -941,47 +930,34 @@ export function createSubRow(
 		}
 	}
 
+	// 删除按钮：仅当原始标记存在时显示
 	const delBtn = document.createElement("button");
 	delBtn.textContent = "删除";
 	delBtn.style.cssText =
 		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid rgba(200,80,80,0.3);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:rgba(200,80,80,0.08);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+	if (!hasOriginalMark) {
+		delBtn.style.display = "none";
+	}
 	delBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		updateMainBtnText(`${group.icon} ${group.label}`);
 		onEdit(node, group.key, null);
 	});
 	subRow.appendChild(delBtn);
 
+	// 恢复按钮：预览与原始不一致时显示
 	const restoreBtn = document.createElement("button");
 	restoreBtn.textContent = "恢复";
 	restoreBtn.style.cssText =
 		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
 	restoreBtn.title = "恢复为原始值";
+	if (!hasChanged) {
+		restoreBtn.style.display = "none";
+	}
 	restoreBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		const originalValue = extractOriginalMarkValue(node.rawLine, group.key);
 		if (originalValue !== null) {
-			if (group.key === "status") {
-				const emoji = STATUS_EMOJI_MAP[originalValue] || "";
-				const name = STATUS_LABEL_MAP[originalValue] || originalValue;
-				updateMainBtnText(`${emoji} ${name}`);
-			} else if (group.key === "priority") {
-				const names: Record<string, string> = {
-					"🔺": "最高",
-					"⏫": "高",
-					"🔼": "中",
-					"🔽": "低",
-					"⏬": "最低",
-				};
-				updateMainBtnText(
-					`${originalValue} ${names[originalValue] || ""}`,
-				);
-			} else {
-				updateMainBtnText(`${group.icon} ${originalValue}`);
-			}
 			onEdit(node, group.key, originalValue);
 		} else {
-			updateMainBtnText(`${group.icon} ${group.label}`);
 			onEdit(node, group.key, null);
 		}
 	});

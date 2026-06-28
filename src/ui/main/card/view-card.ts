@@ -176,9 +176,7 @@ export function createViewCard(
 				saved ? null : () => editCtx?.onSave(node),
 				saved ? () => editCtx?.onRevert(node) : null,
 				hasContentEdit,
-				hasContentEdit && editCtx?.onRestore
-					? () => editCtx.onRestore!(node)
-					: null,
+				editCtx?.onRestore ? () => editCtx.onRestore!(node) : null,
 			);
 			li.appendChild(previewRow);
 		} else {
@@ -195,17 +193,6 @@ export function createViewCard(
 			e.stopPropagation();
 			e.preventDefault();
 			options.onEnterEdit!(node);
-
-			requestAnimationFrame(() => {
-				requestAnimationFrame(() => {
-					const descEl = li.querySelector(
-						".task-desc",
-					) as HTMLElement;
-					if (descEl) {
-						descEl.click();
-					}
-				});
-			});
 		});
 	}
 

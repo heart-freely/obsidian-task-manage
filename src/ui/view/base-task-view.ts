@@ -41,7 +41,6 @@ import { renderTaskTree } from "../main/list/tree-list";
 import { renderUniqueId } from "../main/list/uniqueId-list";
 import { renderTaskTable } from "../main/table/table";
 import { Panels } from "../panel/panel";
-
 export abstract class BaseTaskView extends BaseTaskEdit {
 	protected container: HTMLElement;
 	protected store: Store;
@@ -157,7 +156,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			this.container.removeEventListener("click", this.onGlobalClick);
 		}
 
-		this.container.empty();
 		this.cleanupSplitLayout();
 		if (this.ganttInstance) {
 			this.ganttInstance.destroy?.();
@@ -174,6 +172,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		try {
 			const { nodes } = await this.dataManager.loadData(this.app);
 			if (nodes.length === 0) {
+				this.container.replaceChildren();
 				this.renderEmpty();
 				this.restoreScrollPosition(scrollKey);
 				this.bindClickEvent();
@@ -181,7 +180,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			}
 
 			const fullTree = this.dataManager.getFullTree();
-
 			const panelOptions: TreeFilterOptions = {
 				statuses: activeFilter.statuses,
 				searchText: activeFilter.searchText,
@@ -195,7 +193,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				activeFilter.dateRange,
 				intervalMode,
 			);
-
 			const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
 			applyHideConfig(dateFilteredTree, hideConfig);
 
@@ -205,38 +202,35 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			} else {
 				flatNodes = flattenTree(dateFilteredTree);
 			}
-			flatNodes = flatNodes.filter((n) => {
-				if (!n.display || n.uid === "__task_root__") return false;
-				if (!n.match) return false;
-				return true;
-			});
+			flatNodes = flatNodes.filter(
+				(n) => n.display && n.uid !== "__task_root__" && n.match,
+			);
 
 			if (flatNodes.length === 0) {
+				this.container.replaceChildren();
 				this.renderEmpty();
 				this.restoreScrollPosition(scrollKey);
 				this.bindClickEvent();
 				return;
 			}
 
-			const sort = preset?.sort ?? { type: "status", order: "asc" };
+			const sort = preset?.sort ?? { type: "", order: "asc" };
 			const sorted = this.applySort(flatNodes, sort);
-
 			this.applyEditContext();
+
+			this.container.textContent = "";
 
 			if (currentStyle === "tree") {
 				const viewContainer = this.container.createDiv({
 					cls: "view-content",
 				});
-				viewContainer.style.padding = "0";
-				viewContainer.style.margin = "0";
+				viewContainer.style.cssText = "padding:0;margin:0;";
 				renderTaskTree(viewContainer, {
 					root: dateFilteredTree,
 					focusRoot: this.focusedTreeNode || undefined,
 					hideFolders: activeFilter.hideFolders ?? true,
-					onClick: (node: TaskTreeNode) =>
-						this.onTaskTreeNavClick(node),
-					onDoubleClick: (node: TaskTreeNode) =>
-						this.openTaskAtLine(node),
+					onClick: (n: TaskTreeNode) => this.onTaskTreeNavClick(n),
+					onDoubleClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
 					onRestore: () => this.restoreFocus(),
 					sort,
 				});
@@ -249,11 +243,11 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					viewContainer,
 					dateFilteredTree,
 					{
-						onTaskClick: (node: TaskTreeNode) =>
-							this.openTaskAtLine(node),
+						onTaskClick: (n: TaskTreeNode) =>
+							this.openTaskAtLine(n),
 						onRestore: () => this.restoreFocus(),
-						onNodeClick: (node: TaskTreeNode) =>
-							this.onTaskTreeNavClick(node),
+						onNodeClick: (n: TaskTreeNode) =>
+							this.onTaskTreeNavClick(n),
 						intervalMode,
 						sort: sort as { type: string; order: "asc" | "desc" },
 						dateRange: activeFilter.dateRange,
@@ -280,6 +274,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			this.restoreScrollPosition(scrollKey);
 		} catch (e) {
 			console.warn("[TaskManage] 视图渲染失败:", e);
+			this.container.replaceChildren();
 			this.container.createDiv({
 				text:
 					"加载失败：" + (e instanceof Error ? e.message : String(e)),

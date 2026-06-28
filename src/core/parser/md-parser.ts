@@ -34,6 +34,10 @@ export interface ParsedFileData {
 	fileTask: TaskData | null;
 	contentRoots: ContentNode[];
 	hasMarkedTasks: boolean;
+	/** frontmatter 结束行号（--- 所在行），-1 表示不存在 */
+	yamlEndLine: number;
+	/** 是否存在 frontmatter */
+	hasFrontmatter: boolean;
 }
 
 export { TASK_REGEX };
@@ -154,9 +158,8 @@ function stripFrontmatter(content: string): string {
 	if (!trimmed.startsWith("---")) return trimmed;
 	const endIdx = trimmed.indexOf("---", 3);
 	if (endIdx === -1) return trimmed;
-	return trimmed.substring(endIdx + 3).trimStart();
+	return trimmed.substring(endIdx + 3);
 }
-
 // ========== 文件解析 ==========
 
 export function parseFile(
@@ -167,11 +170,36 @@ export function parseFile(
 	const yaml = parseFrontmatter(content);
 	const fileTask = parseTaskFromYaml(yaml);
 
-	const frontmatterLineOffset = calcFrontmatterLineOffset(content);
+	// 检测并计算 frontmatter 结束行号
+	let hasFrontmatter = false;
+	let yamlEndLine = -1;
+
+	const trimmedContent = content.trimStart();
+	if (trimmedContent.startsWith("---")) {
+		const endIdx = trimmedContent.indexOf("---", 3);
+		if (endIdx !== -1) {
+			hasFrontmatter = true;
+			const fmPart = trimmedContent.substring(0, endIdx + 3);
+			const leadingLen = content.length - content.trimStart().length;
+			const leadingLines =
+				leadingLen > 0
+					? content.substring(0, leadingLen).split("\n").length - 1
+					: 0;
+			yamlEndLine = leadingLines + fmPart.split("\n").length - 1;
+		}
+	}
 
 	const body = stripFrontmatter(content);
+
+	// 通过 body 在 content 中的位置精确计算起始行号
+	const bodyStartIndex = content.indexOf(body);
+	const actualBodyStartLine =
+		bodyStartIndex >= 0
+			? content.substring(0, bodyStartIndex).split("\n").length - 1
+			: yamlEndLine + 1;
+
 	const contentRoots = body
-		? parseFileContent(body, filePath, frontmatterLineOffset)
+		? parseFileContent(body, filePath, actualBodyStartLine)
 		: [];
 	const hasMarkedTasks = hasAnyTask("file", contentRoots, null, yaml);
 	return {
@@ -182,6 +210,8 @@ export function parseFile(
 		fileTask,
 		contentRoots,
 		hasMarkedTasks,
+		yamlEndLine,
+		hasFrontmatter,
 	};
 }
 

@@ -1,4 +1,6 @@
-// src/core/store/task-edit-store.ts
+// src/core/edit/task-edit-store.ts
+// src/core/edit/task-edit-store.ts
+// 编辑状态管理器
 
 import { Notice } from "obsidian";
 import { EditState } from "../../type/type";
@@ -45,15 +47,7 @@ export class EditStore {
 		this.panelListeners.forEach((l) => l());
 	}
 
-	private syncToStore() {
-		console.log(
-			"[DEBUG] syncToStore 调用, editMode:",
-			this.state.editMode,
-			"batchMode:",
-			this.state.batchMode,
-			"selectedCount:",
-			this.state.selectedTasks.size,
-		);
+	public syncToStore() {
 		if (this.store) {
 			this.store.updateEditPanelState({
 				batchMode: this.state.batchMode,
@@ -69,14 +63,12 @@ export class EditStore {
 			});
 		}
 	}
-
 	getState(): EditState {
 		return this.state;
 	}
 
 	// ========== 模式切换 ==========
 
-	/** 进入单个编辑模式 */
 	enterSingleEditMode(node: TaskTreeNode) {
 		this.state.editMode = true;
 		this.state.batchMode = false;
@@ -84,12 +76,12 @@ export class EditStore {
 		this.state.previews.clear();
 		this.state.savedTasks.clear();
 		this.state.selectedTasks.add(node.uid);
+		// 预览初始值：列表任务用 rawLine，文件/标题任务将在 BaseTaskEdit 中覆盖为 YAML 内容
 		this.state.previews.set(node.uid, node.rawLine || "");
 		this.state.expandedButton = null;
 		this.syncToStore();
 	}
 
-	/** 进入批量编辑模式（从阅读模式，无预选任务） */
 	enterBatchMode() {
 		this.state.editMode = true;
 		this.state.batchMode = true;
@@ -100,7 +92,6 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	/** 进入批量编辑模式（从单个编辑模式，保留当前编辑任务为选中） */
 	enterBatchModeFromSingle(node: TaskTreeNode) {
 		this.state.editMode = true;
 		this.state.batchMode = true;
@@ -113,7 +104,6 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	/** 退出批量编辑模式到阅读模式 */
 	exitBatchToReading() {
 		this.state.editMode = false;
 		this.state.batchMode = false;
@@ -124,7 +114,6 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	/** 切换批量编辑模式 */
 	toggleBatchMode() {
 		if (this.state.batchMode) {
 			this.exitBatchToReading();
@@ -140,8 +129,6 @@ export class EditStore {
 			this.enterBatchMode();
 		}
 	}
-
-	// ========== 编辑模式 ==========
 
 	enterEditMode(node?: TaskTreeNode) {
 		this.state.editMode = true;
@@ -245,71 +232,85 @@ export class EditStore {
 				this.state.previews.get(uid) || node.rawLine || "";
 			let newPreview = currentPreview;
 
-			switch (markKey) {
-				case "status":
-					newPreview = value
-						? Op.setStatus(currentPreview, value)
-						: currentPreview;
-					break;
-				case "priority":
-					newPreview = value
-						? Op.setPriority(currentPreview, value)
-						: Op.delPriority(currentPreview);
-					break;
-				case "repeat":
-					newPreview = value
-						? Op.setRepeat(currentPreview, value)
-						: Op.delRepeat(currentPreview);
-					break;
-				case "created":
-					newPreview = value
-						? Op.setCreated(currentPreview, value)
-						: Op.delCreated(currentPreview);
-					break;
-				case "scheduled":
-					newPreview = value
-						? Op.setScheduled(currentPreview, value)
-						: Op.delScheduled(currentPreview);
-					break;
-				case "starts":
-					newPreview = value
-						? Op.setStarts(currentPreview, value)
-						: Op.delStarts(currentPreview);
-					break;
-				case "due":
-					newPreview = value
-						? Op.setDue(currentPreview, value)
-						: Op.delDue(currentPreview);
-					break;
-				case "done":
-					newPreview = value
-						? Op.setDone(currentPreview, value)
-						: Op.delDone(currentPreview);
-					break;
-				case "cancelled":
-					newPreview = value
-						? Op.setCancelled(currentPreview, value)
-						: Op.delCancelled(currentPreview);
-					break;
-				case "tag":
-					newPreview = value
-						? Op.setTag(currentPreview, value)
-						: Op.delTag(currentPreview);
-					break;
-				case "id":
-					newPreview = value
-						? Op.setId(currentPreview, value)
-						: Op.delId(currentPreview);
-					break;
-				case "forbid":
-					newPreview = value
-						? Op.setForbid(currentPreview, value)
-						: Op.delForbid(currentPreview);
-					break;
+			// 根据节点类型选择编辑方式
+			if (node.type === "file" || node.type === "heading") {
+				// YAML 编辑
+				const yamlValue =
+					value !== null ? toYamlValue(markKey, value) : null;
+				newPreview =
+					value !== null
+						? Op.setYamlField(currentPreview, markKey, yamlValue)
+						: Op.delYamlField(currentPreview, markKey);
+			} else {
+				// 列表任务行内编辑
+				switch (markKey) {
+					case "status":
+						newPreview = value
+							? Op.setStatus(currentPreview, value)
+							: currentPreview;
+						break;
+					case "priority":
+						newPreview = value
+							? Op.setPriority(currentPreview, value)
+							: Op.delPriority(currentPreview);
+						break;
+					case "repeat":
+						newPreview = value
+							? Op.setRepeat(currentPreview, value)
+							: Op.delRepeat(currentPreview);
+						break;
+					case "created":
+						newPreview = value
+							? Op.setCreated(currentPreview, value)
+							: Op.delCreated(currentPreview);
+						break;
+					case "scheduled":
+						newPreview = value
+							? Op.setScheduled(currentPreview, value)
+							: Op.delScheduled(currentPreview);
+						break;
+					case "starts":
+						newPreview = value
+							? Op.setStarts(currentPreview, value)
+							: Op.delStarts(currentPreview);
+						break;
+					case "due":
+						newPreview = value
+							? Op.setDue(currentPreview, value)
+							: Op.delDue(currentPreview);
+						break;
+					case "done":
+						newPreview = value
+							? Op.setDone(currentPreview, value)
+							: Op.delDone(currentPreview);
+						break;
+					case "cancelled":
+						newPreview = value
+							? Op.setCancelled(currentPreview, value)
+							: Op.delCancelled(currentPreview);
+						break;
+					case "tag":
+						newPreview = value
+							? Op.setTag(currentPreview, value)
+							: Op.delTag(currentPreview);
+						break;
+					case "id":
+						newPreview = value
+							? Op.setId(currentPreview, value)
+							: Op.delId(currentPreview);
+						break;
+					case "forbid":
+						newPreview = value
+							? Op.setForbid(currentPreview, value)
+							: Op.delForbid(currentPreview);
+						break;
+				}
 			}
 
 			if (newPreview !== currentPreview) {
-				newPreview = Op.sortTags(newPreview);
+				if (node.type === "list") {
+					newPreview = Op.sortTags(newPreview);
+				}
 				this.state.previews.set(uid, newPreview);
 			}
 		}
@@ -317,7 +318,6 @@ export class EditStore {
 	}
 
 	applyContentEdit(node: TaskTreeNode, newContent: string) {
-		// 移除类型标记前缀
 		let cleanContent = newContent;
 		const prefixes = ["📄 ", "● "];
 		for (const prefix of prefixes) {
@@ -326,12 +326,18 @@ export class EditStore {
 				break;
 			}
 		}
-		// 移除标题级别前缀 (如 "H2 ")
 		cleanContent = cleanContent.replace(/^H\d+\s+/, "");
 
 		const currentPreview =
 			this.state.previews.get(node.uid) || node.rawLine || "";
-		const newPreview = Op.setContent(currentPreview, cleanContent);
+
+		let newPreview: string;
+		if (node.type === "file" || node.type === "heading") {
+			newPreview = Op.setYamlContent(currentPreview, cleanContent);
+		} else {
+			newPreview = Op.setContent(currentPreview, cleanContent);
+		}
+
 		this.state.previews.set(node.uid, newPreview);
 		if (!this.state.selectedTasks.has(node.uid)) {
 			this.state.selectedTasks.add(node.uid);
@@ -344,6 +350,8 @@ export class EditStore {
 			if (this.state.savedTasks.has(uid)) continue;
 			const node = this.getNode(uid);
 			if (!node) continue;
+			// 自动补全仅适用于列表任务
+			if (node.type !== "list") continue;
 			const currentPreview =
 				this.state.previews.get(uid) || node.rawLine || "";
 			const newPreview = Op.autoComplete(currentPreview, days);
@@ -359,6 +367,8 @@ export class EditStore {
 			if (this.state.savedTasks.has(uid)) continue;
 			const node = this.getNode(uid);
 			if (!node) continue;
+			// 排序仅适用于列表任务
+			if (node.type !== "list") continue;
 			const currentPreview =
 				this.state.previews.get(uid) || node.rawLine || "";
 			const newPreview = Op.sortTags(currentPreview);
@@ -435,6 +445,8 @@ export class EditStore {
 	}
 }
 
+// ========== 辅助函数 ==========
+
 function createEditState(): EditState {
 	return {
 		editMode: false,
@@ -444,4 +456,37 @@ function createEditState(): EditState {
 		savedTasks: new Set(),
 		expandedButton: null,
 	};
+}
+
+/** 将编辑值转换为 YAML 格式值 */
+function toYamlValue(key: string, value: string): string {
+	const STATUS_TO_YAML: Record<string, string> = {
+		none: "无状态",
+		todo: "待办中",
+		scheduled: "计划中",
+		"in-progress": "进行中",
+		cancelled: "已取消",
+		completed: "已完成",
+	};
+	const PRIORITY_TO_YAML: Record<number, string> = {
+		0: "最高",
+		1: "高",
+		2: "中",
+		3: "低",
+		4: "最低",
+		5: "无",
+	};
+	switch (key) {
+		case "status":
+			return STATUS_TO_YAML[value] || value;
+		case "priority": {
+			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+			const idx = icons.indexOf(value);
+			return idx >= 0 ? PRIORITY_TO_YAML[idx] : value;
+		}
+		case "repeat":
+			return value.replace(/^🔁\s*/, "");
+		default:
+			return value;
+	}
 }

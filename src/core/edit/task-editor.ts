@@ -1,4 +1,6 @@
-// src/core/task/task-editor.ts
+// src/core/edit/task-editor.ts
+// src/core/edit/task-editor.ts
+// 编辑操作对象 + 快照管理 + 文件写入
 
 import { EditState } from "../../type/type";
 import { TASKS_RX } from "../config/tasks-config";
@@ -6,6 +8,8 @@ import { TaskTreeNode } from "../task/task-tree";
 const AUTOCOMPLETE_DAYS = 3;
 const MAX_SNAPSHOTS = 5;
 const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";
+
+// ========== 辅助函数 ==========
 
 export function isIncomplete(s: string): boolean {
 	return s === "todo" || s === "in-progress";
@@ -82,6 +86,60 @@ function parseDateNative(dateStr: string): Date | null {
 	return d;
 }
 
+// ========== YAML 字段名映射 ==========
+
+const KEY_TO_YAML_NAME: Record<string, string> = {
+	status: "任务状态",
+	priority: "任务优先级",
+	repeat: "任务周期",
+	created: "任务创建",
+	scheduled: "任务计划",
+	starts: "任务开始",
+	due: "任务截止",
+	done: "任务完成",
+	cancelled: "任务取消",
+	tag: "任务标签",
+	id: "任务唯一ID",
+	forbid: "任务引用ID",
+};
+
+const STATUS_TO_YAML_VALUE: Record<string, string> = {
+	none: "无状态",
+	todo: "待办中",
+	scheduled: "计划中",
+	"in-progress": "进行中",
+	cancelled: "已取消",
+	completed: "已完成",
+};
+
+const PRIORITY_TO_YAML_VALUE: Record<number, string> = {
+	0: "最高",
+	1: "高",
+	2: "中",
+	3: "低",
+	4: "最低",
+	5: "无",
+};
+
+/**
+ * 将编辑值转换为 YAML 格式值
+ */
+function toYamlValue(key: string, value: string): string {
+	switch (key) {
+		case "status":
+			return STATUS_TO_YAML_VALUE[value] || value;
+		case "priority": {
+			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+			const idx = icons.indexOf(value);
+			return idx >= 0 ? PRIORITY_TO_YAML_VALUE[idx] : value;
+		}
+		case "repeat":
+			return value.replace(/^🔁\s*/, "");
+		default:
+			return value;
+	}
+}
+
 // ========== 编辑操作 ==========
 
 export const Op = {
@@ -105,7 +163,6 @@ export const Op = {
 			"forbid",
 		];
 
-		// 1. 收集所有标记
 		const parts: string[] = [];
 		for (const key of order) {
 			const rx = TASKS_RX[key];
@@ -117,20 +174,15 @@ export const Op = {
 			}
 		}
 
-		// 2. 从行中移除所有标记
 		let clean = line;
 		for (const part of parts) {
 			if (part) clean = clean.replace(part, "");
 		}
 		clean = clean.replace(/\s+/g, " ").trim();
-
-		// 3. 移除前缀 "- [x] "
 		clean = clean.replace(/^- \[.\]\s*/, "").trim();
 
-		// 4. 拼接：前缀 + 新描述 + 标记
 		const prefixMatch = line.match(/^(- \[.\]\s*)/);
 		const prefix = prefixMatch ? prefixMatch[1] : "- [ ] ";
-
 		const tags = parts.filter(Boolean);
 		return (prefix + newContent + " " + tags.join(" "))
 			.replace(/\s+/g, " ")
@@ -226,6 +278,82 @@ export const Op = {
 		return replaceMark(line, TASKS_RX.forbid, undefined);
 	},
 
+	// ========== YAML 编辑操作 ==========
+
+	/**
+	 * 设置 YAML 字段值（用于文件/标题任务）
+	 * @param yamlContent YAML 内容（多行字符串）
+	 * @param key 字段键名（如 "status"、"priority" 等）
+	 * @param value 新值（已转换为 YAML 格式），null 表示删除
+	 * @returns 修改后的 YAML 内容
+	 */
+	setYamlField(
+		yamlContent: string,
+		key: string,
+		value: string | null,
+	): string {
+		const yaName = KEY_TO_YAML_NAME[key];
+		if (!yaName) return yamlContent;
+
+		const lines = yamlContent.split("\n");
+		let found = false;
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			const colonIdx = line.indexOf(":");
+			if (colonIdx === -1) continue;
+			const fieldName = line.substring(0, colonIdx).trim();
+			if (fieldName === yaName) {
+				if (value === null) {
+					lines.splice(i, 1);
+				} else {
+					lines[i] = `${yaName}: ${value}`;
+				}
+				found = true;
+				break;
+			}
+		}
+
+		if (!found && value !== null) {
+			lines.push(`${yaName}: ${value}`);
+		}
+
+		return lines.filter((l) => l.trim() !== "").join("\n");
+	},
+
+	/**
+	 * 删除 YAML 字段
+	 */
+	delYamlField(yamlContent: string, key: string): string {
+		return Op.setYamlField(yamlContent, key, null);
+	},
+
+	/**
+	 * 在 YAML 中设置描述（任务简介/任务名称）
+	 */
+	setYamlContent(yamlContent: string, newContent: string): string {
+		const lines = yamlContent.split("\n");
+		let found = false;
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			const colonIdx = line.indexOf(":");
+			if (colonIdx === -1) continue;
+			const fieldName = line.substring(0, colonIdx).trim();
+			if (fieldName === "任务简介" || fieldName === "任务名称") {
+				lines[i] = `${fieldName}: ${newContent}`;
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			lines.push(`任务简介: ${newContent}`);
+		}
+
+		return lines.filter((l) => l.trim() !== "").join("\n");
+	},
+
 	autoComplete(line: string, days?: number): string {
 		const doneMatch = line.match(TASKS_RX.done);
 		if (!doneMatch) return line;
@@ -277,7 +405,6 @@ export const Op = {
 			"forbid",
 		];
 
-		// 1. 收集所有标记
 		const parts: string[] = [];
 		for (const key of order) {
 			const rx = TASKS_RX[key];
@@ -289,16 +416,12 @@ export const Op = {
 			}
 		}
 
-		// 2. 从行中移除所有标记
 		let clean = line;
 		for (const part of parts) {
 			if (part) clean = clean.replace(part, "");
 		}
 
-		// 3. 清理多余空格
 		clean = clean.replace(/\s+/g, " ").trim();
-
-		// 4. 拼接：清理后的文本 + 按顺序排列的标记
 		const tags = parts.filter(Boolean);
 		return (clean + " " + tags.join(" ")).replace(/\s+/g, " ").trim();
 	},
@@ -345,32 +468,150 @@ export async function writeToFiles(
 	taskIds: string[],
 	linesMap: Record<string, string>,
 ): Promise<number> {
-	const groups: Record<string, Array<{ line: number; newLine: string }>> = {};
+	const lineGroups: Record<
+		string,
+		Array<{ line: number; newLine: string; rawLine: string }>
+	> = {};
+	const yamlGroups: Record<
+		string,
+		Array<{
+			startLine: number;
+			endLine: number;
+			newYaml: string;
+			isFrontmatter: boolean;
+			hasYaml: boolean;
+		}>
+	> = {};
+
 	for (const id of taskIds) {
 		const node = getNode(id);
 		if (!node) continue;
-		const newLine = linesMap[id];
-		if (!newLine || newLine === node.rawLine) continue;
-		if (!groups[node.path]) groups[node.path] = [];
-		groups[node.path].push({ line: node.line, newLine });
+		const newContent = linesMap[id];
+		if (!newContent || newContent === node.rawLine) continue;
+
+		if (node.type === "list") {
+			if (!lineGroups[node.path]) lineGroups[node.path] = [];
+			lineGroups[node.path].push({
+				line: node.line,
+				newLine: newContent,
+				rawLine: node.rawLine,
+			});
+		} else {
+			if (!yamlGroups[node.path]) yamlGroups[node.path] = [];
+			yamlGroups[node.path].push({
+				startLine: node.yamlStartLine,
+				endLine: node.yamlEndLine,
+				newYaml: newContent,
+				isFrontmatter: node.isFrontmatter,
+				hasYaml: node.hasYaml,
+			});
+		}
 	}
+
 	let count = 0;
-	for (const [path, items] of Object.entries(groups)) {
+
+	// 处理列表任务
+	for (const [path, items] of Object.entries(lineGroups)) {
 		const file = app.vault.getAbstractFileByPath(path);
 		if (!file) continue;
 		await app.vault.process(file, (data: string) => {
 			const dataLines = data.split("\n");
-			for (const item of items)
-				if (item.line < dataLines.length)
-					dataLines[item.line] = item.newLine;
+			for (const item of items) {
+				let targetLine = item.line;
+
+				if (targetLine < dataLines.length) {
+					const currentTrimmed = dataLines[targetLine].trim();
+					const rawTrimmed = item.rawLine.trim();
+					if (currentTrimmed !== rawTrimmed) {
+						for (let i = 0; i < dataLines.length; i++) {
+							if (dataLines[i].trim() === rawTrimmed) {
+								targetLine = i;
+								break;
+							}
+						}
+					}
+				} else {
+					const rawTrimmed = item.rawLine.trim();
+					for (let i = 0; i < dataLines.length; i++) {
+						if (dataLines[i].trim() === rawTrimmed) {
+							targetLine = i;
+							break;
+						}
+					}
+				}
+
+				const originalLine = dataLines[targetLine];
+				const indentMatch = originalLine.match(/^(\s*)/);
+				const indent = indentMatch ? indentMatch[1] : "";
+				dataLines[targetLine] = indent + item.newLine.trim();
+			}
 			return dataLines.join("\n");
 		});
 		count += items.length;
 	}
+
+	// 处理文件/标题任务
+	for (const [path, items] of Object.entries(yamlGroups)) {
+		const file = app.vault.getAbstractFileByPath(path);
+		if (!file) continue;
+		await app.vault.process(file, (data: string) => {
+			const dataLines = data.split("\n");
+			for (const item of items) {
+				const newYamlLines = item.newYaml
+					.split("\n")
+					.filter((l: string) => l.trim() !== "");
+
+				if (!item.hasYaml) {
+					if (newYamlLines.length === 0) continue;
+
+					if (item.isFrontmatter) {
+						dataLines.unshift("---", ...newYamlLines, "---");
+					} else {
+						const headingLine =
+							item.startLine >= 0 ? item.startLine : 0;
+						dataLines.splice(
+							headingLine + 1,
+							0,
+							"```yaml",
+							...newYamlLines,
+							"```",
+						);
+					}
+				} else {
+					const innerStart = item.startLine + 1;
+					const innerEnd = item.endLine;
+
+					if (newYamlLines.length === 0) {
+						dataLines.splice(
+							item.startLine,
+							item.endLine - item.startLine + 1,
+						);
+					} else {
+						const deleteCount = innerEnd - innerStart;
+						if (
+							deleteCount >= 0 &&
+							innerStart <= dataLines.length
+						) {
+							dataLines.splice(
+								innerStart,
+								Math.max(0, deleteCount),
+								...newYamlLines,
+							);
+						}
+					}
+				}
+			}
+			return dataLines.join("\n");
+		});
+		count += items.length;
+	}
+
 	return count;
 }
 
 // ========== 保存与撤回 ==========
+
+let saveLogCount = 0;
 
 export async function saveSingleTask(
 	state: EditState,
@@ -380,6 +621,7 @@ export async function saveSingleTask(
 ): Promise<EditState> {
 	const uid = node.uid;
 	const preview = state.previews.get(uid);
+
 	if (!preview || preview === node.rawLine) return state;
 
 	const snapshot: Record<string, string> = {};
