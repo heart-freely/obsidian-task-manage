@@ -6,11 +6,18 @@ import { Store } from "../../core/store/store";
 export class EditPanel {
 	private container: HTMLElement;
 	private store: Store;
+	private savedDaysValue: string = "0";
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
 		this.render();
+
+		// 注册面板更新
+		const es = this.store.getEditStore();
+		if (es) {
+			es.subscribePanel(() => this.render());
+		}
 	}
 
 	destroy() {}
@@ -19,6 +26,12 @@ export class EditPanel {
 		const es = this.store.getEditStore();
 		const isBatchMode = es ? es.getState().batchMode : false;
 		const selectedCount = es ? es.getState().selectedTasks.size : 0;
+		console.log(
+			"[EditPanel.render] isBatchMode:",
+			isBatchMode,
+			"selectedCount:",
+			selectedCount,
+		);
 		const hasSelected = selectedCount > 0;
 		const allSelected = hasSelected;
 
@@ -51,9 +64,9 @@ export class EditPanel {
 
 		const subPanel1 = row1.createDiv({ cls: "panel-sub" });
 		subPanel1.style.cssText =
-			"display:flex;flex-wrap:wrap;gap:6px;margin-left:8px;";
+			"display:flex;flex-wrap:wrap;gap:6px;margin-left:8px;align-items:center;";
 
-		// 全选/全不选 — 批量模式下可用，不高亮
+		// 全选/全不选
 		const selectAllBtn = subPanel1.createEl("button", {
 			text: allSelected && isBatchMode ? "全不选" : "全选",
 			cls: "panel-btn sub-btn",
@@ -66,44 +79,72 @@ export class EditPanel {
 			this.store.toggleSelectAll([]);
 		});
 
-		// 任务时长输入 — 批量模式 + 有勾选任务 时可用
-		const daysInput = subPanel1.createEl("input", {
-			type: "number",
-			value: "0",
-			attr: { min: "0" },
-		});
-		daysInput.style.cssText =
-			"width:48px;text-align:center;padding:3px 4px;border-radius:8px;border:1px solid var(--background-modifier-border);font-size:12px;";
-		if (!isBatchMode || !hasSelected) {
-			daysInput.disabled = true;
-			daysInput.style.cssText += disabledStyle;
-		}
-
-		const daysLabel = subPanel1.createSpan({ text: "天" });
-		daysLabel.style.cssText = "font-size:12px;color:var(--text-muted);";
-		if (!isBatchMode || !hasSelected) {
-			daysLabel.style.cssText += disabledStyle;
-		}
-
-		// 补全时间 — 批量模式 + 有勾选任务 时可用
-		const autoCompleteBtn = subPanel1.createEl("button", {
-			text: "补全时间",
+		// 标记排序
+		const sortBtn = subPanel1.createEl("button", {
+			text: "标记排序",
 			cls: "panel-btn sub-btn",
 		});
+		if (!isBatchMode || !hasSelected) {
+			sortBtn.style.cssText += disabledStyle;
+		}
+		sortBtn.addEventListener("click", () => {
+			if (!isBatchMode || !hasSelected) return;
+			this.store.applySortTags();
+			sortBtn.addClass("active");
+			setTimeout(() => sortBtn.removeClass("active"), 300);
+		});
+
+		// 补全时间按钮和输入框在同一行对齐
+		const autoCompleteRow = subPanel1.createDiv();
+		autoCompleteRow.style.cssText =
+			"display:inline-flex;align-items:center;gap:4px;";
+
+		const autoCompleteBtn = document.createElement("button");
+		autoCompleteBtn.textContent = "补全时间";
+		autoCompleteBtn.className = "panel-btn sub-btn";
 		if (!isBatchMode || !hasSelected) {
 			autoCompleteBtn.style.cssText += disabledStyle;
 		}
 		autoCompleteBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			const days = parseInt(daysInput.value, 10) || 0;
+			const rawValue = daysInput.value.trim();
+			const days =
+				rawValue === "" ? undefined : parseInt(rawValue, 10) || 0;
 			this.store.applyAutoComplete(days);
 			autoCompleteBtn.addClass("active");
 			setTimeout(() => autoCompleteBtn.removeClass("active"), 300);
 		});
+		autoCompleteRow.appendChild(autoCompleteBtn);
 
-		// 清空预览 — 批量模式 + 有勾选任务 时可用
+		const daysInput = document.createElement("input");
+		daysInput.type = "number";
+		daysInput.value = this.savedDaysValue;
+		daysInput.min = "0";
+		daysInput.style.cssText =
+			"width:48px;height:22px;text-align:center;padding:0 4px;border-radius:12px;border:1px solid var(--background-modifier-border);font-size:var(--font-ui-smaller);line-height:22px;box-sizing:border-box;";
+		if (!isBatchMode || !hasSelected) {
+			daysInput.disabled = true;
+			daysInput.style.cssText += disabledStyle;
+		}
+		daysInput.addEventListener("input", () => {
+			this.savedDaysValue = daysInput.value;
+		});
+		autoCompleteRow.appendChild(daysInput);
+
+		const daysLabel = document.createElement("span");
+		daysLabel.textContent = "天";
+		daysLabel.style.cssText =
+			"font-size:var(--font-ui-smaller);color:var(--text-muted);line-height:22px;display:inline-flex;align-items:center;";
+		if (!isBatchMode || !hasSelected) {
+			daysLabel.style.cssText += disabledStyle;
+		}
+		autoCompleteRow.appendChild(daysLabel);
+
+		subPanel1.appendChild(autoCompleteRow);
+
+		// 恢复原文
 		const clearBtn = subPanel1.createEl("button", {
-			text: "清空预览",
+			text: "恢复原文",
 			cls: "panel-btn sub-btn",
 		});
 		if (!isBatchMode || !hasSelected) {
@@ -116,9 +157,9 @@ export class EditPanel {
 			setTimeout(() => clearBtn.removeClass("active"), 300);
 		});
 
-		// 保存修改 — 批量模式 + 有勾选任务 时可用
+		// 保存编辑
 		const saveBtn = subPanel1.createEl("button", {
-			text: "保存修改",
+			text: "保存编辑",
 			cls: "panel-btn sub-btn",
 		});
 		if (!isBatchMode || !hasSelected) {
@@ -142,7 +183,7 @@ export class EditPanel {
 			"max-width:220px;height:auto;min-height:unset;appearance:none;";
 		if (!hasSnapshots) {
 			snapshotSelect.createEl("option", {
-				text: "无历史原文",
+				text: "无编辑备份",
 				disabled: true,
 			});
 		} else {
@@ -156,7 +197,7 @@ export class EditPanel {
 		}
 
 		const revertBtn = row2.createEl("button", {
-			text: "恢复原文",
+			text: "备份恢复",
 			cls: "panel-btn",
 		});
 		if (!hasSnapshots) {
@@ -173,7 +214,7 @@ export class EditPanel {
 		});
 
 		const clearSnapshotBtn = row2.createEl("button", {
-			text: "清空历史",
+			text: "清空备份",
 			cls: "panel-btn",
 		});
 		if (!hasSnapshots) {
@@ -181,8 +222,9 @@ export class EditPanel {
 		}
 		clearSnapshotBtn.addEventListener("click", () => {
 			if (!hasSnapshots) return;
-			if (confirm("确定清空所有历史原文？")) {
+			if (confirm("确定清空所有编辑备份？")) {
 				localStorage.removeItem("organizeSnapshots");
+				this.store.getEditStore()?.syncToStore();
 				clearSnapshotBtn.addClass("active");
 				setTimeout(() => clearSnapshotBtn.removeClass("active"), 300);
 			}

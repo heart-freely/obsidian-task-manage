@@ -10,6 +10,7 @@ import {
 	hasContentBeenEdited,
 } from "../../util/edit-utils";
 import { parseTaskLine } from "../parser/tasks-parser";
+import { buildDescription } from "../task/task-format";
 import { TaskTreeNode } from "../task/task-tree";
 import { EditStore } from "./task-edit-store";
 import { Op } from "./task-editor";
@@ -149,6 +150,8 @@ export class BaseTaskEdit {
 		this.refreshEditPanel();
 	}
 
+	// base-task-edit.ts — refreshAllCardsForBatchMode
+
 	private refreshAllCardsForBatchMode() {
 		const searchRoot = this.rightContentContainer || this.container;
 		const cards = searchRoot.querySelectorAll(
@@ -166,6 +169,9 @@ export class BaseTaskEdit {
 
 				const node = this.dataManager.getNodeByUid(uid);
 				if (!node) return;
+
+				// 只对列表任务添加复选框
+				if (node.type !== "list") return;
 
 				const row1 = card.querySelector(
 					":scope > div:first-child",
@@ -203,23 +209,20 @@ export class BaseTaskEdit {
 			".task-item:not(.task-item-compact)",
 		) as NodeListOf<HTMLElement>;
 
-		let allSelected = true;
-		cards.forEach((card) => {
-			const cb = card.querySelector(
-				"input[type='checkbox']",
-			) as HTMLInputElement;
-			if (cb && !cb.checked) {
-				allSelected = false;
-			}
-		});
-
+		// 只收集列表任务
 		const visibleNodes: TaskTreeNode[] = [];
 		cards.forEach((card) => {
 			const uid = card.getAttribute("data-uid");
 			if (uid) {
 				const node = this.dataManager.getNodeByUid(uid);
-				if (node) visibleNodes.push(node);
+				if (node && node.type === "list") visibleNodes.push(node);
 			}
+		});
+
+		// 检查是否全部列表任务已选中
+		let allSelected = visibleNodes.length > 0;
+		visibleNodes.forEach((n) => {
+			if (!es.getState().selectedTasks.has(n.uid)) allSelected = false;
 		});
 
 		const prevUids = Array.from(this.previouslyEditedUids);
@@ -231,10 +234,10 @@ export class BaseTaskEdit {
 		es.getState().savedTasks.clear();
 
 		if (!allSelected) {
-			visibleNodes.forEach((node) => {
-				es.getState().selectedTasks.add(node.uid);
-				es.getState().previews.set(node.uid, node.rawLine || "");
-				this.setCardEditMode(node.uid);
+			visibleNodes.forEach((n) => {
+				es.getState().selectedTasks.add(n.uid);
+				es.getState().previews.set(n.uid, n.rawLine || "");
+				this.setCardEditMode(n.uid);
 			});
 		}
 
@@ -391,29 +394,26 @@ export class BaseTaskEdit {
 					requestAnimationFrame(() => this.onEditStateChange());
 				},
 				onSave: async (node) => {
-					const preview = this.editStore
-						.getState()
-						.previews.get(node.uid);
 					await this.editStore.saveSingle(node);
-
-					if (preview) {
-						const parsed = parseTaskLine(
-							preview,
-							node.path,
-							node.line,
-						);
-						if (parsed) {
-							Object.assign(node, parsed, {
-								rawLine: preview,
-								text: parsed.content,
-							});
-						}
-					}
-
 					this.editStore.exitEditMode(false);
 					this.applyEditContext();
 					this.previouslyEditedUids.clear();
 					this.dataManager.invalidate();
+					await this.dataManager.loadData(this.app);
+
+					const self = this as any;
+					if (self.selectedTreeNode) {
+						const newTree = this.dataManager.getFullTree();
+						const newFocus = self.findNodeByUidInTree?.(
+							newTree,
+							self.selectedTreeNode.uid,
+						);
+						if (newFocus) {
+							self.selectedTreeNode = newFocus;
+							self.focusedTreeNode = newFocus;
+						}
+					}
+
 					this.render();
 				},
 				onRevert: async (node) => {
@@ -521,35 +521,26 @@ export class BaseTaskEdit {
 		) as HTMLElement;
 		if (!card) return;
 
-		const previewRow = card.querySelector(
-			".task-preview-row",
-		) as HTMLElement;
-		const descEl = card.querySelector(".task-desc") as HTMLElement;
-
-		if (previewRow && previewRow.style.display !== "none" && descEl) {
-			const previewText = previewRow.textContent || "";
-			const cleanText = previewText
-				.replace(/^📝\s*(预览|已保存):\s*/, "")
-				.replace(/^- \[.\] /, "")
-				.trim();
-			if (cleanText) descEl.textContent = cleanText;
-		}
-
 		card.classList.remove("task-item-editing");
 		card.style.cursor = "pointer";
 
 		const checkbox = card.querySelector("input[type='checkbox']");
 		if (checkbox) checkbox.remove();
 
+		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			descEl.removeAttribute("contenteditable");
 			descEl.removeAttribute("data-edit-bound");
 			descEl.style.color = "var(--text-normal)";
 			descEl.style.cursor = "pointer";
+			const node = this.dataManager.getNodeByUid(uid);
+			if (node) {
+				descEl.innerHTML = buildDescription(node, false);
+			}
 		}
 
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
-		if (editBar && editBar.parentNode) {
+		if (editBar?.parentNode) {
 			const node = this.dataManager.getNodeByUid(uid);
 			if (node) {
 				const newEditBar = createEditBar(node, {
@@ -562,6 +553,9 @@ export class BaseTaskEdit {
 			}
 		}
 
+		const previewRow = card.querySelector(
+			".task-preview-row",
+		) as HTMLElement;
 		if (previewRow) {
 			previewRow.innerHTML = "";
 			previewRow.style.display = "none";
@@ -731,10 +725,14 @@ export class BaseTaskEdit {
 			const newPreviewRow = createPreviewRow(
 				previewText,
 				saved,
-				saved ? null : () => editCtx.onSave(node),
+				saved
+					? null
+					: editCtx.batchMode
+						? null
+						: () => editCtx.onSave(node),
 				saved ? () => editCtx.onRevert(node) : null,
 				hasContentEdit,
-				editCtx.onRestore ? () => editCtx.onRestore!(node) : null,
+				editCtx?.onRestore ? () => editCtx.onRestore!(node) : null,
 			);
 			if (previewRow) {
 				try {
@@ -784,6 +782,11 @@ export class BaseTaskEdit {
 
 	protected onGlobalClick = (e: MouseEvent) => {
 		const target = e.target as HTMLElement;
+		console.log(
+			"[onGlobalClick] target:",
+			target.tagName,
+			target.className,
+		);
 		const es = this.editStore;
 		const state = es.getState();
 		const isEditMode = state.editMode;

@@ -1,18 +1,19 @@
 // src/core/edit/task-edit-store.ts
-// src/core/edit/task-edit-store.ts
 // 编辑状态管理器
 
 import { Notice } from "obsidian";
 import { EditState } from "../../type/type";
+import { parseTaskLine } from "../parser/tasks-parser";
 import { Store } from "../store/store";
 import { TaskTreeNode } from "../task/task-tree";
 import {
 	loadSnapshots,
 	Op,
-	revertFromSnapshot,
 	revertSingleTask,
 	saveAllChanges,
 	saveSingleTask,
+	saveSnapshots,
+	writeToFiles,
 } from "./task-editor";
 
 export class EditStore {
@@ -63,6 +64,7 @@ export class EditStore {
 			});
 		}
 	}
+
 	getState(): EditState {
 		return this.state;
 	}
@@ -76,7 +78,6 @@ export class EditStore {
 		this.state.previews.clear();
 		this.state.savedTasks.clear();
 		this.state.selectedTasks.add(node.uid);
-		// 预览初始值：列表任务用 rawLine，文件/标题任务将在 BaseTaskEdit 中覆盖为 YAML 内容
 		this.state.previews.set(node.uid, node.rawLine || "");
 		this.state.expandedButton = null;
 		this.syncToStore();
@@ -232,9 +233,7 @@ export class EditStore {
 				this.state.previews.get(uid) || node.rawLine || "";
 			let newPreview = currentPreview;
 
-			// 根据节点类型选择编辑方式
 			if (node.type === "file" || node.type === "heading") {
-				// YAML 编辑
 				const yamlValue =
 					value !== null ? toYamlValue(markKey, value) : null;
 				newPreview =
@@ -242,7 +241,6 @@ export class EditStore {
 						? Op.setYamlField(currentPreview, markKey, yamlValue)
 						: Op.delYamlField(currentPreview, markKey);
 			} else {
-				// 列表任务行内编辑
 				switch (markKey) {
 					case "status":
 						newPreview = value
@@ -345,12 +343,11 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	applyAutoComplete(days: number) {
+	applyAutoComplete(days?: number) {
 		for (const uid of this.state.selectedTasks) {
 			if (this.state.savedTasks.has(uid)) continue;
 			const node = this.getNode(uid);
 			if (!node) continue;
-			// 自动补全仅适用于列表任务
 			if (node.type !== "list") continue;
 			const currentPreview =
 				this.state.previews.get(uid) || node.rawLine || "";
@@ -360,6 +357,7 @@ export class EditStore {
 			}
 		}
 		this.syncToStore();
+		this.store?.triggerEditCardsChanged?.();
 	}
 
 	applySortTags() {
@@ -367,7 +365,6 @@ export class EditStore {
 			if (this.state.savedTasks.has(uid)) continue;
 			const node = this.getNode(uid);
 			if (!node) continue;
-			// 排序仅适用于列表任务
 			if (node.type !== "list") continue;
 			const currentPreview =
 				this.state.previews.get(uid) || node.rawLine || "";
@@ -377,6 +374,7 @@ export class EditStore {
 			}
 		}
 		this.syncToStore();
+		this.store?.triggerEditCardsChanged?.();
 	}
 
 	clearPreviews() {
@@ -387,6 +385,7 @@ export class EditStore {
 			}
 		}
 		this.syncToStore();
+		this.store?.triggerEditCardsChanged?.();
 	}
 
 	// ========== 保存与撤回 ==========
@@ -414,9 +413,21 @@ export class EditStore {
 	}
 
 	async saveAll() {
-		this.state = await saveAllChanges(this.state, this.app, this.getNode);
+		const { nodeMap, previewMap } = this.getNodesAndPreviews();
+
+		await saveAllChanges(this.state, this.app, this.getNode);
 		new Notice(`✅ 已保存修改`);
-		this.syncToStore();
+
+		this.applyUpdatesToNodes(nodeMap, previewMap);
+
+		this.exitEditMode(false);
+		this.store?.triggerApplyEditContext?.();
+
+		const taskView = this.store?.getTaskView?.();
+		taskView?.updateFocusAfterSave?.();
+		this.refreshCardsAfterSave(nodeMap);
+
+		this.store?.triggerFullRender?.();
 	}
 
 	async revertSingle(node: TaskTreeNode) {
@@ -430,18 +441,96 @@ export class EditStore {
 	}
 
 	async revertSnapshot(snapshotIndex: number) {
-		this.state = await revertFromSnapshot(
-			this.state,
-			this.app,
-			this.getNode,
-			snapshotIndex,
-		);
+		const snapshots = loadSnapshots();
+		if (snapshotIndex < 0 || snapshotIndex >= snapshots.length) return;
+
+		const snap = snapshots[snapshotIndex];
+		const taskIds = Object.keys(snap.snapshot);
+		const linesMap: Record<string, string> = {};
+		const nodeMap = new Map<string, TaskTreeNode>();
+		const previewMap = new Map<string, string>();
+
+		for (const uid of taskIds) {
+			linesMap[uid] = snap.snapshot[uid];
+			const node = this.getNode(uid);
+			if (node) {
+				nodeMap.set(uid, node);
+				previewMap.set(uid, snap.snapshot[uid]);
+			}
+		}
+
+		await writeToFiles(this.app, this.getNode, taskIds, linesMap);
+
+		snapshots.splice(0, snapshotIndex + 1);
+		saveSnapshots(snapshots);
+
+		this.state.savedTasks.clear();
+		this.state.previews.clear();
+		this.state.selectedTasks.clear();
+
+		this.applyUpdatesToNodes(nodeMap, previewMap);
+
+		this.exitEditMode(false);
+		this.store?.triggerApplyEditContext?.();
+
+		const taskView = this.store?.getTaskView?.();
+		taskView?.updateFocusAfterSave?.();
+		this.refreshCardsAfterSave(nodeMap);
+
 		new Notice(`↩️ 已撤回快照`);
-		this.syncToStore();
+		this.store?.triggerFullRender?.();
 	}
 
 	getSnapshots() {
 		return loadSnapshots();
+	}
+
+	// ========== 私有辅助方法 ==========
+
+	private getNodesAndPreviews(): {
+		nodeMap: Map<string, TaskTreeNode>;
+		previewMap: Map<string, string>;
+	} {
+		const nodeMap = new Map<string, TaskTreeNode>();
+		const previewMap = new Map<string, string>();
+
+		for (const uid of this.state.selectedTasks) {
+			if (this.state.savedTasks.has(uid)) continue;
+			const node = this.getNode(uid);
+			const preview = this.state.previews.get(uid);
+			if (node && preview && preview !== node.rawLine) {
+				nodeMap.set(uid, node);
+				previewMap.set(uid, preview);
+			}
+		}
+
+		return { nodeMap, previewMap };
+	}
+
+	private applyUpdatesToNodes(
+		nodeMap: Map<string, TaskTreeNode>,
+		previewMap: Map<string, string>,
+	) {
+		for (const [uid, node] of nodeMap) {
+			const preview = previewMap.get(uid);
+			if (preview) {
+				const parsed = parseTaskLine(preview, node.path, node.line);
+				if (parsed) {
+					Object.assign(node, parsed, {
+						rawLine: preview,
+						text: parsed.content,
+					});
+				}
+			}
+		}
+	}
+
+	private refreshCardsAfterSave(nodeMap: Map<string, TaskTreeNode>) {
+		if (nodeMap.size > 50) return;
+		const taskView = this.store?.getTaskView?.();
+		for (const [uid, node] of nodeMap) {
+			taskView?.refreshSingleCard?.(node);
+		}
 	}
 }
 

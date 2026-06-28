@@ -1,8 +1,8 @@
 // src/util/edit-utils.ts
 // 编辑卡片通用工具函数
 
-import { TaskTreeNode } from "../../../core/task/task-tree";
-
+import { parseTaskLine } from "../core/parser/tasks-parser";
+import { TaskTreeNode } from "../core/task/task-tree";
 // ========== 编辑按钮组定义 ==========
 
 export interface EditButtonGroup {
@@ -205,17 +205,10 @@ export function hasContentBeenEdited(
 	originalLine: string,
 	previewLine: string,
 ): boolean {
-	const extractContent = (line: string): string => {
-		let clean = line.replace(/^- \[.\]\s*/, "");
-		clean = clean.replace(/🔺|⏫|🔼|🔽|⏬/g, "");
-		clean = clean.replace(/🔁\s*\S+/g, "");
-		clean = clean.replace(/[➕⏳🛫📅✅❌]\s*\S+/g, "");
-		clean = clean.replace(/🏁\s*\S+/g, "");
-		clean = clean.replace(/🆔\s*\S+/g, "");
-		clean = clean.replace(/⛔\s*\S+/g, "");
-		return clean.replace(/\s+/g, " ").trim();
-	};
-	return extractContent(originalLine) !== extractContent(previewLine);
+	const origTask = parseTaskLine(originalLine, "", 0);
+	const prevTask = parseTaskLine(previewLine, "", 0);
+	if (!origTask || !prevTask) return originalLine !== previewLine;
+	return origTask.content !== prevTask.content;
 }
 // ========== 编辑行 DOM ==========
 
@@ -946,7 +939,7 @@ export function createSubRow(
 
 	// 恢复按钮：预览与原始不一致时显示
 	const restoreBtn = document.createElement("button");
-	restoreBtn.textContent = "恢复";
+	restoreBtn.textContent = "原文";
 	restoreBtn.style.cssText =
 		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
 	restoreBtn.title = "恢复为原始值";
@@ -1025,7 +1018,7 @@ export function createPreviewRow(
 		}
 		if (onRestore) {
 			const restoreBtn = document.createElement("button");
-			restoreBtn.textContent = "恢复";
+			restoreBtn.textContent = "原文";
 			restoreBtn.style.cssText =
 				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;background:var(--interactive-normal);color:var(--text-muted);display:inline-flex;align-items:center;box-sizing:border-box;";
 			restoreBtn.addEventListener("click", (e) => {

@@ -5,7 +5,7 @@
 import { EditState } from "../../type/type";
 import { TASKS_RX } from "../config/tasks-config";
 import { TaskTreeNode } from "../task/task-tree";
-const AUTOCOMPLETE_DAYS = 3;
+const AUTOCOMPLETE_DAYS = 0;
 const MAX_SNAPSHOTS = 5;
 const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";
 
@@ -356,19 +356,24 @@ export const Op = {
 
 	autoComplete(line: string, days?: number): string {
 		const doneMatch = line.match(TASKS_RX.done);
-		if (!doneMatch) return line;
+		const cancelledMatch = line.match(TASKS_RX.cancelled);
 
-		const n = days || AUTOCOMPLETE_DAYS;
-		const doneDate = parseDateNative(doneMatch[1]);
-		if (!doneDate) return line;
+		if (!doneMatch && !cancelledMatch) return line;
 
+		const dateStr = doneMatch ? doneMatch[1] : cancelledMatch[1];
+		if (!dateStr) return line;
+
+		const baseDate = parseDateNative(dateStr);
+		if (!baseDate) return line;
+
+		const n = days ?? AUTOCOMPLETE_DAYS;
 		let newLine = Op.sortTags(line);
-		const doneStr = formatDateNative(doneDate);
+		const baseStr = formatDateNative(baseDate);
 
-		if (!TASKS_RX.due.test(newLine)) newLine += " 📅 " + doneStr;
-		else newLine = replaceMark(newLine, TASKS_RX.due, "📅 " + doneStr);
+		if (!TASKS_RX.due.test(newLine)) newLine += " 📅 " + baseStr;
+		else newLine = replaceMark(newLine, TASKS_RX.due, "📅 " + baseStr);
 
-		const startsDate = new Date(doneDate);
+		const startsDate = new Date(baseDate);
 		startsDate.setDate(startsDate.getDate() - n);
 		const startsStr = formatDateNative(startsDate);
 
@@ -411,19 +416,21 @@ export const Op = {
 			if (rx) {
 				const m = line.match(rx);
 				parts.push(m ? m[0] : "");
-			} else {
-				parts.push("");
 			}
 		}
 
-		let clean = line;
-		for (const part of parts) {
-			if (part) clean = clean.replace(part, "");
-		}
+		// 保留原始前缀和描述，只移除标记
+		const prefixMatch = line.match(/^(\s*- \[.\]\s*)/);
+		const prefix = prefixMatch ? prefixMatch[1] : "- [ ] ";
 
-		clean = clean.replace(/\s+/g, " ").trim();
+		let desc = line.substring(prefix.length);
+		for (const part of parts) {
+			if (part) desc = desc.replace(part, "");
+		}
+		desc = desc.trim();
+
 		const tags = parts.filter(Boolean);
-		return (clean + " " + tags.join(" ")).replace(/\s+/g, " ").trim();
+		return prefix + desc + " " + tags.join(" ");
 	},
 };
 
@@ -624,11 +631,6 @@ export async function saveSingleTask(
 
 	if (!preview || preview === node.rawLine) return state;
 
-	const snapshot: Record<string, string> = {};
-	snapshot[uid] = node.rawLine;
-	const snapshots = loadSnapshots();
-	addSnapshot(snapshots, snapshot);
-
 	const linesMap: Record<string, string> = {};
 	linesMap[uid] = preview;
 	await writeToFiles(app, getNode, [uid], linesMap);
@@ -637,14 +639,17 @@ export async function saveSingleTask(
 	return state;
 }
 
+// ========== 保存与撤回 ==========
+
 export async function saveAllChanges(
 	state: EditState,
 	app: any,
 	getNode: (uid: string) => TaskTreeNode | undefined,
-): Promise<EditState> {
+): Promise<{ state: EditState; previews: Record<string, string> }> {
 	const toSave: string[] = [];
 	const linesMap: Record<string, string> = {};
 	const snapshotMap: Record<string, string> = {};
+	const previews: Record<string, string> = {};
 
 	for (const uid of state.selectedTasks) {
 		if (state.savedTasks.has(uid)) continue;
@@ -656,12 +661,26 @@ export async function saveAllChanges(
 		toSave.push(uid);
 		linesMap[uid] = preview;
 		snapshotMap[uid] = node.rawLine;
+		previews[uid] = preview;
 	}
 
-	if (toSave.length === 0) return state;
+	if (toSave.length === 0) return { state, previews };
 
 	const snapshots = loadSnapshots();
-	addSnapshot(snapshots, snapshotMap);
+
+	if (toSave.length > 500) {
+		const batchSize = 500;
+		for (let i = 0; i < toSave.length; i += batchSize) {
+			const batch = toSave.slice(i, i + batchSize);
+			const batchSnapshot: Record<string, string> = {};
+			for (const uid of batch) {
+				batchSnapshot[uid] = snapshotMap[uid];
+			}
+			addSnapshot(snapshots, batchSnapshot);
+		}
+	} else {
+		addSnapshot(snapshots, snapshotMap);
+	}
 
 	await writeToFiles(app, getNode, toSave, linesMap);
 
@@ -669,7 +688,7 @@ export async function saveAllChanges(
 		state.savedTasks.add(uid);
 	}
 
-	return state;
+	return { state, previews };
 }
 
 export async function revertSingleTask(

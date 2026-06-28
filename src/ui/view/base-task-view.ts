@@ -24,6 +24,7 @@ import { renderKanban } from "../main/board/kanban-board";
 import { renderMatrix } from "../main/board/matrix-board";
 import { renderCalendarView } from "../main/calendar/calendar";
 import { renderCards } from "../main/card/grid-card";
+import { createViewCard } from "../main/card/view-card";
 import { renderDetail } from "../main/chart/detail-chart";
 import { renderMarkChart } from "../main/chart/mark-chart";
 import { renderTimeChart } from "../main/chart/time-chart";
@@ -123,6 +124,21 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 		this.onResizeBound = (e: MouseEvent) => this.onResize(e);
 		this.stopResizeBound = () => this.stopResize();
+
+		this.store.setOnEditCardsChanged(() => {
+			this._needsEditRefresh = true;
+			requestAnimationFrame(() => this.onEditStateChange());
+		});
+
+		this.store.setOnApplyEditContext(() => {
+			this.applyEditContext();
+			this.previouslyEditedUids.clear();
+		});
+
+		this.store.setOnFullRender(() => {
+			this.dataManager.invalidateFilterCache();
+			this.render();
+		});
 	}
 
 	// ========== 渲染相关 ==========
@@ -195,6 +211,18 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			);
 			const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
 			applyHideConfig(dateFilteredTree, hideConfig);
+
+			// 聚焦视图：更新 selectedTreeNode 指向 filterTree 新树中的节点
+			if (this.selectedTreeNode) {
+				const newFocus = this.findNodeByUidInTree(
+					dateFilteredTree,
+					this.selectedTreeNode.uid,
+				);
+				if (newFocus) {
+					this.selectedTreeNode = newFocus;
+					this.focusedTreeNode = newFocus;
+				}
+			}
 
 			let flatNodes: TaskTreeNode[];
 			if (this.selectedTreeNode) {
@@ -487,12 +515,61 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		document.addEventListener("mousemove", this.onResizeBound!);
 		document.addEventListener("mouseup", this.stopResizeBound!);
 	}
+	refreshSingleCard(node: TaskTreeNode) {
+		const searchRoot = this.rightContentContainer || this.container;
+		console.log(
+			"[refreshSingleCard] uid:",
+			node.uid,
+			"searchRoot:",
+			searchRoot === this.rightContentContainer
+				? "rightContentContainer"
+				: "container",
+		);
+		const card = searchRoot.querySelector(
+			`[data-uid="${node.uid}"]`,
+		) as HTMLElement;
+		console.log("[refreshSingleCard] card found:", !!card);
+		if (!card?.parentNode) return;
 
+		const newCard = createViewCard(node, {
+			compact: false,
+			onClick: (n) => this.openTaskAtLine(n),
+			onEnterEdit: (n) => this.handleEnterEdit(n),
+		});
+		card.parentNode.replaceChild(newCard, card);
+		console.log("[refreshSingleCard] 替换完成");
+	}
+
+	updateFocusAfterSave() {
+		if (this.selectedTreeNode) {
+			const newTree = this.dataManager.getFullTree();
+			const newFocus = this.findNodeByUidInTree(
+				newTree,
+				this.selectedTreeNode.uid,
+			);
+			if (newFocus) {
+				this.selectedTreeNode = newFocus;
+				this.focusedTreeNode = newFocus;
+			}
+		}
+	}
+	private findNodeByUidInTree(
+		root: TaskTreeNode,
+		uid: string,
+	): TaskTreeNode | null {
+		if (root.uid === uid) return root;
+		for (const child of root.children) {
+			const found = this.findNodeByUidInTree(child, uid);
+			if (found) return found;
+		}
+		return null;
+	}
 	private onTaskTreeNavClick(node: TaskTreeNode) {
 		if (this.focusedTreeNode === node) {
 			this.restoreFocus();
 			return;
 		}
+		console.log("[onTaskTreeNavClick] node:", node.uid, "text:", node.text);
 		this.focusHistory.push(node);
 		this.focusedTreeNode = node;
 		this.selectedTreeNode = node;

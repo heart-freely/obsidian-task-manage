@@ -10,7 +10,10 @@ export class Store {
 	protected saveFn?: (data: any) => Promise<void>;
 	protected editStore: any = null;
 	private taskView: any = null;
-
+	private _onEditCardsChanged: (() => void) | null = null;
+	private _onFullRender: (() => void) | null = null;
+	private _onApplyEditContext: (() => void) | null = null;
+	private _onFullInvalidate: (() => void) | null = null;
 	constructor(initial: AppState, saveFn?: (data: any) => Promise<void>) {
 		this.state = initial;
 		this.saveFn = saveFn;
@@ -68,7 +71,6 @@ export class Store {
 
 	updateEditPanelState(panelState: EditPanelState) {
 		this.state = { ...this.state, editPanelState: panelState };
-		// 不调用 notify()
 	}
 
 	// ========== 编辑状态管理 ==========
@@ -85,6 +87,10 @@ export class Store {
 		this.taskView = view;
 	}
 
+	getTaskView(): any {
+		return this.taskView;
+	}
+
 	toggleBatchMode() {
 		this.taskView?.toggleBatchMode();
 	}
@@ -97,7 +103,7 @@ export class Store {
 		this.editStore?.applyEdit(markKey, value);
 	}
 
-	applyAutoComplete(days: number) {
+	applyAutoComplete(days?: number) {
 		this.editStore?.applyAutoComplete(days);
 	}
 
@@ -119,5 +125,38 @@ export class Store {
 
 	getSnapshots() {
 		return this.editStore?.getSnapshots() ?? [];
+	}
+
+	// ========== 回调注册 ==========
+
+	setOnEditCardsChanged(cb: () => void) {
+		this._onEditCardsChanged = cb;
+	}
+
+	triggerEditCardsChanged() {
+		this._onEditCardsChanged?.();
+	}
+
+	setOnFullRender(cb: () => void) {
+		this._onFullRender = cb;
+	}
+
+	triggerFullRender() {
+		this._onFullRender?.();
+	}
+
+	setOnApplyEditContext(cb: () => void) {
+		this._onApplyEditContext = cb;
+	}
+
+	triggerApplyEditContext() {
+		this._onApplyEditContext?.();
+	}
+	setOnFullInvalidate(cb: () => void) {
+		this._onFullInvalidate = cb;
+	}
+
+	triggerFullInvalidate() {
+		this._onFullInvalidate?.();
 	}
 }

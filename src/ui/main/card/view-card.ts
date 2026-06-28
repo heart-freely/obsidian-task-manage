@@ -124,7 +124,8 @@ export function createViewCard(
 		const row1 = document.createElement("div");
 		row1.style.cssText = "display:flex;align-items:center;gap:4px;";
 
-		if (isBatchMode && editCtx) {
+		// 批量模式：只对列表任务显示复选框
+		if (isBatchMode && editCtx && node.type === "list") {
 			row1.appendChild(
 				createCheckbox(checked, (newChecked) => {
 					editCtx!.onCheckChange(node, newChecked);
@@ -165,6 +166,7 @@ export function createViewCard(
 		});
 		li.appendChild(editBar);
 
+		// 批量模式且未选中编辑：隐藏编辑栏
 		if (isBatchMode && !isEditing) {
 			editBar.style.display = "none";
 		}
@@ -173,7 +175,8 @@ export function createViewCard(
 			const previewRow = createPreviewRow(
 				previewText,
 				saved,
-				saved ? null : () => editCtx?.onSave(node),
+				// 批量模式下隐藏单个保存按钮
+				saved ? null : isBatchMode ? null : () => editCtx?.onSave(node),
 				saved ? () => editCtx?.onRevert(node) : null,
 				hasContentEdit,
 				editCtx?.onRestore ? () => editCtx.onRestore!(node) : null,
@@ -185,6 +188,14 @@ export function createViewCard(
 			previewRow.style.display = "none";
 			li.appendChild(previewRow);
 		}
+	}
+
+	// ========== 简洁模式：单击回调 ==========
+	if (compact && options?.onSingleClick) {
+		li.addEventListener("click", (e) => {
+			e.stopPropagation();
+			options.onSingleClick!(node);
+		});
 	}
 
 	// ========== 阅读模式：单击进入编辑 ==========
