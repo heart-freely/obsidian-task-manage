@@ -198,20 +198,31 @@ export function createViewCard(
 		});
 	}
 
-	// ========== 阅读模式：单击进入编辑 ==========
-	if (!compact && !isEditing && options?.onEnterEdit) {
-		li.addEventListener("click", (e) => {
-			e.stopPropagation();
-			e.preventDefault();
-			options.onEnterEdit!(node);
-		});
-	}
-
 	// ========== 双击跳转 ==========
 	if (options?.onClick && !isEditing && !compact) {
 		li.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			options.onClick!(node);
+		});
+	}
+
+	// ========== 阅读模式：单击进入编辑 ==========
+	if (!compact && !isEditing && options?.onEnterEdit) {
+		let pending: ReturnType<typeof setTimeout> | null = null;
+
+		li.addEventListener("click", (e) => {
+			if (pending) {
+				// 双击的第二个 click，取消单击
+				clearTimeout(pending);
+				pending = null;
+				return;
+			}
+			e.stopPropagation();
+			e.preventDefault();
+			pending = setTimeout(() => {
+				pending = null;
+				options.onEnterEdit!(node);
+			}, 300);
 		});
 	}
 

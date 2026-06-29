@@ -759,6 +759,8 @@ export function renderGanttWithTree(
 						locateBtn.title = "定位到甘特条";
 						locateBtn.addEventListener("click", (e) => {
 							e.stopPropagation();
+							const currentTreeWidth =
+								treeContainer.offsetWidth || treeWidth;
 							const taskEdges = calcBarEdges(
 								node,
 								timeRange,
@@ -766,7 +768,11 @@ export function renderGanttWithTree(
 								intervalMode,
 							);
 							if (taskEdges) {
-								const targetX = treeWidth + taskEdges.left - 20;
+								const targetX =
+									currentTreeWidth +
+									taskEdges.left +
+									taskEdges.width / 2 -
+									scrollArea.clientWidth / 2;
 								scrollArea.scrollLeft = Math.max(0, targetX);
 							}
 						});

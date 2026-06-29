@@ -19,7 +19,8 @@ class TooltipManager {
 					!target.closest(".cal-task-item") &&
 					!target.closest(".cal-span-line") &&
 					!target.closest(".task-progress-bar") &&
-					!target.closest(".cal-more-indicator")
+					!target.closest(".cal-more-indicator") &&
+					!target.closest(".timeline-bar") // ← 添加
 				) {
 					if (this.hideTimer) clearTimeout(this.hideTimer);
 					this.hideTimer = setTimeout(() => this.hide(), 100);

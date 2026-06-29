@@ -1,50 +1,43 @@
 // src/ui/main/calendar/calendar.ts
-// 统一日历视图 — 日/周/月/季/年
+// 统一日历视图 — 日/周/月/季/年（时间轴换行方案）
 
 import {
 	getStatusColors,
 	STATUS_SORT_ORDER,
 } from "../../../core/config/config";
 import {
-	buildCellItems,
 	buildDateTaskMap,
 	buildGlobalOrder,
-	CalendarCellItem,
 	formatDate,
 	getISOWeekNumber,
-	getMonthDays,
 	getMonthsInRange,
 	getQuartersInRange,
+	getTaskInterval,
 	getWeeksInRange,
 	getYearsInRange,
-	inferDateRange,
 	setEnd,
 	setStart,
 } from "../../../core/process/calendar-view-process";
+import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { tooltip } from "../../component/tooltip/tooltip";
 import { createTaskCard } from "../card/card";
-
 // ========== 常量 ==========
 
-const CELL_MIN_HEIGHT = 40;
-const CELL_MAX_HEIGHT = 280;
-const MAX_VISIBLE_ITEMS_IN_CELL = 5;
-const YEAR_MONTHS_PER_ROW = 4;
 const YEAR_HEAT_RGB = "64, 120, 209";
-
+const TIMELINE_ROW_HEIGHT = 20;
+const TIMELINE_BAR_HEIGHT = 16;
 // ========== 工具函数 ==========
 
 function padTwo(n: number): string {
 	return n < 10 ? "0" + n : String(n);
 }
 
-// ========== 样式注入（每次主题切换时重新注入） ==========
+// ========== 样式注入 ==========
 
-let styleInjected = false;
 let currentStyleEl: HTMLStyleElement | null = null;
 
 function injectCalendarStyles() {
-	// 移除旧样式标签
 	if (currentStyleEl) {
 		currentStyleEl.remove();
 		currentStyleEl = null;
@@ -55,395 +48,298 @@ function injectCalendarStyles() {
 	currentStyleEl = styleEl;
 
 	const statusColors = getStatusColors();
-	let lineColorStyles = "";
+	let statusBarStyles = "";
 	for (const status of STATUS_SORT_ORDER) {
 		const color = statusColors[status];
 		if (color) {
-			lineColorStyles += `.cal-span-line.${status} { background: ${color}; opacity: 0.6; }\n`;
+			statusBarStyles += `.cal-span-line.${status}, .timeline-bar.${status} { background: ${color}; opacity: 0.7; }\n`;
 		}
 	}
 
 	styleEl.textContent = `
-		.day-group { margin-bottom: 24px; }
-		.day-header { font-weight: bold; font-size: 1.1em; margin-bottom: 8px; color: var(--text-normal); border-bottom: 1px solid var(--background-modifier-border); padding-bottom: 4px; }
-		.calendar-stack { display: flex; flex-direction: column; gap: 24px; }
-		.cal-cell {
-			background: transparent;
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 6px;
-			padding: 4px;
-			min-height: ${CELL_MIN_HEIGHT}px;
-			max-height: ${CELL_MAX_HEIGHT}px;
-			overflow-y: auto;
-			display: flex;
-			flex-direction: column;
-			cursor: pointer;
-			transition: all 0.2s;
-		}
-		.cal-cell.expanded {
-			grid-column: span 2;
-			max-height: none;
-			z-index: 10;
-			background: var(--background-primary);
-			box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-		}
-		.cal-cell-header { font-weight: bold; text-align: center; font-size: clamp(12px, 2vw, 16px); margin-bottom: 2px; }
-		.cal-cell.today { border: 2px solid var(--text-accent); }
-		.other-month { opacity: 0.5; }
-		.week-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-		.week-block { margin-bottom: 24px; }
-		.week-title { font-weight: bold; margin-bottom: 8px; color: var(--text-normal); }
-		.month-block { width: 100%; margin-bottom: 24px; }
-		.month-title { font-weight: bold; font-size: 1.2em; margin-bottom: 8px; color: var(--text-normal); }
-		.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; }
-		.quarter-block { margin-bottom: 32px; }
-		.quarter-title { font-weight: bold; font-size: 1.3em; margin-bottom: 12px; color: var(--text-normal); }
-		.cal-span-line {
-			height: 12px;
-			margin: 10px 0;
-			border-radius: 2px;
-			cursor: pointer;
-			flex-shrink: 0;
-			box-sizing: border-box;
-		}
-		.cal-span-line.placeholder { opacity: 0; pointer-events: none; }
-		${lineColorStyles}
-		.cal-more-indicator {
-			padding: 4px;
-			text-align: center;
-			font-size: 12px;
-			color: var(--text-muted);
-			background: var(--background-modifier-hover);
-			border-radius: 4px;
-			margin: 2px 0;
-			cursor: pointer;
-		}
-		.cal-more-indicator:hover { background: var(--background-modifier-border); }
-		.empty-message { padding: 40px; text-align: center; color: var(--text-muted); font-style: italic; }
-		.year-block { margin-bottom: 32px; }
-		.year-grid { display: grid; grid-template-columns: repeat(${YEAR_MONTHS_PER_ROW}, 1fr); gap: 16px; }
-		.year-month-card { background: transparent; border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 6px; }
-		.year-month-title { font-weight: bold; text-align: center; margin-bottom: 4px; color: var(--text-normal); }
-		.year-heat-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-		.year-heat-cell {
-			background: transparent;
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 2px;
-			padding: 1px;
-			text-align: center;
-			font-size: 8px;
-			cursor: pointer;
-			aspect-ratio: 1/1;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-		.year-heat-cell.today { border: 2px solid var(--text-accent); }
-		.calendar-toolbar { display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; align-items: center; }
-		.calendar-toolbar button { padding: 4px 12px; border-radius: 16px; border: none; cursor: pointer; background: var(--interactive-normal); color: var(--text-normal); }
-		.calendar-toolbar button.active { background: var(--interactive-accent); color: white; }
-		.empty-periods-row {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 4px 12px;
-			margin-top: 8px;
-			justify-content: flex-start;
-		}
-		.empty-period-tag {
-			font-size: 12px;
-			color: var(--text-muted);
-			padding: 1px 6px;
-			background: var(--background-secondary);
-			border-radius: 10px;
-			line-height: 1.4;
-		}
-		@media screen and (max-width: 800px) {
-			.year-grid { grid-template-columns: repeat(2, 1fr); }
-		}
-	`;
+        .calendar-stack { display: flex; flex-direction: column; gap: 24px; }
+        .empty-message { padding: 40px; text-align: center; color: var(--text-muted); font-style: italic; }
+        .calendar-toolbar { display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; align-items: center; }
+        .calendar-toolbar button { padding: 4px 12px; border-radius: 16px; border: none; cursor: pointer; background: var(--interactive-normal); color: var(--text-normal); }
+        .calendar-toolbar button.active { background: var(--interactive-accent); color: white; }
+        .empty-periods-row {
+            display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; justify-content: flex-start;
+        }
+        .empty-period-tag {
+            font-size: 12px; color: var(--text-muted); padding: 1px 6px;
+            background: var(--background-secondary); border-radius: 10px; line-height: 1.4;
+        }
+        .timeline-block { margin-bottom: 24px; }
+        .timeline-block-title { font-weight: bold; margin-bottom: 4px; color: var(--text-normal); font-size: 1.1em; }
+        .timeline-body { position: relative; width: 100%; }
+        .timeline-grid-line { position: absolute; top: 0; width: 1px; background: var(--background-modifier-border); pointer-events: none; }
+        .timeline-bar {
+            position: absolute; height: ${TIMELINE_BAR_HEIGHT}px;
+            border-radius: 3px; display: flex; align-items: center;
+            padding-left: 4px; overflow: hidden; cursor: pointer;
+            font-size: 11px; color: white; white-space: nowrap;
+        }
+        .timeline-bar-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .timeline-header-day { text-align: center; font-size: 11px; padding: 2px 0; }
+        .timeline-header-day.today { color: var(--text-accent); font-weight: bold; }
+        .year-view-header { display: grid; grid-template-columns: repeat(31, 1fr); width: 100%; position: sticky; top: 0; z-index: 2; background: var(--background-primary); }
+        .year-view-day { text-align: center; font-size: 11px; padding: 4px 0; }
+        .year-view-day.today { color: var(--text-accent); font-weight: bold; }
+        ${statusBarStyles}
+    `;
 	document.head.appendChild(styleEl);
-	styleInjected = true;
 }
 
-// ========== DOM 组件 ==========
+// ========== 时间轴组件（行组方案，任务条各自独占一行）==========
 
-function createTaskSpanLine(node: TaskTreeNode): HTMLElement {
-	const line = document.createElement("div");
-	line.className = `cal-span-line ${node.status}`;
-	line.title = node.text || node.content || "";
-	return line;
-}
-
-function createTaskSpanLinePlaceholder(): HTMLElement {
-	const line = document.createElement("div");
-	line.className = "cal-span-line placeholder";
-	return line;
-}
-
-// ========== 格子渲染 ==========
-
-function buildCalendarCell(
-	date: Date,
-	isOtherMonth: boolean,
-	isToday: boolean,
-	items: CalendarCellItem[],
-	onDayClick?: (date: Date) => void,
-): HTMLElement {
-	const cell = document.createElement("div");
-	cell.className =
-		"cal-cell" +
-		(isOtherMonth ? " other-month" : "") +
-		(isToday ? " today" : "");
-
-	const header = document.createElement("div");
-	header.className = "cal-cell-header";
-	header.textContent = padTwo(date.getDate());
-	header.addEventListener("click", (e) => {
-		e.stopPropagation();
-		onDayClick?.(date);
-	});
-	header.style.cursor = "pointer";
-	header.title = "点击查看当日任务";
-	cell.appendChild(header);
-
-	const contentWrapper = document.createElement("div");
-	contentWrapper.style.cssText = `overflow-y: auto; max-height: ${CELL_MAX_HEIGHT}px;`;
-
-	for (const item of items) {
-		if (item.type === "task") {
-			contentWrapper.appendChild(
-				createTaskCard(item.node, { compact: true, showTooltip: true }),
-			);
-		} else if (item.type === "line") {
-			contentWrapper.appendChild(createTaskSpanLine(item.node));
-		} else {
-			contentWrapper.appendChild(createTaskSpanLinePlaceholder());
-		}
-	}
-
-	const totalVisible = items.filter((i) => i.type !== "placeholder").length;
-	if (totalVisible > MAX_VISIBLE_ITEMS_IN_CELL) {
-		const indicator = document.createElement("div");
-		indicator.className = "cal-more-indicator";
-		indicator.textContent = `+ ${totalVisible - MAX_VISIBLE_ITEMS_IN_CELL} 个任务`;
-		indicator.addEventListener("click", (e) => {
-			e.stopPropagation();
-			cell.classList.add("expanded");
-			contentWrapper.style.maxHeight = "none";
-			indicator.style.display = "none";
-		});
-		contentWrapper.appendChild(indicator);
-	}
-
-	cell.appendChild(contentWrapper);
-
-	cell.addEventListener("click", (ev) => {
-		const target = ev.target as HTMLElement;
-		if (
-			target.closest(".task-item") ||
-			target.closest(".cal-span-line") ||
-			target.closest(".cal-more-indicator") ||
-			target.closest(".cal-cell-header")
-		) {
-			return;
-		}
-		if (cell.classList.contains("expanded")) {
-			cell.classList.remove("expanded");
-			contentWrapper.style.maxHeight = CELL_MAX_HEIGHT + "px";
-		} else {
-			cell.classList.add("expanded");
-			contentWrapper.style.maxHeight = "none";
-		}
-	});
-
-	return cell;
-}
-
-// ========== 视图渲染 ==========
-
-function renderWeekView(
+function renderTimeline(
 	container: HTMLElement,
-	startDate: Date,
+	days: Date[],
 	dateTaskMap: Map<string, TaskTreeNode[]>,
-	nodes: TaskTreeNode[],
 	intervalMode: string,
 	globalOrderMap: Map<string, number>,
+	maxDays: number = 31,
+	heatMapMax?: number,
 	onDayClick?: (date: Date) => void,
+	onTaskClick?: (task: TaskTreeNode) => void,
 ): boolean {
-	const weekNum = getISOWeekNumber(startDate);
+	const displayDays = days.slice(0, maxDays);
+	const seen = new Set<string>();
+	const allTasks: TaskTreeNode[] = [];
+	const taskIntervals = new Map<
+		string,
+		{ start: number; end: number } | null
+	>();
+	const rangeStart = setStart(displayDays[0]).getTime();
+	const rangeEnd = setStart(displayDays[displayDays.length - 1]).getTime();
 
-	const endDate = new Date(startDate);
-	endDate.setDate(startDate.getDate() + 6);
-
-	let hasTask = false;
-	const todayStr = formatDate(new Date());
-	const days: Date[] = [];
-	for (let i = 0; i < 7; i++) {
-		const d = new Date(startDate);
-		d.setDate(startDate.getDate() + i);
-		days.push(d);
-		if (dateTaskMap.has(formatDate(d))) hasTask = true;
-	}
-
-	if (!hasTask) return false;
-
-	const weekBlock = document.createElement("div");
-	weekBlock.className = "week-block";
-
-	const title = document.createElement("div");
-	title.className = "week-title";
-	title.textContent = `${startDate.getFullYear()}年${padTwo(weekNum)}周(${formatDate(startDate)}~${formatDate(endDate)})`;
-	weekBlock.appendChild(title);
-
-	const weekRow = document.createElement("div");
-	weekRow.className = "week-row";
-
-	for (const d of days) {
-		const isToday = formatDate(d) === todayStr;
-		const items = buildCellItems(d, dateTaskMap, intervalMode);
-		items.sort(
-			(a, b) =>
-				(globalOrderMap.get(a.node.uid) || 999999) -
-				(globalOrderMap.get(b.node.uid) || 999999),
-		);
-		weekRow.appendChild(
-			buildCalendarCell(d, false, isToday, items, onDayClick),
-		);
-	}
-
-	weekBlock.appendChild(weekRow);
-	container.appendChild(weekBlock);
-	return true;
-}
-
-function renderMonthGrid(
-	container: HTMLElement,
-	year: number,
-	month: number,
-	dateTaskMap: Map<string, TaskTreeNode[]>,
-	nodes: TaskTreeNode[],
-	intervalMode: string,
-	globalOrderMap: Map<string, number>,
-	onDayClick?: (date: Date) => void,
-): boolean {
-	const days = getMonthDays(year, month);
-
-	let hasTask = false;
-	for (const d of days) {
-		if (dateTaskMap.has(formatDate(d))) {
-			hasTask = true;
-			break;
+	for (const taskList of dateTaskMap.values()) {
+		for (const task of taskList) {
+			if (seen.has(task.uid)) continue;
+			seen.add(task.uid);
+			const interval = getTaskInterval(task, intervalMode);
+			taskIntervals.set(task.uid, interval);
+			if (interval) {
+				if (interval.start <= rangeEnd && interval.end >= rangeStart) {
+					allTasks.push(task);
+				}
+			} else {
+				const fallbackTs =
+					task.scheduled ||
+					task.due ||
+					task.starts ||
+					task.created ||
+					task.done ||
+					task.cancelled;
+				if (fallbackTs) {
+					const dateStr = formatDate(new Date(fallbackTs));
+					const idx = displayDays.findIndex(
+						(d) => formatDate(d) === dateStr,
+					);
+					if (idx >= 0) allTasks.push(task);
+				}
+			}
 		}
 	}
 
-	if (!hasTask) return false;
+	if (allTasks.length === 0) return false;
 
-	const grid = document.createElement("div");
-	grid.className = "calendar-grid";
-
-	const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
-	for (const wd of weekdays) {
-		const hd = document.createElement("div");
-		hd.style.cssText =
-			"text-align:center; font-weight:bold; padding:4px 0;";
-		hd.textContent = wd;
-		grid.appendChild(hd);
-	}
+	allTasks.sort(
+		(a, b) =>
+			(globalOrderMap.get(a.uid) || 999999) -
+			(globalOrderMap.get(b.uid) || 999999),
+	);
 
 	const todayStr = formatDate(new Date());
-	for (const d of days) {
-		const isOtherMonth = d.getMonth() !== month;
-		const isToday = formatDate(d) === todayStr;
-		const items = buildCellItems(d, dateTaskMap, intervalMode);
-		items.sort(
-			(a, b) =>
-				(globalOrderMap.get(a.node.uid) || 999999) -
-				(globalOrderMap.get(b.node.uid) || 999999),
-		);
-		grid.appendChild(
-			buildCalendarCell(d, isOtherMonth, isToday, items, onDayClick),
-		);
-	}
+	const actualDays = displayDays.length;
+	const colsPerRow = maxDays <= 7 ? maxDays : 7;
+	const totalRows = Math.ceil(actualDays / colsPerRow);
+	const colWidth = 100 / colsPerRow;
 
-	container.appendChild(grid);
-	return true;
-}
+	const rowTasks: TaskTreeNode[][] = [];
+	const rowTaskIntervals: Map<
+		string,
+		{ taskStart: number; taskEnd: number }
+	>[] = [];
+	for (let row = 0; row < totalRows; row++) {
+		rowTasks.push([]);
+		rowTaskIntervals.push(new Map());
+		const rowStart = row * colsPerRow;
+		const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
 
-function renderYearView(
-	container: HTMLElement,
-	year: number,
-	dateTaskMap: Map<string, TaskTreeNode[]>,
-	onDayClick?: (date: Date) => void,
-): boolean {
-	let hasTask = false;
-	for (const tasks of dateTaskMap.values()) {
-		if (tasks.length > 0) {
-			hasTask = true;
-			break;
-		}
-	}
+		for (const task of allTasks) {
+			const interval = taskIntervals.get(task.uid);
+			let taskStart = -1,
+				taskEnd = -1;
 
-	if (!hasTask) return false;
-
-	const yearBlock = document.createElement("div");
-	yearBlock.className = "year-block";
-
-	const title = document.createElement("div");
-	title.style.cssText =
-		"font-size:1.4em; font-weight:bold; margin-bottom:16px; color:var(--text-normal);";
-	title.textContent = `${year}年`;
-	yearBlock.appendChild(title);
-
-	const grid = document.createElement("div");
-	grid.className = "year-grid";
-
-	const todayStr = formatDate(new Date());
-
-	let maxCount = 1;
-	for (const tasks of dateTaskMap.values()) {
-		if (tasks.length > maxCount) maxCount = tasks.length;
-	}
-
-	for (let m = 0; m < 12; m++) {
-		const monthDiv = document.createElement("div");
-		monthDiv.className = "year-month-card";
-
-		const monTitle = document.createElement("div");
-		monTitle.className = "year-month-title";
-		monTitle.textContent = `${padTwo(m + 1)}月`;
-		monthDiv.appendChild(monTitle);
-
-		const heatGrid = document.createElement("div");
-		heatGrid.className = "year-heat-grid";
-
-		const days = getMonthDays(year, m);
-		for (const curDate of days) {
-			const dateStr = formatDate(curDate);
-			const count = (dateTaskMap.get(dateStr) || []).length;
-
-			const cell = document.createElement("div");
-			cell.className =
-				"year-heat-cell" + (dateStr === todayStr ? " today" : "");
-			cell.textContent = padTwo(curDate.getDate());
-
-			if (count > 0) {
-				const intensity = 0.1 + (count / maxCount) * 0.9;
-				cell.style.backgroundColor = `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`;
-				cell.title = `${count}个任务`;
+			if (interval) {
+				const startDate = setStart(new Date(interval.start));
+				const endDate = setEnd(new Date(interval.end));
+				const sIdx = displayDays.findIndex(
+					(d) => formatDate(d) === formatDate(startDate),
+				);
+				const eIdx = displayDays.findIndex(
+					(d) => formatDate(d) === formatDate(endDate),
+				);
+				if (sIdx >= 0 && eIdx >= 0) {
+					taskStart = sIdx;
+					taskEnd = eIdx;
+				}
+			} else {
+				const fallbackTs =
+					task.scheduled ||
+					task.due ||
+					task.starts ||
+					task.created ||
+					task.done ||
+					task.cancelled;
+				if (fallbackTs) {
+					const dateStr = formatDate(new Date(fallbackTs));
+					const idx = displayDays.findIndex(
+						(d) => formatDate(d) === dateStr,
+					);
+					if (idx >= 0) taskStart = taskEnd = idx;
+				}
 			}
 
-			if (curDate.getMonth() !== m) cell.style.opacity = "0.4";
+			if (taskStart < 0) continue;
+			if (taskEnd < rowStart || taskStart > rowEnd) continue;
 
-			cell.addEventListener("click", () => onDayClick?.(curDate));
-			heatGrid.appendChild(cell);
+			rowTasks[row].push(task);
+			rowTaskIntervals[row].set(task.uid, { taskStart, taskEnd });
+		}
+	}
+	console.log(
+		"[renderTimeline] allTasks:",
+		allTasks.length,
+		"hasAnyRow:",
+		rowTasks.some((arr) => arr.length > 0),
+	);
+	const hasAnyRow = rowTasks.some((arr) => arr.length > 0);
+	if (!hasAnyRow) return false;
+
+	const body = document.createElement("div");
+	body.className = "timeline-body";
+
+	for (let row = 0; row < totalRows; row++) {
+		const tasksInRow = rowTasks[row];
+		if (tasksInRow.length === 0) continue;
+
+		const taskCount = tasksInRow.length;
+		const taskAreaHeight = taskCount * TIMELINE_ROW_HEIGHT;
+		const rowHeight = TIMELINE_ROW_HEIGHT + taskAreaHeight;
+
+		const rowGroup = document.createElement("div");
+		rowGroup.style.position = "relative";
+		rowGroup.style.height = rowHeight + "px";
+
+		const dateRow = document.createElement("div");
+		dateRow.style.display = "grid";
+		dateRow.style.gridTemplateColumns = `repeat(${colsPerRow}, 1fr)`;
+		dateRow.style.borderBottom =
+			"1px solid var(--background-modifier-border)";
+
+		for (let col = 0; col < colsPerRow; col++) {
+			const idx = row * colsPerRow + col;
+			const dayEl = document.createElement("div");
+			dayEl.className = "timeline-header-day";
+
+			if (idx < actualDays) {
+				const d = displayDays[idx];
+				const dateStr = formatDate(d);
+				const count = (dateTaskMap.get(dateStr) || []).length;
+				const isToday = dateStr === todayStr;
+				if (isToday) dayEl.classList.add("today");
+				dayEl.textContent = padTwo(d.getDate());
+
+				if (heatMapMax !== undefined && heatMapMax > 0 && count > 0) {
+					const intensity = 0.05 + (count / heatMapMax) * 0.3;
+					dayEl.style.backgroundColor = `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`;
+				}
+				if (onDayClick) {
+					dayEl.style.cursor = "pointer";
+					dayEl.addEventListener("click", () => onDayClick(d));
+				}
+			}
+			dateRow.appendChild(dayEl);
+		}
+		rowGroup.appendChild(dateRow);
+
+		const taskArea = document.createElement("div");
+		taskArea.style.position = "absolute";
+		taskArea.style.top = TIMELINE_ROW_HEIGHT + "px";
+		taskArea.style.left = "0";
+		taskArea.style.right = "0";
+		taskArea.style.height = taskAreaHeight + "px";
+
+		for (let col = 0; col <= colsPerRow; col++) {
+			const line = document.createElement("div");
+			line.className = "timeline-grid-line";
+			line.style.left = col * colWidth + "%";
+			line.style.height = "100%";
+			taskArea.appendChild(line);
 		}
 
-		monthDiv.appendChild(heatGrid);
-		grid.appendChild(monthDiv);
+		const rowStart = row * colsPerRow;
+		const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
+
+		tasksInRow.forEach((task, taskIdx) => {
+			const interval = taskIntervals.get(task.uid);
+			const taskInfo = rowTaskIntervals[row].get(task.uid);
+			if (!taskInfo) return;
+
+			const clampedStart = Math.max(taskInfo.taskStart, rowStart);
+			const clampedEnd = Math.min(taskInfo.taskEnd, rowEnd);
+			const col = clampedStart - rowStart;
+			const spanCols = clampedEnd - clampedStart + 1;
+
+			const bar = document.createElement("div");
+			bar.className = `timeline-bar ${task.status}`;
+			bar.style.left = col * colWidth + "%";
+			bar.style.top = taskIdx * TIMELINE_ROW_HEIGHT + 2 + "px";
+			bar.style.width = spanCols * colWidth + "%";
+
+			const label = document.createElement("span");
+			label.className = "timeline-bar-text";
+			label.textContent = task.text || task.content || "";
+			bar.appendChild(label);
+
+			const tipHtml = getDisplayText(task) + "<br>" + buildTooltip(task);
+			if (tipHtml) {
+				bar.addEventListener("mouseenter", (e) =>
+					tooltip.show(tipHtml, e.clientX, e.clientY),
+				);
+				bar.addEventListener("mousemove", (e) =>
+					tooltip.move(e.clientX, e.clientY),
+				);
+				bar.addEventListener("mouseleave", () => tooltip.hide());
+			}
+
+			if (!interval) bar.style.opacity = "0.5";
+
+			if (onTaskClick) {
+				bar.addEventListener("dblclick", (e) => {
+					const rect = bar.getBoundingClientRect();
+					const clickX = e.clientX - rect.left;
+					if (
+						clickX > rect.width * 0.15 &&
+						clickX < rect.width * 0.85
+					) {
+						e.stopPropagation();
+						onTaskClick(task);
+					}
+				});
+				bar.style.cursor = "pointer";
+			}
+
+			taskArea.appendChild(bar);
+		});
+
+		rowGroup.appendChild(taskArea);
+		body.appendChild(rowGroup);
 	}
 
-	yearBlock.appendChild(grid);
-	container.appendChild(yearBlock);
+	container.appendChild(body);
 	return true;
 }
 
@@ -457,7 +353,7 @@ export function renderCalendarView(
 		intervalMode?: string;
 		onClick?: (node: TaskTreeNode) => void;
 		onSubViewChange?: (subView: string) => void;
-		onDaySelect?: (date: Date) => void;
+		onDayClick?: (date: Date) => void;
 		selectedDate?: Date;
 		dateRange?: {
 			start: number | null;
@@ -467,11 +363,10 @@ export function renderCalendarView(
 		filterTitle?: string;
 	},
 ) {
-	// 每次渲染时重新注入样式以适配当前主题
 	injectCalendarStyles();
 	container.empty();
 
-	const subView = options?.subView || "month";
+	const subView = options?.subView || "day";
 	const intervalMode =
 		options?.intervalMode && options.intervalMode !== "none"
 			? options.intervalMode
@@ -488,18 +383,29 @@ export function renderCalendarView(
 
 	const globalOrderMap = buildGlobalOrder(nodes);
 
-	const { startDate, endDate } =
-		options?.dateRange &&
-		!options.dateRange.isAll &&
-		options.dateRange.start &&
-		options.dateRange.end
-			? {
-					startDate: setStart(new Date(options.dateRange.start)),
-					endDate: setEnd(new Date(options.dateRange.end)),
-				}
-			: inferDateRange(nodes, intervalMode);
+	const { startDate, endDate } = {
+		startDate: options?.dateRange?.start
+			? new Date(options.dateRange.start)
+			: new Date(),
+		endDate: options?.dateRange?.end
+			? new Date(options.dateRange.end)
+			: new Date(),
+	};
 
 	const dateTaskMap = buildDateTaskMap(nodes, intervalMode);
+
+	for (const [, taskList] of dateTaskMap) {
+		taskList.sort(
+			(a, b) =>
+				(globalOrderMap.get(a.uid) || 999999) -
+				(globalOrderMap.get(b.uid) || 999999),
+		);
+	}
+
+	let globalMaxCount = 1;
+	for (const [, taskList] of dateTaskMap) {
+		if (taskList.length > globalMaxCount) globalMaxCount = taskList.length;
+	}
 
 	const titleEl = document.createElement("div");
 	titleEl.style.cssText =
@@ -528,14 +434,11 @@ export function renderCalendarView(
 	}
 	container.appendChild(toolbar);
 
-	const handleDayClick = (date: Date) => {
-		options?.onDaySelect?.(date);
-		options?.onSubViewChange?.("day");
-	};
+	const onDayClick = options?.onDayClick;
+	const onTaskClick = options?.onClick;
 
 	const stackDiv = document.createElement("div");
 	stackDiv.className = "calendar-stack";
-
 	const emptyPeriods: string[] = [];
 
 	if (subView === "day") {
@@ -544,6 +447,7 @@ export function renderCalendarView(
 
 		const dayGroup = document.createElement("div");
 		dayGroup.className = "day-group";
+		stackDiv.appendChild(dayGroup);
 
 		const header = document.createElement("div");
 		header.className = "day-header";
@@ -567,7 +471,6 @@ export function renderCalendarView(
 					(globalOrderMap.get(a.uid) || 999999) -
 					(globalOrderMap.get(b.uid) || 999999),
 			);
-
 			for (const node of uniqueNodes) {
 				dayGroup.appendChild(
 					createTaskCard(node, {
@@ -577,21 +480,40 @@ export function renderCalendarView(
 				);
 			}
 		}
-
-		stackDiv.appendChild(dayGroup);
 	} else if (subView === "week") {
 		for (const week of getWeeksInRange(startDate, endDate)) {
-			const hasContent = renderWeekView(
-				stackDiv,
-				week.start,
+			const days: Date[] = [];
+			for (let i = 0; i < 7; i++) {
+				const d = new Date(week.start);
+				d.setDate(week.start.getDate() + i);
+				days.push(d);
+			}
+
+			const weekBlock = document.createElement("div");
+			weekBlock.className = "timeline-block";
+			stackDiv.appendChild(weekBlock);
+
+			const weekNum = getISOWeekNumber(week.start);
+			const weekEndDate = new Date(week.start);
+			weekEndDate.setDate(week.start.getDate() + 6);
+			const title = document.createElement("div");
+			title.className = "timeline-block-title";
+			title.textContent = `${week.start.getFullYear()}年${padTwo(week.start.getMonth() + 1)}月${padTwo(weekNum)}周`;
+			weekBlock.appendChild(title);
+
+			const hasContent = renderTimeline(
+				weekBlock,
+				days,
 				dateTaskMap,
-				nodes,
 				intervalMode,
 				globalOrderMap,
-				handleDayClick,
+				7,
+				globalMaxCount,
+				onDayClick,
+				onTaskClick,
 			);
 			if (!hasContent) {
-				const weekNum = getISOWeekNumber(week.start);
+				weekBlock.remove();
 				emptyPeriods.push(
 					`${week.start.getFullYear()}年${padTwo(weekNum)}周`,
 				);
@@ -599,78 +521,169 @@ export function renderCalendarView(
 		}
 	} else if (subView === "month") {
 		for (const m of getMonthsInRange(startDate, endDate)) {
+			const daysInMonth = new Date(m.year, m.month + 1, 0).getDate();
+			const days: Date[] = [];
+			for (let d = 1; d <= daysInMonth; d++) {
+				days.push(new Date(m.year, m.month, d));
+			}
+
 			const block = document.createElement("div");
-			block.className = "month-block";
+			block.className = "timeline-block";
+			stackDiv.appendChild(block);
+
 			const title = document.createElement("div");
-			title.className = "month-title";
+			title.className = "timeline-block-title";
 			title.textContent = `${m.year}年${padTwo(m.month + 1)}月`;
 			block.appendChild(title);
-			const hasContent = renderMonthGrid(
+
+			const hasContent = renderTimeline(
 				block,
-				m.year,
-				m.month,
+				days,
 				dateTaskMap,
-				nodes,
 				intervalMode,
 				globalOrderMap,
-				handleDayClick,
+				31,
+				globalMaxCount,
+				onDayClick,
+				onTaskClick,
 			);
-			if (hasContent) {
-				stackDiv.appendChild(block);
-			} else {
+			if (!hasContent) {
+				block.remove();
 				emptyPeriods.push(`${m.year}年${padTwo(m.month + 1)}月`);
 			}
 		}
 	} else if (subView === "quarter") {
 		for (const q of getQuartersInRange(startDate, endDate)) {
+			const startMonth = (q.quarter - 1) * 3;
+			let quarterHasContent = false;
 			const quarterBlock = document.createElement("div");
-			quarterBlock.className = "quarter-block";
+			quarterBlock.className = "timeline-block";
+			stackDiv.appendChild(quarterBlock);
+
 			const title = document.createElement("div");
-			title.className = "quarter-title";
+			title.className = "timeline-block-title";
+			title.style.fontSize = "1.2em";
 			title.textContent = `${q.year}年${padTwo(q.quarter)}季`;
 			quarterBlock.appendChild(title);
 
-			const startMonth = (q.quarter - 1) * 3;
-			let quarterHasContent = false;
 			for (let mo = 0; mo < 3; mo++) {
 				const monthIdx = startMonth + mo;
-				const block = document.createElement("div");
-				block.className = "month-block";
-				const mTitle = document.createElement("div");
-				mTitle.className = "month-title";
-				mTitle.textContent = `${q.year}年${padTwo(monthIdx + 1)}月`;
-				block.appendChild(mTitle);
-				const hasContent = renderMonthGrid(
-					block,
-					q.year,
-					monthIdx,
+				const daysInMonth = new Date(q.year, monthIdx + 1, 0).getDate();
+				const days: Date[] = [];
+				for (let d = 1; d <= daysInMonth; d++) {
+					days.push(new Date(q.year, monthIdx, d));
+				}
+
+				let monthHasContent = false;
+				const monthBlock = document.createElement("div");
+				monthBlock.className = "timeline-block";
+				quarterBlock.appendChild(monthBlock);
+
+				const monthTitle = document.createElement("div");
+				monthTitle.className = "timeline-block-title";
+				monthTitle.style.fontSize = "1em";
+				monthTitle.textContent = `${padTwo(monthIdx + 1)}月`;
+				monthBlock.appendChild(monthTitle);
+
+				const hasContent = renderTimeline(
+					monthBlock,
+					days,
 					dateTaskMap,
-					nodes,
 					intervalMode,
 					globalOrderMap,
-					handleDayClick,
+					31,
+					globalMaxCount,
+					onDayClick,
+					onTaskClick,
 				);
-				if (hasContent) {
-					quarterBlock.appendChild(block);
+				if (!hasContent) {
+					monthBlock.remove();
+				} else {
 					quarterHasContent = true;
 				}
 			}
-
-			if (quarterHasContent) {
-				stackDiv.appendChild(quarterBlock);
-			} else {
+			if (!quarterHasContent) {
+				quarterBlock.remove();
 				emptyPeriods.push(`${q.year}年${padTwo(q.quarter)}季`);
 			}
 		}
 	} else if (subView === "year") {
 		for (const y of getYearsInRange(startDate, endDate)) {
-			const hasContent = renderYearView(
-				stackDiv,
-				y,
-				dateTaskMap,
-				handleDayClick,
-			);
-			if (!hasContent) {
+			let yearHasContent = false;
+			const yearBlock = document.createElement("div");
+			yearBlock.className = "timeline-block";
+			stackDiv.appendChild(yearBlock);
+
+			const title = document.createElement("div");
+			title.className = "timeline-block-title";
+			title.style.fontSize = "1.3em";
+			title.textContent = `${y}年`;
+			yearBlock.appendChild(title);
+
+			for (let m = 0; m < 12; m++) {
+				const daysInMonth = new Date(y, m + 1, 0).getDate();
+				const days: Date[] = [];
+				for (let d = 1; d <= daysInMonth; d++) {
+					days.push(new Date(y, m, d));
+				}
+
+				let monthHasTask = false;
+				for (const d of days) {
+					if ((dateTaskMap.get(formatDate(d)) || []).length > 0) {
+						monthHasTask = true;
+						break;
+					}
+				}
+				if (!monthHasTask) continue;
+
+				yearHasContent = true;
+				const monthBlock = document.createElement("div");
+				monthBlock.className = "timeline-block";
+				yearBlock.appendChild(monthBlock);
+
+				const monthTitle = document.createElement("div");
+				monthTitle.className = "timeline-block-title";
+				monthTitle.style.fontSize = "1em";
+				monthTitle.textContent = `${padTwo(m + 1)}月`;
+				monthBlock.appendChild(monthTitle);
+
+				const actualDays = days.length;
+				const todayStr = formatDate(new Date());
+
+				const scrollDiv = document.createElement("div");
+				scrollDiv.style.cssText = "position:relative;";
+
+				const header = document.createElement("div");
+				header.className = "year-view-header";
+				for (let i = 0; i < actualDays; i++) {
+					const d = days[i];
+					const dateStr = formatDate(d);
+					const count = (dateTaskMap.get(dateStr) || []).length;
+					const isToday = dateStr === todayStr;
+
+					const dayEl = document.createElement("div");
+					dayEl.className =
+						"year-view-day" + (isToday ? " today" : "");
+					dayEl.textContent = padTwo(d.getDate());
+					dayEl.style.cursor = "pointer";
+
+					if (globalMaxCount > 0 && count > 0) {
+						const intensity = 0.1 + (count / globalMaxCount) * 0.9;
+						dayEl.style.backgroundColor = `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`;
+						dayEl.title = `${count}个任务`;
+					}
+
+					if (onDayClick) {
+						dayEl.addEventListener("click", () => onDayClick(d));
+					}
+
+					header.appendChild(dayEl);
+				}
+				scrollDiv.appendChild(header);
+				monthBlock.appendChild(scrollDiv);
+			}
+			if (!yearHasContent) {
+				yearBlock.remove();
 				emptyPeriods.push(`${y}年`);
 			}
 		}

@@ -75,6 +75,7 @@ export interface Preset {
 	taskTreeNavCollapsed?: boolean;
 	taskTreeNavWidth?: number;
 	hideConfig?: HideConfig;
+	calendarSubView?: string;
 }
 
 export interface PresetGroup {

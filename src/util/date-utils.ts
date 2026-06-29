@@ -110,6 +110,28 @@ export const DateUtils = {
 		d.setDate(d.getDate() + (wd - (d.getDay() || 7)));
 		return DateUtils.getDayRange(d);
 	},
+	getEffectiveDateRange(
+		dateRange: { start: number | null; end: number | null; isAll: boolean },
+		defaultYears: number = 10,
+	): { start: number; end: number; isAll: boolean } {
+		if (
+			!dateRange.isAll &&
+			dateRange.start != null &&
+			dateRange.end != null
+		) {
+			return dateRange;
+		}
+		const now = new Date();
+		return {
+			start: DateUtils.setStart(
+				new Date(now.getFullYear() - defaultYears, 0, 1),
+			).getTime(),
+			end: DateUtils.setEnd(
+				new Date(now.getFullYear() + defaultYears, 11, 31),
+			).getTime(),
+			isAll: false,
+		};
+	},
 };
 
 // ========== 日期格式化 ==========

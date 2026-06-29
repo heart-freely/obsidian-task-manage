@@ -527,16 +527,13 @@ export class BaseTaskEdit {
 		const checkbox = card.querySelector("input[type='checkbox']");
 		if (checkbox) checkbox.remove();
 
+		// 用 cloneNode 替换描述元素，彻底移除事件监听器
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
-			descEl.removeAttribute("contenteditable");
-			descEl.removeAttribute("data-edit-bound");
-			descEl.style.color = "var(--text-normal)";
-			descEl.style.cursor = "pointer";
-			const node = this.dataManager.getNodeByUid(uid);
-			if (node) {
-				descEl.innerHTML = buildDescription(node, false);
-			}
+			const newDescEl = descEl.cloneNode(true) as HTMLElement;
+			newDescEl.style.cssText =
+				"font-weight:500;flex:1;cursor:pointer;margin-bottom:4px;color:var(--text-normal);";
+			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
 
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;

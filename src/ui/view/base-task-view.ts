@@ -20,6 +20,7 @@ import {
 	TreeFilterOptions,
 } from "../../core/task/task-tree";
 import { GlobalFilter } from "../../type/type";
+import { DateUtils } from "../../util/date-utils";
 import { renderKanban } from "../main/board/kanban-board";
 import { renderMatrix } from "../main/board/matrix-board";
 import { renderCalendarView } from "../main/calendar/calendar";
@@ -47,7 +48,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	protected store: Store;
 	protected app: any;
 	protected unsub?: () => void;
-	protected calendarSubView: string = "month";
+	protected calendarSubView: string = "day";
 	protected calendarSelectedDate: Date = new Date();
 	protected dataManager: DataManager;
 
@@ -74,7 +75,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	private _lastActivePresetId: string | null = null;
 	private _lastSidebarCollapsed: boolean | null = null;
 	private _lastFilterStr: string | null = null;
-
 	constructor(container: HTMLElement, store: Store, app: any) {
 		super();
 		this.container = container;
@@ -493,7 +493,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			resizeHandle.addEventListener("mouseleave", () => {
 				resizeHandle.style.opacity = "0";
 			});
-
 			this.resizeHandle = resizeHandle;
 		}
 
@@ -584,40 +583,66 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 		const leaf = this.app.workspace.getLeaf(false);
 		leaf.openFile(file, { active: true }).then(() => {
-			const tryScroll = (retries: number) => {
-				const editor = leaf.view?.editor;
-				if (!editor && retries > 0) {
-					setTimeout(() => tryScroll(retries - 1), 250);
+			leaf.setEphemeralState({
+				line: targetLine,
+				startLoc: { line: targetLine, ch: 0, offset: 0 },
+			});
+
+			setTimeout(() => {
+				const view = leaf.view as any;
+				const state = view?.getState?.();
+				const mode = state?.mode || "source";
+				if (mode === "preview") {
+					view?.previewMode?.applyScroll?.(targetLine);
 					return;
 				}
-				if (!editor) return;
 
-				const lineCount = editor.lineCount();
-				const clampedLine = Math.min(targetLine, lineCount - 1);
+				const cm = (view?.editor as any)?.cm;
+				if (!cm) return;
 
-				editor.setCursor({ line: clampedLine, ch: 0 });
-				editor.scrollIntoView(
-					{
-						from: { line: clampedLine, ch: 0 },
-						to: {
-							line: Math.min(clampedLine + 10, lineCount - 1),
-							ch: 0,
-						},
-					},
-					true,
+				const clampedLine = Math.min(
+					targetLine,
+					view.editor.lineCount() - 1,
 				);
-				editor.setSelection(
+				const halfHeight = Math.floor(
+					cm.getScrollInfo().clientHeight / 2,
+				);
+				const scroller = cm.getScrollerElement();
+
+				cm.setCursor({ line: clampedLine, ch: 0 });
+				cm.setSelection(
 					{ line: clampedLine, ch: 0 },
 					{
 						line: clampedLine,
-						ch: editor.getLine(clampedLine)?.length || 0,
+						ch: cm.getLine(clampedLine)?.length || 0,
 					},
 				);
-			};
-			setTimeout(() => tryScroll(8), 300);
+
+				const isTargetInView = () => {
+					const coords = cm.charCoords(
+						{ line: clampedLine, ch: 0 },
+						"window",
+					);
+					const rect = scroller.getBoundingClientRect();
+					return (
+						coords.top >= rect.top && coords.bottom <= rect.bottom
+					);
+				};
+
+				// 方案A：直接滚动
+				cm.scrollIntoView({ line: clampedLine, ch: 0 }, halfHeight);
+
+				if (isTargetInView()) return;
+
+				// 方案B：破坏缓存后再次滚动
+				setTimeout(() => {
+					cm.execCommand("goLineDown");
+					cm.execCommand("goLineUp");
+					cm.scrollIntoView({ line: clampedLine, ch: 0 }, halfHeight);
+				}, 200);
+			}, 300);
 		});
 	}
-
 	private toggleTaskTreeNav(collapsed: boolean) {
 		const p = this.store.getActivePreset();
 		if (!p) return;
@@ -777,9 +802,38 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					onEnterEdit: edit,
 				});
 				break;
+
 			case "calendar": {
 				const cc = container.createDiv({ cls: "calendar-content" });
 				cc.style.padding = "0";
+
+				const preset = this.store.getActivePreset();
+				const calSubView = preset?.calendarSubView || "day";
+				const calSelectedDate = this.calendarSelectedDate || new Date();
+				const effectiveRange = DateUtils.getEffectiveDateRange(
+					filter.dateRange,
+				);
+
+				const updatePreset = (changes: Partial<any>) => {
+					const st = this.store.getState();
+					const pr = st.presets.find(
+						(p) => p.id === st.activePresetId,
+					);
+					if (pr) {
+						this.store.updateSilent({
+							presets: st.presets.map((p) =>
+								p.id === pr.id ? { ...p, ...changes } : p,
+							),
+						});
+						this.store.saveSilent();
+					}
+				};
+
+				const handleDayClick = (date: Date) => {
+					this.calendarSelectedDate = date;
+					updatePreset({ calendarSubView: "day" });
+					this.render();
+				};
 
 				const titleParts: string[] = [];
 				if (
@@ -814,7 +868,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					titleParts.join(" · ") + ` · ${listCount}个任务`;
 
 				renderCalendarView(cc, nodes, {
-					subView: this.calendarSubView as
+					subView: calSubView as
 						| "day"
 						| "week"
 						| "month"
@@ -823,15 +877,13 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					intervalMode,
 					onClick: h,
 					onSubViewChange: (v) => {
-						this.calendarSubView = v;
+						updatePreset({ calendarSubView: v });
 						this.render();
 					},
-					onDaySelect: (date) => {
-						this.calendarSelectedDate = date;
-					},
-					selectedDate: this.calendarSelectedDate || new Date(),
-					dateRange: filter.dateRange,
+					selectedDate: calSelectedDate,
+					dateRange: effectiveRange,
 					filterTitle,
+					onDayClick: handleDayClick,
 				});
 				break;
 			}
@@ -843,7 +895,9 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				break;
 			case "detail":
 				renderDetail(container, nodes, {
-					dateRange: filter.dateRange,
+					dateRange: DateUtils.getEffectiveDateRange(
+						filter.dateRange,
+					),
 					intervalMode: intervalMode,
 				});
 				break;

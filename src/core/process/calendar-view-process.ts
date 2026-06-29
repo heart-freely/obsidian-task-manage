@@ -2,8 +2,8 @@
 // 日历视图数据处理 — 纯函数，不涉及 DOM
 
 import { DateUtils } from "../../util/date-utils";
+import { getTaskTimeRange, IntervalMode } from "../task/task-derived";
 import { TaskTreeNode } from "../task/task-tree";
-
 // ========== 日期工具 ==========
 
 export function formatDate(d: Date): string {
@@ -25,22 +25,13 @@ export function getTaskInterval(
 	node: TaskTreeNode,
 	intervalMode: string,
 ): { start: number; end: number } | null {
-	let startField: number | null, endField: number | null;
-	if (intervalMode === "starts-done") {
-		startField = node.starts;
-		endField = node.done ?? node.due;
-	} else {
-		startField = node.scheduled;
-		endField = node.due;
-	}
-	if (startField === null || endField === null) return null;
-	return {
-		start: Math.min(startField, endField),
-		end: Math.max(startField, endField),
-	};
+	const range = getTaskTimeRange(node, intervalMode as IntervalMode);
+	if (!range) return null;
+	return { start: range.start, end: range.end };
 }
 
 /** 构建日期→任务列表映射（仅含首尾日期） */
+
 export function buildDateTaskMap(
 	nodes: TaskTreeNode[],
 	intervalMode: string,
@@ -55,6 +46,7 @@ export function buildDateTaskMap(
 		const start = setStart(new Date(interval.start));
 		const end = setEnd(new Date(interval.end));
 
+		// 只加首尾日期
 		const firstKey = formatDate(start);
 		if (!added.has(node.uid + "|" + firstKey)) {
 			added.add(node.uid + "|" + firstKey);
@@ -228,16 +220,16 @@ export function buildCellItems(
 		const dateStart = setStart(date).getTime();
 		const dateEnd = setEnd(date).getTime();
 
-		const isFirstDay = dateStart <= taskStart && taskStart <= dateEnd;
-		const isLastDay = dateStart <= taskEnd && taskEnd <= dateEnd;
-		const isMiddle = taskStart < dateStart && dateEnd < taskEnd;
+		const isFirstOrLast =
+			(dateStart <= taskStart && taskStart <= dateEnd) ||
+			(dateStart <= taskEnd && taskEnd <= dateEnd);
 
-		if (isFirstDay || isLastDay) {
+		if (isFirstOrLast) {
 			items.push({ type: "task", node });
-		} else if (isMiddle) {
-			items.push({ type: isDateToday ? "task" : "line", node });
+		} else if (isDateToday) {
+			items.push({ type: "task", node });
 		} else {
-			items.push({ type: "placeholder", node });
+			items.push({ type: "line", node });
 		}
 	}
 

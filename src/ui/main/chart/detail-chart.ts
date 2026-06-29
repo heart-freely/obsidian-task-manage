@@ -34,7 +34,6 @@ export function renderDetail(
 	let maxDate: Date;
 
 	if (
-		intervalMode !== "none" &&
 		dateRange &&
 		!dateRange.isAll &&
 		dateRange.start != null &&
@@ -43,17 +42,9 @@ export function renderDetail(
 		minDate = DateUtils.setStart(new Date(dateRange.start));
 		maxDate = DateUtils.setEnd(new Date(dateRange.end));
 	} else {
-		// 回退：从任务数据推断时间范围
 		const today = new Date();
-		minDate = new Date(today);
-		maxDate = new Date(today);
-		nodes.forEach((n) => {
-			if (n.scheduled !== null) {
-				const d = new Date(n.scheduled);
-				if (d < minDate) minDate = d;
-				if (d > maxDate) maxDate = d;
-			}
-		});
+		minDate = DateUtils.setStart(new Date(today.getFullYear() - 10, 0, 1));
+		maxDate = DateUtils.setEnd(new Date(today.getFullYear() + 10, 11, 31));
 	}
 
 	const dates: string[] = [];

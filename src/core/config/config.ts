@@ -30,7 +30,10 @@ export const TASK_ELEMENT_ORDER = [
 
 const C = {
 	// 执行状态
-	statusNone: { dark: "transparent", light: "transparent" },
+	statusNone: {
+		dark: "rgba(128,128,128,0.5)",
+		light: "rgba(128,128,128,0.5)",
+	},
 	statusTodo: { dark: "rgba(85, 90, 100, 0.75)", light: "#6b7280" },
 	statusScheduled: { dark: "rgba(105, 125, 170, 0.75)", light: "#6b7ea8" },
 	statusInProgress: { dark: "rgba(80, 140, 210, 0.80)", light: "#3b82c4" },
