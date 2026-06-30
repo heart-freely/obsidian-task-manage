@@ -3,6 +3,8 @@
 
 import { parseTaskLine } from "../core/parser/tasks-parser";
 import { TaskTreeNode } from "../core/task/task-tree";
+import { getEditContext } from "../ui/main/card/card";
+
 // ========== 编辑按钮组定义 ==========
 
 export interface EditButtonGroup {
@@ -14,7 +16,6 @@ export interface EditButtonGroup {
 	subOptions?: string[];
 }
 
-// 顺序与 TASK_ELEMENT_ORDER / buildMetaRow 一致
 export const EDIT_BUTTONS: EditButtonGroup[] = [
 	{
 		key: "status",
@@ -94,7 +95,6 @@ export const STATUS_KEY_MAP: Record<string, string> = {
 	已取消: "cancelled",
 	已完成: "completed",
 };
-
 export const STATUS_LABEL_MAP: Record<string, string> = {
 	none: "无状态",
 	todo: "待办中",
@@ -103,7 +103,6 @@ export const STATUS_LABEL_MAP: Record<string, string> = {
 	cancelled: "已取消",
 	completed: "已完成",
 };
-
 const STATUS_EMOJI_MAP: Record<string, string> = {
 	none: "",
 	todo: "🔲",
@@ -169,8 +168,6 @@ export function escapeHtml(str: string): string {
 		.replace(/>/g, "&gt;");
 }
 
-// ========== hasMarkValue — 导出供 view-card.ts 使用 ==========
-
 export function hasMarkValue(node: TaskTreeNode, key: string): boolean {
 	switch (key) {
 		case "status":
@@ -201,6 +198,7 @@ export function hasMarkValue(node: TaskTreeNode, key: string): boolean {
 			return false;
 	}
 }
+
 export function hasContentBeenEdited(
 	originalLine: string,
 	previewLine: string,
@@ -210,6 +208,7 @@ export function hasContentBeenEdited(
 	if (!origTask || !prevTask) return originalLine !== previewLine;
 	return origTask.content !== prevTask.content;
 }
+
 // ========== 编辑行 DOM ==========
 
 export interface EditBarOptions {
@@ -226,10 +225,8 @@ function hasMarkBeenEdited(
 ): boolean {
 	const previewText = options.previewText;
 	if (!previewText || previewText === node.rawLine) return false;
-
 	const originalMarkInfo = extractMarkFromText(node.rawLine, key);
 	const previewMarkInfo = extractMarkFromText(previewText, key);
-
 	return originalMarkInfo !== previewMarkInfo;
 }
 
@@ -238,8 +235,8 @@ function extractMarkFromText(line: string, key: string): string {
 		case "status": {
 			const match = line.match(/^- \[(.)\]/);
 			if (!match) return "none";
-			const symbol = match[1];
-			const statusMap: Record<string, string> = {
+			const s = match[1];
+			const m: Record<string, string> = {
 				" ": "todo",
 				"?": "scheduled",
 				">": "in-progress",
@@ -249,56 +246,54 @@ function extractMarkFromText(line: string, key: string): string {
 				X: "completed",
 				"-": "cancelled",
 			};
-			return statusMap[symbol] || "none";
+			return m[s] || "none";
 		}
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-			for (const icon of icons) {
-				if (line.includes(icon)) return icon;
-			}
+			for (const i of icons) if (line.includes(i)) return i;
 			return "";
 		}
 		case "repeat": {
-			const match = line.match(
+			const m = line.match(
 				/🔁\s*(every\s+.+?)(?=\s*[➕⏳🛫📅✅❌🏁🆔⛔]|$)/,
 			);
-			return match ? match[1].trim() : "";
+			return m ? m[1].trim() : "";
 		}
 		case "created": {
-			const match = line.match(/➕\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : "";
+			const m = line.match(/➕\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : "";
 		}
 		case "scheduled": {
-			const match = line.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : "";
+			const m = line.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : "";
 		}
 		case "starts": {
-			const match = line.match(/🛫\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : "";
+			const m = line.match(/🛫\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : "";
 		}
 		case "due": {
-			const match = line.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : "";
+			const m = line.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : "";
 		}
 		case "done": {
-			const match = line.match(/✅\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : "";
+			const m = line.match(/✅\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : "";
 		}
 		case "cancelled": {
-			const match = line.match(/❌\s*(\d{4}-\d{2}-\d{2})?/);
-			return match ? match[1] || "已取消" : "";
+			const m = line.match(/❌\s*(\d{4}-\d{2}-\d{2})?/);
+			return m ? m[1] || "已取消" : "";
 		}
 		case "tag": {
-			const match = line.match(/🏁\s*(\S+)/);
-			return match ? match[1] : "";
+			const m = line.match(/🏁\s*(\S+)/);
+			return m ? m[1] : "";
 		}
 		case "id": {
-			const match = line.match(/🆔\s*(\S+)/);
-			return match ? match[1] : "";
+			const m = line.match(/🆔\s*(\S+)/);
+			return m ? m[1] : "";
 		}
 		case "forbid": {
-			const match = line.match(/⛔\s*([^\s,]+(?:,\s*[^\s,]+)*)/);
-			return match ? match[1].replace(/\s/g, "") : "";
+			const m = line.match(/⛔\s*([^\s,]+(?:,\s*[^\s,]+)*)/);
+			return m ? m[1].replace(/\s/g, "") : "";
 		}
 		default:
 			return "";
@@ -310,8 +305,8 @@ function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 		case "status": {
 			const match = rawLine.match(/^- \[(.)\]/);
 			if (!match) return null;
-			const symbol = match[1];
-			const statusMap: Record<string, string> = {
+			const s = match[1];
+			const m: Record<string, string> = {
 				" ": "todo",
 				"?": "scheduled",
 				">": "in-progress",
@@ -321,56 +316,54 @@ function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 				X: "completed",
 				"-": "cancelled",
 			};
-			return statusMap[symbol] || null;
+			return m[s] || null;
 		}
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-			for (const icon of icons) {
-				if (rawLine.includes(icon)) return icon;
-			}
+			for (const i of icons) if (rawLine.includes(i)) return i;
 			return null;
 		}
 		case "repeat": {
-			const match = rawLine.match(
+			const m = rawLine.match(
 				/🔁\s*(every\s+.+?)(?=\s*[➕⏳🛫📅✅❌🏁🆔⛔]|$)/,
 			);
-			return match ? match[1].trim() : null;
+			return m ? m[1].trim() : null;
 		}
 		case "created": {
-			const match = rawLine.match(/➕\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : null;
+			const m = rawLine.match(/➕\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : null;
 		}
 		case "scheduled": {
-			const match = rawLine.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : null;
+			const m = rawLine.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : null;
 		}
 		case "starts": {
-			const match = rawLine.match(/🛫\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : null;
+			const m = rawLine.match(/🛫\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : null;
 		}
 		case "due": {
-			const match = rawLine.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : null;
+			const m = rawLine.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : null;
 		}
 		case "done": {
-			const match = rawLine.match(/✅\s*(\d{4}-\d{2}-\d{2})/);
-			return match ? match[1] : null;
+			const m = rawLine.match(/✅\s*(\d{4}-\d{2}-\d{2})/);
+			return m ? m[1] : null;
 		}
 		case "cancelled": {
-			const match = rawLine.match(/❌\s*(\d{4}-\d{2}-\d{2})?/);
-			return match ? match[1] || "" : null;
+			const m = rawLine.match(/❌\s*(\d{4}-\d{2}-\d{2})?/);
+			return m ? m[1] || "" : null;
 		}
 		case "tag": {
-			const match = rawLine.match(/🏁\s*(\S+)/);
-			return match ? match[1] : null;
+			const m = rawLine.match(/🏁\s*(\S+)/);
+			return m ? m[1] : null;
 		}
 		case "id": {
-			const match = rawLine.match(/🆔\s*(\S+)/);
-			return match ? match[1] : null;
+			const m = rawLine.match(/🆔\s*(\S+)/);
+			return m ? m[1] : null;
 		}
 		case "forbid": {
-			const match = rawLine.match(/⛔\s*([^\s,]+(?:,\s*[^\s,]+)*)/);
-			return match ? match[1].replace(/\s/g, "") : null;
+			const m = rawLine.match(/⛔\s*([^\s,]+(?:,\s*[^\s,]+)*)/);
+			return m ? m[1].replace(/\s/g, "") : null;
 		}
 		default:
 			return null;
@@ -380,16 +373,16 @@ function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 function getMarkDisplayText(node: TaskTreeNode, key: string): string {
 	switch (key) {
 		case "status": {
-			const emoji = STATUS_EMOJI_MAP[node.status] || "";
-			const name = STATUS_LABEL_MAP[node.status] || "";
-			return `${emoji} ${name}`;
+			const e = STATUS_EMOJI_MAP[node.status] || "";
+			const n = STATUS_LABEL_MAP[node.status] || "";
+			return `${e} ${n}`;
 		}
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
 			const names = ["最高", "高", "中", "低", "最低"];
-			const icon = icons[node.priority] || "";
-			const name = names[node.priority] || "";
-			return `${icon} ${name}`;
+			const i = icons[node.priority] || "";
+			const n = names[node.priority] || "";
+			return `${i} ${n}`;
 		}
 		case "repeat":
 			return node.repeat ? `🔁 ${node.repeat}` : "";
@@ -422,16 +415,14 @@ function getMarkDisplayText(node: TaskTreeNode, key: string): string {
 	}
 }
 
-/** 从行文本中提取标记值并格式化为显示文本 */
 function getMarkDisplayTextFromLine(line: string, key: string): string {
 	const extracted = extractMarkFromText(line, key);
 	if (!extracted) return "";
-
 	switch (key) {
 		case "status": {
-			const emoji = STATUS_EMOJI_MAP[extracted] || "";
-			const name = STATUS_LABEL_MAP[extracted] || extracted;
-			return `${emoji} ${name}`;
+			const e = STATUS_EMOJI_MAP[extracted] || "";
+			const n = STATUS_LABEL_MAP[extracted] || extracted;
+			return `${e} ${n}`;
 		}
 		case "priority": {
 			const names: Record<string, string> = {
@@ -441,8 +432,8 @@ function getMarkDisplayTextFromLine(line: string, key: string): string {
 				"🔽": "低",
 				"⏬": "最低",
 			};
-			const name = names[extracted] || "";
-			return `${extracted} ${name}`;
+			const n = names[extracted] || "";
+			return `${extracted} ${n}`;
 		}
 		case "repeat":
 			return extracted ? `🔁 ${extracted}` : "";
@@ -478,6 +469,17 @@ export function createEditBar(
 	bar.style.cssText =
 		"display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:0.8em;color:var(--text-muted);margin-top:4px;line-height:normal;";
 
+	// 同步模式：非主任务隐藏编辑栏（仅在编辑模式下）
+	const editCtx = getEditContext();
+	if (
+		options.isEditing &&
+		editCtx?.syncMode &&
+		editCtx.primaryTaskUid !== node.uid
+	) {
+		bar.style.display = "none";
+		return bar;
+	}
+
 	let hoveredButtonKey: string | null = null;
 
 	bar.addEventListener("mouseleave", () => {
@@ -492,13 +494,10 @@ export function createEditBar(
 		const hasValue = hasMarkValue(node, group.key);
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
 
-		// 按钮显示内容：编辑后显示预览中的值（保持格式一致），否则显示原始值
 		if (isEdited && options.previewText) {
-			const displayText = getMarkDisplayTextFromLine(
-				options.previewText,
-				group.key,
-			);
-			btn.textContent = displayText || `${group.icon} ${group.label}`;
+			btn.textContent =
+				getMarkDisplayTextFromLine(options.previewText, group.key) ||
+				`${group.icon} ${group.label}`;
 		} else {
 			btn.textContent = hasValue
 				? getMarkDisplayText(node, group.key)
@@ -532,9 +531,7 @@ export function createEditBar(
 	});
 
 	function updateAllButtonStyles() {
-		buttons.forEach(({ btn, group }) => {
-			updateButtonStyle(btn, group);
-		});
+		buttons.forEach(({ btn, group }) => updateButtonStyle(btn, group));
 	}
 
 	function updateButtonStyle(btn: HTMLElement, group: EditButtonGroup) {
@@ -544,41 +541,13 @@ export function createEditBar(
 		const hasValue = hasMarkValue(node, group.key);
 
 		if (isExpanded || isEdited) {
-			btn.style.cssText = `
-				all:unset;
-				padding:1px 3px;border-radius:3px;cursor:pointer;
-				font-size:inherit;font-family:inherit;line-height:1;background:var(--interactive-accent);color:white;
-				display:inline-flex;align-items:center;
-				border:1px solid var(--interactive-accent);outline:none;
-				box-sizing:border-box;
-			`;
+			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--interactive-accent);color:white;display:inline-flex;align-items:center;border:1px solid var(--interactive-accent);outline:none;box-sizing:border-box;`;
 		} else if (isHovered) {
-			btn.style.cssText = `
-				all:unset;
-				padding:1px 3px;border-radius:3px;cursor:pointer;
-				font-size:inherit;font-family:inherit;line-height:1;background:var(--background-modifier-hover);color:var(--text-normal);
-				display:inline-flex;align-items:center;
-				border:1px solid var(--background-modifier-border);outline:none;
-				box-sizing:border-box;
-			`;
+			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--background-modifier-hover);color:var(--text-normal);display:inline-flex;align-items:center;border:1px solid var(--background-modifier-border);outline:none;box-sizing:border-box;`;
 		} else if (hasValue) {
-			btn.style.cssText = `
-				all:unset;
-				padding:1px 3px;border-radius:3px;cursor:pointer;
-				font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;
-				display:inline-flex;align-items:center;
-				border:1px solid transparent;outline:none;
-				box-sizing:border-box;
-			`;
+			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;`;
 		} else if (options.isEditing) {
-			btn.style.cssText = `
-				all:unset;
-				padding:1px 3px;border-radius:3px;cursor:pointer;
-				font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;
-				display:inline-flex;align-items:center;
-				border:1px solid transparent;outline:none;
-				box-sizing:border-box;
-			`;
+			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;`;
 		} else {
 			btn.style.cssText = "display:none;";
 		}
@@ -605,18 +574,458 @@ export function createEditBar(
 		}
 	}
 
-	// 阅读模式：无可见按钮时隐藏编辑栏
 	if (!options.isEditing && !options.expandedButton) {
 		const hasAnyVisible = EDIT_BUTTONS.some((g) =>
 			hasMarkValue(node, g.key),
 		);
-		if (!hasAnyVisible) {
-			bar.style.display = "none";
-		}
+		if (!hasAnyVisible) bar.style.display = "none";
 	}
 
 	return bar;
 }
+
+// ========== 子行构建上下文 ==========
+
+interface SubRowContext {
+	getMainBtn: () => HTMLElement | null;
+	updateMainBtnText: (text: string) => void;
+	originalValue: string | null;
+	hasOriginalMark: boolean;
+	previewValue: string | null;
+	hasChanged: boolean;
+}
+
+function createSubRowContext(
+	node: TaskTreeNode,
+	group: EditButtonGroup,
+	options: EditBarOptions,
+	subRow: HTMLElement,
+): SubRowContext {
+	const getMainBtn = (): HTMLElement | null => {
+		const editBar = subRow.closest(".task-edit-bar") as HTMLElement;
+		if (!editBar) return null;
+		return editBar.querySelector(
+			`[data-mark-key="${group.key}"]`,
+		) as HTMLElement;
+	};
+	const updateMainBtnText = (displayText: string) => {
+		const mb = getMainBtn();
+		if (mb && displayText) mb.textContent = displayText;
+	};
+	const originalValue = extractOriginalMarkValue(node.rawLine, group.key);
+	const hasOriginalMark = originalValue !== null && originalValue !== "";
+	let previewValue: string | null = null;
+	if (options.previewText)
+		previewValue = extractMarkFromText(options.previewText, group.key);
+	const hasChanged = originalValue !== previewValue;
+	return {
+		getMainBtn,
+		updateMainBtnText,
+		originalValue,
+		hasOriginalMark,
+		previewValue,
+		hasChanged,
+	};
+}
+
+function createOptionsSubRow(
+	node: TaskTreeNode,
+	group: EditButtonGroup,
+	options: EditBarOptions,
+	ctx: SubRowContext,
+): void {
+	if (!group.subOptions) return;
+	const subRow = (ctx as any)._subRow as HTMLElement;
+	const onEdit = options.onEdit;
+	group.subOptions.forEach((opt) => {
+		const btn = document.createElement("button");
+		btn.textContent = opt;
+		let isActive = false;
+		if (group.key === "status") {
+			const sk = STATUS_KEY_MAP[opt];
+			isActive =
+				ctx.previewValue !== null
+					? ctx.previewValue === sk
+					: node.status === sk;
+		} else if (group.key === "priority") {
+			const oi = ["🔺", "⏫", "🔼", "🔽", "⏬"][node.priority] || "";
+			isActive =
+				ctx.previewValue !== null
+					? ctx.previewValue === opt
+					: oi === opt;
+		} else {
+			isActive =
+				ctx.previewValue !== null
+					? ctx.previewValue === opt.replace("🏁 ", "")
+					: getNodeMarkValue(node, group.key) === opt ||
+						getNodeMarkValue(node, group.key) ===
+							opt.replace("🏁 ", "");
+		}
+		btn.style.cssText =
+			`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;` +
+			(isActive
+				? "background:var(--interactive-accent);color:white;"
+				: "background:var(--interactive-normal);color:var(--text-normal);");
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const value =
+				group.key === "status" ? STATUS_KEY_MAP[opt] || opt : opt;
+			const allBtns = btn.parentElement?.querySelectorAll("button");
+			allBtns?.forEach((b: Element) => {
+				(b as HTMLElement).style.background =
+					"var(--interactive-normal)";
+				(b as HTMLElement).style.color = "var(--text-normal)";
+			});
+			btn.style.background = "var(--interactive-accent)";
+			btn.style.color = "white";
+			if (group.key === "status") {
+				const sk = STATUS_KEY_MAP[opt] || opt;
+				ctx.updateMainBtnText(
+					`${STATUS_EMOJI_MAP[sk] || ""} ${STATUS_LABEL_MAP[sk] || sk}`,
+				);
+			} else if (group.key === "priority") {
+				const names: Record<string, string> = {
+					"🔺": "最高",
+					"⏫": "高",
+					"🔼": "中",
+					"🔽": "低",
+					"⏬": "最低",
+				};
+				ctx.updateMainBtnText(`${opt} ${names[opt] || ""}`);
+			} else {
+				ctx.updateMainBtnText(opt);
+			}
+			onEdit(node, group.key, value);
+		});
+		subRow.appendChild(btn);
+	});
+}
+
+function createDateSubRow(
+	node: TaskTreeNode,
+	group: EditButtonGroup,
+	options: EditBarOptions,
+	ctx: SubRowContext,
+): void {
+	const subRow = (ctx as any)._subRow as HTMLElement;
+	const onEdit = options.onEdit;
+	let currentValue: string | null = null;
+	if (options.previewText) {
+		const extracted = extractMarkFromText(options.previewText, group.key);
+		if (extracted) currentValue = extracted;
+	}
+	if (!currentValue) currentValue = getNodeMarkValue(node, group.key);
+	const displayValue = currentValue || "年/月/日";
+	let dateApplied = false;
+	const hiddenInput = document.createElement("input");
+	hiddenInput.type = "date";
+	hiddenInput.value = currentValue || "";
+	hiddenInput.style.cssText =
+		"position:absolute;opacity:0;width:0;height:0;overflow:hidden;";
+	hiddenInput.addEventListener("change", () => {
+		dateApplied = true;
+		displaySpan.textContent = hiddenInput.value || "年/月/日";
+		displaySpan.style.color = hiddenInput.value
+			? "var(--text-normal)"
+			: "var(--text-muted)";
+		ctx.updateMainBtnText(
+			hiddenInput.value
+				? `${group.icon} ${hiddenInput.value}`
+				: `${group.icon} ${group.label}`,
+		);
+		onEdit(node, group.key, hiddenInput.value || null);
+	});
+	hiddenInput.addEventListener("blur", () => {
+		setTimeout(() => {
+			if (dateApplied) {
+				dateApplied = false;
+				return;
+			}
+			displaySpan.textContent = hiddenInput.value || "年/月/日";
+			displaySpan.style.color = hiddenInput.value
+				? "var(--text-normal)"
+				: "var(--text-muted)";
+			ctx.updateMainBtnText(
+				hiddenInput.value
+					? `${group.icon} ${hiddenInput.value}`
+					: `${group.icon} ${group.label}`,
+			);
+			onEdit(node, group.key, hiddenInput.value || null);
+		}, 150);
+	});
+	subRow.appendChild(hiddenInput);
+	const displaySpan = document.createElement("span");
+	displaySpan.textContent = displayValue;
+	displaySpan.style.cssText =
+		`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;min-width:80px;text-align:center;box-sizing:border-box;background:var(--background-primary);color:` +
+		(currentValue ? "var(--text-normal)" : "var(--text-muted)") +
+		`;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;`;
+	displaySpan.addEventListener("click", (e) => {
+		e.stopPropagation();
+		e.preventDefault();
+		if (hiddenInput.showPicker) {
+			hiddenInput.showPicker();
+		} else {
+			hiddenInput.focus();
+			hiddenInput.click();
+		}
+	});
+	subRow.appendChild(displaySpan);
+}
+
+function createCustomSubRow(
+	node: TaskTreeNode,
+	group: EditButtonGroup,
+	options: EditBarOptions,
+	ctx: SubRowContext,
+): void {
+	const subRow = (ctx as any)._subRow as HTMLElement;
+	const onEdit = options.onEdit;
+	if (group.key === "id") {
+		const ci = document.createElement("input");
+		ci.type = "text";
+		ci.placeholder = "自定义";
+		ci.style.cssText =
+			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.addEventListener("click", (e) => e.stopPropagation());
+		ci.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				const v = ci.value.trim();
+				if (v) {
+					ctx.updateMainBtnText(`🆔 ${v}`);
+					onEdit(node, group.key, v);
+				}
+			}
+		});
+		subRow.appendChild(ci);
+		const gb = document.createElement("button");
+		gb.textContent = "生成";
+		gb.style.cssText =
+			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+		gb.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const g = Math.random().toString(36).substring(2, 8);
+			ctx.updateMainBtnText(`🆔 ${g}`);
+			onEdit(node, group.key, g);
+		});
+		subRow.appendChild(gb);
+	} else if (group.key === "forbid") {
+		const ci = document.createElement("input");
+		ci.type = "text";
+		ci.placeholder = "输入引用ID";
+		ci.style.cssText =
+			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:120px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.addEventListener("click", (e) => e.stopPropagation());
+		ci.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				const v = ci.value.trim();
+				if (v) {
+					ctx.updateMainBtnText(`⛔ ${v}`);
+					onEdit(node, group.key, v);
+				}
+			}
+		});
+		subRow.appendChild(ci);
+
+		const sb = document.createElement("button");
+		sb.textContent = "选择";
+		sb.style.cssText =
+			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+		sb.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const editCtx = getEditContext();
+			if (!editCtx?.getIdOptions) return;
+			const options = editCtx.getIdOptions();
+			if (options.length === 0) return;
+
+			const existing = document.querySelector(".id-select-dropdown");
+			if (existing) {
+				existing.remove();
+				return;
+			}
+
+			const dropdown = document.createElement("div");
+			dropdown.className = "id-select-dropdown";
+			const btnRect = sb.getBoundingClientRect();
+			dropdown.style.cssText = `position:fixed;z-index:1000;left:${btnRect.left}px;top:${btnRect.bottom + 4}px;background:var(--background-primary);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--background-modifier-border);border-radius:4px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.3);min-width:200px;`;
+			options.forEach((opt) => {
+				const item = document.createElement("div");
+				item.textContent = `${opt.id}: ${opt.desc}`;
+				item.title = `${opt.id}: ${opt.desc}`;
+				item.style.cssText =
+					"padding:4px 8px;cursor:pointer;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:350px;";
+				item.addEventListener(
+					"mouseenter",
+					() =>
+						(item.style.background =
+							"var(--background-modifier-hover)"),
+				);
+				item.addEventListener(
+					"mouseleave",
+					() => (item.style.background = ""),
+				);
+				item.addEventListener("mousedown", (ev) => {
+					ev.preventDefault();
+					ev.stopPropagation();
+					ctx.updateMainBtnText(`⛔ ${opt.id}`);
+					onEdit(node, group.key, opt.id);
+					dropdown.remove();
+				});
+				dropdown.appendChild(item);
+			});
+
+			document.body.appendChild(dropdown);
+			const closeDropdown = (ev: MouseEvent) => {
+				if (!dropdown.contains(ev.target as Node)) {
+					dropdown.remove();
+					document.removeEventListener("mousedown", closeDropdown);
+				}
+			};
+			setTimeout(
+				() => document.addEventListener("mousedown", closeDropdown),
+				0,
+			);
+		});
+		subRow.appendChild(sb);
+	} else if (group.key === "tag") {
+		if (group.subOptions) {
+			group.subOptions.forEach((opt) => {
+				const b = document.createElement("button");
+				b.textContent = opt;
+				const ov = opt.replace("🏁 ", "");
+				const ia =
+					ctx.previewValue !== null
+						? ctx.previewValue === ov
+						: node.tag === ov;
+				b.style.cssText =
+					`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;` +
+					(ia
+						? "background:var(--interactive-accent);color:white;"
+						: "background:var(--interactive-normal);color:var(--text-normal);");
+				b.addEventListener("click", (e) => {
+					e.stopPropagation();
+					ctx.updateMainBtnText(opt);
+					onEdit(node, group.key, ov);
+				});
+				subRow.appendChild(b);
+			});
+		}
+		const ci = document.createElement("input");
+		ci.type = "text";
+		ci.placeholder = "自定义";
+		ci.style.cssText =
+			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.addEventListener("click", (e) => e.stopPropagation());
+		ci.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				const v = ci.value.trim();
+				if (v) {
+					ctx.updateMainBtnText(`🏁 ${v}`);
+					onEdit(node, group.key, v);
+				}
+			}
+		});
+		subRow.appendChild(ci);
+	} else {
+		if (group.subOptions) {
+			group.subOptions.forEach((opt) => {
+				const b = document.createElement("button");
+				b.textContent = opt;
+				const ia =
+					ctx.previewValue !== null
+						? ctx.previewValue === opt.replace("🔁 ", "")
+						: getNodeMarkValue(node, group.key) ===
+							opt.replace("🔁 ", "");
+				b.style.cssText =
+					`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;` +
+					(ia
+						? "background:var(--interactive-accent);color:white;"
+						: "background:var(--interactive-normal);color:var(--text-normal);");
+				b.addEventListener("click", (e) => {
+					e.stopPropagation();
+					ctx.updateMainBtnText(opt);
+					onEdit(node, group.key, opt);
+				});
+				subRow.appendChild(b);
+			});
+		}
+		const ci = document.createElement("input");
+		ci.type = "text";
+		ci.placeholder = "自定义";
+		ci.style.cssText =
+			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.addEventListener("click", (e) => e.stopPropagation());
+		ci.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				const v = ci.value.trim();
+				if (v) {
+					ctx.updateMainBtnText(`${group.icon} ${v}`);
+					onEdit(node, group.key, v);
+				}
+			}
+		});
+		subRow.appendChild(ci);
+	}
+}
+
+function appendDeleteButton(
+	node: TaskTreeNode,
+	subRow: HTMLElement,
+	group: EditButtonGroup,
+	options: EditBarOptions,
+	ctx: SubRowContext,
+): void {
+	const onEdit = options.onEdit;
+	const delBtn = document.createElement("button");
+	delBtn.textContent = "删除";
+	delBtn.style.cssText =
+		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid rgba(200,80,80,0.3);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:rgba(200,80,80,0.08);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+	if (!ctx.hasOriginalMark) delBtn.style.display = "none";
+	delBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onEdit(node, group.key, null);
+	});
+	subRow.appendChild(delBtn);
+}
+
+function appendRestoreButton(
+	node: TaskTreeNode,
+	subRow: HTMLElement,
+	group: EditButtonGroup,
+	options: EditBarOptions,
+	ctx: SubRowContext,
+): void {
+	const onEdit = options.onEdit;
+	const restoreBtn = document.createElement("button");
+	restoreBtn.textContent = "原文";
+	restoreBtn.style.cssText =
+		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+	restoreBtn.title = "恢复为原始值";
+	if (!ctx.hasChanged) restoreBtn.style.display = "none";
+	restoreBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		if (ctx.originalValue !== null)
+			onEdit(node, group.key, ctx.originalValue);
+		else onEdit(node, group.key, null);
+	});
+	subRow.appendChild(restoreBtn);
+}
+
+type SubRowBuilder = (
+	node: TaskTreeNode,
+	group: EditButtonGroup,
+	options: EditBarOptions,
+	ctx: SubRowContext,
+) => void;
+const subRowBuilders: Record<string, SubRowBuilder> = {
+	options: createOptionsSubRow,
+	date: createDateSubRow,
+	custom: createCustomSubRow,
+};
 
 export function createSubRow(
 	node: TaskTreeNode,
@@ -627,339 +1036,14 @@ export function createSubRow(
 	subRow.className = "edit-sub-row";
 	subRow.style.cssText =
 		"display:flex;flex-wrap:wrap;gap:1px;align-items:center;padding:1px 0;border-top:1px solid var(--background-modifier-border);width:100%;flex-basis:100%;";
-
-	const onEdit = options.onEdit;
-
-	// 获取主按钮引用（通过 data-mark-key 查找）
-	const getMainBtn = (): HTMLElement | null => {
-		const editBar = subRow.closest(".task-edit-bar") as HTMLElement;
-		if (!editBar) return null;
-		return editBar.querySelector(
-			`[data-mark-key="${group.key}"]`,
-		) as HTMLElement;
-	};
-
-	// 更新主按钮文本
-	const updateMainBtnText = (displayText: string) => {
-		const mainBtn = getMainBtn();
-		if (mainBtn && displayText) {
-			mainBtn.textContent = displayText;
-		}
-	};
-
-	// 原始值（删除和恢复按钮共用）
-	const originalValue = extractOriginalMarkValue(node.rawLine, group.key);
-	const hasOriginalMark = originalValue !== null && originalValue !== "";
-
-	// 预览值（恢复按钮判断用）
-	let previewValue: string | null = null;
-	if (options.previewText) {
-		previewValue = extractMarkFromText(options.previewText, group.key);
-	}
-	const hasChanged = originalValue !== previewValue;
-
-	if (group.subType === "options" && group.subOptions) {
-		group.subOptions.forEach((opt) => {
-			const btn = document.createElement("button");
-			btn.textContent = opt;
-
-			let isActive = false;
-			if (group.key === "status") {
-				const statusKey = STATUS_KEY_MAP[opt];
-				if (previewValue !== null) {
-					isActive = previewValue === statusKey;
-				} else {
-					isActive = node.status === statusKey;
-				}
-			} else if (group.key === "priority") {
-				const originalIcon =
-					["🔺", "⏫", "🔼", "🔽", "⏬"][node.priority] || "";
-				if (previewValue !== null) {
-					isActive = previewValue === opt;
-				} else {
-					isActive = originalIcon === opt;
-				}
-			} else {
-				if (previewValue !== null) {
-					isActive = previewValue === opt.replace("🏁 ", "");
-				} else {
-					const originalVal = getNodeMarkValue(node, group.key);
-					isActive =
-						originalVal === opt ||
-						originalVal === opt.replace("🏁 ", "");
-				}
-			}
-
-			btn.style.cssText =
-				"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
-				(isActive
-					? "background:var(--interactive-accent);color:white;"
-					: "background:var(--interactive-normal);color:var(--text-normal);");
-
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				const value =
-					group.key === "status" ? STATUS_KEY_MAP[opt] || opt : opt;
-
-				const allBtns = btn.parentElement?.querySelectorAll("button");
-				allBtns?.forEach((b: Element) => {
-					(b as HTMLElement).style.background =
-						"var(--interactive-normal)";
-					(b as HTMLElement).style.color = "var(--text-normal)";
-				});
-				btn.style.background = "var(--interactive-accent)";
-				btn.style.color = "white";
-
-				if (group.key === "status") {
-					const statusKey = STATUS_KEY_MAP[opt] || opt;
-					const emoji = STATUS_EMOJI_MAP[statusKey] || "";
-					const name = STATUS_LABEL_MAP[statusKey] || statusKey;
-					updateMainBtnText(`${emoji} ${name}`);
-				} else if (group.key === "priority") {
-					const names: Record<string, string> = {
-						"🔺": "最高",
-						"⏫": "高",
-						"🔼": "中",
-						"🔽": "低",
-						"⏬": "最低",
-					};
-					updateMainBtnText(`${opt} ${names[opt] || ""}`);
-				} else {
-					updateMainBtnText(opt);
-				}
-
-				onEdit(node, group.key, value);
-			});
-			subRow.appendChild(btn);
-		});
-	}
-
-	if (group.subType === "date") {
-		let currentValue: string | null = null;
-		if (options.previewText) {
-			const extracted = extractMarkFromText(
-				options.previewText,
-				group.key,
-			);
-			if (extracted) currentValue = extracted;
-		}
-		if (!currentValue) {
-			currentValue = getNodeMarkValue(node, group.key);
-		}
-		const displayValue = currentValue || "年/月/日";
-
-		const hiddenInput = document.createElement("input");
-		hiddenInput.type = "date";
-		hiddenInput.value = currentValue || "";
-		hiddenInput.style.cssText =
-			"position:absolute;opacity:0;pointer-events:none;width:0;height:0;";
-		hiddenInput.addEventListener("change", () => {
-			displaySpan.textContent = hiddenInput.value || "年/月/日";
-			displaySpan.style.color = hiddenInput.value
-				? "var(--text-normal)"
-				: "var(--text-muted)";
-
-			const icon = group.icon;
-			updateMainBtnText(
-				hiddenInput.value
-					? `${icon} ${hiddenInput.value}`
-					: `${icon} ${group.label}`,
-			);
-
-			onEdit(node, group.key, hiddenInput.value || null);
-		});
-		subRow.appendChild(hiddenInput);
-
-		const displaySpan = document.createElement("span");
-		displaySpan.textContent = displayValue;
-		displaySpan.style.cssText =
-			"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;min-width:80px;text-align:center;box-sizing:border-box;background:var(--background-primary);color:" +
-			(currentValue ? "var(--text-normal)" : "var(--text-muted)") +
-			";cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;";
-		displaySpan.addEventListener("click", (e) => {
-			e.stopPropagation();
-			if (hiddenInput.showPicker) {
-				hiddenInput.showPicker();
-			} else {
-				hiddenInput.click();
-			}
-		});
-		subRow.appendChild(displaySpan);
-	}
-
-	if (group.subType === "custom") {
-		if (group.key === "id") {
-			const customInput = document.createElement("input");
-			customInput.type = "text";
-			customInput.placeholder = "自定义";
-			customInput.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
-			customInput.addEventListener("click", (e) => e.stopPropagation());
-			customInput.addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					const val = customInput.value.trim();
-					if (val) {
-						updateMainBtnText(`🆔 ${val}`);
-						onEdit(node, group.key, val);
-					}
-				}
-			});
-			subRow.appendChild(customInput);
-
-			const genBtn = document.createElement("button");
-			genBtn.textContent = "生成";
-			genBtn.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
-			genBtn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				const generated = Math.random().toString(36).substring(2, 8);
-				updateMainBtnText(`🆔 ${generated}`);
-				onEdit(node, group.key, generated);
-			});
-			subRow.appendChild(genBtn);
-		} else if (group.key === "forbid") {
-			const customInput = document.createElement("input");
-			customInput.type = "text";
-			customInput.placeholder = "输入引用ID";
-			customInput.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:120px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
-			customInput.addEventListener("click", (e) => e.stopPropagation());
-			customInput.addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					const val = customInput.value.trim();
-					if (val) {
-						updateMainBtnText(`⛔ ${val}`);
-						onEdit(node, group.key, val);
-					}
-				}
-			});
-			subRow.appendChild(customInput);
-		} else if (group.key === "tag") {
-			if (group.subOptions) {
-				group.subOptions.forEach((opt) => {
-					const btn = document.createElement("button");
-					btn.textContent = opt;
-					const optValue = opt.replace("🏁 ", "");
-					const isActive =
-						previewValue !== null
-							? previewValue === optValue
-							: node.tag === optValue;
-
-					btn.style.cssText =
-						"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
-						(isActive
-							? "background:var(--interactive-accent);color:white;"
-							: "background:var(--interactive-normal);color:var(--text-normal);");
-					btn.addEventListener("click", (e) => {
-						e.stopPropagation();
-						updateMainBtnText(opt);
-						onEdit(node, group.key, optValue);
-					});
-					subRow.appendChild(btn);
-				});
-			}
-
-			const customInput = document.createElement("input");
-			customInput.type = "text";
-			customInput.placeholder = "自定义";
-			customInput.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
-			customInput.addEventListener("click", (e) => e.stopPropagation());
-			customInput.addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					const val = customInput.value.trim();
-					if (val) {
-						updateMainBtnText(`🏁 ${val}`);
-						onEdit(node, group.key, val);
-					}
-				}
-			});
-			subRow.appendChild(customInput);
-		} else {
-			if (group.subOptions) {
-				group.subOptions.forEach((opt) => {
-					const btn = document.createElement("button");
-					btn.textContent = opt;
-					const isActive =
-						previewValue !== null
-							? previewValue === opt.replace("🔁 ", "")
-							: getNodeMarkValue(node, group.key) ===
-								opt.replace("🔁 ", "");
-
-					btn.style.cssText =
-						"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;" +
-						(isActive
-							? "background:var(--interactive-accent);color:white;"
-							: "background:var(--interactive-normal);color:var(--text-normal);");
-					btn.addEventListener("click", (e) => {
-						e.stopPropagation();
-						updateMainBtnText(opt);
-						onEdit(node, group.key, opt);
-					});
-					subRow.appendChild(btn);
-				});
-			}
-
-			const customInput = document.createElement("input");
-			customInput.type = "text";
-			customInput.placeholder = "自定义";
-			customInput.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
-			customInput.addEventListener("click", (e) => e.stopPropagation());
-			customInput.addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					const val = customInput.value.trim();
-					if (val) {
-						updateMainBtnText(`${group.icon} ${val}`);
-						onEdit(node, group.key, val);
-					}
-				}
-			});
-			subRow.appendChild(customInput);
-		}
-	}
-
-	// 删除按钮：仅当原始标记存在时显示
-	const delBtn = document.createElement("button");
-	delBtn.textContent = "删除";
-	delBtn.style.cssText =
-		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid rgba(200,80,80,0.3);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:rgba(200,80,80,0.08);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
-	if (!hasOriginalMark) {
-		delBtn.style.display = "none";
-	}
-	delBtn.addEventListener("click", (e) => {
-		e.stopPropagation();
-		onEdit(node, group.key, null);
-	});
-	subRow.appendChild(delBtn);
-
-	// 恢复按钮：预览与原始不一致时显示
-	const restoreBtn = document.createElement("button");
-	restoreBtn.textContent = "原文";
-	restoreBtn.style.cssText =
-		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
-	restoreBtn.title = "恢复为原始值";
-	if (!hasChanged) {
-		restoreBtn.style.display = "none";
-	}
-	restoreBtn.addEventListener("click", (e) => {
-		e.stopPropagation();
-		if (originalValue !== null) {
-			onEdit(node, group.key, originalValue);
-		} else {
-			onEdit(node, group.key, null);
-		}
-	});
-	subRow.appendChild(restoreBtn);
-
+	const ctx = createSubRowContext(node, group, options, subRow);
+	(ctx as any)._subRow = subRow;
+	const builder = subRowBuilders[group.subType || "custom"];
+	if (builder) builder(node, group, options, ctx);
+	appendDeleteButton(node, subRow, group, options, ctx);
+	appendRestoreButton(node, subRow, group, options, ctx);
 	return subRow;
 }
-
-// ========== 预览行 DOM ==========
 
 export function createPreviewRow(
 	previewText: string,
@@ -973,66 +1057,62 @@ export function createPreviewRow(
 	row.className = "task-preview-row";
 	row.style.cssText =
 		"margin-top:4px;padding:1px 4px;border-radius:3px;font-size:0.8em;display:flex;align-items:center;gap:2px;flex-wrap:wrap;";
-
 	if (saved) {
 		row.style.background = "rgba(71,133,47,0.15)";
 		row.innerHTML = `<span style="color:var(--text-muted);">📝 已保存: ${escapeHtml(previewText)}</span>`;
 		if (onRevert) {
-			const revertBtn = document.createElement("button");
-			revertBtn.textContent = "撤回";
-			revertBtn.style.cssText =
+			const rb = document.createElement("button");
+			rb.textContent = "撤回";
+			rb.style.cssText =
 				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;background:var(--interactive-normal);color:var(--text-muted);display:inline-flex;align-items:center;box-sizing:border-box;";
-			revertBtn.addEventListener("click", (e) => {
+			rb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				onRevert();
 			});
-			row.appendChild(revertBtn);
+			row.appendChild(rb);
 		}
 	} else {
 		row.style.background = "rgba(127,184,240,0.1)";
 		row.innerHTML = `<span style="color:var(--text-muted);">📝 预览: ${escapeHtml(previewText)}</span>`;
 		if (onSave) {
-			const saveBtn = document.createElement("button");
-			saveBtn.textContent = "保存";
-			const isEdited = hasEdits !== undefined ? hasEdits : true;
-			saveBtn.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;display:inline-flex;align-items:center;box-sizing:border-box;" +
-				(isEdited
+			const sb = document.createElement("button");
+			sb.textContent = "保存";
+			const ie = hasEdits !== undefined ? hasEdits : true;
+			sb.style.cssText =
+				`all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;display:inline-flex;align-items:center;box-sizing:border-box;` +
+				(ie
 					? "background:var(--interactive-accent);color:white;"
 					: "background:var(--interactive-normal);color:var(--text-muted);");
-			if (!isEdited) {
-				saveBtn.addEventListener("mouseenter", () => {
-					saveBtn.style.background = "var(--interactive-accent)";
-					saveBtn.style.color = "white";
+			if (!ie) {
+				sb.addEventListener("mouseenter", () => {
+					sb.style.background = "var(--interactive-accent)";
+					sb.style.color = "white";
 				});
-				saveBtn.addEventListener("mouseleave", () => {
-					saveBtn.style.background = "var(--interactive-normal)";
-					saveBtn.style.color = "var(--text-muted);";
+				sb.addEventListener("mouseleave", () => {
+					sb.style.background = "var(--interactive-normal)";
+					sb.style.color = "var(--text-muted);";
 				});
 			}
-			saveBtn.addEventListener("click", (e) => {
+			sb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				onSave();
 			});
-			row.appendChild(saveBtn);
+			row.appendChild(sb);
 		}
 		if (onRestore) {
-			const restoreBtn = document.createElement("button");
-			restoreBtn.textContent = "原文";
-			restoreBtn.style.cssText =
+			const rb = document.createElement("button");
+			rb.textContent = "原文";
+			rb.style.cssText =
 				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;background:var(--interactive-normal);color:var(--text-muted);display:inline-flex;align-items:center;box-sizing:border-box;";
-			restoreBtn.addEventListener("click", (e) => {
+			rb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				onRestore();
 			});
-			row.appendChild(restoreBtn);
+			row.appendChild(rb);
 		}
 	}
-
 	return row;
 }
-
-// ========== 勾选框 DOM ==========
 
 export function createCheckbox(
 	checked: boolean,

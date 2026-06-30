@@ -2,16 +2,10 @@
 
 import { getStatusColors } from "../../../core/config/config";
 import {
-	advanceGridLineDate,
-	calcBarEdges,
-	calcDependencyPath,
 	calcRangeFromRoots,
 	calcTreeMaxWidth,
 	formatGanttDuration,
 	GANTT_CONFIG,
-	getGridFirstLineDate,
-	getGridLevels,
-	getGridLineStyle,
 	getLayerStyle,
 	getTaskInterval,
 	getTimelineLayers,
@@ -35,61 +29,12 @@ function createTimelineLabel(
 	hasBorder: boolean,
 ): HTMLElement {
 	const el = document.createElement("div");
-	el.style.cssText = `
-		position: absolute; left: ${left}px; top: 0;
-		height: 100%; width: ${width}px;
-		display: flex; align-items: center; justify-content: center;
-		font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${color};
-		${hasBorder ? "border-right: 1px solid var(--background-modifier-border);" : ""}
-		overflow: hidden; white-space: nowrap;
-	`;
+	el.style.cssText = `position: absolute; left: ${left}px; top: 0; height: 100%; width: ${width}px; display: flex; align-items: center; justify-content: center; font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${color}; ${hasBorder ? "border-right: 1px solid var(--background-modifier-border);" : ""} overflow: hidden; white-space: nowrap;`;
 	return el;
 }
 
-function applyGridBackground(
-	content: HTMLElement,
-	dayWidth: number,
-	treeWidth: number,
-	totalWidth: number,
-	timeRange: { minTime: number; maxTime: number },
-) {
-	const dark = isDarkTheme();
-	const gridContainer = document.createElement("div");
-	gridContainer.style.cssText = `
-		position: absolute; top: 0; left: 0;
-		width: ${totalWidth}px; height: 100%;
-		pointer-events: none; z-index: 0;
-	`;
-	const gridLevels = getGridLevels(dayWidth);
-	const reversed = [...gridLevels].reverse();
-	reversed.forEach((level) => {
-		const style = getGridLineStyle(level.intervalDays, dark);
-		const firstLineDate = getGridFirstLineDate(
-			timeRange,
-			level.intervalDays,
-		);
-		let lineDate = new Date(firstLineDate);
-		while (lineDate.getTime() <= timeRange.maxTime) {
-			const offsetDays =
-				(lineDate.getTime() - timeRange.minTime) / 86400000;
-			const x = treeWidth + offsetDays * dayWidth;
-			if (x >= treeWidth && x <= totalWidth) {
-				const line = document.createElement("div");
-				line.style.cssText = `
-					position: absolute; left: ${x}px; top: 0;
-					width: ${style.width}; height: 100%;
-					background: ${style.color};
-				`;
-				gridContainer.appendChild(line);
-			}
-			advanceGridLineDate(lineDate, level.intervalDays);
-		}
-	});
-	content.appendChild(gridContainer);
-}
-
 function createTimelineHeader(
-	timeRange: { minTime: number; maxTime: number },
+	tr: { minTime: number; maxTime: number },
 	dayWidth: number,
 	totalDays: number,
 	timelineWidth: number,
@@ -99,47 +44,27 @@ function createTimelineHeader(
 	const { layers, layerHeight } = getTimelineLayers(dayWidth);
 	const dark = isDarkTheme();
 	const layerCount = layers.length;
-
 	const header = document.createElement("div");
 	header.className = "gantt-header";
-	header.style.cssText = `
-		position: sticky; top: 0; z-index: 3;
-		height: ${GANTT_CONFIG.HEADER_HEIGHT}px;
-		width: ${totalWidth}px;
-		background: var(--background-primary);
-		border-bottom: 1px solid var(--background-modifier-border);
-		overflow: hidden; flex-shrink: 0;
-	`;
-
+	header.style.cssText = `position: sticky; top: 0; z-index: 3; height: ${GANTT_CONFIG.HEADER_HEIGHT}px; width: ${totalWidth}px; background: var(--background-primary); border-bottom: 1px solid var(--background-modifier-border); overflow: hidden; flex-shrink: 0;`;
 	const treeSpacer = document.createElement("div");
-	treeSpacer.style.cssText = `
-		position: absolute; top: 0; left: 0;
-		width: ${treeWidth}px; height: 100%;
-		background: var(--background-primary); z-index: 5;
-	`;
+	treeSpacer.style.cssText = `position: absolute; top: 0; left: 0; width: ${treeWidth}px; height: 100%; background: var(--background-primary); z-index: 5;`;
 	header.appendChild(treeSpacer);
-
 	const inner = document.createElement("div");
-	inner.style.cssText = `
-		position: absolute; top: 0; left: ${treeWidth}px;
-		height: 100%; width: ${timelineWidth}px;
-	`;
-
+	inner.style.cssText = `position: absolute; top: 0; left: ${treeWidth}px; height: 100%; width: ${timelineWidth}px;`;
 	let currentTop = 0,
 		layerIdx = 0;
-
-	const yearStyle = getLayerStyle(layerIdx, layerCount, dark);
-	const yearLayer = document.createElement("div");
+	const yearStyle = getLayerStyle(layerIdx, layerCount, dark),
+		yearLayer = document.createElement("div");
 	yearLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%;`;
 	currentTop += layerHeight;
 	layerIdx++;
-
 	let curYear = -1,
 		yearStart = 0;
 	for (let i = 0; i < totalDays; i++) {
-		const y = new Date(timeRange.minTime + i * 86400000).getFullYear();
+		const y = new Date(tr.minTime + i * 86400000).getFullYear();
 		if (y !== curYear) {
-			if (curYear >= 0 && (i - yearStart) * dayWidth > 0) {
+			if (curYear >= 0 && (i - yearStart) * dayWidth > 0)
 				yearLayer.appendChild(
 					createTimelineLabel(
 						yearStart * dayWidth,
@@ -151,12 +76,11 @@ function createTimelineHeader(
 						true,
 					),
 				).textContent = String(curYear);
-			}
 			curYear = y;
 			yearStart = i;
 		}
 	}
-	if (curYear >= 0 && (totalDays - yearStart) * dayWidth > 0) {
+	if (curYear >= 0)
 		yearLayer.appendChild(
 			createTimelineLabel(
 				yearStart * dayWidth,
@@ -168,62 +92,61 @@ function createTimelineHeader(
 				false,
 			),
 		).textContent = String(curYear);
-	}
 	inner.appendChild(yearLayer);
-
-	const showQuarters = layers.some((l) => l.name === "quarter");
-	const showMonths = layers.some((l) => l.name === "month");
-	const showWeeks = layers.some((l) => l.name === "week");
-	const showDays = layers.some((l) => l.name === "day");
-
-	if (showQuarters) {
-		const qStyle = getLayerStyle(layerIdx, layerCount, dark);
-		const qLayer = document.createElement("div");
-		qLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
+	const sq = layers.some((l) => l.name === "quarter"),
+		sm = layers.some((l) => l.name === "month"),
+		sw = layers.some((l) => l.name === "week"),
+		sd = layers.some((l) => l.name === "day");
+	if (sq) {
+		const qs = getLayerStyle(layerIdx, layerCount, dark),
+			ql = document.createElement("div");
+		ql.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
 		currentTop += layerHeight;
 		layerIdx++;
-		let curQ = -1,
-			qStart = 0;
+		let cq = -1,
+			qs2 = 0;
 		for (let i = 0; i < totalDays; i++) {
 			const q = Math.floor(
-				new Date(timeRange.minTime + i * 86400000).getMonth() / 3,
+				new Date(tr.minTime + i * 86400000).getMonth() / 3,
 			);
-			if (q !== curQ) {
-				if (curQ >= 0 && (i - qStart) * dayWidth > 0) {
-					qLayer.appendChild(
+			if (q !== cq) {
+				if (cq >= 0 && (i - qs2) * dayWidth > 0)
+					ql.appendChild(
 						createTimelineLabel(
-							qStart * dayWidth,
-							(i - qStart) * dayWidth,
+							qs2 * dayWidth,
+							(i - qs2) * dayWidth,
 							layerHeight,
-							qStyle.fontSize,
-							qStyle.fontWeight,
-							qStyle.color,
+							qs.fontSize,
+							qs.fontWeight,
+							qs.color,
 							true,
 						),
-					).textContent = "Q" + (curQ + 1);
-				}
-				curQ = q;
-				qStart = i;
+					).textContent = "Q" + (cq + 1);
+				cq = q;
+				qs2 = i;
 			}
 		}
-		if (curQ >= 0 && (totalDays - qStart) * dayWidth > 0) {
-			qLayer.appendChild(
+		if (cq >= 0)
+			ql.appendChild(
 				createTimelineLabel(
-					qStart * dayWidth,
-					(totalDays - qStart) * dayWidth,
+					qs2 * dayWidth,
+					(totalDays - qs2) * dayWidth,
 					layerHeight,
-					qStyle.fontSize,
-					qStyle.fontWeight,
-					qStyle.color,
+					qs.fontSize,
+					qs.fontWeight,
+					qs.color,
 					false,
 				),
-			).textContent = "Q" + (curQ + 1);
-		}
-		inner.appendChild(qLayer);
+			).textContent = "Q" + (cq + 1);
+		inner.appendChild(ql);
 	}
-
-	if (showMonths) {
-		const mNames = [
+	if (sm) {
+		const ms = getLayerStyle(layerIdx, layerCount, dark),
+			ml = document.createElement("div");
+		ml.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
+		currentTop += layerHeight;
+		layerIdx++;
+		const mn = [
 			"1月",
 			"2月",
 			"3月",
@@ -237,146 +160,124 @@ function createTimelineHeader(
 			"11月",
 			"12月",
 		];
-		const mStyle = getLayerStyle(layerIdx, layerCount, dark);
-		const mLayer = document.createElement("div");
-		mLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
-		currentTop += layerHeight;
-		layerIdx++;
-		let curM = -1,
-			mStart = 0;
+		let cm = -1,
+			ms2 = 0;
 		for (let i = 0; i < totalDays; i++) {
-			const m = new Date(timeRange.minTime + i * 86400000).getMonth();
-			if (m !== curM) {
-				if (curM >= 0 && (i - mStart) * dayWidth > 0) {
-					mLayer.appendChild(
+			const m = new Date(tr.minTime + i * 86400000).getMonth();
+			if (m !== cm) {
+				if (cm >= 0 && (i - ms2) * dayWidth > 0)
+					ml.appendChild(
 						createTimelineLabel(
-							mStart * dayWidth,
-							(i - mStart) * dayWidth,
+							ms2 * dayWidth,
+							(i - ms2) * dayWidth,
 							layerHeight,
-							mStyle.fontSize,
-							mStyle.fontWeight,
-							mStyle.color,
+							ms.fontSize,
+							ms.fontWeight,
+							ms.color,
 							true,
 						),
-					).textContent = mNames[curM];
-				}
-				curM = m;
-				mStart = i;
+					).textContent = mn[cm];
+				cm = m;
+				ms2 = i;
 			}
 		}
-		if (curM >= 0 && (totalDays - mStart) * dayWidth > 0) {
-			mLayer.appendChild(
+		if (cm >= 0)
+			ml.appendChild(
 				createTimelineLabel(
-					mStart * dayWidth,
-					(totalDays - mStart) * dayWidth,
+					ms2 * dayWidth,
+					(totalDays - ms2) * dayWidth,
 					layerHeight,
-					mStyle.fontSize,
-					mStyle.fontWeight,
-					mStyle.color,
+					ms.fontSize,
+					ms.fontWeight,
+					ms.color,
 					false,
 				),
-			).textContent = mNames[curM];
-		}
-		inner.appendChild(mLayer);
+			).textContent = mn[cm];
+		inner.appendChild(ml);
 	}
-
-	if (showWeeks) {
-		const wStyle = getLayerStyle(layerIdx, layerCount, dark);
-		const wLayer = document.createElement("div");
-		wLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
+	if (sw) {
+		const ws = getLayerStyle(layerIdx, layerCount, dark),
+			wl = document.createElement("div");
+		wl.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
 		currentTop += layerHeight;
 		layerIdx++;
-		let curW = -1,
-			wStart = 0;
+		let cw = -1,
+			ws2 = 0;
 		for (let i = 0; i < totalDays; i++) {
-			const d = new Date(timeRange.minTime + i * 86400000);
-			const w = DateUtils.getISOWeekNumber(d);
-			if (w !== curW) {
-				if (curW >= 0 && (i - wStart) * dayWidth > 0) {
-					wLayer.appendChild(
+			const d = new Date(tr.minTime + i * 86400000),
+				w = DateUtils.getISOWeekNumber(d);
+			if (w !== cw) {
+				if (cw >= 0 && (i - ws2) * dayWidth > 0)
+					wl.appendChild(
 						createTimelineLabel(
-							wStart * dayWidth,
-							(i - wStart) * dayWidth,
+							ws2 * dayWidth,
+							(i - ws2) * dayWidth,
 							layerHeight,
-							wStyle.fontSize,
-							wStyle.fontWeight,
-							wStyle.color,
+							ws.fontSize,
+							ws.fontWeight,
+							ws.color,
 							true,
 						),
-					).textContent = "W" + curW;
-				}
-				curW = w;
-				wStart = i;
+					).textContent = "W" + cw;
+				cw = w;
+				ws2 = i;
 			}
 		}
-		if (curW >= 0 && (totalDays - wStart) * dayWidth > 0) {
-			wLayer.appendChild(
+		if (cw >= 0)
+			wl.appendChild(
 				createTimelineLabel(
-					wStart * dayWidth,
-					(totalDays - wStart) * dayWidth,
+					ws2 * dayWidth,
+					(totalDays - ws2) * dayWidth,
 					layerHeight,
-					wStyle.fontSize,
-					wStyle.fontWeight,
-					wStyle.color,
+					ws.fontSize,
+					ws.fontWeight,
+					ws.color,
 					false,
 				),
-			).textContent = "W" + curW;
-		}
-		inner.appendChild(wLayer);
+			).textContent = "W" + cw;
+		inner.appendChild(wl);
 	}
-
-	if (showDays) {
-		const dStyle = getLayerStyle(layerIdx, layerCount, dark);
-		const dLayer = document.createElement("div");
-		dLayer.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
-		let curD = -1,
-			dStart = 0;
+	if (sd) {
+		const ds = getLayerStyle(layerIdx, layerCount, dark),
+			dl = document.createElement("div");
+		dl.style.cssText = `position: absolute; top: ${currentTop}px; left: 0; height: ${layerHeight}px; width: 100%; border-top: 1px solid var(--background-modifier-border);`;
+		let cd = -1,
+			ds2 = 0;
 		for (let i = 0; i < totalDays; i++) {
-			const d = new Date(timeRange.minTime + i * 86400000).getDate();
-			if (d !== curD) {
-				if (curD >= 0 && (i - dStart) * dayWidth > 0) {
-					const label = createTimelineLabel(
-						dStart * dayWidth,
-						(i - dStart) * dayWidth,
+			const d = new Date(tr.minTime + i * 86400000).getDate();
+			if (d !== cd) {
+				if (cd >= 0 && (i - ds2) * dayWidth > 0) {
+					const lb = createTimelineLabel(
+						ds2 * dayWidth,
+						(i - ds2) * dayWidth,
 						layerHeight,
-						dStyle.fontSize,
-						dStyle.fontWeight,
-						dStyle.color,
+						ds.fontSize,
+						ds.fontWeight,
+						ds.color,
 						true,
 					);
-					label.textContent = String(curD);
-					dLayer.appendChild(label);
+					lb.textContent = String(cd);
+					dl.appendChild(lb);
 				}
-				curD = d;
-				dStart = i;
+				cd = d;
+				ds2 = i;
 			}
 		}
-		if (curD >= 0 && (totalDays - dStart) * dayWidth > 0) {
-			const label = createTimelineLabel(
-				dStart * dayWidth,
-				(totalDays - dStart) * dayWidth,
+		if (cd >= 0) {
+			const lb = createTimelineLabel(
+				ds2 * dayWidth,
+				(totalDays - ds2) * dayWidth,
 				layerHeight,
-				dStyle.fontSize,
-				dStyle.fontWeight,
-				dStyle.color,
+				ds.fontSize,
+				ds.fontWeight,
+				ds.color,
 				false,
 			);
-			label.textContent = String(curD);
-			dLayer.appendChild(label);
+			lb.textContent = String(cd);
+			dl.appendChild(lb);
 		}
-		inner.appendChild(dLayer);
+		inner.appendChild(dl);
 	}
-
-	const today = DateUtils.setStart(new Date()).getTime();
-	if (today >= timeRange.minTime && today <= timeRange.maxTime) {
-		const ox = ((today - timeRange.minTime) / 86400000) * dayWidth;
-		if (ox < timelineWidth) {
-			const line = document.createElement("div");
-			line.style.cssText = `position: absolute; left: ${ox}px; top: 0; width: 2px; height: 100%; background: var(--interactive-accent, #7fb8f0); opacity: 0.5; z-index: 4; pointer-events: none;`;
-			inner.appendChild(line);
-		}
-	}
-
 	header.appendChild(inner);
 	return header;
 }
@@ -390,18 +291,15 @@ function createDependencySVG(
 	svg.setAttribute("class", "gantt-dependencies");
 	svg.style.cssText = `position: absolute; top: 0; left: 0; width: ${totalWidth}px; height: 100%; z-index: 1; pointer-events: none; overflow: hidden;`;
 	svg.setAttribute("width", String(totalWidth));
-
 	function redraw() {
 		while (svg.firstChild) svg.removeChild(svg.firstChild);
 		const rows = treeContainer.querySelectorAll("[data-task-id]");
 		if (rows.length === 0) return;
-
 		const barPositions = new Map<
 			string,
 			{ left: number; right: number; y: number }
 		>();
 		const contentRect = treeContainer.getBoundingClientRect();
-
 		rows.forEach((rowEl) => {
 			const id = (rowEl as HTMLElement).getAttribute("data-task-id");
 			if (!id) return;
@@ -416,11 +314,9 @@ function createDependencySVG(
 				y: barRect.top - contentRect.top + barRect.height / 2,
 			});
 		});
-
 		taskMap.forEach((task) => {
 			if (!task.forbid) return;
-			const tKey = task.uid;
-			const tPos = barPositions.get(tKey);
+			const tPos = barPositions.get(task.uid);
 			if (!tPos) return;
 			task.forbid
 				.split(",")
@@ -429,15 +325,12 @@ function createDependencySVG(
 				.forEach((fid) => {
 					const sTask = taskMap.get(fid);
 					if (!sTask) return;
-					const sKey = sTask.uid;
-					const sPos = barPositions.get(sKey);
+					const sPos = barPositions.get(sTask.uid);
 					if (!sPos) return;
 					const sx = sPos.right,
 						tx = tPos.left;
 					if (tx <= sx + 4) return;
-					const sy = sPos.y,
-						ty = tPos.y;
-					const d = calcDependencyPath(sx, sy, tx, ty);
+					const d = `M ${sx} ${sPos.y} L ${tx - 6} ${sPos.y} L ${tx - 6} ${tPos.y}`;
 					const g = document.createElementNS(
 						"http://www.w3.org/2000/svg",
 						"g",
@@ -466,43 +359,33 @@ function createDependencySVG(
 					);
 					arrow.setAttribute(
 						"points",
-						`${tx},${ty} ${tx - as},${ty - as / 2} ${tx - as},${ty + as / 2}`,
+						`${tx},${tPos.y} ${tx - as},${tPos.y - as / 2} ${tx - as},${tPos.y + as / 2}`,
 					);
 					arrow.setAttribute(
 						"fill",
 						GANTT_CONFIG.DEPENDENCY_LINE_COLOR,
 					);
 					g.appendChild(arrow);
-					const hit = document.createElementNS(
-						"http://www.w3.org/2000/svg",
-						"path",
-					);
-					hit.setAttribute("d", d);
-					hit.setAttribute("fill", "none");
-					hit.setAttribute("stroke", "transparent");
-					hit.setAttribute("stroke-width", "14");
-					hit.style.cssText =
-						"pointer-events: auto; cursor: pointer;";
-					const tip = [
-						`🆔 ${fid} → 🆔 ${task.id || "?"}`,
-						`📅 ${sTask.due ? DateUtils.formatDate(new Date(sTask.due)) : "?"} → 🛫 ${task.scheduled ? DateUtils.formatDate(new Date(task.scheduled)) : "?"}`,
-					].join("<br>");
-					hit.addEventListener("mouseenter", (e) =>
-						tooltip.show(tip, e.clientX, e.clientY),
-					);
-					hit.addEventListener("mousemove", (e) =>
-						tooltip.move(e.clientX, e.clientY),
-					);
-					hit.addEventListener("mouseleave", () => tooltip.hide());
-					g.appendChild(hit);
 					svg.appendChild(g);
 				});
 		});
 	}
-
-	requestAnimationFrame(() => redraw());
 	(svg as any).__redraw = redraw;
 	return svg;
+}
+
+function injectGridStyles() {
+	const styleId = "gantt-grid-styles";
+	if (document.getElementById(styleId)) return;
+	const styleEl = document.createElement("style");
+	styleEl.id = styleId;
+	const dark = isDarkTheme();
+	const c = dark ? "255,255,255" : "0,0,0";
+	const da = dark ? "0.03" : "0.02",
+		wa = dark ? "0.05" : "0.04",
+		ma = dark ? "0.10" : "0.08";
+	styleEl.textContent = `.gantt-grid-overlay{position:absolute;top:0;height:100%;pointer-events:none;z-index:0}.gantt-grid-dense{background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)-.5px),rgba(${c},${da}) calc(var(--day-width)-.5px),rgba(${c},${da}) var(--day-width)),repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7)),repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30));background-size:var(--day-width) 100%,calc(var(--day-width)*7) 100%,calc(var(--day-width)*30) 100%;background-position:0 0;background-repeat:repeat-x}.gantt-grid-medium{background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7)),repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30));background-size:calc(var(--day-width)*7) 100%,calc(var(--day-width)*30) 100%;background-position:0 0;background-repeat:repeat-x}.gantt-grid-sparse{background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30));background-size:calc(var(--day-width)*30) 100%;background-position:0 0;background-repeat:repeat-x}`;
+	document.head.appendChild(styleEl);
 }
 
 export function renderGanttWithTree(
@@ -523,29 +406,21 @@ export function renderGanttWithTree(
 	},
 ) {
 	container.empty();
-
 	const statusColors = getStatusColors();
-
-	const intervalMode =
+	const im =
 		options?.intervalMode && options.intervalMode !== "none"
 			? options.intervalMode
 			: "any-date";
 	const displayRoot = options?.focusRoot || treeRoot;
-	const treeWidth = calcTreeMaxWidth([displayRoot]);
-	const timeRange = calcRangeFromRoots(
-		[displayRoot],
-		intervalMode,
-		options?.dateRange,
-	);
+	const initTreeWidth = calcTreeMaxWidth([displayRoot]);
+	const timeRange = calcRangeFromRoots([displayRoot], im, options?.dateRange);
 	const totalDays = Math.max(
 		Math.ceil((timeRange.maxTime - timeRange.minTime) / 86400000),
 		1,
 	);
-
 	const savedZoom = loadZoomState();
 	const initialDayWidth =
 		savedZoom?.dayWidth || GANTT_CONFIG.DEFAULT_DAY_WIDTH;
-
 	const zoomState = {
 		dayWidth: Math.min(
 			GANTT_CONFIG.MAX_DAY_WIDTH,
@@ -554,83 +429,273 @@ export function renderGanttWithTree(
 		totalWidth: Math.max(totalDays * initialDayWidth, 400),
 		totalDays,
 	};
-
 	const taskMap = new Map<string, TaskTreeNode>();
 	let isDragging = false,
 		lastDragX = 0,
 		dragStartScrollLeft = 0;
 	let currentSvg: SVGSVGElement | null = null;
+	let zoomDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let gridOverlay: HTMLElement | null = null;
+	let todayLine: HTMLElement | null = null;
+	let barElements: HTMLElement[] = [];
+	let actualTreeWidth = initTreeWidth;
+
+	function getBarEdges(
+		node: TaskTreeNode,
+	): { left: number; width: number } | null {
+		const interval = getTaskInterval(node, im);
+		if (!interval) return null;
+		const dayWidth = zoomState.totalWidth / totalDays;
+		const startDays = Math.round(
+			(interval.start.getTime() - timeRange.minTime) / 86400000,
+		);
+		const endDays = Math.round(
+			(interval.end.getTime() - timeRange.minTime) / 86400000,
+		);
+		const left = startDays * dayWidth;
+		const right = endDays * dayWidth;
+		const tw = zoomState.totalWidth;
+		if (right < 0 || left > tw) return null;
+		return {
+			left: Math.max(0, left),
+			width: Math.max(2, Math.min(tw, right) - Math.max(0, left)),
+		};
+	}
+
+	function createBarElement(
+		node: TaskTreeNode,
+		edges: { left: number; width: number },
+	): HTMLElement {
+		const bar = document.createElement("div");
+		bar.className = "gantt-bar";
+		bar.setAttribute("data-task-bar", "true");
+		bar.style.cssText = `position: absolute; left: ${actualTreeWidth + edges.left}px; top: 50%; transform: translateY(-50%); width: ${edges.width}px; height: ${GANTT_CONFIG.TASK_BAR_HEIGHT}px; background: ${statusColors[node.status] || statusColors["todo"]}; border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px; cursor: pointer; opacity: 0.85; z-index: 2; display: flex; align-items: center; overflow: hidden; transition: opacity 0.1s;`;
+		const interval = getTaskInterval(node, im);
+		if (interval && node.done) {
+			const dt = node.done;
+			if (
+				dt >= interval.start.getTime() &&
+				dt <= interval.end.getTime()
+			) {
+				const pr =
+					(dt - interval.start.getTime()) /
+					(interval.end.getTime() - interval.start.getTime());
+				const pe = document.createElement("div");
+				pe.style.cssText = `position: absolute; left: 0; top: 0; width: ${Math.round(pr * 100)}%; height: 100%; background: rgba(46,125,50,0.5); border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px 0 0 ${GANTT_CONFIG.TASK_BAR_RADIUS}px; pointer-events: none;`;
+				bar.appendChild(pe);
+			}
+		}
+		bar.addEventListener("mouseenter", () => {
+			bar.style.opacity = "1";
+			bar.style.zIndex = "5";
+		});
+		bar.addEventListener("mouseleave", () => {
+			bar.style.opacity = "0.85";
+			bar.style.zIndex = "2";
+		});
+		const dur = formatGanttDuration(
+			interval ? interval.end.getTime() - interval.start.getTime() : 0,
+		);
+		if (dur && edges.width > 30) {
+			const label = document.createElement("span");
+			label.style.cssText =
+				"font-size:10px;color:var(--text-on-accent,white);line-height:1;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1;";
+			label.textContent = dur;
+			bar.appendChild(label);
+		}
+		const tipHtml = getDisplayText(node) + "<br>" + buildTooltip(node);
+		if (tipHtml) {
+			bar.addEventListener("mouseenter", (e) =>
+				tooltip.show(tipHtml, e.clientX, e.clientY),
+			);
+			bar.addEventListener("mousemove", (e) =>
+				tooltip.move(e.clientX, e.clientY),
+			);
+			bar.addEventListener("mouseleave", () => tooltip.hide());
+		}
+		bar.addEventListener("dblclick", (e) => {
+			const rect = bar.getBoundingClientRect();
+			if (
+				e.clientX - rect.left > rect.width * 0.15 &&
+				e.clientX - rect.left < rect.width * 0.85
+			) {
+				if (node?.path) options?.onTaskClick?.(node);
+			}
+		});
+		return bar;
+	}
+
+	function createBarsAsync(treeContainer: HTMLElement) {
+		const rows = Array.from(
+			treeContainer.querySelectorAll("[data-task-id]"),
+		);
+		let index = 0;
+		const BATCH = 30;
+		function processBatch() {
+			const end = Math.min(index + BATCH, rows.length);
+			for (let i = index; i < end; i++) {
+				const rowEl = rows[i] as HTMLElement;
+				const uid = rowEl.getAttribute("data-task-id");
+				if (!uid) continue;
+				const node = taskMap.get(uid);
+				if (!node) continue;
+				const edges = getBarEdges(node);
+				if (!edges) continue;
+				const bar = createBarElement(node, edges);
+				rowEl.appendChild(bar);
+				barElements.push(bar);
+				const cc = rowEl.querySelector("div") as HTMLElement;
+				if (cc) {
+					const lb = document.createElement("span");
+					lb.textContent = "➤";
+					lb.style.cssText =
+						"cursor:pointer;font-size:11px;margin-left:2px;opacity:0.5;flex-shrink:0;";
+					lb.addEventListener("click", (ev) => {
+						ev.stopPropagation();
+						const te = getBarEdges(node);
+						if (te)
+							scrollArea.scrollTo({
+								left: Math.max(
+									0,
+									actualTreeWidth + te.left - 20,
+								),
+								behavior: "instant",
+							});
+					});
+					const fc = cc.firstChild;
+					fc?.nextSibling
+						? cc.insertBefore(lb, fc.nextSibling)
+						: cc.appendChild(lb);
+				}
+			}
+			index = end;
+			if (index < rows.length) requestAnimationFrame(processBatch);
+			else {
+				if (typeof requestIdleCallback !== "undefined")
+					requestIdleCallback(() =>
+						(currentSvg as any)?.__redraw?.(),
+					);
+				else
+					requestAnimationFrame(() =>
+						(currentSvg as any)?.__redraw?.(),
+					);
+			}
+		}
+		requestAnimationFrame(processBatch);
+	}
+
+	function updateGridLevel(dayWidth: number) {
+		if (!gridOverlay) return;
+		gridOverlay.classList.remove(
+			"gantt-grid-dense",
+			"gantt-grid-medium",
+			"gantt-grid-sparse",
+		);
+		if (dayWidth >= 40) gridOverlay.classList.add("gantt-grid-dense");
+		else if (dayWidth >= 15) gridOverlay.classList.add("gantt-grid-medium");
+		else if (dayWidth >= 5) gridOverlay.classList.add("gantt-grid-sparse");
+		gridOverlay.style.setProperty("--day-width", dayWidth + "px");
+	}
+
+	function updateTodayLine(tw: number) {
+		if (!todayLine) return;
+		const ts = DateUtils.setStart(new Date()).getTime();
+		if (ts >= timeRange.minTime && ts <= timeRange.maxTime) {
+			const dayWidth = zoomState.totalWidth / totalDays;
+			const td = Math.round((ts - timeRange.minTime) / 86400000);
+			const ox = td * dayWidth;
+			if (ox < tw) {
+				todayLine.style.left = actualTreeWidth + ox + "px";
+				todayLine.style.display = "";
+				return;
+			}
+		}
+		todayLine.style.display = "none";
+	}
+
+	function updateLayoutWidths() {
+		const tc = scrollArea.querySelector(
+			".gantt-tree-container",
+		) as HTMLElement;
+		actualTreeWidth = tc?.offsetWidth || initTreeWidth;
+		const tw = zoomState.totalWidth;
+		const totalWidth = actualTreeWidth + tw;
+		const content = scrollArea.querySelector(
+			".gantt-content",
+		) as HTMLElement;
+		if (content) content.style.width = totalWidth + "px";
+		const header = scrollArea.querySelector(".gantt-header") as HTMLElement;
+		if (header) {
+			header.style.width = totalWidth + "px";
+			const sp = header.children[0] as HTMLElement;
+			if (sp) sp.style.width = actualTreeWidth + "px";
+			const inn = header.children[1] as HTMLElement;
+			if (inn) {
+				inn.style.left = actualTreeWidth + "px";
+				inn.style.width = tw + "px";
+			}
+		}
+		if (gridOverlay) {
+			gridOverlay.style.left = actualTreeWidth + "px";
+			gridOverlay.style.width = tw + "px";
+		}
+		if (todayLine) updateTodayLine(tw);
+	}
 
 	container.style.cssText =
 		"display: flex; flex-direction: column; height: 100%; background: transparent; user-select: none;";
-
 	const scrollArea = document.createElement("div");
 	scrollArea.className = "gantt-scroll-area";
 	scrollArea.style.cssText = "flex: 1; overflow: auto; position: relative;";
 	container.appendChild(scrollArea);
 
 	function rebuild() {
-		const savedScrollLeft = scrollArea.scrollLeft;
-		const savedScrollTop = scrollArea.scrollTop;
-
+		if (zoomDebounceTimer) {
+			clearTimeout(zoomDebounceTimer);
+			zoomDebounceTimer = null;
+		}
+		const sl = scrollArea.scrollLeft,
+			st = scrollArea.scrollTop;
 		scrollArea.innerHTML = "";
 		taskMap.clear();
-
-		const timelineWidth = zoomState.totalWidth;
-		const totalWidth = treeWidth + timelineWidth;
-
+		barElements = [];
+		gridOverlay = null;
+		todayLine = null;
+		actualTreeWidth = initTreeWidth;
+		const tw = zoomState.totalWidth,
+			totalWidth = actualTreeWidth + tw;
 		scrollArea.appendChild(
 			createTimelineHeader(
 				timeRange,
 				zoomState.dayWidth,
 				totalDays,
-				timelineWidth,
-				treeWidth,
+				tw,
+				actualTreeWidth,
 			),
 		);
-
 		const content = document.createElement("div");
 		content.className = "gantt-content";
-		content.style.cssText = `
-			position: relative; width: ${totalWidth}px;
-			min-height: 200px; padding-bottom: 40px; overflow: hidden;
-		`;
-
-		applyGridBackground(
-			content,
-			zoomState.dayWidth,
-			treeWidth,
-			totalWidth,
-			timeRange,
-		);
-
-		const today = DateUtils.setStart(new Date()).getTime();
-		if (today >= timeRange.minTime && today <= timeRange.maxTime) {
-			const ox =
-				((today - timeRange.minTime) / 86400000) * zoomState.dayWidth;
-			if (ox < timelineWidth) {
-				const line = document.createElement("div");
-				line.style.cssText = `
-					position: absolute; left: ${treeWidth + ox}px; top: 0;
-					width: 2px; height: 100%;
-					background: var(--interactive-accent, #7fb8f0);
-					opacity: 0.5; z-index: 0; pointer-events: none;
-				`;
-				content.appendChild(line);
-			}
-		}
-
+		content.style.cssText = `position: relative; width: ${totalWidth}px; min-height: 200px; padding-bottom: 40px; overflow: hidden;`;
+		injectGridStyles();
+		gridOverlay = document.createElement("div");
+		gridOverlay.className = "gantt-grid-overlay";
+		gridOverlay.style.left = actualTreeWidth + "px";
+		gridOverlay.style.width = tw + "px";
+		updateGridLevel(zoomState.dayWidth);
+		content.appendChild(gridOverlay);
+		todayLine = document.createElement("div");
+		todayLine.style.cssText =
+			"position: absolute; left: 0; top: 0; width: 2px; height: 100%; background: var(--interactive-accent, #7fb8f0); opacity: 0.5; z-index: 4; pointer-events: none;";
+		updateTodayLine(tw);
+		content.appendChild(todayLine);
 		scrollArea.appendChild(content);
-
 		const treeContainer = document.createElement("div");
 		treeContainer.className = "gantt-tree-container";
 		treeContainer.style.cssText =
 			"position: relative; z-index: 2; display: inline-block;";
 		content.appendChild(treeContainer);
-
 		currentSvg = createDependencySVG(taskMap, totalWidth, treeContainer);
 		content.appendChild(currentSvg);
-
 		renderTaskTree(treeContainer, {
 			root: displayRoot,
 			focusRoot: options?.focusRoot,
@@ -641,247 +706,72 @@ export function renderGanttWithTree(
 			onRowRender: (rowEl, node) => {
 				rowEl.style.position = "relative";
 				rowEl.style.width = "100%";
-
 				if (node && node.uid !== "__task_root__") {
-					const taskId = node.uid;
-					rowEl.setAttribute("data-task-id", taskId);
-					taskMap.set(taskId, node);
+					rowEl.setAttribute("data-task-id", node.uid);
+					taskMap.set(node.uid, node);
 					if (node.id) taskMap.set(node.id, node);
-
-					const edges = calcBarEdges(
-						node,
-						timeRange,
-						timelineWidth,
-						intervalMode,
-					);
-					if (edges) {
-						const left = treeWidth + edges.left;
-
-						const bar = document.createElement("div");
-						bar.className = "gantt-bar";
-						bar.setAttribute("data-task-bar", "true");
-						bar.style.cssText = `
-							position: absolute; left: ${left}px; top: 50%;
-							transform: translateY(-50%);
-							width: ${edges.width}px;
-							height: ${GANTT_CONFIG.TASK_BAR_HEIGHT}px;
-							background: ${statusColors[node.status] || statusColors["todo"]};
-							border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
-							cursor: pointer; opacity: 0.85; z-index: 2;
-							display: flex; align-items: center; overflow: hidden;
-							transition: opacity 0.1s;
-						`;
-
-						const interval = getTaskInterval(node, intervalMode);
-						if (interval && node.done) {
-							const doneTime = node.done;
-							if (
-								doneTime >= interval.start.getTime() &&
-								doneTime <= interval.end.getTime()
-							) {
-								const progressRatio =
-									(doneTime - interval.start.getTime()) /
-									(interval.end.getTime() -
-										interval.start.getTime());
-								const progressEl =
-									document.createElement("div");
-								progressEl.style.cssText = `
-									position: absolute; left: 0; top: 0;
-									width: ${Math.round(progressRatio * 100)}%; height: 100%;
-									background: rgba(46, 125, 50, 0.5);
-									border-radius: ${GANTT_CONFIG.TASK_BAR_RADIUS}px 0 0 ${GANTT_CONFIG.TASK_BAR_RADIUS}px;
-									pointer-events: none;
-								`;
-								bar.appendChild(progressEl);
-							}
-						}
-
-						bar.addEventListener("mouseenter", () => {
-							bar.style.opacity = "1";
-							bar.style.zIndex = "5";
-						});
-						bar.addEventListener("mouseleave", () => {
-							bar.style.opacity = "0.85";
-							bar.style.zIndex = "2";
-						});
-
-						const dur = formatGanttDuration(
-							interval
-								? interval.end.getTime() -
-										interval.start.getTime()
-								: 0,
-						);
-						if (dur && edges.width > 30) {
-							const label = document.createElement("span");
-							label.style.cssText =
-								"font-size: 10px; color: var(--text-on-accent, white); line-height: 1; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1;";
-							label.textContent = dur;
-							bar.appendChild(label);
-						}
-
-						const tipHtml =
-							getDisplayText(node) + "<br>" + buildTooltip(node);
-						if (tipHtml) {
-							bar.addEventListener("mouseenter", (e) =>
-								tooltip.show(tipHtml, e.clientX, e.clientY),
-							);
-							bar.addEventListener("mousemove", (e) =>
-								tooltip.move(e.clientX, e.clientY),
-							);
-							bar.addEventListener("mouseleave", () =>
-								tooltip.hide(),
-							);
-						}
-
-						bar.addEventListener("dblclick", (e) => {
-							const rect = bar.getBoundingClientRect();
-							const clickX = e.clientX - rect.left;
-							if (
-								clickX > rect.width * 0.15 &&
-								clickX < rect.width * 0.85
-							) {
-								if (node?.path) options?.onTaskClick?.(node);
-							}
-						});
-
-						rowEl.appendChild(bar);
-					}
-
-					// 在节点名后添加定位按钮
-					const contentContainer = rowEl.querySelector(
-						"div",
-					) as HTMLElement;
-					if (contentContainer && node.uid !== "__task_root__") {
-						const locateBtn = document.createElement("span");
-						locateBtn.textContent = "➤";
-						locateBtn.style.cssText =
-							"cursor:pointer;font-size:11px;margin-left:2px;opacity:0.5;flex-shrink:0;";
-						locateBtn.title = "定位到甘特条";
-						locateBtn.addEventListener("click", (e) => {
-							e.stopPropagation();
-							const currentTreeWidth =
-								treeContainer.offsetWidth || treeWidth;
-							const taskEdges = calcBarEdges(
-								node,
-								timeRange,
-								timelineWidth,
-								intervalMode,
-							);
-							if (taskEdges) {
-								const targetX =
-									currentTreeWidth +
-									taskEdges.left +
-									taskEdges.width / 2 -
-									scrollArea.clientWidth / 2;
-								scrollArea.scrollLeft = Math.max(0, targetX);
-							}
-						});
-						const firstChild = contentContainer.firstChild;
-						if (firstChild?.nextSibling) {
-							contentContainer.insertBefore(
-								locateBtn,
-								firstChild.nextSibling,
-							);
-						} else {
-							contentContainer.appendChild(locateBtn);
-						}
-					}
 				}
 			},
 		});
-
+		updateLayoutWidths();
+		createBarsAsync(treeContainer);
 		const onTreeToggle = () => {
 			requestAnimationFrame(() => {
-				const newTreeWidth = treeContainer.offsetWidth || treeWidth;
-				const newTotalWidth = newTreeWidth + timelineWidth;
-
-				content.style.width = newTotalWidth + "px";
-
-				const header = scrollArea.querySelector(
-					".gantt-header",
-				) as HTMLElement;
-				if (header) {
-					const spacer = header.children[0] as HTMLElement;
-					if (spacer) spacer.style.width = newTreeWidth + "px";
-					const inner = header.children[1] as HTMLElement;
-					if (inner) inner.style.left = newTreeWidth + "px";
-					header.style.width = newTotalWidth + "px";
-				}
-
-				const oldGrids = content.querySelectorAll("div");
-				oldGrids.forEach((el) => {
-					if (
-						el.style.pointerEvents === "none" &&
-						el.style.position === "absolute" &&
-						el.style.zIndex === "0"
-					) {
-						el.remove();
-					}
+				updateLayoutWidths();
+				barElements.forEach((bar) => {
+					const re = bar.parentElement;
+					if (!re) return;
+					const tid = re.getAttribute("data-task-id");
+					if (!tid) return;
+					const tn = taskMap.get(tid);
+					if (!tn) return;
+					const te = getBarEdges(tn);
+					if (te) bar.style.left = actualTreeWidth + te.left + "px";
 				});
-				applyGridBackground(
-					content,
-					zoomState.dayWidth,
-					newTreeWidth,
-					newTotalWidth,
-					timeRange,
-				);
-
-				const todayLines = content.querySelectorAll(
-					"div[style*='var(--interactive-accent']",
-				);
-				todayLines.forEach((l) => {
-					if ((l as HTMLElement).style.zIndex === "0") l.remove();
-				});
-				const todayTs = DateUtils.setStart(new Date()).getTime();
-				if (
-					todayTs >= timeRange.minTime &&
-					todayTs <= timeRange.maxTime
-				) {
-					const oxToday =
-						((todayTs - timeRange.minTime) / 86400000) *
-						zoomState.dayWidth;
-					if (oxToday < timelineWidth) {
-						const todayLine = document.createElement("div");
-						todayLine.style.cssText = `
-							position: absolute; left: ${newTreeWidth + oxToday}px; top: 0;
-							width: 2px; height: 100%;
-							background: var(--interactive-accent, #7fb8f0);
-							opacity: 0.5; z-index: 0; pointer-events: none;
-						`;
-						content.appendChild(todayLine);
-					}
-				}
-
-				const allBars = treeContainer.querySelectorAll(
-					"[data-task-bar]",
-				) as NodeListOf<HTMLElement>;
-				allBars.forEach((bar) => {
-					const rowEl = bar.parentElement;
-					if (!rowEl) return;
-					const taskId = rowEl.getAttribute("data-task-id");
-					if (!taskId) return;
-					const taskNode = taskMap.get(taskId);
-					if (!taskNode) return;
-					const taskEdges = calcBarEdges(
-						taskNode,
-						timeRange,
-						timelineWidth,
-						intervalMode,
-					);
-					if (taskEdges) {
-						bar.style.left = newTreeWidth + taskEdges.left + "px";
-					}
-				});
-
 				(currentSvg as any)?.__redraw?.();
 			});
 		};
-
 		treeContainer.addEventListener("tree-toggle", onTreeToggle);
+		scrollArea.scrollLeft = Math.max(0, sl);
+		if (st > 0) scrollArea.scrollTop = st;
+	}
 
-		requestAnimationFrame(() => (currentSvg as any)?.__redraw?.());
-		scrollArea.scrollLeft = Math.max(0, savedScrollLeft);
-		if (savedScrollTop > 0) scrollArea.scrollTop = savedScrollTop;
+	function rebuildTimeline() {
+		if (zoomDebounceTimer) {
+			clearTimeout(zoomDebounceTimer);
+			zoomDebounceTimer = null;
+		}
+		const tw = zoomState.totalWidth;
+		updateLayoutWidths();
+		const oldHeader = scrollArea.querySelector(
+			".gantt-header",
+		) as HTMLElement;
+		if (oldHeader) {
+			const newHeader = createTimelineHeader(
+				timeRange,
+				zoomState.dayWidth,
+				totalDays,
+				tw,
+				actualTreeWidth,
+			);
+			oldHeader.replaceWith(newHeader);
+		}
+		updateGridLevel(zoomState.dayWidth);
+		updateTodayLine(tw);
+		barElements.forEach((bar) => {
+			const re = bar.parentElement;
+			if (!re) return;
+			const tid = re.getAttribute("data-task-id");
+			if (!tid) return;
+			const tn = taskMap.get(tid);
+			if (!tn) return;
+			const te = getBarEdges(tn);
+			if (te) {
+				bar.style.left = actualTreeWidth + te.left + "px";
+				bar.style.width = te.width + "px";
+			}
+		});
+		(currentSvg as any)?.__redraw?.();
 	}
 
 	rebuild();
@@ -894,23 +784,25 @@ export function renderGanttWithTree(
 		const mouseX = e.clientX - rect.left + scrollArea.scrollLeft;
 		const mouseTime =
 			timeRange.minTime +
-			((mouseX - treeWidth) / zoomState.dayWidth) * 86400000;
-		if (e.deltaY < 0) {
-			zoomState.dayWidth = Math.min(
-				GANTT_CONFIG.MAX_DAY_WIDTH,
-				Math.round(zoomState.dayWidth * 1.3 * 100) / 100,
-			);
-		} else {
-			zoomState.dayWidth = Math.max(
-				GANTT_CONFIG.MIN_DAY_WIDTH,
-				Math.round(zoomState.dayWidth * 0.7 * 100) / 100,
-			);
-		}
+			((mouseX - actualTreeWidth) / zoomState.dayWidth) * 86400000;
+		zoomState.dayWidth =
+			e.deltaY < 0
+				? Math.min(
+						GANTT_CONFIG.MAX_DAY_WIDTH,
+						Math.round(zoomState.dayWidth * 1.3 * 100) / 100,
+					)
+				: Math.max(
+						GANTT_CONFIG.MIN_DAY_WIDTH,
+						Math.round(zoomState.dayWidth * 0.7 * 100) / 100,
+					);
 		zoomState.totalWidth = Math.ceil(totalDays * zoomState.dayWidth);
 		saveZoomState(zoomState.dayWidth);
-		rebuild();
+		updateGridLevel(zoomState.dayWidth);
+		updateTodayLine(zoomState.totalWidth);
+		if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+		zoomDebounceTimer = setTimeout(() => rebuildTimeline(), 200);
 		const newMouseX =
-			treeWidth +
+			actualTreeWidth +
 			((mouseTime - timeRange.minTime) / 86400000) * zoomState.dayWidth;
 		scrollArea.scrollLeft = Math.max(
 			0,
@@ -918,7 +810,6 @@ export function renderGanttWithTree(
 		);
 	};
 	scrollArea.addEventListener("wheel", onWheel, { passive: false });
-
 	scrollArea.addEventListener("mousedown", (e: MouseEvent) => {
 		if ((e.target as HTMLElement).closest(".gantt-bar")) return;
 		isDragging = true;
@@ -928,7 +819,6 @@ export function renderGanttWithTree(
 		scrollArea.style.userSelect = "none";
 		e.preventDefault();
 	});
-
 	const onMouseMove = (e: MouseEvent) => {
 		if (!isDragging) return;
 		scrollArea.scrollLeft = dragStartScrollLeft - (e.clientX - lastDragX);
@@ -938,10 +828,8 @@ export function renderGanttWithTree(
 		scrollArea.style.cursor = "";
 		scrollArea.style.userSelect = "";
 	};
-
 	window.addEventListener("mousemove", onMouseMove);
 	window.addEventListener("mouseup", onMouseUp);
-
 	return {
 		taskMap,
 		redraw: rebuild,
@@ -949,6 +837,7 @@ export function renderGanttWithTree(
 			scrollArea.removeEventListener("wheel", onWheel);
 			window.removeEventListener("mousemove", onMouseMove);
 			window.removeEventListener("mouseup", onMouseUp);
+			if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
 		},
 	};
 }

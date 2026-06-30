@@ -1,4 +1,4 @@
-// src/core/config/panel-default-config.ts
+// src/core/store/preset/panel-preset.ts
 
 import { GlobalFilter, HideConfig, Preset } from "../../../type/type";
 
@@ -42,6 +42,26 @@ export function getDefaultHideConfig(): HideConfig {
 	};
 }
 
+const DEFAULT_BAR_VISIBILITY: Record<string, boolean> = {
+	filter: true,
+	time: true,
+	view: true,
+	hide: true,
+	edit: true,
+	sort: true,
+	config: true,
+};
+
+const DEFAULT_TOOLBAR_ORDER: string[] = [
+	"filter",
+	"time",
+	"view",
+	"hide",
+	"edit",
+	"sort",
+	"config",
+];
+
 export function getDefaultPresets(): Preset[] {
 	const defaultFilter = getDefaultFilter();
 	const defaultHideConfig = getDefaultHideConfig();
@@ -50,28 +70,8 @@ export function getDefaultPresets(): Preset[] {
 		groupId: "basic",
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
-		toolbarOrder: [
-			"excut",
-			"search",
-			"mark",
-			"time",
-			"view",
-			"hide",
-			"edit",
-			"sort",
-			"config",
-		] as string[],
-		barVisibility: {
-			time: true,
-			excut: true,
-			search: true,
-			mark: true,
-			view: true,
-			hide: true,
-			sort: true,
-			config: true,
-			edit: true,
-		} as Record<string, boolean>,
+		toolbarOrder: [...DEFAULT_TOOLBAR_ORDER],
+		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
 		intervalMode: "none" as string,
 		taskTreeNavCollapsed: true,
 		taskTreeNavWidth: 280,

@@ -1,5 +1,4 @@
 // src/core/edit/base-task-edit.ts
-// src/core/edit/base-task-edit.ts
 // 编辑功能 Mixin — 编辑入口、模式切换、卡片状态、编辑上下文、全局点击
 
 import { getEditContext, setEditContext } from "../../ui/main/card/card";
@@ -9,11 +8,8 @@ import {
 	createPreviewRow,
 	hasContentBeenEdited,
 } from "../../util/edit-utils";
-import { parseTaskLine } from "../parser/tasks-parser";
-import { buildDescription } from "../task/task-format";
-import { TaskTreeNode } from "../task/task-tree";
+import { flattenTree, TaskTreeNode } from "../task/task-tree";
 import { EditStore } from "./task-edit-store";
-import { Op } from "./task-editor";
 export class BaseTaskEdit {
 	protected editStore!: EditStore;
 	protected dataManager!: any;
@@ -22,78 +18,44 @@ export class BaseTaskEdit {
 
 	public previouslyEditedUids: Set<string> = new Set();
 	public _needsEditRefresh: boolean = false;
+	private _lastSyncMode: boolean = false;
 
 	// ========== 编辑入口 ==========
 
 	protected handleEnterEdit(node: TaskTreeNode) {
-		console.log("[handleEnterEdit] ========== 进入 ==========");
-		console.log("[handleEnterEdit] type:", node.type, "uid:", node.uid);
-
 		if (node.type !== "list") {
-			console.log("[handleEnterEdit] 非列表任务，跳过");
 			return;
 		}
 
 		const es = this.editStore;
 		const state = es.getState();
 
-		console.log(
-			"[handleEnterEdit] editMode:",
-			state.editMode,
-			"batchMode:",
-			state.batchMode,
-		);
-		console.log(
-			"[handleEnterEdit] selectedTasks size:",
-			state.selectedTasks.size,
-		);
-
 		if (
 			state.editMode &&
 			!state.batchMode &&
 			state.selectedTasks.has(node.uid)
 		) {
-			console.log("[handleEnterEdit] 已在编辑该任务，跳过");
 			return;
 		}
 		if (state.batchMode) {
-			console.log("[handleEnterEdit] 批量模式，跳过");
 			return;
 		}
 
-		console.log(
-			"[handleEnterEdit] 清理之前编辑的卡片, count:",
-			this.previouslyEditedUids.size,
-		);
 		const prevUids = Array.from(this.previouslyEditedUids);
 		for (const prevUid of prevUids) {
 			this.setCardReadMode(prevUid);
 		}
 
-		console.log("[handleEnterEdit] 进入单编辑模式");
 		es.enterSingleEditMode(node);
 		this.applyEditContext();
-		console.log("[handleEnterEdit] 调用 setCardEditMode");
 		this.setCardEditMode(node.uid);
 		this.previouslyEditedUids = new Set([node.uid]);
-		console.log(
-			"[handleEnterEdit] 完成, card class:",
-			(this.rightContentContainer || this.container)
-				.querySelector(`[data-uid="${node.uid}"]`)
-				?.classList.toString(),
-		);
 	}
 
-	/**
-	 * 加载文件/标题任务的 YAML 内容
-	 * 返回 null 表示加载失败，保持 rawLine 作为初始预览
-	 */
 	private async loadYamlContent(node: TaskTreeNode): Promise<string | null> {
-		// 无 YAML 标记：返回空内容
 		if (!node.hasYaml) {
 			return "";
 		}
-		// 行号无效：返回空内容
 		if (node.yamlStartLine < 0 || node.yamlEndLine < 0) {
 			return "";
 		}
@@ -104,7 +66,6 @@ export class BaseTaskEdit {
 			if (!file) return null;
 			const content = await app.vault.cachedRead(file);
 			const lines = content.split("\n");
-			// 提取 YAML 内容（不包括边界标记 --- 或 ```yaml/```）
 			const yamlLines = lines.slice(
 				node.yamlStartLine + 1,
 				node.yamlEndLine,
@@ -150,8 +111,6 @@ export class BaseTaskEdit {
 		this.refreshEditPanel();
 	}
 
-	// base-task-edit.ts — refreshAllCardsForBatchMode
-
 	private refreshAllCardsForBatchMode() {
 		const searchRoot = this.rightContentContainer || this.container;
 		const cards = searchRoot.querySelectorAll(
@@ -170,7 +129,6 @@ export class BaseTaskEdit {
 				const node = this.dataManager.getNodeByUid(uid);
 				if (!node) return;
 
-				// 只对列表任务添加复选框
 				if (node.type !== "list") return;
 
 				const row1 = card.querySelector(
@@ -209,7 +167,6 @@ export class BaseTaskEdit {
 			".task-item:not(.task-item-compact)",
 		) as NodeListOf<HTMLElement>;
 
-		// 只收集列表任务
 		const visibleNodes: TaskTreeNode[] = [];
 		cards.forEach((card) => {
 			const uid = card.getAttribute("data-uid");
@@ -219,7 +176,6 @@ export class BaseTaskEdit {
 			}
 		});
 
-		// 检查是否全部列表任务已选中
 		let allSelected = visibleNodes.length > 0;
 		visibleNodes.forEach((n) => {
 			if (!es.getState().selectedTasks.has(n.uid)) allSelected = false;
@@ -269,116 +225,15 @@ export class BaseTaskEdit {
 				previews: state.previews,
 				savedTasks: state.savedTasks,
 				expandedButton: state.expandedButton,
+				syncMode: state.syncMode,
+				primaryTaskUid: state.primaryTaskUid,
 				onEdit: (node, markKey, value) => {
 					if (markKey.endsWith("_toggle")) {
 						this.editStore.toggleExpandedButton(
 							markKey.replace("_toggle", ""),
 						);
 					} else {
-						const es = this.editStore;
-						const st = es.getState();
-						if (st.batchMode) {
-							for (const uid of st.selectedTasks) {
-								if (st.savedTasks.has(uid)) continue;
-								const n = this.dataManager.getNodeByUid(uid);
-								if (!n) continue;
-								const preview =
-									st.previews.get(uid) || n.rawLine || "";
-								let newPreview = preview;
-								if (n.type === "file" || n.type === "heading") {
-									const yamlValue =
-										value !== null
-											? toYamlValueCtx(markKey, value)
-											: null;
-									newPreview =
-										value !== null
-											? Op.setYamlField(
-													preview,
-													markKey,
-													yamlValue,
-												)
-											: Op.delYamlField(preview, markKey);
-								} else {
-									switch (markKey) {
-										case "status":
-											newPreview = value
-												? Op.setStatus(preview, value)
-												: preview;
-											break;
-										case "priority":
-											newPreview = value
-												? Op.setPriority(preview, value)
-												: Op.delPriority(preview);
-											break;
-										case "repeat":
-											newPreview = value
-												? Op.setRepeat(preview, value)
-												: Op.delRepeat(preview);
-											break;
-										case "created":
-											newPreview = value
-												? Op.setCreated(preview, value)
-												: Op.delCreated(preview);
-											break;
-										case "scheduled":
-											newPreview = value
-												? Op.setScheduled(
-														preview,
-														value,
-													)
-												: Op.delScheduled(preview);
-											break;
-										case "starts":
-											newPreview = value
-												? Op.setStarts(preview, value)
-												: Op.delStarts(preview);
-											break;
-										case "due":
-											newPreview = value
-												? Op.setDue(preview, value)
-												: Op.delDue(preview);
-											break;
-										case "done":
-											newPreview = value
-												? Op.setDone(preview, value)
-												: Op.delDone(preview);
-											break;
-										case "cancelled":
-											newPreview = value
-												? Op.setCancelled(
-														preview,
-														value,
-													)
-												: Op.delCancelled(preview);
-											break;
-										case "tag":
-											newPreview = value
-												? Op.setTag(preview, value)
-												: Op.delTag(preview);
-											break;
-										case "id":
-											newPreview = value
-												? Op.setId(preview, value)
-												: Op.delId(preview);
-											break;
-										case "forbid":
-											newPreview = value
-												? Op.setForbid(preview, value)
-												: Op.delForbid(preview);
-											break;
-									}
-								}
-								if (newPreview !== preview) {
-									if (n.type === "list") {
-										newPreview = Op.sortTags(newPreview);
-									}
-									st.previews.set(uid, newPreview);
-								}
-							}
-							es.syncToStore();
-						} else {
-							es.applyEdit(markKey, value);
-						}
+						this.editStore.applyEdit(markKey, value, node.uid);
 					}
 					this._needsEditRefresh = true;
 					requestAnimationFrame(() => this.onEditStateChange());
@@ -400,7 +255,6 @@ export class BaseTaskEdit {
 					this.previouslyEditedUids.clear();
 					this.dataManager.invalidate();
 					await this.dataManager.loadData(this.app);
-
 					const self = this as any;
 					if (self.selectedTreeNode) {
 						const newTree = this.dataManager.getFullTree();
@@ -413,7 +267,6 @@ export class BaseTaskEdit {
 							self.focusedTreeNode = newFocus;
 						}
 					}
-
 					this.render();
 				},
 				onRevert: async (node) => {
@@ -432,6 +285,22 @@ export class BaseTaskEdit {
 					this._needsEditRefresh = true;
 					requestAnimationFrame(() => this.onEditStateChange());
 				},
+				getIdOptions: () => {
+					const result: Array<{ id: string; desc: string }> = [];
+					const fullTree = this.dataManager.getFullTree();
+					const allNodes = flattenTree(fullTree);
+					const seen = new Set<string>();
+					for (const node of allNodes) {
+						if (node.id && !seen.has(node.id)) {
+							seen.add(node.id);
+							result.push({
+								id: node.id,
+								desc: node.content || node.text || "",
+							});
+						}
+					}
+					return result;
+				},
 			});
 		} else {
 			setEditContext(null);
@@ -441,17 +310,10 @@ export class BaseTaskEdit {
 	protected onEditStateChange() {
 		const state = this.editStore.getState();
 		const currentUids = new Set(state.selectedTasks);
-		console.log(
-			"[onEditStateChange] editMode:",
-			state.editMode,
-			"currentUids:",
-			[...currentUids],
-			"prevUids:",
-			[...this.previouslyEditedUids],
-		);
 
 		if (!state.editMode) {
-			console.log("[onEditStateChange] 退出编辑模式, 恢复卡片");
+			this._lastSyncMode = false;
+			this.applyEditContext();
 			requestAnimationFrame(() => {
 				this.restoreEditedCards();
 				this.previouslyEditedUids.clear();
@@ -459,9 +321,18 @@ export class BaseTaskEdit {
 			return;
 		}
 
+		// 同步模式切换：先更新上下文，再刷新所有勾选任务的编辑栏
+		if (state.syncMode !== this._lastSyncMode) {
+			this._lastSyncMode = state.syncMode;
+			this.applyEditContext();
+			for (const uid of state.selectedTasks) {
+				this.refreshCardEditContent(uid);
+			}
+			return;
+		}
+
 		for (const uid of this.previouslyEditedUids) {
 			if (!currentUids.has(uid)) {
-				console.log("[onEditStateChange] setCardReadMode:", uid);
 				if (state.batchMode) {
 					this.setCardBatchUnselected(uid);
 				} else {
@@ -472,10 +343,8 @@ export class BaseTaskEdit {
 
 		for (const uid of currentUids) {
 			if (!this.previouslyEditedUids.has(uid)) {
-				console.log("[onEditStateChange] setCardEditMode:", uid);
 				this.setCardEditMode(uid);
 			} else {
-				console.log("[onEditStateChange] refreshCardEditContent:", uid);
 				requestAnimationFrame(() => {
 					this.refreshCardEditContent(uid);
 				});
@@ -485,6 +354,11 @@ export class BaseTaskEdit {
 		this.applyEditContext();
 		this.previouslyEditedUids = new Set(currentUids);
 		this.refreshEditPanel();
+	}
+
+	refreshEditCards() {
+		this._needsEditRefresh = true;
+		requestAnimationFrame(() => this.onEditStateChange());
 	}
 
 	// ========== 卡片状态 ==========
@@ -498,20 +372,11 @@ export class BaseTaskEdit {
 		const card = searchRoot.querySelector(
 			`[data-uid="${uid}"]`,
 		) as HTMLElement;
-		console.log("[setCardEditMode] uid:", uid, "found:", !!card);
 		if (!card) return;
 
 		card.classList.add("task-item-editing");
 		card.style.cursor = "default";
-		console.log(
-			"[setCardEditMode] 添加 task-item-editing, class:",
-			card.classList.toString(),
-		);
 		this.refreshCardEditContent(uid);
-		console.log(
-			"[setCardEditMode] 完成, innerHTML length:",
-			card.innerHTML.length,
-		);
 	}
 
 	protected setCardReadMode(uid: string) {
@@ -527,7 +392,6 @@ export class BaseTaskEdit {
 		const checkbox = card.querySelector("input[type='checkbox']");
 		if (checkbox) checkbox.remove();
 
-		// 用 cloneNode 替换描述元素，彻底移除事件监听器
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			const newDescEl = descEl.cloneNode(true) as HTMLElement;
@@ -779,11 +643,6 @@ export class BaseTaskEdit {
 
 	protected onGlobalClick = (e: MouseEvent) => {
 		const target = e.target as HTMLElement;
-		console.log(
-			"[onGlobalClick] target:",
-			target.tagName,
-			target.className,
-		);
 		const es = this.editStore;
 		const state = es.getState();
 		const isEditMode = state.editMode;
@@ -807,6 +666,7 @@ export class BaseTaskEdit {
 				return;
 		}
 
+		// ========== 面板区域 ==========
 		if (target.closest(".panel-host")) {
 			if (isBatchMode) {
 				if (target.closest("[data-panel-key='edit']")) {
@@ -845,6 +705,7 @@ export class BaseTaskEdit {
 			}
 		}
 
+		// ========== 侧边栏 ==========
 		if (target.closest(".manage-sidebar")) {
 			const prevUids = Array.from(this.previouslyEditedUids);
 			for (const prevUid of prevUids) {
@@ -863,6 +724,7 @@ export class BaseTaskEdit {
 			return;
 		}
 
+		// ========== 卡片区域 ==========
 		const editTaskItem = target.closest(".task-item") as HTMLElement;
 		if (
 			editTaskItem &&
@@ -873,6 +735,14 @@ export class BaseTaskEdit {
 
 			const node = this.dataManager.getNodeByUid(uid);
 			if (!node) return;
+
+			// 同步模式：设为主任务
+			if (isBatchMode && es.getState().syncMode) {
+				es.setPrimaryTask(uid);
+				this._needsEditRefresh = true;
+				requestAnimationFrame(() => this.onEditStateChange());
+				return;
+			}
 
 			if (isBatchMode) {
 				es.toggleSelection(node);
@@ -891,6 +761,7 @@ export class BaseTaskEdit {
 			}
 		}
 
+		// ========== 其他区域 ==========
 		const prevUids = Array.from(this.previouslyEditedUids);
 		for (const prevUid of prevUids) {
 			this.setCardReadMode(prevUid);
@@ -908,7 +779,6 @@ export class BaseTaskEdit {
 	};
 }
 
-/** 上下文中的 YAML 值转换 */
 function toYamlValueCtx(key: string, value: string): string {
 	const STATUS_TO_YAML: Record<string, string> = {
 		none: "无状态",

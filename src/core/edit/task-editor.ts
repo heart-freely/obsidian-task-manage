@@ -517,19 +517,27 @@ export async function writeToFiles(
 
 	let count = 0;
 
-	// 处理列表任务
 	for (const [path, items] of Object.entries(lineGroups)) {
-		const file = app.vault.getAbstractFileByPath(path);
-		if (!file) continue;
-		await app.vault.process(file, (data: string) => {
-			const dataLines = data.split("\n");
-			for (const item of items) {
-				let targetLine = item.line;
-
-				if (targetLine < dataLines.length) {
-					const currentTrimmed = dataLines[targetLine].trim();
-					const rawTrimmed = item.rawLine.trim();
-					if (currentTrimmed !== rawTrimmed) {
+		try {
+			const file = app.vault.getAbstractFileByPath(path);
+			if (!file) continue;
+			await app.vault.process(file, (data: string) => {
+				const dataLines = data.split("\n");
+				for (const item of items) {
+					let targetLine = item.line;
+					if (targetLine < dataLines.length) {
+						const currentTrimmed = dataLines[targetLine].trim();
+						const rawTrimmed = item.rawLine.trim();
+						if (currentTrimmed !== rawTrimmed) {
+							for (let i = 0; i < dataLines.length; i++) {
+								if (dataLines[i].trim() === rawTrimmed) {
+									targetLine = i;
+									break;
+								}
+							}
+						}
+					} else {
+						const rawTrimmed = item.rawLine.trim();
 						for (let i = 0; i < dataLines.length; i++) {
 							if (dataLines[i].trim() === rawTrimmed) {
 								targetLine = i;
@@ -537,85 +545,77 @@ export async function writeToFiles(
 							}
 						}
 					}
-				} else {
-					const rawTrimmed = item.rawLine.trim();
-					for (let i = 0; i < dataLines.length; i++) {
-						if (dataLines[i].trim() === rawTrimmed) {
-							targetLine = i;
-							break;
-						}
-					}
+					const originalLine = dataLines[targetLine];
+					const indentMatch = originalLine.match(/^(\s*)/);
+					const indent = indentMatch ? indentMatch[1] : "";
+					dataLines[targetLine] = indent + item.newLine.trim();
 				}
-
-				const originalLine = dataLines[targetLine];
-				const indentMatch = originalLine.match(/^(\s*)/);
-				const indent = indentMatch ? indentMatch[1] : "";
-				dataLines[targetLine] = indent + item.newLine.trim();
-			}
-			return dataLines.join("\n");
-		});
-		count += items.length;
+				return dataLines.join("\n");
+			});
+			count += items.length;
+		} catch (e) {
+			console.error("[TaskManage] 写入文件失败:", path, e);
+		}
 	}
 
-	// 处理文件/标题任务
 	for (const [path, items] of Object.entries(yamlGroups)) {
-		const file = app.vault.getAbstractFileByPath(path);
-		if (!file) continue;
-		await app.vault.process(file, (data: string) => {
-			const dataLines = data.split("\n");
-			for (const item of items) {
-				const newYamlLines = item.newYaml
-					.split("\n")
-					.filter((l: string) => l.trim() !== "");
-
-				if (!item.hasYaml) {
-					if (newYamlLines.length === 0) continue;
-
-					if (item.isFrontmatter) {
-						dataLines.unshift("---", ...newYamlLines, "---");
-					} else {
-						const headingLine =
-							item.startLine >= 0 ? item.startLine : 0;
-						dataLines.splice(
-							headingLine + 1,
-							0,
-							"```yaml",
-							...newYamlLines,
-							"```",
-						);
-					}
-				} else {
-					const innerStart = item.startLine + 1;
-					const innerEnd = item.endLine;
-
-					if (newYamlLines.length === 0) {
-						dataLines.splice(
-							item.startLine,
-							item.endLine - item.startLine + 1,
-						);
-					} else {
-						const deleteCount = innerEnd - innerStart;
-						if (
-							deleteCount >= 0 &&
-							innerStart <= dataLines.length
-						) {
+		try {
+			const file = app.vault.getAbstractFileByPath(path);
+			if (!file) continue;
+			await app.vault.process(file, (data: string) => {
+				const dataLines = data.split("\n");
+				for (const item of items) {
+					const newYamlLines = item.newYaml
+						.split("\n")
+						.filter((l: string) => l.trim() !== "");
+					if (!item.hasYaml) {
+						if (newYamlLines.length === 0) continue;
+						if (item.isFrontmatter) {
+							dataLines.unshift("---", ...newYamlLines, "---");
+						} else {
+							const headingLine =
+								item.startLine >= 0 ? item.startLine : 0;
 							dataLines.splice(
-								innerStart,
-								Math.max(0, deleteCount),
+								headingLine + 1,
+								0,
+								"```yaml",
 								...newYamlLines,
+								"```",
 							);
+						}
+					} else {
+						const innerStart = item.startLine + 1;
+						const innerEnd = item.endLine;
+						if (newYamlLines.length === 0) {
+							dataLines.splice(
+								item.startLine,
+								item.endLine - item.startLine + 1,
+							);
+						} else {
+							const deleteCount = innerEnd - innerStart;
+							if (
+								deleteCount >= 0 &&
+								innerStart <= dataLines.length
+							) {
+								dataLines.splice(
+									innerStart,
+									Math.max(0, deleteCount),
+									...newYamlLines,
+								);
+							}
 						}
 					}
 				}
-			}
-			return dataLines.join("\n");
-		});
-		count += items.length;
+				return dataLines.join("\n");
+			});
+			count += items.length;
+		} catch (e) {
+			console.error("[TaskManage] 写入YAML文件失败:", path, e);
+		}
 	}
 
 	return count;
 }
-
 // ========== 保存与撤回 ==========
 
 let saveLogCount = 0;

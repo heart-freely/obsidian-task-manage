@@ -1,4 +1,4 @@
-// src/core/store/preset/base-task-preset.ts
+// src/ui/view/base-task-view.ts
 // 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染
 
 import { STATUS_NAMES } from "../../core/config/config";
@@ -21,6 +21,7 @@ import {
 } from "../../core/task/task-tree";
 import { GlobalFilter } from "../../type/type";
 import { DateUtils } from "../../util/date-utils";
+import { TaskNavigator } from "../../util/navigator-utils";
 import { renderKanban } from "../main/board/kanban-board";
 import { renderMatrix } from "../main/board/matrix-board";
 import { renderCalendarView } from "../main/calendar/calendar";
@@ -43,6 +44,7 @@ import { renderTaskTree } from "../main/list/tree-list";
 import { renderUniqueId } from "../main/list/uniqueId-list";
 import { renderTaskTable } from "../main/table/table";
 import { Panels } from "../panel/panel";
+
 export abstract class BaseTaskView extends BaseTaskEdit {
 	protected container: HTMLElement;
 	protected store: Store;
@@ -75,6 +77,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	private _lastActivePresetId: string | null = null;
 	private _lastSidebarCollapsed: boolean | null = null;
 	private _lastFilterStr: string | null = null;
+
 	constructor(container: HTMLElement, store: Store, app: any) {
 		super();
 		this.container = container;
@@ -100,6 +103,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			(p) => p.id === state.activePresetId,
 		);
 		this._lastFilterStr = JSON.stringify(currentPreset?.filter);
+		this._lastIntervalMode = currentPreset?.intervalMode ?? null;
 
 		this.unsub = store.subscribe(() => {
 			const state = store.getState();
@@ -112,12 +116,21 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			);
 			const filterStr = JSON.stringify(currentPreset?.filter);
 			const filterChanged = this._lastFilterStr !== filterStr;
+			const currentIntervalMode = currentPreset?.intervalMode;
+			const intervalModeChanged =
+				this._lastIntervalMode !== currentIntervalMode;
 
 			this._lastActivePresetId = state.activePresetId;
 			this._lastSidebarCollapsed = state.sidebarCollapsed;
 			this._lastFilterStr = filterStr;
+			this._lastIntervalMode = currentIntervalMode;
 
-			if (presetChanged || sidebarChanged || filterChanged) {
+			if (
+				presetChanged ||
+				sidebarChanged ||
+				filterChanged ||
+				intervalModeChanged
+			) {
 				this.render();
 			}
 		});
@@ -141,8 +154,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		});
 	}
 
-	// ========== 渲染相关 ==========
-
 	getDefaultFilter(): GlobalFilter {
 		return getDefaultFilter();
 	}
@@ -159,6 +170,41 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 
 	private async doRender() {
+		const scrollKey = this.prepareRender();
+
+		const result = await this.loadData();
+		if (!result) {
+			this.finishRender(scrollKey);
+			return;
+		}
+
+		const { nodes, fullTree } = result;
+		if (nodes.length === 0) {
+			this.renderEmpty();
+			this.finishRender(scrollKey);
+			return;
+		}
+
+		const filtered = this.applyFilters(fullTree);
+		if (!filtered) {
+			this.finishRender(scrollKey);
+			return;
+		}
+
+		const { dateFilteredTree, flatNodes } = filtered;
+		if (flatNodes.length === 0) {
+			this.renderEmpty();
+			this.finishRender(scrollKey);
+			return;
+		}
+
+		const sorted = this.applySorting(flatNodes);
+		this.applyEditContext();
+		this.renderContent(dateFilteredTree, sorted);
+		this.finishRender(scrollKey);
+	}
+
+	private prepareRender(): string | null {
 		const scrollContainer = this.getScrollContainer();
 		const scrollKey = this.getScrollKey();
 		if (scrollContainer && scrollKey) {
@@ -178,137 +224,149 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			this.ganttInstance = null;
 		}
 
-		const state = this.store.getState();
-		const preset = this.store.getActivePreset();
-		const activeFilter: GlobalFilter =
-			preset?.filter ?? this.getDefaultFilter();
-		const currentStyle = preset?.viewStyle ?? "table";
-		const intervalMode = preset?.intervalMode ?? "scheduled-due";
+		return scrollKey;
+	}
 
+	private async loadData(): Promise<{
+		nodes: TaskTreeNode[];
+		fullTree: TaskTreeNode;
+	} | null> {
 		try {
 			const { nodes } = await this.dataManager.loadData(this.app);
-			if (nodes.length === 0) {
-				this.container.replaceChildren();
-				this.renderEmpty();
-				this.restoreScrollPosition(scrollKey);
-				this.bindClickEvent();
-				return;
-			}
-
 			const fullTree = this.dataManager.getFullTree();
-			const panelOptions: TreeFilterOptions = {
-				statuses: activeFilter.statuses,
-				searchText: activeFilter.searchText,
-				priorityValues: activeFilter.priorityValues,
-				repeatCycles: activeFilter.repeatCycles,
-				includeMarks: activeFilter.includeMarks,
-			};
-			const panelFilteredTree = filterTree(fullTree, panelOptions);
-			const dateFilteredTree = filterTreeByDateRange(
-				panelFilteredTree,
-				activeFilter.dateRange,
-				intervalMode,
-			);
-			const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
-			applyHideConfig(dateFilteredTree, hideConfig);
-
-			// 聚焦视图：更新 selectedTreeNode 指向 filterTree 新树中的节点
-			if (this.selectedTreeNode) {
-				const newFocus = this.findNodeByUidInTree(
-					dateFilteredTree,
-					this.selectedTreeNode.uid,
-				);
-				if (newFocus) {
-					this.selectedTreeNode = newFocus;
-					this.focusedTreeNode = newFocus;
-				}
-			}
-
-			let flatNodes: TaskTreeNode[];
-			if (this.selectedTreeNode) {
-				flatNodes = this.collectNodeTasksDeep(this.selectedTreeNode);
-			} else {
-				flatNodes = flattenTree(dateFilteredTree);
-			}
-			flatNodes = flatNodes.filter(
-				(n) => n.display && n.uid !== "__task_root__" && n.match,
-			);
-
-			if (flatNodes.length === 0) {
-				this.container.replaceChildren();
-				this.renderEmpty();
-				this.restoreScrollPosition(scrollKey);
-				this.bindClickEvent();
-				return;
-			}
-
-			const sort = preset?.sort ?? { type: "", order: "asc" };
-			const sorted = this.applySort(flatNodes, sort);
-			this.applyEditContext();
-
-			this.container.textContent = "";
-
-			if (currentStyle === "tree") {
-				const viewContainer = this.container.createDiv({
-					cls: "view-content",
-				});
-				viewContainer.style.cssText = "padding:0;margin:0;";
-				renderTaskTree(viewContainer, {
-					root: dateFilteredTree,
-					focusRoot: this.focusedTreeNode || undefined,
-					hideFolders: activeFilter.hideFolders ?? true,
-					onClick: (n: TaskTreeNode) => this.onTaskTreeNavClick(n),
-					onDoubleClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
-					onRestore: () => this.restoreFocus(),
-					sort,
-				});
-			} else if (currentStyle === "gantt") {
-				const viewContainer = this.container.createDiv({
-					cls: "view-content",
-				});
-				viewContainer.style.cssText = "height:100%;overflow:hidden;";
-				this.ganttInstance = renderGanttWithTree(
-					viewContainer,
-					dateFilteredTree,
-					{
-						onTaskClick: (n: TaskTreeNode) =>
-							this.openTaskAtLine(n),
-						onRestore: () => this.restoreFocus(),
-						onNodeClick: (n: TaskTreeNode) =>
-							this.onTaskTreeNavClick(n),
-						intervalMode,
-						sort: sort as { type: string; order: "asc" | "desc" },
-						dateRange: activeFilter.dateRange,
-						focusRoot: this.focusedTreeNode || undefined,
-					},
-				);
-			} else {
-				this.renderSplitLayout(
-					dateFilteredTree,
-					currentStyle,
-					activeFilter,
-					intervalMode,
-					sort,
-					sorted,
-				);
-			}
-
-			if (this.editStore.getState().editMode) {
-				this.previouslyEditedUids = new Set(
-					this.editStore.getState().selectedTasks,
-				);
-			}
-
-			this.restoreScrollPosition(scrollKey);
+			return { nodes, fullTree };
 		} catch (e) {
-			console.warn("[TaskManage] 视图渲染失败:", e);
+			console.warn("[TaskManage] 加载数据失败:", e);
 			this.container.replaceChildren();
 			this.container.createDiv({
 				text:
 					"加载失败：" + (e instanceof Error ? e.message : String(e)),
 			});
+			return null;
+		}
+	}
+
+	private applyFilters(fullTree: TaskTreeNode): {
+		dateFilteredTree: TaskTreeNode;
+		flatNodes: TaskTreeNode[];
+	} | null {
+		const preset = this.store.getActivePreset();
+		const activeFilter: GlobalFilter =
+			preset?.filter ?? this.getDefaultFilter();
+		const intervalMode = preset?.intervalMode ?? "scheduled-due";
+
+		const panelOptions: TreeFilterOptions = {
+			statuses: activeFilter.statuses,
+			searchText: activeFilter.searchText,
+			priorityValues: activeFilter.priorityValues,
+			repeatCycles: activeFilter.repeatCycles,
+			includeMarks: activeFilter.includeMarks,
+		};
+		const panelFilteredTree = filterTree(fullTree, panelOptions);
+		const dateFilteredTree = filterTreeByDateRange(
+			panelFilteredTree,
+			activeFilter.dateRange,
+			intervalMode,
+		);
+		const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
+		applyHideConfig(dateFilteredTree, hideConfig);
+
+		if (this.selectedTreeNode) {
+			const newFocus = this.findNodeByUidInTree(
+				dateFilteredTree,
+				this.selectedTreeNode.uid,
+			);
+			if (newFocus) {
+				this.selectedTreeNode = newFocus;
+				this.focusedTreeNode = newFocus;
+			}
 		}
 
+		let flatNodes: TaskTreeNode[];
+		if (this.selectedTreeNode) {
+			flatNodes = this.collectNodeTasksDeep(this.selectedTreeNode);
+		} else {
+			flatNodes = flattenTree(dateFilteredTree);
+		}
+		flatNodes = flatNodes.filter(
+			(n) => n.display && n.uid !== "__task_root__" && n.match,
+		);
+
+		return { dateFilteredTree, flatNodes };
+	}
+
+	private applySorting(nodes: TaskTreeNode[]): TaskTreeNode[] {
+		const preset = this.store.getActivePreset();
+		const sort = preset?.sort ?? { type: "", order: "asc" };
+		return this.applySort(nodes, sort);
+	}
+
+	private renderContent(
+		dateFilteredTree: TaskTreeNode,
+		sortedNodes: TaskTreeNode[],
+	) {
+		const preset = this.store.getActivePreset();
+		const activeFilter: GlobalFilter =
+			preset?.filter ?? this.getDefaultFilter();
+		const currentStyle = preset?.viewStyle ?? "table";
+		const intervalMode = preset?.intervalMode ?? "scheduled-due";
+		const sort = preset?.sort ?? { type: "", order: "asc" };
+
+		this.container.textContent = "";
+
+		if (currentStyle === "tree") {
+			const viewContainer = this.container.createDiv({
+				cls: "view-content",
+			});
+			viewContainer.style.cssText = "padding:0;margin:0;";
+			renderTaskTree(viewContainer, {
+				root: dateFilteredTree,
+				focusRoot: this.focusedTreeNode || undefined,
+				hideFolders: activeFilter.hideFolders ?? true,
+				onClick: (n: TaskTreeNode) => this.onTaskTreeNavClick(n),
+				onDoubleClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
+				onRestore: () => this.restoreFocus(),
+				sort,
+			});
+		} else if (currentStyle === "gantt") {
+			const viewContainer = this.container.createDiv({
+				cls: "view-content",
+			});
+			viewContainer.style.cssText = "height:100%;overflow:hidden;";
+			this.ganttInstance = renderGanttWithTree(
+				viewContainer,
+				dateFilteredTree,
+				{
+					onTaskClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
+					onRestore: () => this.restoreFocus(),
+					onNodeClick: (n: TaskTreeNode) =>
+						this.onTaskTreeNavClick(n),
+					intervalMode,
+					sort: sort as { type: string; order: "asc" | "desc" },
+					dateRange: activeFilter.dateRange,
+					focusRoot: this.focusedTreeNode || undefined,
+				},
+			);
+		} else {
+			this.renderSplitLayout(
+				dateFilteredTree,
+				currentStyle,
+				activeFilter,
+				intervalMode,
+				sort,
+				sortedNodes,
+			);
+		}
+
+		if (this.editStore.getState().editMode) {
+			this.previouslyEditedUids = new Set(
+				this.editStore.getState().selectedTasks,
+			);
+		}
+	}
+
+	private finishRender(scrollKey: string | null) {
+		this.restoreScrollPosition(scrollKey);
 		this.bindClickEvent();
 	}
 
@@ -514,20 +572,12 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		document.addEventListener("mousemove", this.onResizeBound!);
 		document.addEventListener("mouseup", this.stopResizeBound!);
 	}
+
 	refreshSingleCard(node: TaskTreeNode) {
 		const searchRoot = this.rightContentContainer || this.container;
-		console.log(
-			"[refreshSingleCard] uid:",
-			node.uid,
-			"searchRoot:",
-			searchRoot === this.rightContentContainer
-				? "rightContentContainer"
-				: "container",
-		);
 		const card = searchRoot.querySelector(
 			`[data-uid="${node.uid}"]`,
 		) as HTMLElement;
-		console.log("[refreshSingleCard] card found:", !!card);
 		if (!card?.parentNode) return;
 
 		const newCard = createViewCard(node, {
@@ -536,7 +586,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			onEnterEdit: (n) => this.handleEnterEdit(n),
 		});
 		card.parentNode.replaceChild(newCard, card);
-		console.log("[refreshSingleCard] 替换完成");
 	}
 
 	updateFocusAfterSave() {
@@ -552,6 +601,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			}
 		}
 	}
+
 	private findNodeByUidInTree(
 		root: TaskTreeNode,
 		uid: string,
@@ -563,12 +613,12 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		}
 		return null;
 	}
+
 	private onTaskTreeNavClick(node: TaskTreeNode) {
 		if (this.focusedTreeNode === node) {
 			this.restoreFocus();
 			return;
 		}
-		console.log("[onTaskTreeNavClick] node:", node.uid, "text:", node.text);
 		this.focusHistory.push(node);
 		this.focusedTreeNode = node;
 		this.selectedTreeNode = node;
@@ -576,73 +626,9 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 
 	protected openTaskAtLine(node: TaskTreeNode) {
-		if (!node?.path) return;
-		const file = this.app.vault.getAbstractFileByPath(node.path);
-		if (!file) return;
-		const targetLine = node.line;
-
-		const leaf = this.app.workspace.getLeaf(false);
-		leaf.openFile(file, { active: true }).then(() => {
-			leaf.setEphemeralState({
-				line: targetLine,
-				startLoc: { line: targetLine, ch: 0, offset: 0 },
-			});
-
-			setTimeout(() => {
-				const view = leaf.view as any;
-				const state = view?.getState?.();
-				const mode = state?.mode || "source";
-				if (mode === "preview") {
-					view?.previewMode?.applyScroll?.(targetLine);
-					return;
-				}
-
-				const cm = (view?.editor as any)?.cm;
-				if (!cm) return;
-
-				const clampedLine = Math.min(
-					targetLine,
-					view.editor.lineCount() - 1,
-				);
-				const halfHeight = Math.floor(
-					cm.getScrollInfo().clientHeight / 2,
-				);
-				const scroller = cm.getScrollerElement();
-
-				cm.setCursor({ line: clampedLine, ch: 0 });
-				cm.setSelection(
-					{ line: clampedLine, ch: 0 },
-					{
-						line: clampedLine,
-						ch: cm.getLine(clampedLine)?.length || 0,
-					},
-				);
-
-				const isTargetInView = () => {
-					const coords = cm.charCoords(
-						{ line: clampedLine, ch: 0 },
-						"window",
-					);
-					const rect = scroller.getBoundingClientRect();
-					return (
-						coords.top >= rect.top && coords.bottom <= rect.bottom
-					);
-				};
-
-				// 方案A：直接滚动
-				cm.scrollIntoView({ line: clampedLine, ch: 0 }, halfHeight);
-
-				if (isTargetInView()) return;
-
-				// 方案B：破坏缓存后再次滚动
-				setTimeout(() => {
-					cm.execCommand("goLineDown");
-					cm.execCommand("goLineUp");
-					cm.scrollIntoView({ line: clampedLine, ch: 0 }, halfHeight);
-				}, 200);
-			}, 300);
-		});
+		TaskNavigator.openTaskAtLine(this.app, node);
 	}
+
 	private toggleTaskTreeNav(collapsed: boolean) {
 		const p = this.store.getActivePreset();
 		if (!p) return;

@@ -1,4 +1,4 @@
-// core/data/data-manager.ts
+// src/core/data/data-manager.ts
 // 数据管理器 — 统一数据加载、缓存、筛选、排序、收集
 
 import { GlobalFilter } from "../../type/type";
@@ -184,9 +184,6 @@ export class DataManager {
 		return this.cache.taskIdMap;
 	}
 
-	/**
-	 * 根据 uid 查找任务节点
-	 */
 	getNodeByUid(uid: string): TaskTreeNode | undefined {
 		const allNodes = this.cache.fullTree
 			? flattenTree(this.cache.fullTree)

@@ -1,16 +1,14 @@
 // src/ui/panel/head-panel.ts
-// 面板标题栏
+// 面板标题栏 — 合并筛选按钮
 
 import { Store } from "../../core/store/store";
 
 const PANEL_LABELS: Record<string, string> = {
+	filter: "筛选内容",
 	time: "筛选时间",
-	excut: "筛选状态",
-	search: "筛选描述",
-	mark: "筛选标记",
 	view: "任务视图",
 	hide: "视图隐藏",
-	edit: "视图编辑", // 新增
+	edit: "视图编辑",
 	sort: "视图排序",
 	config: "视图配置",
 };
@@ -40,12 +38,11 @@ export class HeadPanel {
 
 		const barVisibility = preset.barVisibility ?? {};
 		const toolbarOrder = preset.toolbarOrder ?? [
-			"excut",
-			"search",
-			"mark",
+			"filter",
 			"time",
 			"view",
 			"hide",
+			"edit",
 			"sort",
 			"config",
 		];

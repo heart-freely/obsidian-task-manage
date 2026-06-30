@@ -31,7 +31,15 @@ export const TASK_REGEX = new RegExp(
 
 function parseDate(dateStr: string): number | null {
 	if (!dateStr) return null;
-	const ts = new Date(dateStr).getTime();
+	const parts = dateStr.split("-");
+	if (parts.length !== 3) return null;
+	const d = new Date(
+		parseInt(parts[0]),
+		parseInt(parts[1]) - 1,
+		parseInt(parts[2]),
+	);
+	d.setHours(0, 0, 0, 0);
+	const ts = d.getTime();
 	return isNaN(ts) ? null : ts;
 }
 
@@ -58,7 +66,9 @@ export function parseTaskLine(
 		return match ? match[idx !== undefined ? idx : 1] || null : null;
 	}
 
-	const priorityIcon = (text.match(TASKS_RX.priority) || [null])[0] || "";
+	// 使用 match 获取首个匹配，无 g 标志时返回数组包含完整匹配信息
+	const priorityMatch = text.match(TASKS_RX.priority);
+	const priorityIcon = priorityMatch ? priorityMatch[0] : "";
 	const priority = TASKS_PRIORITY_ICON_TO_NUM[priorityIcon] ?? 5;
 
 	const cleanText = text

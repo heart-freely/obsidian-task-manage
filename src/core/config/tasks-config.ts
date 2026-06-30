@@ -55,7 +55,8 @@ export const TASKS_RX: Record<string, RegExp> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
 	const pattern = TASKS_MARK_PATTERNS[k];
 	if (pattern) {
-		TASKS_RX[k] = new RegExp(pattern, k === "priority" ? "g" : "");
+		// 所有正则均不使用 g 标志，避免 lastIndex 残留导致交替匹配问题
+		TASKS_RX[k] = new RegExp(pattern, "");
 	}
 });
 

@@ -3,13 +3,11 @@
 
 import { Store } from "../../core/store/store";
 import { EditPanel } from "./edit-panel";
+import { FilterPanel } from "./filter-panel";
 import { HeadPanel } from "./head-panel";
 import { HidePanel } from "./hide-panel";
-import { MarkPanel } from "./mark-panel";
 import { PresetPanel } from "./preset-panel";
-import { SearchPanel } from "./search-panel";
 import { SortPanel } from "./sort-panel";
-import { StatusPanel } from "./status-panel";
 import { TimePanel } from "./time-panel";
 import { ViewPanel } from "./view-panel";
 
@@ -22,9 +20,7 @@ type PanelComponentClass = new (
 const PANEL_COMPONENTS: Record<string, PanelComponentClass> = {
 	config: PresetPanel,
 	time: TimePanel,
-	excut: StatusPanel,
-	search: SearchPanel,
-	mark: MarkPanel,
+	filter: FilterPanel,
 	view: ViewPanel,
 	sort: SortPanel,
 	hide: HidePanel,
@@ -72,7 +68,6 @@ export class Panels {
 		this.panelHost.style.zIndex = "50";
 		this.panelHost.style.pointerEvents = "auto";
 
-		// 标题栏按钮条 — 作为面板内容的一部分
 		this.buttonBarEl = document.createElement("div");
 		this.buttonBarEl.className = "panel-header";
 		this.buttonBarEl.style.cssText =
@@ -80,7 +75,6 @@ export class Panels {
 
 		this.headPanel = new HeadPanel(this.buttonBarEl, store);
 
-		// 面板容器
 		this.panelsContainer = document.createElement("div");
 		this.panelsContainer.className = "panel-container";
 		this.panelsContainer.style.position = "relative";
@@ -100,7 +94,6 @@ export class Panels {
 		this.panelsContainer.style.overflowX = "hidden";
 		this.panelsContainer.style.boxSizing = "border-box";
 
-		// 面板内容区域 — 标题栏 + 功能面板
 		this.panelContentInner = document.createElement("div");
 		this.panelContentInner.style.cssText =
 			"display:flex;flex-direction:column;gap:0;";
@@ -109,7 +102,6 @@ export class Panels {
 
 		this.panelHost.appendChild(this.panelsContainer);
 
-		// 拖拽手柄
 		this.resizeHandle = document.createElement("div");
 		this.resizeHandle.className = "panel-resize-handle";
 		this.resizeHandle.style.cssText =
@@ -194,7 +186,6 @@ export class Panels {
       .panel-input{padding:4px 8px;border-radius:12px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);font-size:13px;min-width:200px}
       .panel-input-sm{width:48px;min-width:48px;padding:3px 4px;font-size:14px;text-align:center}
       .panel-content{padding:4px 6px;background:var(--background-secondary);}
-
       .edit-date-input::-webkit-calendar-picker-indicator{margin-left:1px;padding:0;cursor:pointer;opacity:0.7;width:14px;height:14px;}
       .edit-date-input::-webkit-datetime-edit-fields-wrapper{padding:0 1px;}
       .edit-date-input::-webkit-datetime-edit{padding:0;}
@@ -351,10 +342,6 @@ export class Panels {
 		this.refreshContent();
 	}
 
-	private showPanels() {
-		if (this.isPanelsCollapsed) this.togglePanels();
-	}
-
 	private updatePreset(changes: Partial<any>) {
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
@@ -364,6 +351,7 @@ export class Panels {
 		);
 		this.store.update({ presets: newPresets });
 	}
+
 	public initPanelSubscriptions() {
 		for (const [key, instance] of this.panelInstances) {
 			if (instance && typeof instance.initSubscription === "function") {
@@ -371,9 +359,11 @@ export class Panels {
 			}
 		}
 	}
+
 	public getEditPanel(): EditPanel | undefined {
 		return this.panelInstances.get("edit") as EditPanel | undefined;
 	}
+
 	destroy() {}
 
 	cleanupAll() {

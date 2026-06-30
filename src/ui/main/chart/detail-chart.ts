@@ -1,4 +1,5 @@
-// src/ui/component/charts/detail-chart.ts
+// src/ui/main/chart/detail-chart.ts
+// 详细统计图 — 堆叠柱状图
 
 import {
 	ALLOWED_STATUSES,
@@ -10,6 +11,7 @@ import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
 import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
+
 export function renderDetail(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
@@ -22,12 +24,10 @@ export function renderDetail(
 		intervalMode?: string;
 	},
 ) {
+	echarts.dispose(container);
 	container.empty();
 
 	const statusColors = getStatusColors();
-
-	// 确定时间范围：优先使用静态日历时间，否则从任务数据推断
-	const intervalMode = options?.intervalMode ?? "any-date";
 	const dateRange = options?.dateRange;
 
 	let minDate: Date;
@@ -54,6 +54,7 @@ export function renderDetail(
 		dates.push(DateUtils.formatDate(cur));
 		cur.setDate(cur.getDate() + 1);
 	}
+
 	const seriesData: Record<string, number[]> = {};
 	ALLOWED_STATUSES.forEach((st) => {
 		seriesData[st] = new Array(dates.length).fill(0);
@@ -74,10 +75,12 @@ export function renderDetail(
 	wrapper.style.width = "100%";
 	wrapper.style.minHeight = "400px";
 	wrapper.style.position = "relative";
+
 	const chartDiv = document.createElement("div");
 	chartDiv.style.width = "100%";
 	chartDiv.style.height = "500px";
 	wrapper.appendChild(chartDiv);
+
 	const zoomBtn = document.createElement("button");
 	zoomBtn.className = "zoom-btn";
 	zoomBtn.textContent = "🔍";
@@ -85,7 +88,18 @@ export function renderDetail(
 		"position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:16px;";
 	wrapper.appendChild(zoomBtn);
 	container.appendChild(wrapper);
-	const chart = echarts.init(chartDiv);
+
+	let chart: any;
+	try {
+		chart = echarts.init(chartDiv);
+	} catch (e) {
+		console.error("[TaskManage] 详细统计图初始化失败:", e);
+		chartDiv.textContent = "图表加载失败";
+		chartDiv.style.cssText +=
+			"display:flex;align-items:center;justify-content:center;color:var(--text-muted);";
+		return;
+	}
+
 	const option = {
 		tooltip: getEChartsTooltipConfig("axis"),
 		xAxis: {
@@ -105,24 +119,37 @@ export function renderDetail(
 		legend: { bottom: 0, textStyle: { fontSize: 10 } },
 	};
 	chart.setOption(option);
+
 	zoomBtn.onclick = () => {
 		const modal = document.createElement("div");
 		modal.style.cssText =
 			"position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;";
+
 		const closeBtn = document.createElement("button");
 		closeBtn.textContent = "✖";
 		closeBtn.style.cssText =
 			"position:absolute;top:20px;right:30px;font-size:24px;background:transparent;border:none;color:white;cursor:pointer;";
+
 		const bigChartDiv = document.createElement("div");
 		bigChartDiv.style.width = "90vw";
 		bigChartDiv.style.height = "90vh";
 		modal.appendChild(bigChartDiv);
 		modal.appendChild(closeBtn);
 		document.body.appendChild(modal);
-		const bigChart = echarts.init(bigChartDiv);
-		bigChart.setOption(option);
+
+		let bigChart: any;
+		try {
+			bigChart = echarts.init(bigChartDiv);
+			bigChart.setOption(option);
+		} catch (e) {
+			console.error("[TaskManage] 放大图表初始化失败:", e);
+			bigChartDiv.textContent = "图表加载失败";
+			bigChartDiv.style.cssText +=
+				"display:flex;align-items:center;justify-content:center;color:white;";
+		}
+
 		const closeModal = () => {
-			bigChart.dispose();
+			if (bigChart) bigChart.dispose();
 			modal.remove();
 		};
 		closeBtn.onclick = closeModal;

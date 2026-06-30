@@ -37,8 +37,8 @@ DATE_MARK_ORDER.forEach((k) => {
 const MISSING_COLOR = "rgba(128,128,128,0.5)";
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
+	echarts.dispose(container);
 	container.empty();
-
 	const statusColors = getStatusColors();
 	const priorityColors = getPriorityColors();
 	const repeatColors = getRepeatColors();
@@ -88,56 +88,65 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 
 		grid.appendChild(item);
 
-		const chart = echarts.init(chartDiv);
-		chart.setOption({
-			backgroundColor: "transparent",
-			textStyle: { color: textColor },
-			tooltip: getEChartsTooltipConfig("item"),
-			legend: {
-				orient: "horizontal",
-				bottom: 0,
-				textStyle: { color: textColor, fontSize: 10 },
-				itemWidth: 8,
-				itemHeight: 8,
-				itemGap: 8,
-				type: "plain",
-			},
-			series: [
-				{
-					type: "pie",
-					data: data.length
-						? data.map((d) => ({
-								name: d.name,
-								value: d.value,
-								itemStyle: { color: d.color, borderRadius: 4 },
-							}))
-						: [
-								{
-									name: "无数据",
-									value: 1,
-									itemStyle: { color: "#ccc" },
-								},
-							],
-					radius: ["35%", "60%"],
-					center: ["50%", "45%"],
-					label: {
-						show: true,
-						position: "outside",
-						color: textColor,
-						fontSize: 10,
-						formatter: "{d}%",
-					},
-					labelLine: {
-						show: true,
-						length: 8,
-						length2: 6,
-						lineStyle: { width: 1 },
-					},
+		try {
+			const chart = echarts.init(chartDiv);
+			chart.setOption({
+				backgroundColor: "transparent",
+				textStyle: { color: textColor },
+				tooltip: getEChartsTooltipConfig("item"),
+				legend: {
+					orient: "horizontal",
+					bottom: 0,
+					textStyle: { color: textColor, fontSize: 10 },
+					itemWidth: 8,
+					itemHeight: 8,
+					itemGap: 8,
+					type: "plain",
 				},
-			],
-		});
+				series: [
+					{
+						type: "pie",
+						data: data.length
+							? data.map((d) => ({
+									name: d.name,
+									value: d.value,
+									itemStyle: {
+										color: d.color,
+										borderRadius: 4,
+									},
+								}))
+							: [
+									{
+										name: "无数据",
+										value: 1,
+										itemStyle: { color: "#ccc" },
+									},
+								],
+						radius: ["35%", "60%"],
+						center: ["50%", "45%"],
+						label: {
+							show: true,
+							position: "outside",
+							color: textColor,
+							fontSize: 10,
+							formatter: "{d}%",
+						},
+						labelLine: {
+							show: true,
+							length: 8,
+							length2: 6,
+							lineStyle: { width: 1 },
+						},
+					},
+				],
+			});
+		} catch (e) {
+			console.error("[TaskManage] 图表初始化失败:", e);
+			chartDiv.textContent = "图表加载失败";
+			chartDiv.style.cssText +=
+				"display:flex;align-items:center;justify-content:center;color:var(--text-muted);";
+		}
 	}
-
 	function makeHasNonePie(title: string, hasCount: number, hasColor: string) {
 		const noneCount = totalCount - hasCount;
 		makePieChart(title, [

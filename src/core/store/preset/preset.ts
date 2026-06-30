@@ -17,12 +17,19 @@ export function addPreset(
 
 // 删除方案
 export function removePreset(store: Store, presetId: string) {
-	const presets = store.getState().presets.filter((p) => p.id !== presetId);
-	const active =
-		store.getState().activePresetId === presetId
-			? null
-			: store.getState().activePresetId;
-	store.update({ presets, activePresetId: active });
+	const state = store.getState();
+	// 禁止删除最后一个方案
+	if (state.presets.length <= 1) {
+		console.warn("[TaskManage] 至少保留一个方案，无法删除");
+		return;
+	}
+	const presets = state.presets.filter((p) => p.id !== presetId);
+	// 如果删除的是当前激活方案，自动切换到剩余第一个
+	let activePresetId = state.activePresetId;
+	if (activePresetId === presetId) {
+		activePresetId = presets[0].id;
+	}
+	store.update({ presets, activePresetId });
 }
 
 // 更新方案（部分字段）

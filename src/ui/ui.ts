@@ -45,6 +45,13 @@ export class ManageView extends ItemView {
 		this.cleanup?.();
 		this.cleanup = undefined;
 	}
+
+	/**
+	 * 外部文件修改后刷新视图
+	 */
+	refreshView() {
+		this.store.triggerFullRender();
+	}
 }
 
 const VIEW_LOADERS: Record<

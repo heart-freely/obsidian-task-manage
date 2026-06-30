@@ -4,13 +4,22 @@
 import { DataManager } from "../../core/data/data-manager";
 import {
 	calcDynamicOffset,
+	clamp,
 	datesFromLevel,
 	daysInYear,
-	dayToDate,
+	formatDayValue,
+	formatDynamicValue,
+	formatMonthValue,
+	formatQuarterValue,
+	formatWeekValue,
+	formatYearValue,
 	getLevelValues,
+	getTodaySliderValue,
 	maxDynamicRange,
+	singleYearRanges,
 	staticSliderRanges,
 	weeksInYear,
+	yearSliderRange,
 } from "../../core/date/date-calc";
 import { Store } from "../../core/store/store";
 import { DateUtils } from "../../util/date-utils";
@@ -156,15 +165,6 @@ export class TimePanel {
 			this.refreshAllStaticSliders();
 			if (!this.useDynamic) this.refreshDynamicUI();
 		}
-	}
-
-	private clamp(v: number, min: number, max: number): number {
-		return Math.max(min, Math.min(max, v));
-	}
-
-	private yearRange(): { min: number; max: number } {
-		const cy = new Date().getFullYear();
-		return { min: cy - 10, max: cy + 10 };
 	}
 
 	private updatePreset(changes: { dateRange?: boolean } & Partial<any>) {
@@ -347,113 +347,18 @@ export class TimePanel {
 		}
 	}
 
-	private fmtYear(x: number): string {
-		return `${x}年`;
-	}
-	private fmtQuarter(x: number): string {
-		const y = this.currentMinYear + Math.floor((x - 1) / 4);
-		return `${y}/${((x - 1) % 4) + 1}季`;
-	}
-	private fmtMonth(x: number): string {
-		const y = this.currentMinYear + Math.floor((x - 1) / 12);
-		return `${y}/${((x - 1) % 12) + 1}月`;
-	}
-	private fmtWeek(x: number): string {
-		let r = x,
-			y = this.currentMinYear;
-		while (r > weeksInYear(y)) {
-			r -= weeksInYear(y);
-			y++;
-		}
-		return `${y}/${r}周`;
-	}
-	private fmtDay(x: number): string {
-		let r = x,
-			y = this.currentMinYear;
-		while (r > daysInYear(y)) {
-			r -= daysInYear(y);
-			y++;
-		}
-		const d = dayToDate(y, Math.max(1, r));
-		return `${y}/${d.getMonth() + 1}/${d.getDate()}日`;
-	}
-	private fmtDynamicValue(v: number): string {
-		if (v === 0) {
-			const u = this.dynamicUnit;
-			if (u === "day") return "本日";
-			if (u === "week") return "本周";
-			if (u === "month") return "本月";
-			if (u === "quarter") return "本季";
-			if (u === "year") return "本年";
-		}
-		const p = v < 0 ? "前" : "后";
-		const abs = Math.abs(v);
-		const u = this.dynamicUnit;
-		if (u === "week") return `${p}${abs}周`;
-		if (u === "month") return `${p}${abs}月`;
-		if (u === "quarter") return `${p}${abs}季`;
-		if (u === "year") return `${p}${abs}年`;
-		return `${p}${abs}日`;
-	}
-	private fmtDynamicLabel(a: number, b: number): string {
-		return a === b
-			? this.fmtDynamicValue(a)
-			: `${this.fmtDynamicValue(a)}~${this.fmtDynamicValue(b)}`;
-	}
-
-	private getTodayValue(lv: string): number {
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		const cy = today.getFullYear();
-		let offset = 0;
-		for (let y = this.currentMinYear; y < cy; y++) {
-			switch (lv) {
-				case "quarter":
-					offset += 4;
-					break;
-				case "month":
-					offset += 12;
-					break;
-				case "week":
-					offset += weeksInYear(y);
-					break;
-				case "day":
-					offset += daysInYear(y);
-					break;
-			}
-		}
-		switch (lv) {
-			case "year":
-				return cy;
-			case "quarter":
-				return Math.floor(today.getMonth() / 3) + 1 + offset;
-			case "month":
-				return today.getMonth() + 1 + offset;
-			case "week":
-				return DateUtils.getISOWeekNumber(today) + offset;
-			case "day":
-				return (
-					Math.ceil(
-						(today.getTime() - new Date(cy, 0, 0).getTime()) /
-							86400000,
-					) + offset
-				);
-		}
-		return 0;
-	}
-
 	private rebuildDynamicSlider() {
 		if (!this.dynamicSection?.parentNode) return;
 		this.enhancedSliders.get("dynamic")?.destroy();
 		this.enhancedSliders.delete("dynamic");
 		this.updateMidLines.delete("dynamic");
-		const dmx = this.maxDyn();
-		const dsVal = this.clamp(
+		const dmx = maxDynamicRange(this.dynamicUnit);
+		const dsVal = clamp(
 			calcDynamicOffset(this.dynamicStart, this.dynamicUnit),
 			-dmx,
 			dmx,
 		);
-		const deVal = this.clamp(
+		const deVal = clamp(
 			calcDynamicOffset(this.dynamicEnd, this.dynamicUnit),
 			-dmx,
 			dmx,
@@ -466,13 +371,16 @@ export class TimePanel {
 			max: dmx,
 			start: minV,
 			end: maxV,
-			format: (v) => this.fmtDynamicValue(v),
+			format: (v) => formatDynamicValue(v, this.dynamicUnit),
 			onChange: (s, e) => this.onDynamicChange(s, e),
 			todayValue: 0,
 			midValue: 0,
 		});
 		result.refs.row.style.paddingLeft = "calc(4em + 6px)";
-		result.refs.labelSpan.textContent = this.fmtDynamicLabel(minV, maxV);
+		result.refs.labelSpan.textContent =
+			minV === maxV
+				? formatDynamicValue(minV, this.dynamicUnit)
+				: `${formatDynamicValue(minV, this.dynamicUnit)}~${formatDynamicValue(maxV, this.dynamicUnit)}`;
 		this.enhancedSliders.set("dynamic", result.refs);
 		this.updateMidLines.set("dynamic", result.updateMidLine);
 	}
@@ -484,27 +392,13 @@ export class TimePanel {
 			this.enhancedSliders.delete(key);
 			this.updateMidLines.delete(key);
 		});
-		const { min: yearMin, max: yearMax } = this.yearRange();
+		const { min: yearMin, max: yearMax } = yearSliderRange();
 		const isSingle =
 			this.currentMinYear === this.currentMaxYear &&
 			this.childSlidersDrivenByYear;
 		let ranges: any;
 		if (isSingle) {
-			const y = this.currentMinYear;
-			ranges = {
-				yearMin,
-				yearMax,
-				quarterMin: 1,
-				quarterMax: 4,
-				monthMin: 1,
-				monthMax: 12,
-				weekMin: 1,
-				weekMax: weeksInYear(y),
-				dayMin: 1,
-				dayMax: daysInYear(y),
-				minYear: y,
-				maxYear: y,
-			};
+			ranges = singleYearRanges(this.currentMinYear, yearMin, yearMax);
 		} else {
 			ranges = staticSliderRanges(
 				this.staticStart,
@@ -521,7 +415,14 @@ export class TimePanel {
 			this.staticEnd,
 			this.currentMinYear,
 		);
-		const cur = (lv: string) => this.getTodayValue(lv);
+		const cur = (lv: string) =>
+			getTodaySliderValue(
+				lv,
+				this.currentMinYear,
+				DateUtils.getISOWeekNumber,
+				weeksInYear,
+				daysInYear,
+			);
 		const sv = (lv: string) =>
 			lv === "year"
 				? Math.min(vals.yearStart, vals.yearEnd)
@@ -542,51 +443,26 @@ export class TimePanel {
 						: lv === "week"
 							? vals.weekEnd
 							: vals.dayEnd;
-		this.createSlider(
-			"year",
-			ranges.yearMin,
-			ranges.yearMax,
-			sv("year"),
-			ev("year"),
-			(x) => this.fmtYear(x),
-			cur("year"),
-		);
-		this.createSlider(
-			"quarter",
-			ranges.quarterMin,
-			ranges.quarterMax,
-			sv("quarter"),
-			ev("quarter"),
-			(x) => this.fmtQuarter(x),
-			cur("quarter"),
-		);
-		this.createSlider(
-			"month",
-			ranges.monthMin,
-			ranges.monthMax,
-			sv("month"),
-			ev("month"),
-			(x) => this.fmtMonth(x),
-			cur("month"),
-		);
-		this.createSlider(
-			"week",
-			ranges.weekMin,
-			ranges.weekMax,
-			sv("week"),
-			ev("week"),
-			(x) => this.fmtWeek(x),
-			cur("week"),
-		);
-		this.createSlider(
-			"day",
-			ranges.dayMin,
-			ranges.dayMax,
-			sv("day"),
-			ev("day"),
-			(x) => this.fmtDay(x),
-			cur("day"),
-		);
+
+		const fmtFns: Record<string, (x: number) => string> = {
+			year: formatYearValue,
+			quarter: (x) => formatQuarterValue(x, this.currentMinYear),
+			month: (x) => formatMonthValue(x, this.currentMinYear),
+			week: (x) => formatWeekValue(x, this.currentMinYear),
+			day: (x) => formatDayValue(x, this.currentMinYear),
+		};
+
+		["year", "quarter", "month", "week", "day"].forEach((key) => {
+			this.createSlider(
+				key,
+				(ranges as any)[key + "Min"],
+				(ranges as any)[key + "Max"],
+				sv(key),
+				ev(key),
+				fmtFns[key],
+				cur(key),
+			);
+		});
 	}
 
 	private createSlider(
@@ -603,8 +479,8 @@ export class TimePanel {
 			container: this.staticSection,
 			min,
 			max,
-			start: this.clamp(Math.min(start, end), min, max),
-			end: this.clamp(Math.max(start, end), min, max),
+			start: clamp(Math.min(start, end), min, max),
+			end: clamp(Math.max(start, end), min, max),
 			format,
 			onChange: (s, ev) => this.onStaticChange(key, s, ev),
 			todayValue: todayVal,
@@ -619,42 +495,53 @@ export class TimePanel {
 		const ref = this.enhancedSliders.get("dynamic");
 		const updateMid = this.updateMidLines.get("dynamic");
 		if (!ref || !updateMid) return;
-		const mx = this.maxDyn(),
+		const mx = maxDynamicRange(this.dynamicUnit),
 			mn = -mx;
 		const ds = calcDynamicOffset(this.dynamicStart, this.dynamicUnit);
 		const de = calcDynamicOffset(this.dynamicEnd, this.dynamicUnit);
-		const minV = this.clamp(Math.min(ds, de), mn, mx);
-		const maxV = this.clamp(Math.max(ds, de), mn, mx);
+		const minV = clamp(Math.min(ds, de), mn, mx);
+		const maxV = clamp(Math.max(ds, de), mn, mx);
 		ref.update(minV, maxV);
-		ref.labelSpan.textContent = this.fmtDynamicLabel(minV, maxV);
+		ref.labelSpan.textContent =
+			minV === maxV
+				? formatDynamicValue(minV, this.dynamicUnit)
+				: `${formatDynamicValue(minV, this.dynamicUnit)}~${formatDynamicValue(maxV, this.dynamicUnit)}`;
 		updateMid(0);
 	}
 
 	private refreshAllStaticSliders() {
-		const { min: yearMin, max: yearMax } = this.yearRange();
+		const { min: yearMin, max: yearMax } = yearSliderRange();
+		const cur = (lv: string) =>
+			getTodaySliderValue(
+				lv,
+				this.currentMinYear,
+				DateUtils.getISOWeekNumber,
+				weeksInYear,
+				daysInYear,
+			);
+		const up = (
+			key: string,
+			s: number,
+			e: number,
+			mn: number,
+			mx: number,
+			midV: number,
+		) => {
+			const ref = this.enhancedSliders.get(key),
+				um = this.updateMidLines.get(key);
+			if (!ref) return;
+			ref.update(
+				clamp(Math.min(s, e), mn, mx),
+				clamp(Math.max(s, e), mn, mx),
+			);
+			if (um) um(midV);
+		};
+
 		if (
 			this.childSlidersDrivenByYear &&
 			this.currentMinYear === this.currentMaxYear
 		) {
 			const y = this.currentMinYear;
-			const cur = (lv: string) => this.getTodayValue(lv);
-			const up = (
-				key: string,
-				s: number,
-				e: number,
-				mn: number,
-				mx: number,
-				midV: number,
-			) => {
-				const ref = this.enhancedSliders.get(key),
-					um = this.updateMidLines.get(key);
-				if (!ref) return;
-				ref.update(
-					this.clamp(Math.min(s, e), mn, mx),
-					this.clamp(Math.max(s, e), mn, mx),
-				);
-				if (um) um(midV);
-			};
 			up("year", y, y, yearMin, yearMax, cur("year"));
 			up("quarter", 1, 4, 1, 4, cur("quarter"));
 			up("month", 1, 12, 1, 12, cur("month"));
@@ -674,24 +561,6 @@ export class TimePanel {
 			this.staticEnd,
 			this.currentMinYear,
 		);
-		const cur = (lv: string) => this.getTodayValue(lv);
-		const up = (
-			key: string,
-			s: number,
-			e: number,
-			mn: number,
-			mx: number,
-			midV: number,
-		) => {
-			const ref = this.enhancedSliders.get(key),
-				um = this.updateMidLines.get(key);
-			if (!ref) return;
-			ref.update(
-				this.clamp(Math.min(s, e), mn, mx),
-				this.clamp(Math.max(s, e), mn, mx),
-			);
-			if (um) um(midV);
-		};
 		up(
 			"year",
 			Math.min(vals.yearStart, vals.yearEnd),
@@ -732,10 +601,6 @@ export class TimePanel {
 			ranges.dayMax,
 			cur("day"),
 		);
-	}
-
-	private maxDyn() {
-		return maxDynamicRange(this.dynamicUnit);
 	}
 
 	private async initRange() {

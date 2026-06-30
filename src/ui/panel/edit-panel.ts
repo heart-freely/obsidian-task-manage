@@ -1,5 +1,5 @@
 // src/ui/panel/edit-panel.ts
-// 编辑面板 — 视图配置面板中的批量编辑按钮
+// 编辑面板 — 直接持有 EditStore 和 TaskView 引用
 
 import { Store } from "../../core/store/store";
 
@@ -7,40 +7,41 @@ export class EditPanel {
 	private container: HTMLElement;
 	private store: Store;
 	private savedDaysValue: string = "0";
+	private editStore: any;
+	private taskView: any;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
+		this.editStore = store.getEditStore();
+		this.taskView = store.getTaskView();
 		this.render();
 
-		// 注册面板更新
-		const es = this.store.getEditStore();
-		if (es) {
-			es.subscribePanel(() => this.render());
+		if (this.editStore) {
+			this.editStore.subscribePanel(() => this.render());
 		}
 	}
 
 	destroy() {}
 
+	private refreshRefs() {
+		this.editStore = this.store.getEditStore();
+		this.taskView = this.store.getTaskView();
+	}
+
 	render() {
-		const es = this.store.getEditStore();
+		this.refreshRefs();
+		const es = this.editStore;
 		const isBatchMode = es ? es.getState().batchMode : false;
 		const selectedCount = es ? es.getState().selectedTasks.size : 0;
-		console.log(
-			"[EditPanel.render] isBatchMode:",
-			isBatchMode,
-			"selectedCount:",
-			selectedCount,
-		);
 		const hasSelected = selectedCount > 0;
 		const allSelected = hasSelected;
+		const isSyncMode = es ? es.getState().syncMode : false;
 
 		let snapshots: any[] = [];
 		try {
-			snapshots = this.store.getSnapshots();
-		} catch (e) {
-			// EditStore 未初始化时忽略
-		}
+			snapshots = es ? es.getSnapshots() : [];
+		} catch (e) {}
 		const hasSnapshots = snapshots.length > 0;
 
 		const disabledStyle = "opacity: 0.5; cursor: not-allowed;";
@@ -59,24 +60,37 @@ export class EditPanel {
 		if (isBatchMode) batchBtn.addClass("active");
 		batchBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			this.store.toggleBatchMode();
+			this.taskView?.toggleBatchMode();
 		});
 
 		const subPanel1 = row1.createDiv({ cls: "panel-sub" });
 		subPanel1.style.cssText =
 			"display:flex;flex-wrap:wrap;gap:6px;margin-left:8px;align-items:center;";
 
-		// 全选/全不选
+		// 同步模式按钮
+		const syncBtn = subPanel1.createEl("button", {
+			text: "同步模式",
+			cls: "panel-btn sub-btn",
+			title: "开启后，编辑操作将同步到所有勾选任务",
+		});
+		if (!isBatchMode) syncBtn.style.cssText += disabledStyle;
+		if (isSyncMode) syncBtn.addClass("active");
+		syncBtn.addEventListener("click", () => {
+			if (!isBatchMode) return;
+			es?.toggleSyncMode();
+			syncBtn.toggleClass("active", es?.getState().syncMode ?? false);
+			this.taskView?.refreshEditCards?.();
+		});
+
+		// 全选/全不选按钮
 		const selectAllBtn = subPanel1.createEl("button", {
 			text: allSelected && isBatchMode ? "全不选" : "全选",
 			cls: "panel-btn sub-btn",
 		});
-		if (!isBatchMode) {
-			selectAllBtn.style.cssText += disabledStyle;
-		}
+		if (!isBatchMode) selectAllBtn.style.cssText += disabledStyle;
 		selectAllBtn.addEventListener("click", () => {
 			if (!isBatchMode) return;
-			this.store.toggleSelectAll([]);
+			this.taskView?.toggleSelectAll([]);
 		});
 
 		// 标记排序
@@ -84,17 +98,16 @@ export class EditPanel {
 			text: "标记排序",
 			cls: "panel-btn sub-btn",
 		});
-		if (!isBatchMode || !hasSelected) {
+		if (!isBatchMode || !hasSelected)
 			sortBtn.style.cssText += disabledStyle;
-		}
 		sortBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			this.store.applySortTags();
+			es?.applySortTags();
 			sortBtn.addClass("active");
 			setTimeout(() => sortBtn.removeClass("active"), 300);
 		});
 
-		// 补全时间按钮和输入框在同一行对齐
+		// 补全时间
 		const autoCompleteRow = subPanel1.createDiv();
 		autoCompleteRow.style.cssText =
 			"display:inline-flex;align-items:center;gap:4px;";
@@ -102,15 +115,14 @@ export class EditPanel {
 		const autoCompleteBtn = document.createElement("button");
 		autoCompleteBtn.textContent = "补全时间";
 		autoCompleteBtn.className = "panel-btn sub-btn";
-		if (!isBatchMode || !hasSelected) {
+		if (!isBatchMode || !hasSelected)
 			autoCompleteBtn.style.cssText += disabledStyle;
-		}
 		autoCompleteBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
 			const rawValue = daysInput.value.trim();
 			const days =
 				rawValue === "" ? undefined : parseInt(rawValue, 10) || 0;
-			this.store.applyAutoComplete(days);
+			es?.applyAutoComplete(days);
 			autoCompleteBtn.addClass("active");
 			setTimeout(() => autoCompleteBtn.removeClass("active"), 300);
 		});
@@ -135,11 +147,9 @@ export class EditPanel {
 		daysLabel.textContent = "天";
 		daysLabel.style.cssText =
 			"font-size:var(--font-ui-smaller);color:var(--text-muted);line-height:22px;display:inline-flex;align-items:center;";
-		if (!isBatchMode || !hasSelected) {
+		if (!isBatchMode || !hasSelected)
 			daysLabel.style.cssText += disabledStyle;
-		}
 		autoCompleteRow.appendChild(daysLabel);
-
 		subPanel1.appendChild(autoCompleteRow);
 
 		// 恢复原文
@@ -147,12 +157,11 @@ export class EditPanel {
 			text: "恢复原文",
 			cls: "panel-btn sub-btn",
 		});
-		if (!isBatchMode || !hasSelected) {
+		if (!isBatchMode || !hasSelected)
 			clearBtn.style.cssText += disabledStyle;
-		}
 		clearBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			this.store.clearPreviews();
+			es?.clearPreviews();
 			clearBtn.addClass("active");
 			setTimeout(() => clearBtn.removeClass("active"), 300);
 		});
@@ -162,12 +171,11 @@ export class EditPanel {
 			text: "保存编辑",
 			cls: "panel-btn sub-btn",
 		});
-		if (!isBatchMode || !hasSelected) {
+		if (!isBatchMode || !hasSelected)
 			saveBtn.style.cssText += disabledStyle;
-		}
 		saveBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			this.store.saveCurrent();
+			es?.saveCurrent();
 			saveBtn.addClass("active");
 			setTimeout(() => saveBtn.removeClass("active"), 300);
 		});
@@ -200,14 +208,12 @@ export class EditPanel {
 			text: "备份恢复",
 			cls: "panel-btn",
 		});
-		if (!hasSnapshots) {
-			revertBtn.style.cssText += disabledStyle;
-		}
+		if (!hasSnapshots) revertBtn.style.cssText += disabledStyle;
 		revertBtn.addEventListener("click", () => {
 			if (!hasSnapshots) return;
 			const idx = parseInt(snapshotSelect.value, 10);
 			if (!isNaN(idx)) {
-				this.store.revertSnapshot(idx);
+				es?.revertSnapshot(idx);
 				revertBtn.addClass("active");
 				setTimeout(() => revertBtn.removeClass("active"), 300);
 			}
@@ -217,14 +223,12 @@ export class EditPanel {
 			text: "清空备份",
 			cls: "panel-btn",
 		});
-		if (!hasSnapshots) {
-			clearSnapshotBtn.style.cssText += disabledStyle;
-		}
+		if (!hasSnapshots) clearSnapshotBtn.style.cssText += disabledStyle;
 		clearSnapshotBtn.addEventListener("click", () => {
 			if (!hasSnapshots) return;
 			if (confirm("确定清空所有编辑备份？")) {
 				localStorage.removeItem("organizeSnapshots");
-				this.store.getEditStore()?.syncToStore();
+				es?.syncToStore();
 				clearSnapshotBtn.addClass("active");
 				setTimeout(() => clearSnapshotBtn.removeClass("active"), 300);
 			}

@@ -69,44 +69,6 @@ export class PresetPanel {
 		const row4 = this.container.createDiv({ cls: "panel-row" });
 		row4.createSpan({ text: "视图配置", cls: "panel-label" });
 
-		const importBtn = row4.createEl("button", {
-			text: "📥 导入配置",
-			cls: "panel-btn",
-		});
-		importBtn.onclick = () => {
-			const i = document.createElement("input");
-			i.type = "file";
-			i.accept = ".json";
-			i.onchange = async () => {
-				if (!i.files?.length) return;
-				try {
-					updatePreset(
-						JSON.parse(await i.files[0].text()) as Partial<Preset>,
-					);
-				} catch {
-					alert("导入失败");
-				}
-			};
-			i.click();
-		};
-
-		const exportBtn = row4.createEl("button", {
-			text: "📤 导出配置",
-			cls: "panel-btn",
-		});
-		exportBtn.onclick = () => {
-			const st = this.store.getState();
-			const pr = st.presets.find((p) => p.id === st.activePresetId);
-			if (!pr) return;
-			const blob = new Blob([JSON.stringify(pr, null, 2)], {
-				type: "application/json",
-			});
-			const a = document.createElement("a");
-			a.href = URL.createObjectURL(blob);
-			a.download = `task-view-${pr.name}.json`;
-			a.click();
-		};
-
 		const resetBtn = row4.createEl("button", {
 			text: "🔄 恢复默认",
 			cls: "panel-btn",
@@ -118,11 +80,7 @@ export class PresetPanel {
 			const defaultPresets = getDefaultPresets();
 			const def = defaultPresets.find((dp) => dp.id === pr.id);
 			if (!def) return;
-			updatePreset({
-				...def,
-				id: pr.id,
-				name: pr.name,
-			} as any);
+			updatePreset({ ...def, id: pr.id, name: pr.name } as any);
 			Panels.getInstance().refreshTimePanel();
 		};
 

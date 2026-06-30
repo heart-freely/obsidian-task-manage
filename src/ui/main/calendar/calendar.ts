@@ -103,244 +103,254 @@ function renderTimeline(
 	onDayClick?: (date: Date) => void,
 	onTaskClick?: (task: TaskTreeNode) => void,
 ): boolean {
-	const displayDays = days.slice(0, maxDays);
-	const seen = new Set<string>();
-	const allTasks: TaskTreeNode[] = [];
-	const taskIntervals = new Map<
-		string,
-		{ start: number; end: number } | null
-	>();
-	const rangeStart = setStart(displayDays[0]).getTime();
-	const rangeEnd = setStart(displayDays[displayDays.length - 1]).getTime();
+	try {
+		const displayDays = days.slice(0, maxDays);
+		const seen = new Set<string>();
+		const allTasks: TaskTreeNode[] = [];
+		const taskIntervals = new Map<
+			string,
+			{ start: number; end: number } | null
+		>();
+		const rangeStart = setStart(displayDays[0]).getTime();
+		const rangeEnd = setStart(
+			displayDays[displayDays.length - 1],
+		).getTime();
 
-	for (const taskList of dateTaskMap.values()) {
-		for (const task of taskList) {
-			if (seen.has(task.uid)) continue;
-			seen.add(task.uid);
-			const interval = getTaskInterval(task, intervalMode);
-			taskIntervals.set(task.uid, interval);
-			if (interval) {
-				if (interval.start <= rangeEnd && interval.end >= rangeStart) {
-					allTasks.push(task);
-				}
-			} else {
-				const fallbackTs =
-					task.scheduled ||
-					task.due ||
-					task.starts ||
-					task.created ||
-					task.done ||
-					task.cancelled;
-				if (fallbackTs) {
-					const dateStr = formatDate(new Date(fallbackTs));
-					const idx = displayDays.findIndex(
-						(d) => formatDate(d) === dateStr,
-					);
-					if (idx >= 0) allTasks.push(task);
-				}
-			}
-		}
-	}
-
-	if (allTasks.length === 0) return false;
-
-	allTasks.sort(
-		(a, b) =>
-			(globalOrderMap.get(a.uid) || 999999) -
-			(globalOrderMap.get(b.uid) || 999999),
-	);
-
-	const todayStr = formatDate(new Date());
-	const actualDays = displayDays.length;
-	const colsPerRow = maxDays <= 7 ? maxDays : 7;
-	const totalRows = Math.ceil(actualDays / colsPerRow);
-	const colWidth = 100 / colsPerRow;
-
-	const rowTasks: TaskTreeNode[][] = [];
-	const rowTaskIntervals: Map<
-		string,
-		{ taskStart: number; taskEnd: number }
-	>[] = [];
-	for (let row = 0; row < totalRows; row++) {
-		rowTasks.push([]);
-		rowTaskIntervals.push(new Map());
-		const rowStart = row * colsPerRow;
-		const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
-
-		for (const task of allTasks) {
-			const interval = taskIntervals.get(task.uid);
-			let taskStart = -1,
-				taskEnd = -1;
-
-			if (interval) {
-				const startDate = setStart(new Date(interval.start));
-				const endDate = setEnd(new Date(interval.end));
-				const sIdx = displayDays.findIndex(
-					(d) => formatDate(d) === formatDate(startDate),
-				);
-				const eIdx = displayDays.findIndex(
-					(d) => formatDate(d) === formatDate(endDate),
-				);
-				if (sIdx >= 0 && eIdx >= 0) {
-					taskStart = sIdx;
-					taskEnd = eIdx;
-				}
-			} else {
-				const fallbackTs =
-					task.scheduled ||
-					task.due ||
-					task.starts ||
-					task.created ||
-					task.done ||
-					task.cancelled;
-				if (fallbackTs) {
-					const dateStr = formatDate(new Date(fallbackTs));
-					const idx = displayDays.findIndex(
-						(d) => formatDate(d) === dateStr,
-					);
-					if (idx >= 0) taskStart = taskEnd = idx;
-				}
-			}
-
-			if (taskStart < 0) continue;
-			if (taskEnd < rowStart || taskStart > rowEnd) continue;
-
-			rowTasks[row].push(task);
-			rowTaskIntervals[row].set(task.uid, { taskStart, taskEnd });
-		}
-	}
-	console.log(
-		"[renderTimeline] allTasks:",
-		allTasks.length,
-		"hasAnyRow:",
-		rowTasks.some((arr) => arr.length > 0),
-	);
-	const hasAnyRow = rowTasks.some((arr) => arr.length > 0);
-	if (!hasAnyRow) return false;
-
-	const body = document.createElement("div");
-	body.className = "timeline-body";
-
-	for (let row = 0; row < totalRows; row++) {
-		const tasksInRow = rowTasks[row];
-		if (tasksInRow.length === 0) continue;
-
-		const taskCount = tasksInRow.length;
-		const taskAreaHeight = taskCount * TIMELINE_ROW_HEIGHT;
-		const rowHeight = TIMELINE_ROW_HEIGHT + taskAreaHeight;
-
-		const rowGroup = document.createElement("div");
-		rowGroup.style.position = "relative";
-		rowGroup.style.height = rowHeight + "px";
-
-		const dateRow = document.createElement("div");
-		dateRow.style.display = "grid";
-		dateRow.style.gridTemplateColumns = `repeat(${colsPerRow}, 1fr)`;
-		dateRow.style.borderBottom =
-			"1px solid var(--background-modifier-border)";
-
-		for (let col = 0; col < colsPerRow; col++) {
-			const idx = row * colsPerRow + col;
-			const dayEl = document.createElement("div");
-			dayEl.className = "timeline-header-day";
-
-			if (idx < actualDays) {
-				const d = displayDays[idx];
-				const dateStr = formatDate(d);
-				const count = (dateTaskMap.get(dateStr) || []).length;
-				const isToday = dateStr === todayStr;
-				if (isToday) dayEl.classList.add("today");
-				dayEl.textContent = padTwo(d.getDate());
-
-				if (heatMapMax !== undefined && heatMapMax > 0 && count > 0) {
-					const intensity = 0.05 + (count / heatMapMax) * 0.3;
-					dayEl.style.backgroundColor = `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`;
-				}
-				if (onDayClick) {
-					dayEl.style.cursor = "pointer";
-					dayEl.addEventListener("click", () => onDayClick(d));
-				}
-			}
-			dateRow.appendChild(dayEl);
-		}
-		rowGroup.appendChild(dateRow);
-
-		const taskArea = document.createElement("div");
-		taskArea.style.position = "absolute";
-		taskArea.style.top = TIMELINE_ROW_HEIGHT + "px";
-		taskArea.style.left = "0";
-		taskArea.style.right = "0";
-		taskArea.style.height = taskAreaHeight + "px";
-
-		for (let col = 0; col <= colsPerRow; col++) {
-			const line = document.createElement("div");
-			line.className = "timeline-grid-line";
-			line.style.left = col * colWidth + "%";
-			line.style.height = "100%";
-			taskArea.appendChild(line);
-		}
-
-		const rowStart = row * colsPerRow;
-		const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
-
-		tasksInRow.forEach((task, taskIdx) => {
-			const interval = taskIntervals.get(task.uid);
-			const taskInfo = rowTaskIntervals[row].get(task.uid);
-			if (!taskInfo) return;
-
-			const clampedStart = Math.max(taskInfo.taskStart, rowStart);
-			const clampedEnd = Math.min(taskInfo.taskEnd, rowEnd);
-			const col = clampedStart - rowStart;
-			const spanCols = clampedEnd - clampedStart + 1;
-
-			const bar = document.createElement("div");
-			bar.className = `timeline-bar ${task.status}`;
-			bar.style.left = col * colWidth + "%";
-			bar.style.top = taskIdx * TIMELINE_ROW_HEIGHT + 2 + "px";
-			bar.style.width = spanCols * colWidth + "%";
-
-			const label = document.createElement("span");
-			label.className = "timeline-bar-text";
-			label.textContent = task.text || task.content || "";
-			bar.appendChild(label);
-
-			const tipHtml = getDisplayText(task) + "<br>" + buildTooltip(task);
-			if (tipHtml) {
-				bar.addEventListener("mouseenter", (e) =>
-					tooltip.show(tipHtml, e.clientX, e.clientY),
-				);
-				bar.addEventListener("mousemove", (e) =>
-					tooltip.move(e.clientX, e.clientY),
-				);
-				bar.addEventListener("mouseleave", () => tooltip.hide());
-			}
-
-			if (!interval) bar.style.opacity = "0.5";
-
-			if (onTaskClick) {
-				bar.addEventListener("dblclick", (e) => {
-					const rect = bar.getBoundingClientRect();
-					const clickX = e.clientX - rect.left;
+		for (const taskList of dateTaskMap.values()) {
+			for (const task of taskList) {
+				if (seen.has(task.uid)) continue;
+				seen.add(task.uid);
+				const interval = getTaskInterval(task, intervalMode);
+				taskIntervals.set(task.uid, interval);
+				if (interval) {
 					if (
-						clickX > rect.width * 0.15 &&
-						clickX < rect.width * 0.85
+						interval.start <= rangeEnd &&
+						interval.end >= rangeStart
 					) {
-						e.stopPropagation();
-						onTaskClick(task);
+						allTasks.push(task);
 					}
-				});
-				bar.style.cursor = "pointer";
+				} else {
+					const fallbackTs =
+						task.scheduled ||
+						task.due ||
+						task.starts ||
+						task.created ||
+						task.done ||
+						task.cancelled;
+					if (fallbackTs) {
+						const dateStr = formatDate(new Date(fallbackTs));
+						const idx = displayDays.findIndex(
+							(d) => formatDate(d) === dateStr,
+						);
+						if (idx >= 0) allTasks.push(task);
+					}
+				}
+			}
+		}
+
+		if (allTasks.length === 0) return false;
+
+		allTasks.sort(
+			(a, b) =>
+				(globalOrderMap.get(a.uid) || 999999) -
+				(globalOrderMap.get(b.uid) || 999999),
+		);
+
+		const todayStr = formatDate(new Date());
+		const actualDays = displayDays.length;
+		const colsPerRow = maxDays <= 7 ? maxDays : 7;
+		const totalRows = Math.ceil(actualDays / colsPerRow);
+		const colWidth = 100 / colsPerRow;
+
+		const rowTasks: TaskTreeNode[][] = [];
+		const rowTaskIntervals: Map<
+			string,
+			{ taskStart: number; taskEnd: number }
+		>[] = [];
+		for (let row = 0; row < totalRows; row++) {
+			rowTasks.push([]);
+			rowTaskIntervals.push(new Map());
+			const rowStart = row * colsPerRow;
+			const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
+
+			for (const task of allTasks) {
+				const interval = taskIntervals.get(task.uid);
+				let taskStart = -1,
+					taskEnd = -1;
+
+				if (interval) {
+					const startDate = setStart(new Date(interval.start));
+					const endDate = setEnd(new Date(interval.end));
+					const sIdx = displayDays.findIndex(
+						(d) => formatDate(d) === formatDate(startDate),
+					);
+					const eIdx = displayDays.findIndex(
+						(d) => formatDate(d) === formatDate(endDate),
+					);
+					if (sIdx >= 0 && eIdx >= 0) {
+						taskStart = sIdx;
+						taskEnd = eIdx;
+					}
+				} else {
+					const fallbackTs =
+						task.scheduled ||
+						task.due ||
+						task.starts ||
+						task.created ||
+						task.done ||
+						task.cancelled;
+					if (fallbackTs) {
+						const dateStr = formatDate(new Date(fallbackTs));
+						const idx = displayDays.findIndex(
+							(d) => formatDate(d) === dateStr,
+						);
+						if (idx >= 0) taskStart = taskEnd = idx;
+					}
+				}
+
+				if (taskStart < 0) continue;
+				if (taskEnd < rowStart || taskStart > rowEnd) continue;
+
+				rowTasks[row].push(task);
+				rowTaskIntervals[row].set(task.uid, { taskStart, taskEnd });
+			}
+		}
+
+		const hasAnyRow = rowTasks.some((arr) => arr.length > 0);
+		if (!hasAnyRow) return false;
+
+		const body = document.createElement("div");
+		body.className = "timeline-body";
+
+		for (let row = 0; row < totalRows; row++) {
+			const tasksInRow = rowTasks[row];
+			if (tasksInRow.length === 0) continue;
+
+			const taskCount = tasksInRow.length;
+			const taskAreaHeight = taskCount * TIMELINE_ROW_HEIGHT;
+			const rowHeight = TIMELINE_ROW_HEIGHT + taskAreaHeight;
+
+			const rowGroup = document.createElement("div");
+			rowGroup.style.position = "relative";
+			rowGroup.style.height = rowHeight + "px";
+
+			const dateRow = document.createElement("div");
+			dateRow.style.display = "grid";
+			dateRow.style.gridTemplateColumns = `repeat(${colsPerRow}, 1fr)`;
+			dateRow.style.borderBottom =
+				"1px solid var(--background-modifier-border)";
+
+			for (let col = 0; col < colsPerRow; col++) {
+				const idx = row * colsPerRow + col;
+				const dayEl = document.createElement("div");
+				dayEl.className = "timeline-header-day";
+
+				if (idx < actualDays) {
+					const d = displayDays[idx];
+					const dateStr = formatDate(d);
+					const count = (dateTaskMap.get(dateStr) || []).length;
+					const isToday = dateStr === todayStr;
+					if (isToday) dayEl.classList.add("today");
+					dayEl.textContent = padTwo(d.getDate());
+
+					if (
+						heatMapMax !== undefined &&
+						heatMapMax > 0 &&
+						count > 0
+					) {
+						const intensity = 0.05 + (count / heatMapMax) * 0.3;
+						dayEl.style.backgroundColor = `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`;
+					}
+					if (onDayClick) {
+						dayEl.style.cursor = "pointer";
+						dayEl.addEventListener("click", () => onDayClick(d));
+					}
+				}
+				dateRow.appendChild(dayEl);
+			}
+			rowGroup.appendChild(dateRow);
+
+			const taskArea = document.createElement("div");
+			taskArea.style.position = "absolute";
+			taskArea.style.top = TIMELINE_ROW_HEIGHT + "px";
+			taskArea.style.left = "0";
+			taskArea.style.right = "0";
+			taskArea.style.height = taskAreaHeight + "px";
+
+			for (let col = 0; col <= colsPerRow; col++) {
+				const line = document.createElement("div");
+				line.className = "timeline-grid-line";
+				line.style.left = col * colWidth + "%";
+				line.style.height = "100%";
+				taskArea.appendChild(line);
 			}
 
-			taskArea.appendChild(bar);
-		});
+			const rowStart = row * colsPerRow;
+			const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
 
-		rowGroup.appendChild(taskArea);
-		body.appendChild(rowGroup);
+			tasksInRow.forEach((task, taskIdx) => {
+				const interval = taskIntervals.get(task.uid);
+				const taskInfo = rowTaskIntervals[row].get(task.uid);
+				if (!taskInfo) return;
+
+				const clampedStart = Math.max(taskInfo.taskStart, rowStart);
+				const clampedEnd = Math.min(taskInfo.taskEnd, rowEnd);
+				const col = clampedStart - rowStart;
+				const spanCols = clampedEnd - clampedStart + 1;
+
+				const bar = document.createElement("div");
+				bar.className = `timeline-bar ${task.status}`;
+				bar.style.left = col * colWidth + "%";
+				bar.style.top = taskIdx * TIMELINE_ROW_HEIGHT + 2 + "px";
+				bar.style.width = spanCols * colWidth + "%";
+
+				const label = document.createElement("span");
+				label.className = "timeline-bar-text";
+				label.textContent = task.text || task.content || "";
+				bar.appendChild(label);
+
+				const tipHtml =
+					getDisplayText(task) + "<br>" + buildTooltip(task);
+				if (tipHtml) {
+					bar.addEventListener("mouseenter", (e) =>
+						tooltip.show(tipHtml, e.clientX, e.clientY),
+					);
+					bar.addEventListener("mousemove", (e) =>
+						tooltip.move(e.clientX, e.clientY),
+					);
+					bar.addEventListener("mouseleave", () => tooltip.hide());
+				}
+
+				if (!interval) bar.style.opacity = "0.5";
+
+				if (onTaskClick) {
+					bar.addEventListener("dblclick", (e) => {
+						const rect = bar.getBoundingClientRect();
+						const clickX = e.clientX - rect.left;
+						if (
+							clickX > rect.width * 0.15 &&
+							clickX < rect.width * 0.85
+						) {
+							e.stopPropagation();
+							onTaskClick(task);
+						}
+					});
+					bar.style.cursor = "pointer";
+				}
+
+				taskArea.appendChild(bar);
+			});
+
+			rowGroup.appendChild(taskArea);
+			body.appendChild(rowGroup);
+		}
+
+		container.appendChild(body);
+		return true;
+	} catch (e) {
+		console.error("[TaskManage] 时间轴渲染失败:", e);
+		return false;
 	}
-
-	container.appendChild(body);
-	return true;
 }
 
 // ========== 主入口 ==========

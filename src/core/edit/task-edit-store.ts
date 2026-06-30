@@ -16,6 +16,8 @@ import {
 	writeToFiles,
 } from "./task-editor";
 
+const BATCH_CHUNK_SIZE = 50;
+
 export class EditStore {
 	private state: EditState;
 	private app: any;
@@ -54,6 +56,7 @@ export class EditStore {
 				batchMode: this.state.batchMode,
 				selectedCount: this.state.selectedTasks.size,
 				hasSnapshots: loadSnapshots().length > 0,
+				syncMode: this.state.syncMode,
 			});
 		}
 		if (!this._pendingNotify) {
@@ -80,6 +83,8 @@ export class EditStore {
 		this.state.selectedTasks.add(node.uid);
 		this.state.previews.set(node.uid, node.rawLine || "");
 		this.state.expandedButton = null;
+		this.state.syncMode = false;
+		this.state.primaryTaskUid = null;
 		this.syncToStore();
 	}
 
@@ -90,6 +95,8 @@ export class EditStore {
 		this.state.previews.clear();
 		this.state.savedTasks.clear();
 		this.state.expandedButton = null;
+		this.state.syncMode = false;
+		this.state.primaryTaskUid = null;
 		this.syncToStore();
 	}
 
@@ -102,6 +109,8 @@ export class EditStore {
 		this.state.selectedTasks.add(node.uid);
 		this.state.previews.set(node.uid, node.rawLine || "");
 		this.state.expandedButton = null;
+		this.state.syncMode = false;
+		this.state.primaryTaskUid = null;
 		this.syncToStore();
 	}
 
@@ -112,6 +121,8 @@ export class EditStore {
 		this.state.previews.clear();
 		this.state.savedTasks.clear();
 		this.state.expandedButton = null;
+		this.state.syncMode = false;
+		this.state.primaryTaskUid = null;
 		this.syncToStore();
 	}
 
@@ -168,6 +179,8 @@ export class EditStore {
 		this.state.editMode = false;
 		this.state.batchMode = false;
 		this.state.expandedButton = null;
+		this.state.syncMode = false;
+		this.state.primaryTaskUid = null;
 		this.syncToStore();
 	}
 
@@ -185,6 +198,20 @@ export class EditStore {
 				this.state.previews.set(node.uid, node.rawLine || "");
 			}
 		}
+
+		// 同步模式：自动维护主任务
+		if (this.state.syncMode) {
+			const remaining = [...this.state.selectedTasks];
+			if (
+				remaining.length > 0 &&
+				!this.state.selectedTasks.has(this.state.primaryTaskUid || "")
+			) {
+				this.state.primaryTaskUid = remaining[0];
+			} else if (remaining.length === 0) {
+				this.state.primaryTaskUid = null;
+			}
+		}
+
 		this.syncToStore();
 	}
 
@@ -199,6 +226,7 @@ export class EditStore {
 				this.state.previews.delete(n.uid);
 				this.state.savedTasks.delete(n.uid);
 			});
+			this.state.primaryTaskUid = null;
 		} else {
 			nodes.forEach((n) => {
 				if (n.uid !== "__task_root__") {
@@ -208,6 +236,9 @@ export class EditStore {
 					}
 				}
 			});
+			if (this.state.syncMode && nodes.length > 0) {
+				this.state.primaryTaskUid = nodes[0].uid;
+			}
 		}
 		this.syncToStore();
 	}
@@ -218,14 +249,77 @@ export class EditStore {
 		this.syncToStore();
 	}
 
+	// ========== 标记同步 ==========
+
+	toggleSyncMode() {
+		this.state.syncMode = !this.state.syncMode;
+		if (this.state.syncMode) {
+			if (this.state.selectedTasks.size === 1) {
+				this.state.primaryTaskUid = [...this.state.selectedTasks][0];
+			} else if (this.state.selectedTasks.size > 1) {
+				this.state.primaryTaskUid = [...this.state.selectedTasks][0];
+			} else {
+				this.state.primaryTaskUid = null;
+			}
+		} else {
+			this.state.primaryTaskUid = null;
+		}
+		this.syncToStore();
+	}
+
+	setPrimaryTask(uid: string) {
+		if (!this.state.syncMode) return;
+		if (!this.state.selectedTasks.has(uid)) return;
+		this.state.primaryTaskUid = uid;
+		this.syncToStore();
+	}
+
 	// ========== 编辑操作 ==========
 
-	applyEdit(markKey: string, value: string | null) {
+	applyEdit(markKey: string, value: string | null, sourceUid: string) {
 		if (this.state.selectedTasks.size === 0) return;
 
-		for (const uid of this.state.selectedTasks) {
-			if (this.state.savedTasks.has(uid)) continue;
+		if (this.state.syncMode) {
+			// 同步模式：遍历所有勾选任务，同步编辑
+			const uids = Array.from(this.state.selectedTasks).filter(
+				(uid) => !this.state.savedTasks.has(uid),
+			);
+			if (uids.length === 0) return;
+			if (uids.length <= BATCH_CHUNK_SIZE) {
+				this.processEditBatch(uids, markKey, value);
+				this.syncToStore();
+				this.store?.triggerEditCardsChanged?.();
+			} else {
+				this.processEditBatchAsync(uids, markKey, value);
+			}
+			return;
+		}
 
+		// 非同步模式：只编辑 sourceUid
+		const node = this.getNode(sourceUid);
+		if (!node || this.state.savedTasks.has(sourceUid)) return;
+		const currentPreview =
+			this.state.previews.get(sourceUid) || node.rawLine || "";
+		let newPreview = currentPreview;
+		if (node.type === "file" || node.type === "heading") {
+			newPreview = this.applyYamlEdit(currentPreview, markKey, value);
+		} else {
+			newPreview = this.applyLineEdit(currentPreview, markKey, value);
+		}
+		if (newPreview !== currentPreview) {
+			if (node.type === "list") newPreview = Op.sortTags(newPreview);
+			this.state.previews.set(sourceUid, newPreview);
+		}
+		this.syncToStore();
+		this.store?.triggerEditCardsChanged?.();
+	}
+
+	private processEditBatch(
+		uids: string[],
+		markKey: string,
+		value: string | null,
+	): void {
+		for (const uid of uids) {
 			const node = this.getNode(uid);
 			if (!node) continue;
 
@@ -234,75 +328,9 @@ export class EditStore {
 			let newPreview = currentPreview;
 
 			if (node.type === "file" || node.type === "heading") {
-				const yamlValue =
-					value !== null ? toYamlValue(markKey, value) : null;
-				newPreview =
-					value !== null
-						? Op.setYamlField(currentPreview, markKey, yamlValue)
-						: Op.delYamlField(currentPreview, markKey);
+				newPreview = this.applyYamlEdit(currentPreview, markKey, value);
 			} else {
-				switch (markKey) {
-					case "status":
-						newPreview = value
-							? Op.setStatus(currentPreview, value)
-							: currentPreview;
-						break;
-					case "priority":
-						newPreview = value
-							? Op.setPriority(currentPreview, value)
-							: Op.delPriority(currentPreview);
-						break;
-					case "repeat":
-						newPreview = value
-							? Op.setRepeat(currentPreview, value)
-							: Op.delRepeat(currentPreview);
-						break;
-					case "created":
-						newPreview = value
-							? Op.setCreated(currentPreview, value)
-							: Op.delCreated(currentPreview);
-						break;
-					case "scheduled":
-						newPreview = value
-							? Op.setScheduled(currentPreview, value)
-							: Op.delScheduled(currentPreview);
-						break;
-					case "starts":
-						newPreview = value
-							? Op.setStarts(currentPreview, value)
-							: Op.delStarts(currentPreview);
-						break;
-					case "due":
-						newPreview = value
-							? Op.setDue(currentPreview, value)
-							: Op.delDue(currentPreview);
-						break;
-					case "done":
-						newPreview = value
-							? Op.setDone(currentPreview, value)
-							: Op.delDone(currentPreview);
-						break;
-					case "cancelled":
-						newPreview = value
-							? Op.setCancelled(currentPreview, value)
-							: Op.delCancelled(currentPreview);
-						break;
-					case "tag":
-						newPreview = value
-							? Op.setTag(currentPreview, value)
-							: Op.delTag(currentPreview);
-						break;
-					case "id":
-						newPreview = value
-							? Op.setId(currentPreview, value)
-							: Op.delId(currentPreview);
-						break;
-					case "forbid":
-						newPreview = value
-							? Op.setForbid(currentPreview, value)
-							: Op.delForbid(currentPreview);
-						break;
-				}
+				newPreview = this.applyLineEdit(currentPreview, markKey, value);
 			}
 
 			if (newPreview !== currentPreview) {
@@ -312,7 +340,127 @@ export class EditStore {
 				this.state.previews.set(uid, newPreview);
 			}
 		}
-		this.syncToStore();
+	}
+
+	private processEditBatchAsync(
+		uids: string[],
+		markKey: string,
+		value: string | null,
+	): void {
+		let index = 0;
+		const total = uids.length;
+
+		const nodeMap = new Map<string, TaskTreeNode>();
+		for (const uid of uids) {
+			const node = this.getNode(uid);
+			if (node) nodeMap.set(uid, node);
+		}
+
+		const processChunk = () => {
+			const chunkEnd = Math.min(index + BATCH_CHUNK_SIZE, total);
+
+			for (let i = index; i < chunkEnd; i++) {
+				const uid = uids[i];
+				const node = nodeMap.get(uid);
+				if (!node) continue;
+
+				const currentPreview =
+					this.state.previews.get(uid) || node.rawLine || "";
+				let newPreview = currentPreview;
+
+				if (node.type === "file" || node.type === "heading") {
+					newPreview = this.applyYamlEdit(
+						currentPreview,
+						markKey,
+						value,
+					);
+				} else {
+					newPreview = this.applyLineEdit(
+						currentPreview,
+						markKey,
+						value,
+					);
+				}
+
+				if (newPreview !== currentPreview) {
+					if (node.type === "list") {
+						newPreview = Op.sortTags(newPreview);
+					}
+					this.state.previews.set(uid, newPreview);
+				}
+			}
+
+			index = chunkEnd;
+
+			if (index < total) {
+				requestAnimationFrame(processChunk);
+			} else {
+				this.syncToStore();
+				this.store?.triggerEditCardsChanged?.();
+			}
+		};
+
+		requestAnimationFrame(processChunk);
+	}
+
+	private applyYamlEdit(
+		preview: string,
+		markKey: string,
+		value: string | null,
+	): string {
+		const yamlValue = value !== null ? toYamlValue(markKey, value) : null;
+		return value !== null
+			? Op.setYamlField(preview, markKey, yamlValue)
+			: Op.delYamlField(preview, markKey);
+	}
+
+	private applyLineEdit(
+		preview: string,
+		markKey: string,
+		value: string | null,
+	): string {
+		switch (markKey) {
+			case "status":
+				return value ? Op.setStatus(preview, value) : preview;
+			case "priority":
+				return value
+					? Op.setPriority(preview, value)
+					: Op.delPriority(preview);
+			case "repeat":
+				return value
+					? Op.setRepeat(preview, value)
+					: Op.delRepeat(preview);
+			case "created":
+				return value
+					? Op.setCreated(preview, value)
+					: Op.delCreated(preview);
+			case "scheduled":
+				return value
+					? Op.setScheduled(preview, value)
+					: Op.delScheduled(preview);
+			case "starts":
+				return value
+					? Op.setStarts(preview, value)
+					: Op.delStarts(preview);
+			case "due":
+				return value ? Op.setDue(preview, value) : Op.delDue(preview);
+			case "done":
+				return value ? Op.setDone(preview, value) : Op.delDone(preview);
+			case "cancelled":
+				return value
+					? Op.setCancelled(preview, value)
+					: Op.delCancelled(preview);
+			case "tag":
+				return value ? Op.setTag(preview, value) : Op.delTag(preview);
+			case "id":
+				return value ? Op.setId(preview, value) : Op.delId(preview);
+			case "forbid":
+				return value
+					? Op.setForbid(preview, value)
+					: Op.delForbid(preview);
+			default:
+				return preview;
+		}
 	}
 
 	applyContentEdit(node: TaskTreeNode, newContent: string) {
@@ -414,19 +562,14 @@ export class EditStore {
 
 	async saveAll() {
 		const { nodeMap, previewMap } = this.getNodesAndPreviews();
-
 		await saveAllChanges(this.state, this.app, this.getNode);
 		new Notice(`✅ 已保存修改`);
-
 		this.applyUpdatesToNodes(nodeMap, previewMap);
-
 		this.exitEditMode(false);
 		this.store?.triggerApplyEditContext?.();
-
 		const taskView = this.store?.getTaskView?.();
 		taskView?.updateFocusAfterSave?.();
 		this.refreshCardsAfterSave(nodeMap);
-
 		this.store?.triggerFullRender?.();
 	}
 
@@ -467,6 +610,8 @@ export class EditStore {
 		this.state.savedTasks.clear();
 		this.state.previews.clear();
 		this.state.selectedTasks.clear();
+		this.state.syncMode = false;
+		this.state.primaryTaskUid = null;
 
 		this.applyUpdatesToNodes(nodeMap, previewMap);
 
@@ -544,10 +689,11 @@ function createEditState(): EditState {
 		previews: new Map(),
 		savedTasks: new Set(),
 		expandedButton: null,
+		syncMode: false,
+		primaryTaskUid: null,
 	};
 }
 
-/** 将编辑值转换为 YAML 格式值 */
 function toYamlValue(key: string, value: string): string {
 	const STATUS_TO_YAML: Record<string, string> = {
 		none: "无状态",

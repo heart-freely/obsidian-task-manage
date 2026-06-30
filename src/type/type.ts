@@ -92,12 +92,15 @@ export interface EditState {
 	previews: Map<string, string>;
 	savedTasks: Set<string>;
 	expandedButton: string | null;
+	syncMode: boolean; // 新增
+	primaryTaskUid: string | null; // 新增
 }
 
 export interface EditPanelState {
 	batchMode: boolean;
 	selectedCount: number;
 	hasSnapshots: boolean;
+	syncMode: boolean; // 新增
 }
 
 export interface AppState {

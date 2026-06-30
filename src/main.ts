@@ -76,11 +76,9 @@ export default class TaskManagePlugin extends Plugin {
 		try {
 			const savedPresets: Preset[] = savedData.presets || [];
 
-			const defaultVisibility = {
+			const defaultVisibility: Record<string, boolean> = {
+				filter: true,
 				time: true,
-				excut: true,
-				search: true,
-				mark: true,
 				view: true,
 				hide: true,
 				edit: true,
@@ -198,7 +196,16 @@ export default class TaskManagePlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.vault.on("modify", () => {
+				// 仅当缓存有效时才失效并刷新
+				const fullTree = dataManager.getFullTree();
+				if (fullTree.uid === "__empty__") return;
 				dataManager.invalidate();
+				const leaves =
+					this.app.workspace.getLeavesOfType("manage-view");
+				if (leaves.length > 0) {
+					const view = leaves[0].view as ManageView;
+					view.refreshView?.();
+				}
 			}),
 		);
 

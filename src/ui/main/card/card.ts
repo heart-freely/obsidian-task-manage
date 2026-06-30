@@ -15,12 +15,15 @@ export interface EditContext {
 	previews: Map<string, string>;
 	savedTasks: Set<string>;
 	expandedButton: string | null;
+	syncMode: boolean;
+	primaryTaskUid: string | null;
 	onEdit: (node: TaskTreeNode, markKey: string, value: string | null) => void;
 	onContentEdit: (node: TaskTreeNode, newContent: string) => void;
 	onCheckChange: (node: TaskTreeNode, checked: boolean) => void;
 	onSave: (node: TaskTreeNode) => void;
 	onRevert: (node: TaskTreeNode) => void;
 	onRestore?: (node: TaskTreeNode) => void;
+	getIdOptions?: () => Array<{ id: string; desc: string }>;
 }
 
 // ========== 编辑上下文 ==========

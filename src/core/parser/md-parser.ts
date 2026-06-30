@@ -459,9 +459,18 @@ function parseHeadingYamlBlock(
 }
 
 function getIndentLevel(line: string): number {
+	const tabSize = 4;
 	const leading = line.length - line.trimStart().length;
-	const tabCount = (line.match(/\t/g) || []).length;
-	return tabCount + Math.floor((leading - tabCount) / 4);
+	const leadingText = line.substring(0, leading);
+	let column = 0;
+	for (const ch of leadingText) {
+		if (ch === "\t") {
+			column = (Math.floor(column / tabSize) + 1) * tabSize;
+		} else {
+			column++;
+		}
+	}
+	return Math.floor(column / tabSize);
 }
 
 // ========== 批量文件加载 ==========

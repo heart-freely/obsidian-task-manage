@@ -1,9 +1,5 @@
-// src/core/panel/panel-config.ts
-
-import { ALLOWED_STATUSES } from "../config/config";
-import { getTaskTimeRange } from "../task/task-derived";
-import { filterTasks } from "../task/task-filter";
-import { TaskTreeNode } from "../task/task-tree";
+// src/core/date/date-calc.ts
+// 日期计算模块 — ISO 周数、年份缓存、格式化、滑动条联动
 
 // ========== ISO 周数计算（内部使用） ==========
 
@@ -57,24 +53,30 @@ export function daysInYear(y: number): number {
 	ensureYearCache(y);
 	return DAYS_IN_YEAR_CACHE[y];
 }
+
 export function weeksInYear(y: number): number {
 	ensureYearCache(y);
 	return WEEKS_IN_YEAR_CACHE[y];
 }
+
 export function getFirstMondayOfYear(y: number): Date {
 	ensureYearCache(y);
 	return new Date(FIRST_MONDAY_CACHE[y]);
 }
+
 export function getLastSundayOfYear(y: number): Date {
 	ensureYearCache(y);
 	return new Date(LAST_SUNDAY_CACHE[y]);
 }
+
 export function getFirstDayOfYear(y: number): Date {
 	return new Date(y, 0, 1, 0, 0, 0, 0);
 }
+
 export function getLastDayOfYear(y: number): Date {
 	return new Date(y, 11, 31, 23, 59, 59, 999);
 }
+
 export function isoWeek(d: Date): number {
 	return isoWeekRaw(d);
 }
@@ -97,18 +99,21 @@ export function dayToDate(y: number, d: number): Date {
 // ========== 格式化函数 ==========
 
 export function formatYearValue(x: number): string {
-	return `${x}`;
+	return `${x}年`;
 }
+
 export function formatQuarterValue(x: number, baseYear: number): string {
 	const y = baseYear + Math.floor((x - 1) / 4);
 	const q = ((x - 1) % 4) + 1;
-	return `${y}/${q}`;
+	return `${y}/${q}季`;
 }
+
 export function formatMonthValue(x: number, baseYear: number): string {
 	const y = baseYear + Math.floor((x - 1) / 12);
 	const m = ((x - 1) % 12) + 1;
-	return `${y}/${m}`;
+	return `${y}/${m}月`;
 }
+
 export function formatWeekValue(x: number, baseYear: number): string {
 	let r = x,
 		y = baseYear;
@@ -116,8 +121,9 @@ export function formatWeekValue(x: number, baseYear: number): string {
 		r -= weeksInYear(y);
 		y++;
 	}
-	return `${y}/${r}`;
+	return `${y}/${r}周`;
 }
+
 export function formatDayValue(x: number, baseYear: number): string {
 	let r = x,
 		y = baseYear;
@@ -126,8 +132,9 @@ export function formatDayValue(x: number, baseYear: number): string {
 		y++;
 	}
 	const d = dayToDate(y, Math.max(1, r));
-	return `${y}/${d.getMonth() + 1}/${d.getDate()}`;
+	return `${y}/${d.getMonth() + 1}/${d.getDate()}日`;
 }
+
 export function formatDynamicValue(v: number, unit: string): string {
 	if (v === 0) {
 		if (unit === "day") return "本日";
@@ -144,6 +151,7 @@ export function formatDynamicValue(v: number, unit: string): string {
 	if (unit === "year") return `${p}${abs}年`;
 	return `${p}${abs}日`;
 }
+
 export function formatDynamicLabel(a: number, b: number, unit: string): string {
 	const fa = formatDynamicValue(a, unit);
 	const fb = formatDynamicValue(b, unit);
@@ -195,187 +203,6 @@ export function getTodayAbsoluteValue(
 }
 
 // ========== 计算函数 ==========
-
-export function computeTotalSpanDays(
-	nodes: TaskTreeNode[],
-	fieldStart: string,
-	fieldEnd: string,
-): number {
-	if (!nodes.length) return 0;
-	let min = Infinity,
-		max = -Infinity;
-	nodes.forEach((node) => {
-		const s = (node as any)[fieldStart] as number | null;
-		const e = (node as any)[fieldEnd] as number | null;
-		if (s !== null && e !== null && s <= e) {
-			if (s < min) min = s;
-			if (e > max) max = e;
-		}
-	});
-	if (min === Infinity || max === -Infinity) return 0;
-	return Math.ceil((max - min) / (1000 * 60 * 60 * 24)) + 1;
-}
-
-export function calcPlannedDuration(nodes: TaskTreeNode[]): number {
-	let total = 0;
-	nodes.forEach((node) => {
-		if (node.scheduled !== null && node.due !== null)
-			total += Math.max(0, (node.due - node.scheduled) / 86400000);
-	});
-	return Math.round(total);
-}
-
-export function calcActualDuration(nodes: TaskTreeNode[]): number {
-	let total = 0;
-	nodes.forEach((node) => {
-		if (node.starts !== null && node.done !== null)
-			total += Math.max(0, (node.done - node.starts) / 86400000);
-	});
-	return Math.round(total);
-}
-
-export function calcTotalSpanHours(
-	nodes: TaskTreeNode[],
-	fieldStart: string,
-	fieldEnd: string,
-): number {
-	return computeTotalSpanDays(nodes, fieldStart, fieldEnd) * 12;
-}
-
-export function prepareDailyStatusStack(
-	nodes: TaskTreeNode[],
-	dateRange: any,
-	formatDate: (d: Date) => string,
-	setStart: (d: Date) => Date,
-	setEnd: (d: Date) => Date,
-) {
-	const dayMap: Record<string, any> = {};
-	function keyOf(d: Date) {
-		return formatDate(d);
-	}
-	function initDay() {
-		return {
-			todo: 0,
-			planned: 0,
-			"in-progress": 0,
-			completed: 0,
-			cancelled: 0,
-		};
-	}
-	if (dateRange) {
-		const cur = setStart(new Date(dateRange.start));
-		const end = setStart(new Date(dateRange.end));
-		while (cur <= end) {
-			dayMap[keyOf(cur)] = initDay();
-			cur.setDate(cur.getDate() + 1);
-		}
-	}
-	nodes.forEach((node) => {
-		const range = getTaskTimeRange(node, "scheduled-due");
-		if (!range) return;
-		const cur = setStart(new Date(range.start));
-		const end = setStart(new Date(range.end));
-		while (cur <= end) {
-			const key = keyOf(cur);
-			if (dateRange) {
-				if (dayMap[key]) dayMap[key][node.status]++;
-			} else {
-				if (!dayMap[key]) dayMap[key] = initDay();
-				dayMap[key][node.status]++;
-			}
-			cur.setDate(cur.getDate() + 1);
-		}
-	});
-	const sorted = Object.keys(dayMap)
-		.sort()
-		.map((k) => [k, dayMap[k]]);
-	const dates = sorted.map((e) => e[0]);
-	const seriesData: Record<string, number[]> = {};
-	ALLOWED_STATUSES.forEach((s) => {
-		seriesData[s] = sorted.map((e) => (e[1] as any)[s]);
-	});
-	return { dates, seriesData, statusOrder: ALLOWED_STATUSES };
-}
-
-export function getTaskTimeRangeFromNodes(nodes: TaskTreeNode[]): {
-	minTime: number | null;
-	maxTime: number | null;
-} {
-	let minTime: number | null = null;
-	let maxTime: number | null = null;
-	for (const node of nodes) {
-		const dates: (number | null)[] = [
-			node.created,
-			node.scheduled,
-			node.starts,
-			node.due,
-			node.done,
-			node.cancelled,
-		];
-		for (const ts of dates) {
-			if (ts === null) continue;
-			if (minTime === null || ts < minTime) minTime = ts;
-			if (maxTime === null || ts > maxTime) maxTime = ts;
-		}
-	}
-	return { minTime, maxTime };
-}
-
-// ========== 跨年偏移计算 ==========
-
-function calcYearOffset(
-	baseYear: number,
-	targetYear: number,
-): { quarter: number; month: number; week: number; day: number } {
-	let quarter = 0,
-		month = 0,
-		week = 0,
-		day = 0;
-	for (let y = baseYear; y < targetYear; y++) {
-		ensureYearCache(y);
-		quarter += 4;
-		month += 12;
-		week += WEEKS_IN_YEAR_CACHE[y];
-		day += DAYS_IN_YEAR_CACHE[y];
-	}
-	return { quarter, month, week, day };
-}
-
-function absoluteToYearValue(
-	lv: string,
-	absValue: number,
-	baseYear: number,
-): { year: number; valueInYear: number } {
-	let remaining = absValue;
-	let year = baseYear;
-	switch (lv) {
-		case "quarter":
-			while (remaining > 4) {
-				remaining -= 4;
-				year++;
-			}
-			break;
-		case "month":
-			while (remaining > 12) {
-				remaining -= 12;
-				year++;
-			}
-			break;
-		case "week":
-			while (remaining > weeksInYear(year)) {
-				remaining -= weeksInYear(year);
-				year++;
-			}
-			break;
-		case "day":
-			while (remaining > daysInYear(year)) {
-				remaining -= daysInYear(year);
-				year++;
-			}
-			break;
-	}
-	return { year, valueInYear: remaining };
-}
 
 export function getLevelValues(
 	startDate: Date,
@@ -680,5 +507,164 @@ export function staticSliderRanges(
 		dayMax: totalDays,
 		minYear: minY,
 		maxYear: maxY,
+	};
+}
+
+// ========== 跨年偏移计算 ==========
+
+function calcYearOffset(
+	baseYear: number,
+	targetYear: number,
+): { quarter: number; month: number; week: number; day: number } {
+	let quarter = 0,
+		month = 0,
+		week = 0,
+		day = 0;
+	for (let y = baseYear; y < targetYear; y++) {
+		ensureYearCache(y);
+		quarter += 4;
+		month += 12;
+		week += WEEKS_IN_YEAR_CACHE[y];
+		day += DAYS_IN_YEAR_CACHE[y];
+	}
+	return { quarter, month, week, day };
+}
+
+function absoluteToYearValue(
+	lv: string,
+	absValue: number,
+	baseYear: number,
+): { year: number; valueInYear: number } {
+	let remaining = absValue;
+	let year = baseYear;
+	switch (lv) {
+		case "quarter":
+			while (remaining > 4) {
+				remaining -= 4;
+				year++;
+			}
+			break;
+		case "month":
+			while (remaining > 12) {
+				remaining -= 12;
+				year++;
+			}
+			break;
+		case "week":
+			while (remaining > weeksInYear(year)) {
+				remaining -= weeksInYear(year);
+				year++;
+			}
+			break;
+		case "day":
+			while (remaining > daysInYear(year)) {
+				remaining -= daysInYear(year);
+				year++;
+			}
+			break;
+	}
+	return { year, valueInYear: remaining };
+}
+
+// ========== 新增：TimePanel 抽离的纯函数 ==========
+
+/**
+ * 数值钳制
+ */
+export function clamp(v: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, v));
+}
+
+/**
+ * 年份滑动条范围（当前年±10）
+ */
+export function yearSliderRange(): { min: number; max: number } {
+	const cy = new Date().getFullYear();
+	return { min: cy - 10, max: cy + 10 };
+}
+
+/**
+ * 计算今天在静态滑动条各级别的值
+ */
+export function getTodaySliderValue(
+	lv: string,
+	baseYear: number,
+	getISOWeekNumber: (d: Date) => number,
+	getWeeksInYear: (y: number) => number,
+	getDaysInYear: (y: number) => number,
+): number {
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	const cy = today.getFullYear();
+	let offset = 0;
+	for (let y = baseYear; y < cy; y++) {
+		switch (lv) {
+			case "quarter":
+				offset += 4;
+				break;
+			case "month":
+				offset += 12;
+				break;
+			case "week":
+				offset += getWeeksInYear(y);
+				break;
+			case "day":
+				offset += getDaysInYear(y);
+				break;
+		}
+	}
+	switch (lv) {
+		case "year":
+			return cy;
+		case "quarter":
+			return Math.floor(today.getMonth() / 3) + 1 + offset;
+		case "month":
+			return today.getMonth() + 1 + offset;
+		case "week":
+			return getISOWeekNumber(today) + offset;
+		case "day":
+			return (
+				Math.ceil(
+					(today.getTime() - new Date(cy, 0, 0).getTime()) / 86400000,
+				) + offset
+			);
+	}
+	return 0;
+}
+
+/**
+ * 单年模式下各级别的范围
+ */
+export function singleYearRanges(
+	y: number,
+	yearMin: number,
+	yearMax: number,
+): {
+	yearMin: number;
+	yearMax: number;
+	quarterMin: number;
+	quarterMax: number;
+	monthMin: number;
+	monthMax: number;
+	weekMin: number;
+	weekMax: number;
+	dayMin: number;
+	dayMax: number;
+	minYear: number;
+	maxYear: number;
+} {
+	return {
+		yearMin,
+		yearMax,
+		quarterMin: 1,
+		quarterMax: 4,
+		monthMin: 1,
+		monthMax: 12,
+		weekMin: 1,
+		weekMax: weeksInYear(y),
+		dayMin: 1,
+		dayMax: daysInYear(y),
+		minYear: y,
+		maxYear: y,
 	};
 }

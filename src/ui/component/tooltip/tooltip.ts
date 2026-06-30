@@ -10,7 +10,6 @@ class TooltipManager {
 			this.div.className = "dataview-tooltip";
 			document.body.appendChild(this.div);
 
-			// 全局隐藏 tooltip 的保险机制
 			document.addEventListener("mousemove", (e) => {
 				const target = e.target as HTMLElement;
 				if (
@@ -20,7 +19,8 @@ class TooltipManager {
 					!target.closest(".cal-span-line") &&
 					!target.closest(".task-progress-bar") &&
 					!target.closest(".cal-more-indicator") &&
-					!target.closest(".timeline-bar") // ← 添加
+					!target.closest(".timeline-bar") &&
+					!target.closest(".year-view-day")
 				) {
 					if (this.hideTimer) clearTimeout(this.hideTimer);
 					this.hideTimer = setTimeout(() => this.hide(), 100);
@@ -35,14 +35,45 @@ class TooltipManager {
 		const div = this.ensureDiv();
 		div.innerHTML = html;
 		div.style.display = "block";
-		div.style.left = x + 15 + "px";
-		div.style.top = y + 15 + "px";
+
+		// 边界检测：不超出视口
+		const padding = 15;
+		let left = x + padding;
+		let top = y + padding;
+
+		// 暂时设为可见才能获取尺寸
+		div.style.left = left + "px";
+		div.style.top = top + "px";
+		const rect = div.getBoundingClientRect();
+
+		if (rect.right > window.innerWidth) {
+			left = x - rect.width - padding;
+		}
+		if (rect.bottom > window.innerHeight) {
+			top = y - rect.height - padding;
+		}
+		if (left < 0) left = padding;
+		if (top < 0) top = padding;
+
+		div.style.left = left + "px";
+		div.style.top = top + "px";
 	}
 
 	move(x: number, y: number) {
 		if (this.div && this.div.style.display === "block") {
-			this.div.style.left = x + 15 + "px";
-			this.div.style.top = y + 15 + "px";
+			const padding = 15;
+			let left = x + padding;
+			let top = y + padding;
+
+			const rect = this.div.getBoundingClientRect();
+			if (rect.right > window.innerWidth) left = x - rect.width - padding;
+			if (rect.bottom > window.innerHeight)
+				top = y - rect.height - padding;
+			if (left < 0) left = padding;
+			if (top < 0) top = padding;
+
+			this.div.style.left = left + "px";
+			this.div.style.top = top + "px";
 		}
 	}
 
@@ -59,12 +90,6 @@ class TooltipManager {
 }
 
 export const tooltip = new TooltipManager();
-// ========== ECharts tooltip 通用配置 ==========
-
-/**
- * 获取 ECharts tooltip 通用配置
- * 深色背景风格，与卡片简洁模式 tooltip 样式一致
- */
 export function getEChartsTooltipConfig(trigger: "item" | "axis" = "item") {
 	return {
 		trigger,

@@ -14,6 +14,7 @@ export class Store {
 	private _onFullRender: (() => void) | null = null;
 	private _onApplyEditContext: (() => void) | null = null;
 	private _onFullInvalidate: (() => void) | null = null;
+
 	constructor(initial: AppState, saveFn?: (data: any) => Promise<void>) {
 		this.state = initial;
 		this.saveFn = saveFn;
@@ -67,13 +68,9 @@ export class Store {
 		);
 	}
 
-	// ========== 编辑面板状态（静默更新）==========
-
 	updateEditPanelState(panelState: EditPanelState) {
 		this.state = { ...this.state, editPanelState: panelState };
 	}
-
-	// ========== 编辑状态管理 ==========
 
 	setEditStore(es: any) {
 		this.editStore = es;
@@ -91,48 +88,9 @@ export class Store {
 		return this.taskView;
 	}
 
-	toggleBatchMode() {
-		this.taskView?.toggleBatchMode();
-	}
-
-	toggleSelectAll(nodes: any[]) {
-		this.taskView?.toggleSelectAll(nodes);
-	}
-
-	applyEdit(markKey: string, value: string | null) {
-		this.editStore?.applyEdit(markKey, value);
-	}
-
-	applyAutoComplete(days?: number) {
-		this.editStore?.applyAutoComplete(days);
-	}
-
-	applySortTags() {
-		this.editStore?.applySortTags();
-	}
-
-	clearPreviews() {
-		this.editStore?.clearPreviews();
-	}
-
-	async saveCurrent() {
-		await this.editStore?.saveCurrent();
-	}
-
-	async revertSnapshot(snapshotIndex: number) {
-		await this.editStore?.revertSnapshot(snapshotIndex);
-	}
-
-	getSnapshots() {
-		return this.editStore?.getSnapshots() ?? [];
-	}
-
-	// ========== 回调注册 ==========
-
 	setOnEditCardsChanged(cb: () => void) {
 		this._onEditCardsChanged = cb;
 	}
-
 	triggerEditCardsChanged() {
 		this._onEditCardsChanged?.();
 	}
@@ -140,7 +98,6 @@ export class Store {
 	setOnFullRender(cb: () => void) {
 		this._onFullRender = cb;
 	}
-
 	triggerFullRender() {
 		this._onFullRender?.();
 	}
@@ -148,14 +105,13 @@ export class Store {
 	setOnApplyEditContext(cb: () => void) {
 		this._onApplyEditContext = cb;
 	}
-
 	triggerApplyEditContext() {
 		this._onApplyEditContext?.();
 	}
+
 	setOnFullInvalidate(cb: () => void) {
 		this._onFullInvalidate = cb;
 	}
-
 	triggerFullInvalidate() {
 		this._onFullInvalidate?.();
 	}

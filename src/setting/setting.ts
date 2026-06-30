@@ -1,6 +1,9 @@
-// setting/settings.ts
+// src/setting/setting.ts
+
 import { App, PluginSettingTab } from "obsidian";
 import { updateTaskFileConfig } from "../core/config/config";
+import { DataManager } from "../core/data/data-manager";
+import { safeMergeConfig } from "../util/validate-utils";
 
 export interface PathFilterConfig {
 	pattern: string;
@@ -55,13 +58,45 @@ export const DEFAULT_SETTINGS: TaskManageSettings = {
 	taskItemFilters: [{ pattern: "", exclude: false }],
 };
 
+const CONFIG_SCHEMA: Record<string, string> = {
+	taskRootPath: "string",
+	folderFilters: "array",
+	fileFilters: "array",
+	headingFilters: "array",
+	taskItemFilters: "array",
+};
+
 export class TaskManageSettingTab extends PluginSettingTab {
 	plugin: any;
 	private folderCache: string[] | null = null;
+	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(app: App, plugin: any) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	hide() {
+		if (this.saveDebounceTimer) {
+			clearTimeout(this.saveDebounceTimer);
+			this.saveDebounceTimer = null;
+		}
+		updateTaskFileConfig({
+			rootPath: this.plugin.settings.taskRootPath || "",
+			folderFilters: this.plugin.settings.folderFilters,
+			fileFilters: this.plugin.settings.fileFilters,
+			headingFilters: this.plugin.settings.headingFilters,
+			taskItemFilters: this.plugin.settings.taskItemFilters,
+		});
+		this.plugin.saveAllSettings();
+		DataManager.getInstance().invalidate();
+
+		// 刷新当前视图
+		const leaves = this.app.workspace.getLeavesOfType("manage-view");
+		if (leaves.length > 0) {
+			const view = leaves[0].view as any;
+			view.refreshView?.();
+		}
 	}
 
 	private async saveSettings() {
@@ -72,7 +107,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			headingFilters: this.plugin.settings.headingFilters,
 			taskItemFilters: this.plugin.settings.taskItemFilters,
 		});
-		await this.plugin.saveAllSettings();
+
+		if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
+		this.saveDebounceTimer = setTimeout(async () => {
+			await this.plugin.saveAllSettings();
+			this.saveDebounceTimer = null;
+		}, 300);
 	}
 
 	display(): void {
@@ -87,7 +127,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 
 		const pathListContainer = containerEl.createDiv({ cls: "path-list" });
-
 		const rootPath = this.plugin.settings.taskRootPath || "";
 		const paths = rootPath
 			.split(",")
@@ -102,7 +141,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		const renderPaths = () => {
 			pathListContainer.empty();
-
 			paths.forEach((path: string, index: number) => {
 				const pathRow = pathListContainer.createDiv({
 					cls: "path-row",
@@ -159,19 +197,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 				pathInput.addEventListener("mousedown", () => {
 					hasUserInteracted = true;
 				});
-
 				pathInput.addEventListener("focus", () => {
-					if (hasUserInteracted) {
-						showDropdown(pathInput.value.trim());
-					}
+					if (hasUserInteracted) showDropdown(pathInput.value.trim());
 				});
-
 				pathInput.addEventListener("input", () => {
-					if (hasUserInteracted) {
-						showDropdown(pathInput.value.trim());
-					}
+					if (hasUserInteracted) showDropdown(pathInput.value.trim());
 				});
-
 				pathInput.addEventListener("blur", () => {
 					hasUserInteracted = false;
 					const value = pathInput.value.trim();
@@ -183,7 +214,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 						dropdown.style.display = "none";
 					}, 150);
 				});
-
 				pathInput.addEventListener("keydown", (e: KeyboardEvent) => {
 					if (e.key === "Enter") {
 						e.preventDefault();
@@ -266,6 +296,62 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			attr: { style: "margin-bottom:4px;" },
 		});
 		this.renderTaskItemList(taskItemCol);
+
+		// ========== 导入导出插件配置 ==========
+		containerEl.createEl("h2", {
+			text: "插件配置",
+			attr: { style: "margin-top:24px;" },
+		});
+
+		const ioRow = containerEl.createDiv();
+		ioRow.style.cssText = "display:flex;gap:12px;";
+
+		const importBtn = ioRow.createEl("button", {
+			text: "📥 导入插件配置",
+			cls: "filter-add-btn",
+		});
+		importBtn.addEventListener("click", () => {
+			const input = document.createElement("input");
+			input.type = "file";
+			input.accept = ".json";
+			input.onchange = async () => {
+				if (!input.files?.length) return;
+				try {
+					const data = JSON.parse(await input.files[0].text());
+					if (!data || typeof data !== "object") {
+						alert("导入失败：文件格式不正确");
+						return;
+					}
+					safeMergeConfig(this.plugin.settings, data, CONFIG_SCHEMA);
+					await this.saveSettings();
+					this.display();
+				} catch {
+					alert("导入失败：文件格式不正确");
+				}
+			};
+			input.click();
+		});
+
+		const exportBtn = ioRow.createEl("button", {
+			text: "📤 导出插件配置",
+			cls: "filter-add-btn",
+		});
+		exportBtn.addEventListener("click", () => {
+			const data = {
+				taskRootPath: this.plugin.settings.taskRootPath,
+				folderFilters: this.plugin.settings.folderFilters,
+				fileFilters: this.plugin.settings.fileFilters,
+				headingFilters: this.plugin.settings.headingFilters,
+				taskItemFilters: this.plugin.settings.taskItemFilters,
+			};
+			const blob = new Blob([JSON.stringify(data, null, 2)], {
+				type: "application/json",
+			});
+			const a = document.createElement("a");
+			a.href = URL.createObjectURL(blob);
+			a.download = "task-manage-config.json";
+			a.click();
+		});
 	}
 
 	private getFolders(): string[] {
@@ -311,7 +397,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		const limit = 50;
 		const displayItems = filtered.slice(0, limit);
-
 		displayItems.forEach((path) => {
 			const item = container.createDiv({ cls: "dropdown-item" });
 			item.style.cssText =
