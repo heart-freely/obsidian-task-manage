@@ -1,40 +1,5 @@
 /* ========== Obsidian 任务管理插件样式 ========== */
 
-/* ========== 基础按钮 ========== */
-.cascade-btn,
-.quick-btn,
-.sort-btn {
-	border: none;
-	cursor: pointer;
-}
-.cascade-btn,
-.quick-btn {
-	padding: 4px 14px;
-	border-radius: 20px;
-	background: var(--interactive-normal);
-	color: var(--text-normal);
-}
-.cascade-btn-active,
-.quick-btn-active,
-.sort-btn-active {
-	background: var(--interactive-accent) !important;
-	color: white !important;
-	font-weight: bold;
-}
-.cascade-btn-disabled {
-	background: var(--background-modifier-muted) !important;
-	color: var(--text-muted);
-	cursor: not-allowed;
-	opacity: 0.6;
-}
-.sort-btn {
-	padding: 2px 12px;
-	border-radius: 12px;
-	background: var(--interactive-normal);
-	color: var(--text-normal);
-	font-size: 12px;
-}
-
 /* ========== 布局 ========== */
 .manage-root {
 	display: flex;
@@ -593,102 +558,6 @@
 	transition: opacity 0.1s;
 }
 
-/* ========== 滑动条 ========== */
-.slider-row {
-	width: 100%;
-	align-items: center;
-	flex-wrap: nowrap;
-}
-.slider-inner-row {
-	width: 100%;
-}
-
-/* ========== 日历 ========== */
-.day-group {
-	margin-bottom: 16px;
-}
-.day-header {
-	font-weight: bold;
-	margin-bottom: 8px;
-}
-.week-block {
-	margin-bottom: 24px;
-}
-.week-title {
-	font-weight: bold;
-	margin-bottom: 8px;
-}
-.calendar-grid {
-	display: grid;
-	grid-template-columns: repeat(7, 1fr);
-	gap: 2px;
-}
-.cal-cell {
-	border: 1px solid var(--background-modifier-border);
-	min-height: 80px;
-	padding: 4px;
-	font-size: 12px;
-	border-radius: 4px;
-	background: var(--background-secondary);
-}
-.cal-cell.today {
-	border: 2px solid var(--text-accent);
-}
-.cal-cell-header {
-	font-weight: bold;
-}
-.other-month {
-	opacity: 0.5;
-}
-
-/* ========== 整理处 ========== */
-.organize-mode-row {
-	display: flex;
-	gap: 8px;
-	margin-bottom: 12px;
-}
-.organize-edit-toolbar {
-	margin-bottom: 12px;
-}
-.edit-mark-row {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	margin-bottom: 6px;
-}
-.organize-task-list {
-	margin-bottom: 12px;
-}
-.organize-task-row {
-	display: flex;
-	align-items: flex-start;
-	gap: 8px;
-	margin-bottom: 8px;
-	padding: 8px;
-	background: var(--background-primary);
-	border-radius: 8px;
-}
-.organize-original {
-	flex: 1;
-	white-space: pre-wrap;
-	word-break: break-all;
-}
-.organize-preview {
-	flex: 1;
-	color: var(--text-accent);
-	font-style: italic;
-}
-.organize-confirmed {
-	flex: 1;
-	color: var(--text-success);
-	font-weight: bold;
-}
-.organize-bottom-bar {
-	display: flex;
-	gap: 8px;
-	margin-top: 16px;
-}
-
 /* ========== 统计图表 ========== */
 .chart-grid {
 	width: 100%;
@@ -740,32 +609,8 @@
 	line-height: 1.5;
 	display: none;
 }
-.filter-btn {
-	padding: 4px 12px;
-	border-radius: 16px;
-	background: var(--interactive-normal);
-	border: none;
-	cursor: pointer;
-	font-size: 13px;
-}
-.filter-btn.active {
-	background: var(--interactive-accent);
-	color: white;
-}
-.filter-label {
-	font-weight: bold;
-	font-size: 13px;
-	margin-bottom: 4px;
-	color: var(--text-accent);
-}
-.filter-section {
-	margin-bottom: 12px;
-	padding: 8px;
-	background: var(--background-secondary);
-	border-radius: 8px;
-}
 
-/* ========== 日历视图（动态注入的补充） ========== */
+/* ========== 日历视图 ========== */
 .calendar-toolbar {
 	display: flex;
 	gap: 8px;
@@ -789,23 +634,4 @@
 	display: flex;
 	flex-direction: column;
 	gap: 24px;
-}
-
-.filter-row {
-	display: flex;
-	width: 100%;
-	align-items: center;
-	flex-wrap: nowrap;
-}
-
-.slider-row {
-	display: flex;
-	width: 100%;
-	align-items: center;
-	flex-wrap: nowrap;
-}
-
-.slider-inner-row {
-	display: flex;
-	width: 100%;
 }

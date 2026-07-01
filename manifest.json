@@ -1,14 +1,14 @@
 {
 	"id": "obsidian-task-manage",
 	"name": "任务管理",
-	"version": "1.0.0",
+	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "任务汇总分析面板，支持任务收集、整理、组织、回顾、执行、统计、归档全流程管理，支持习惯追踪",
+	"description": "文件、标题、列表3级任务管理，19种视图（看板/矩阵/日历/甘特图/任务树/统计图表），批量编辑任务标记，支持多种任务管理方式",
 	"author": "heart-freely",
 	"authorUrl": "https://github.com/heart-freely",
-	"isDesktopOnly": false,
-	"dependencies": {
-		"obsidian-tasks-plugin": "^1.0.0",
-		"dataview": "^0.5.0"
-	}
+	"fundingUrl": {
+		"GitHub Sponsor": "https://github.com/sponsors/heart-freely",
+		"Buy Me a Coffee": "https://buymeacoffee.com/heart-freely"
+	},
+	"isDesktopOnly": true
 }
