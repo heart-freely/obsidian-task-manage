@@ -108,7 +108,7 @@ export class ViewContainer {
 			);
 			await this.currentView.render();
 		} catch (e) {
-			console.warn("[TaskManage] 视图加载失败:", e);
+			logger.warn("[TaskManage] 视图加载失败:", e);
 			this.container.empty();
 			this.container.createDiv({
 				text: `视图加载失败: ${(e as Error).message}`,

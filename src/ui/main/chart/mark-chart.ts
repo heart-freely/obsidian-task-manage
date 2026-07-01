@@ -37,6 +37,11 @@ DATE_MARK_ORDER.forEach((k) => {
 const MISSING_COLOR = "rgba(128,128,128,0.5)";
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
+	// 逐个释放子 ECharts 实例（每个 .chart-body 元素上可能挂载了独立实例）
+	container.querySelectorAll(".chart-body").forEach((el) => {
+		const instance = echarts.getInstanceByDom(el as HTMLElement);
+		if (instance) instance.dispose();
+	});
 	echarts.dispose(container);
 	container.empty();
 	const statusColors = getStatusColors();
@@ -141,7 +146,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 				],
 			});
 		} catch (e) {
-			console.error("[TaskManage] 图表初始化失败:", e);
+			logger.error("[TaskManage] 图表初始化失败:", e);
 			chartDiv.textContent = "图表加载失败";
 			chartDiv.style.cssText +=
 				"display:flex;align-items:center;justify-content:center;color:var(--text-muted);";

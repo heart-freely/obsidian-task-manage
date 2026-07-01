@@ -13,6 +13,8 @@ import {
 } from "./setting/setting";
 import { AppState, GlobalFilter, Preset } from "./type/type";
 import { ManageView } from "./ui/ui";
+import logger from "./util/logger";
+import { setSnapshotPersistFn } from "./core/edit/task-editor";
 
 export default class TaskManagePlugin extends Plugin {
 	store!: Store;
@@ -27,7 +29,7 @@ export default class TaskManagePlugin extends Plugin {
 			savedData = (await this.loadData()) || {};
 			this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
 		} catch (e) {
-			console.warn("[TaskManage] 加载设置失败:", e);
+			logger.warn("[TaskManage] 加载设置失败:", e);
 			this.settings = { ...DEFAULT_SETTINGS };
 		}
 
@@ -56,7 +58,7 @@ export default class TaskManagePlugin extends Plugin {
 				}
 				await this.saveData(dataToSave);
 			} catch (e) {
-				console.error("[TaskManage] 持久化失败:", e);
+				logger.error("[TaskManage] 持久化失败:", e);
 			}
 		};
 
@@ -175,7 +177,7 @@ export default class TaskManagePlugin extends Plugin {
 				}
 			}
 		} catch (e) {
-			console.warn("[TaskManage] 预设合并失败，回退为默认预设:", e);
+			logger.warn("[TaskManage] 预设合并失败，回退为默认预设:", e);
 			mergedPresets = [...defaultPresets];
 		}
 
@@ -231,7 +233,7 @@ export default class TaskManagePlugin extends Plugin {
 			}
 			setTimeout(() => {
 				persistData().catch((e) =>
-					console.error("[TaskManage] 初始持久化失败:", e),
+					logger.error("[TaskManage] 初始持久化失败:", e),
 				);
 			}, 1000);
 		});
@@ -242,7 +244,7 @@ export default class TaskManagePlugin extends Plugin {
 			try {
 				await this.saveAllSettings();
 			} catch (e) {
-				console.error("[TaskManage] 卸载持久化失败:", e);
+				logger.error("[TaskManage] 卸载持久化失败:", e);
 			}
 		}
 		document

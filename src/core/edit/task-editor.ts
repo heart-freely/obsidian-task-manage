@@ -436,34 +436,29 @@ export const Op = {
 
 // ========== 快照管理 ==========
 
-export function loadSnapshots(): Array<{
-	time: string;
-	snapshot: Record<string, string>;
-}> {
+export function loadSnapshots(): any[] {
 	try {
-		return JSON.parse(localStorage.getItem(STORAGE_KEY_SNAPSHOTS) || "[]");
-	} catch (e) {
-		console.warn("[TaskManage] 加载快照失败:", e);
+		const raw = localStorage.getItem("organizeSnapshots");
+		return raw ? JSON.parse(raw) : [];
+	} catch {
 		return [];
 	}
 }
 
-export function saveSnapshots(
-	snapshots: Array<{ time: string; snapshot: Record<string, string> }>,
-): void {
+export function saveSnapshots(snapshots: any[]) {
 	try {
-		localStorage.setItem(STORAGE_KEY_SNAPSHOTS, JSON.stringify(snapshots));
+		localStorage.setItem("organizeSnapshots", JSON.stringify(snapshots));
 	} catch (e) {
-		console.warn("[TaskManage] 保存快照失败:", e);
+		console.warn("快照 localStorage 写入失败:", e);
 	}
 }
-
-export function addSnapshot(
-	snapshots: Array<{ time: string; snapshot: Record<string, string> }>,
-	map: Record<string, string>,
-): void {
-	snapshots.unshift({ time: new Date().toLocaleString(), snapshot: map });
-	if (snapshots.length > MAX_SNAPSHOTS) snapshots.pop();
+function addSnapshot(snapshot: Record<string, string>) {
+	const snapshots = loadSnapshots();
+	snapshots.unshift({
+		time: new Date().toLocaleString(),
+		snapshot,
+	});
+	if (snapshots.length > 5) snapshots.length = 5;
 	saveSnapshots(snapshots);
 }
 
@@ -554,7 +549,7 @@ export async function writeToFiles(
 			});
 			count += items.length;
 		} catch (e) {
-			console.error("[TaskManage] 写入文件失败:", path, e);
+			logger.error("[TaskManage] 写入文件失败:", path, e);
 		}
 	}
 
@@ -610,7 +605,7 @@ export async function writeToFiles(
 			});
 			count += items.length;
 		} catch (e) {
-			console.error("[TaskManage] 写入YAML文件失败:", path, e);
+			logger.error("[TaskManage] 写入YAML文件失败:", path, e);
 		}
 	}
 

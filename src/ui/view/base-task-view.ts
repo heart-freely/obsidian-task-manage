@@ -77,6 +77,9 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	private _lastActivePresetId: string | null = null;
 	private _lastSidebarCollapsed: boolean | null = null;
 	private _lastFilterStr: string | null = null;
+	private _lastIntervalMode: string | null = null;
+	private _needsEditRefresh: boolean = false;
+	private previouslyEditedUids: Set<string> = new Set();
 
 	constructor(container: HTMLElement, store: Store, app: any) {
 		super();
@@ -236,7 +239,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			const fullTree = this.dataManager.getFullTree();
 			return { nodes, fullTree };
 		} catch (e) {
-			console.warn("[TaskManage] 加载数据失败:", e);
+			logger.warn("[TaskManage] 加载数据失败:", e);
 			this.container.replaceChildren();
 			this.container.createDiv({
 				text:
@@ -964,6 +967,21 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			this.ganttInstance = null;
 		}
 		this.cleanupSplitLayout();
+
+		// ========== O3：补充清理，避免残留引用 ==========
 		this.scrollPositions.clear();
+		this.selectedTreeNode = null;
+		this.focusedTreeNode = null;
+		this.focusHistory.length = 0;
+		this.calendarSubView = "day";
+		this.calendarSelectedDate = new Date();
+		this._lastFilterStr = null;
+		this._lastActivePresetId = null;
+		this._lastSidebarCollapsed = null;
+		this._lastIntervalMode = null;
+		this._needsEditRefresh = false;
+		this.previouslyEditedUids.clear();
+
+		this.container.textContent = "";
 	}
 }

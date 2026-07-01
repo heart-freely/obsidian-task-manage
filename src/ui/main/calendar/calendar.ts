@@ -22,6 +22,10 @@ import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { tooltip } from "../../component/tooltip/tooltip";
 import { createTaskCard } from "../card/card";
+
+let cachedNodesFingerprint: string = "";
+let cachedIntervalMode: string | null = null;
+let cachedDateTaskMap: Map<string, TaskTreeNode[]> | null = null;
 // ========== 常量 ==========
 
 const YEAR_HEAT_RGB = "64, 120, 209";
@@ -348,7 +352,7 @@ function renderTimeline(
 		container.appendChild(body);
 		return true;
 	} catch (e) {
-		console.error("[TaskManage] 时间轴渲染失败:", e);
+		logger.error("[TaskManage] 时间轴渲染失败:", e);
 		return false;
 	}
 }
@@ -402,7 +406,25 @@ export function renderCalendarView(
 			: new Date(),
 	};
 
-	const dateTaskMap = buildDateTaskMap(nodes, intervalMode);
+	// 轻量指纹缓存：节点数量 + 首尾 uid
+	const fingerprint =
+		nodes.length > 0
+			? `${nodes.length}-${nodes[0].uid}-${nodes[nodes.length - 1].uid}`
+			: "empty";
+
+	let dateTaskMap: Map<string, TaskTreeNode[]>;
+	if (
+		fingerprint === cachedNodesFingerprint &&
+		cachedIntervalMode === intervalMode &&
+		cachedDateTaskMap
+	) {
+		dateTaskMap = cachedDateTaskMap;
+	} else {
+		dateTaskMap = buildDateTaskMap(nodes, intervalMode);
+		cachedNodesFingerprint = fingerprint;
+		cachedIntervalMode = intervalMode;
+		cachedDateTaskMap = dateTaskMap;
+	}
 
 	for (const [, taskList] of dateTaskMap) {
 		taskList.sort(

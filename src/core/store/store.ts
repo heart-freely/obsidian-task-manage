@@ -8,8 +8,8 @@ export class Store {
 	protected state: AppState;
 	protected listeners: Listener[] = [];
 	protected saveFn?: (data: any) => Promise<void>;
-	protected editStore: any = null;
-	private taskView: any = null;
+	protected editStore: EditStoreInterface | null = null;
+	private taskView: TaskViewInterface | null = null;
 	private _onEditCardsChanged: (() => void) | null = null;
 	private _onFullRender: (() => void) | null = null;
 	private _onApplyEditContext: (() => void) | null = null;
@@ -54,7 +54,7 @@ export class Store {
 		try {
 			await this.saveFn(this.state);
 		} catch (e) {
-			console.error("Store 持久化失败", e);
+			logger.error("Store 持久化失败", e);
 		}
 	}
 
@@ -72,19 +72,19 @@ export class Store {
 		this.state = { ...this.state, editPanelState: panelState };
 	}
 
-	setEditStore(es: any) {
+	setEditStore(es: EditStoreInterface) {
 		this.editStore = es;
 	}
 
-	getEditStore(): any {
+	getEditStore(): EditStoreInterface | null {
 		return this.editStore;
 	}
 
-	setTaskView(view: any) {
+	setTaskView(view: TaskViewInterface) {
 		this.taskView = view;
 	}
 
-	getTaskView(): any {
+	getTaskView(): TaskViewInterface | null {
 		return this.taskView;
 	}
 

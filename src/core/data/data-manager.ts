@@ -83,7 +83,7 @@ export class DataManager {
 
 			return { files, nodes: allNodes, taskIdMap };
 		} catch (e) {
-			console.warn("[TaskManage] 加载任务数据失败:", e);
+			logger.warn("[TaskManage] 加载任务数据失败:", e);
 			return { files: [], nodes: [], taskIdMap: new Map() };
 		}
 	}

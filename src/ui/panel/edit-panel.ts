@@ -228,9 +228,11 @@ export class EditPanel {
 			if (!hasSnapshots) return;
 			if (confirm("确定清空所有编辑备份？")) {
 				localStorage.removeItem("organizeSnapshots");
+				// 清除 task-editor.ts 中的缓存
 				es?.syncToStore();
 				clearSnapshotBtn.addClass("active");
 				setTimeout(() => clearSnapshotBtn.removeClass("active"), 300);
+				this.render(); // 立即刷新面板
 			}
 		});
 	}

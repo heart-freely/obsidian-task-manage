@@ -65,9 +65,8 @@ export function calcRangeFromRoots(
 }
 
 export function formatGanttDuration(ms: number): string {
-	if (ms <= 0) return "";
-	const days = ms / (1000 * 60 * 60 * 24);
-	if (days < 1) return Math.round(days * 24) + "h";
+	if (ms <= 0) return "1d";
+	const days = ms / 86400000;
 	if (days < 7) return Math.round(days) + "d";
 	if (days < 30) return Math.round(days / 7) + "w";
 	if (days < 365) return Math.round(days / 30) + "m";

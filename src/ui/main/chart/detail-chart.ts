@@ -93,7 +93,7 @@ export function renderDetail(
 	try {
 		chart = echarts.init(chartDiv);
 	} catch (e) {
-		console.error("[TaskManage] 详细统计图初始化失败:", e);
+		logger.error("[TaskManage] 详细统计图初始化失败:", e);
 		chartDiv.textContent = "图表加载失败";
 		chartDiv.style.cssText +=
 			"display:flex;align-items:center;justify-content:center;color:var(--text-muted);";
@@ -142,7 +142,7 @@ export function renderDetail(
 			bigChart = echarts.init(bigChartDiv);
 			bigChart.setOption(option);
 		} catch (e) {
-			console.error("[TaskManage] 放大图表初始化失败:", e);
+			logger.error("[TaskManage] 放大图表初始化失败:", e);
 			bigChartDiv.textContent = "图表加载失败";
 			bigChartDiv.style.cssText +=
 				"display:flex;align-items:center;justify-content:center;color:white;";

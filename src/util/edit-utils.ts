@@ -709,70 +709,42 @@ function createDateSubRow(
 ): void {
 	const subRow = (ctx as any)._subRow as HTMLElement;
 	const onEdit = options.onEdit;
+
 	let currentValue: string | null = null;
 	if (options.previewText) {
 		const extracted = extractMarkFromText(options.previewText, group.key);
 		if (extracted) currentValue = extracted;
 	}
 	if (!currentValue) currentValue = getNodeMarkValue(node, group.key);
-	const displayValue = currentValue || "年/月/日";
-	let dateApplied = false;
-	const hiddenInput = document.createElement("input");
-	hiddenInput.type = "date";
-	hiddenInput.value = currentValue || "";
-	hiddenInput.style.cssText =
-		"position:absolute;opacity:0;width:0;height:0;overflow:hidden;";
-	hiddenInput.addEventListener("change", () => {
-		dateApplied = true;
-		displaySpan.textContent = hiddenInput.value || "年/月/日";
-		displaySpan.style.color = hiddenInput.value
+
+	const dateInput = document.createElement("input");
+	dateInput.type = "date";
+	dateInput.value = currentValue || "";
+	dateInput.style.cssText =
+		"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);" +
+		"font-size:10px;font-family:inherit;line-height:16px;min-height:16px;" +
+		"min-width:100px;box-sizing:border-box;" +
+		"background:var(--background-primary);color:" +
+		(currentValue ? "var(--text-normal)" : "var(--text-muted)") +
+		";cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;outline:none;";
+
+	dateInput.addEventListener("change", () => {
+		const val = dateInput.value;
+		dateInput.style.color = val
 			? "var(--text-normal)"
 			: "var(--text-muted)";
 		ctx.updateMainBtnText(
-			hiddenInput.value
-				? `${group.icon} ${hiddenInput.value}`
-				: `${group.icon} ${group.label}`,
+			val ? `${group.icon} ${val}` : `${group.icon} ${group.label}`,
 		);
-		onEdit(node, group.key, hiddenInput.value || null);
+		onEdit(node, group.key, val || null);
 	});
-	hiddenInput.addEventListener("blur", () => {
-		setTimeout(() => {
-			if (dateApplied) {
-				dateApplied = false;
-				return;
-			}
-			displaySpan.textContent = hiddenInput.value || "年/月/日";
-			displaySpan.style.color = hiddenInput.value
-				? "var(--text-normal)"
-				: "var(--text-muted)";
-			ctx.updateMainBtnText(
-				hiddenInput.value
-					? `${group.icon} ${hiddenInput.value}`
-					: `${group.icon} ${group.label}`,
-			);
-			onEdit(node, group.key, hiddenInput.value || null);
-		}, 150);
-	});
-	subRow.appendChild(hiddenInput);
-	const displaySpan = document.createElement("span");
-	displaySpan.textContent = displayValue;
-	displaySpan.style.cssText =
-		`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;min-width:80px;text-align:center;box-sizing:border-box;background:var(--background-primary);color:` +
-		(currentValue ? "var(--text-normal)" : "var(--text-muted)") +
-		`;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;`;
-	displaySpan.addEventListener("click", (e) => {
-		e.stopPropagation();
-		e.preventDefault();
-		if (hiddenInput.showPicker) {
-			hiddenInput.showPicker();
-		} else {
-			hiddenInput.focus();
-			hiddenInput.click();
-		}
-	});
-	subRow.appendChild(displaySpan);
-}
 
+	dateInput.addEventListener("click", (e) => {
+		e.stopPropagation();
+	});
+
+	subRow.appendChild(dateInput);
+}
 function createCustomSubRow(
 	node: TaskTreeNode,
 	group: EditButtonGroup,

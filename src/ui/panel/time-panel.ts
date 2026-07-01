@@ -611,7 +611,7 @@ export class TimePanel {
 			if (r.minTime) this.taskMinYear = new Date(r.minTime).getFullYear();
 			if (r.maxTime) this.taskMaxYear = new Date(r.maxTime).getFullYear();
 		} catch (e) {
-			console.warn("[TimePanel] 初始化时间范围失败:", e);
+			logger.warn("[TimePanel] 初始化时间范围失败:", e);
 		}
 	}
 

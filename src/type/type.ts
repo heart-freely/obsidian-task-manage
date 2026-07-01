@@ -111,3 +111,25 @@ export interface AppState {
 	sidebarWidth: number;
 	editPanelState?: EditPanelState;
 }
+
+// ========== O7：类型安全接口 ==========
+
+export interface EditStoreInterface {
+	getState(): EditState;
+	subscribePanel(listener: () => void): void;
+	applyEdit(markKey: string, value: string | null): void;
+	applyAutoComplete(days?: number): void;
+	applySortTags(): void;
+	clearPreviews(): void;
+	saveCurrent(): void;
+	revertSnapshot(index: number): void;
+	getSnapshots(): Array<{ time: string; snapshot: Record<string, string> }>;
+	toggleSyncMode(): void;
+	syncToStore(): void;
+}
+
+export interface TaskViewInterface {
+	toggleBatchMode(): void;
+	toggleSelectAll(nodes: any[]): void;
+	refreshEditCards?(): void;
+}

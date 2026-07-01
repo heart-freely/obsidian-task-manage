@@ -7,7 +7,7 @@ import { parseTaskLine } from "../parser/tasks-parser";
 import { Store } from "../store/store";
 import { TaskTreeNode } from "../task/task-tree";
 import {
-	loadSnapshots,
+	loadSnapshots, // 新增的
 	Op,
 	revertSingleTask,
 	saveAllChanges,
@@ -15,7 +15,6 @@ import {
 	saveSnapshots,
 	writeToFiles,
 } from "./task-editor";
-
 const BATCH_CHUNK_SIZE = 50;
 
 export class EditStore {

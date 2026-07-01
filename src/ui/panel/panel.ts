@@ -214,7 +214,7 @@ export class Panels {
 			this.refreshContent();
 			requestAnimationFrame(() => this.updateViewPadding());
 		} catch (e) {
-			console.warn("[TaskManage] 面板状态同步失败:", e);
+			logger.warn("[TaskManage] 面板状态同步失败:", e);
 		}
 	}
 

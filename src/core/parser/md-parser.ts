@@ -500,7 +500,7 @@ export async function loadAllTaskFiles(app: any): Promise<ParsedFileData[]> {
 				results.push(parsed);
 			}
 		} catch (e) {
-			console.warn("[TaskManage] 读取任务文件失败:", file.path, e);
+			logger.warn("[TaskManage] 读取任务文件失败:", file.path, e);
 		}
 	}
 	return results;

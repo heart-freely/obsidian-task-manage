@@ -20,7 +20,7 @@ export function removePreset(store: Store, presetId: string) {
 	const state = store.getState();
 	// 禁止删除最后一个方案
 	if (state.presets.length <= 1) {
-		console.warn("[TaskManage] 至少保留一个方案，无法删除");
+		logger.warn("[TaskManage] 至少保留一个方案，无法删除");
 		return;
 	}
 	const presets = state.presets.filter((p) => p.id !== presetId);

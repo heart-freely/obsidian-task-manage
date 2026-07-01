@@ -189,7 +189,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 							);
 							dropdown.style.display = "block";
 						} catch (e) {
-							console.warn("[TaskManage] 下拉渲染失败:", e);
+							logger.warn("[TaskManage] 下拉渲染失败:", e);
 						}
 					}, 200);
 				};
@@ -368,7 +368,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			this.folderCache = [...folders].sort();
 			return this.folderCache;
 		} catch (e) {
-			console.warn("[TaskManage] 获取文件夹列表失败:", e);
+			logger.warn("[TaskManage] 获取文件夹列表失败:", e);
 			return [];
 		}
 	}
