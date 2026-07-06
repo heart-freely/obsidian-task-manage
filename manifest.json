@@ -1,6 +1,6 @@
 {
 	"id": "task-manage",
-	"name": "任务管理",
+	"name": "Task Manage",
 	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "文件、标题、列表3级任务管理，19种视图（看板/矩阵/日历/甘特图/任务树/统计图表），批量编辑任务标记，支持多种任务管理方式",
