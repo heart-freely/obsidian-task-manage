@@ -1,5 +1,4 @@
 // src/main.ts
-// src/main.ts
 
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";

@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-task-manage",
-	"version": "1.0.0",
-	"description": "任务管理面板，基于 tasks、dataview、echarts 插件",
+	"name": "task-manage",
+	"version": "0.0.1",
+	"description": "3-level task management (file/heading/list), 19 views (kanban/matrix/calendar/Gantt/task tree/statistics), batch edit task marks, supports multiple task management methods",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

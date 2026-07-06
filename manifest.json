@@ -3,7 +3,7 @@
 	"name": "Task Manage",
 	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "文件、标题、列表3级任务管理，19种视图（看板/矩阵/日历/甘特图/任务树/统计图表），批量编辑任务标记，支持多种任务管理方式",
+	"description": "3-level task management (file/heading/list), 19 views (kanban/matrix/calendar/Gantt/task tree/statistics), batch edit task marks, supports multiple task management methods",
 	"author": "heart-freely",
 	"authorUrl": "https://github.com/heart-freely",
 	"fundingUrl": {
