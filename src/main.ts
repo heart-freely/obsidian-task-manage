@@ -197,7 +197,6 @@ export default class TaskManagePlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.vault.on("modify", () => {
-				// 仅当缓存有效时才失效并刷新
 				const fullTree = dataManager.getFullTree();
 				if (fullTree.uid === "__empty__") return;
 				dataManager.invalidate();
@@ -224,10 +223,7 @@ export default class TaskManagePlugin extends Plugin {
 
 		const wasViewOpen = savedData.wasViewOpen === true;
 		this.app.workspace.onLayoutReady(() => {
-			const leaves = this.app.workspace.getLeavesOfType("manage-view");
-			if (leaves.length > 0) {
-				this.app.workspace.revealLeaf(leaves[0]);
-			} else if (wasViewOpen) {
+			if (wasViewOpen) {
 				this.activateView("manage-view");
 			}
 			setTimeout(() => {
