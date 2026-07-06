@@ -224,20 +224,6 @@ function createDependencySVG(
 	return svg;
 }
 
-function injectGridStyles() {
-	const styleId = "gantt-grid-styles";
-	if (document.getElementById(styleId)) return;
-	const styleEl = document.createElement("style");
-	styleEl.id = styleId;
-	const dark = isDarkTheme();
-	const c = dark ? "255,255,255" : "0,0,0";
-	const da = dark ? "0.03" : "0.02",
-		wa = dark ? "0.05" : "0.04",
-		ma = dark ? "0.10" : "0.08";
-	styleEl.textContent = `.gantt-grid-overlay{position:absolute;top:0;height:100%;pointer-events:none;z-index:0}.gantt-grid-dense{background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)-.5px),rgba(${c},${da}) calc(var(--day-width)-.5px),rgba(${c},${da}) var(--day-width)),repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7)),repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30));background-size:var(--day-width) 100%,calc(var(--day-width)*7) 100%,calc(var(--day-width)*30) 100%;background-position:0 0;background-repeat:repeat-x}.gantt-grid-medium{background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7-.5px),rgba(${c},${wa}) calc(var(--day-width)*7)),repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30));background-size:calc(var(--day-width)*7) 100%,calc(var(--day-width)*30) 100%;background-position:0 0;background-repeat:repeat-x}.gantt-grid-sparse{background-image:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30-1px),rgba(${c},${ma}) calc(var(--day-width)*30));background-size:calc(var(--day-width)*30) 100%;background-position:0 0;background-repeat:repeat-x}.gantt-bar:hover{filter:brightness(1.2);z-index:5!important;}`;
-	document.head.appendChild(styleEl);
-}
-
 export function renderGanttWithTree(
 	container: HTMLElement,
 	treeRoot: TaskTreeNode,
@@ -452,21 +438,23 @@ export function renderGanttWithTree(
 				barPositionCache.delete(uid);
 			}
 		}
-
 		(currentSvg as any)?.__redraw?.(barPositions);
 	}
 
 	function updateGridLevel(dayWidth: number) {
 		if (!gridOverlay) return;
-		gridOverlay.classList.remove(
-			"gantt-grid-dense",
-			"gantt-grid-medium",
-			"gantt-grid-sparse",
-		);
-		if (dayWidth >= 40) gridOverlay.classList.add("gantt-grid-dense");
-		else if (dayWidth >= 15) gridOverlay.classList.add("gantt-grid-medium");
-		else if (dayWidth >= 5) gridOverlay.classList.add("gantt-grid-sparse");
-		gridOverlay.style.setProperty("--day-width", dayWidth + "px");
+		const gap = Math.max(dayWidth, 1);
+		const borderColor = "rgba(128,128,128,0.2)";
+
+		let lineGap: number;
+		if (dayWidth >= 40) lineGap = gap;
+		else if (dayWidth >= 15) lineGap = gap * 7;
+		else lineGap = gap * 30;
+
+		gridOverlay.style.backgroundImage = `repeating-linear-gradient(to right, ${borderColor} 0, ${borderColor} 1px, transparent 1px, transparent ${lineGap}px)`;
+		gridOverlay.style.backgroundSize = `${lineGap}px 100%`;
+		gridOverlay.style.backgroundPosition = "0 0";
+		gridOverlay.style.backgroundRepeat = "repeat-x";
 	}
 
 	function updateTodayLine() {
@@ -491,6 +479,8 @@ export function renderGanttWithTree(
 		if (gridOverlay) {
 			gridOverlay.style.left = actualTreeWidth + "px";
 			gridOverlay.style.width = tw + "px";
+			gridOverlay.style.height =
+				scrollArea.scrollHeight - GANTT_CONFIG.HEADER_HEIGHT + "px";
 		}
 		updateTodayLine();
 	}
@@ -510,7 +500,7 @@ export function renderGanttWithTree(
 			const right = dateToX(cached.intervalEnd);
 			const clampedLeft = Math.max(0, left);
 			const clampedRight = Math.min(tw, right);
-			if (clampedRight > clampedLeft) {
+			if (clampedRight > clampedLeft)
 				updates.push({
 					bar,
 					left: actualTreeWidth + clampedLeft,
@@ -519,7 +509,6 @@ export function renderGanttWithTree(
 						statusColors[taskMap.get(uid)?.status || "todo"] ||
 						statusColors["todo"],
 				});
-			}
 		});
 		for (const u of updates) {
 			u.bar.style.left = u.left + "px";
@@ -527,6 +516,7 @@ export function renderGanttWithTree(
 			u.bar.style.background = u.bg;
 		}
 	}
+
 	function deferredUpdate() {
 		if (deferredUpdateTimer) clearTimeout(deferredUpdateTimer);
 		deferredUpdateTimer = setTimeout(() => {
@@ -534,7 +524,7 @@ export function renderGanttWithTree(
 			const oldHeader = scrollArea.querySelector(
 				".gantt-header",
 			) as HTMLElement;
-			if (oldHeader) {
+			if (oldHeader)
 				oldHeader.replaceWith(
 					createTimelineHeader(
 						timeRange,
@@ -545,7 +535,6 @@ export function renderGanttWithTree(
 						actualTreeWidth,
 					),
 				);
-			}
 			const oldLineLayer = scrollArea.querySelector(
 				".gantt-timeline-lines",
 			) as HTMLElement;
@@ -563,12 +552,11 @@ export function renderGanttWithTree(
 					}
 				}
 			}
-			// 箭头更新
 			const barPositions = new Map<
 				string,
 				{ left: number; right: number; y: number }
 			>();
-			const scrollRect = scrollArea.getBoundingClientRect(); // 修复：添加缺失的变量声明
+			const scrollRect = scrollArea.getBoundingClientRect();
 			barCache.forEach((bar, uid) => {
 				const node = taskMap.get(uid);
 				if (!node) return;
@@ -708,15 +696,18 @@ export function renderGanttWithTree(
 				scrollArea.scrollHeight - GANTT_CONFIG.HEADER_HEIGHT + "px";
 			scrollArea.appendChild(lineLayer);
 
-			injectGridStyles();
 			gridOverlay = document.createElement("div");
 			gridOverlay.className = "gantt-grid-overlay";
-			gridOverlay.style.cssText = `position: absolute; top: ${GANTT_CONFIG.HEADER_HEIGHT}px; left: ${actualTreeWidth}px; width: ${tw2}px; height: calc(100% - ${GANTT_CONFIG.HEADER_HEIGHT}px);`;
+			gridOverlay.style.cssText = `position: absolute; top: ${GANTT_CONFIG.HEADER_HEIGHT}px; left: ${actualTreeWidth}px; width: ${tw2}px;`;
+			gridOverlay.style.height =
+				scrollArea.scrollHeight - GANTT_CONFIG.HEADER_HEIGHT + "px";
 			updateGridLevel(zoomState.dayWidth);
 			scrollArea.appendChild(gridOverlay);
 
 			todayLine = document.createElement("div");
-			todayLine.style.cssText = `position: absolute; top: ${GANTT_CONFIG.HEADER_HEIGHT}px; left: 0; width: 2px; height: calc(100% - ${GANTT_CONFIG.HEADER_HEIGHT}px); background: var(--interactive-accent, #7fb8f0); opacity: 0.5; z-index: 4; pointer-events: none;`;
+			todayLine.style.cssText = `position: absolute; top: ${GANTT_CONFIG.HEADER_HEIGHT}px; left: 0; width: 2px; background: var(--interactive-accent, #7fb8f0); opacity: 0.5; z-index: 4; pointer-events: none;`;
+			todayLine.style.height =
+				scrollArea.scrollHeight - GANTT_CONFIG.HEADER_HEIGHT + "px";
 			updateTodayLine();
 			scrollArea.appendChild(todayLine);
 

@@ -41,59 +41,6 @@ function padTwo(n: number): string {
 
 let currentStyleEl: HTMLStyleElement | null = null;
 
-function injectCalendarStyles() {
-	if (currentStyleEl) {
-		currentStyleEl.remove();
-		currentStyleEl = null;
-	}
-
-	const styleEl = document.createElement("style");
-	styleEl.id = "task-calendar-custom-style";
-	currentStyleEl = styleEl;
-
-	const statusColors = getStatusColors();
-	let statusBarStyles = "";
-	for (const status of STATUS_SORT_ORDER) {
-		const color = statusColors[status];
-		if (color) {
-			statusBarStyles += `.cal-span-line.${status}, .timeline-bar.${status} { background: ${color}; opacity: 0.7; }\n`;
-		}
-	}
-
-	styleEl.textContent = `
-        .calendar-stack { display: flex; flex-direction: column; gap: 24px; }
-        .empty-message { padding: 40px; text-align: center; color: var(--text-muted); font-style: italic; }
-        .calendar-toolbar { display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; align-items: center; }
-        .calendar-toolbar button { padding: 4px 12px; border-radius: 16px; border: none; cursor: pointer; background: var(--interactive-normal); color: var(--text-normal); }
-        .calendar-toolbar button.active { background: var(--interactive-accent); color: white; }
-        .empty-periods-row {
-            display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; justify-content: flex-start;
-        }
-        .empty-period-tag {
-            font-size: 12px; color: var(--text-muted); padding: 1px 6px;
-            background: var(--background-secondary); border-radius: 10px; line-height: 1.4;
-        }
-        .timeline-block { margin-bottom: 24px; }
-        .timeline-block-title { font-weight: bold; margin-bottom: 4px; color: var(--text-normal); font-size: 1.1em; }
-        .timeline-body { position: relative; width: 100%; }
-        .timeline-grid-line { position: absolute; top: 0; width: 1px; background: var(--background-modifier-border); pointer-events: none; }
-        .timeline-bar {
-            position: absolute; height: ${TIMELINE_BAR_HEIGHT}px;
-            border-radius: 3px; display: flex; align-items: center;
-            padding-left: 4px; overflow: hidden; cursor: pointer;
-            font-size: 11px; color: white; white-space: nowrap;
-        }
-        .timeline-bar-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .timeline-header-day { text-align: center; font-size: 11px; padding: 2px 0; }
-        .timeline-header-day.today { color: var(--text-accent); font-weight: bold; }
-        .year-view-header { display: grid; grid-template-columns: repeat(31, 1fr); width: 100%; position: sticky; top: 0; z-index: 2; background: var(--background-primary); }
-        .year-view-day { text-align: center; font-size: 11px; padding: 4px 0; }
-        .year-view-day.today { color: var(--text-accent); font-weight: bold; }
-        ${statusBarStyles}
-    `;
-	document.head.appendChild(styleEl);
-}
-
 // ========== 时间轴组件（行组方案，任务条各自独占一行）==========
 
 function renderTimeline(
@@ -377,7 +324,6 @@ export function renderCalendarView(
 		filterTitle?: string;
 	},
 ) {
-	injectCalendarStyles();
 	container.empty();
 
 	const subView = options?.subView || "day";

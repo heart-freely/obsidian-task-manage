@@ -1029,9 +1029,14 @@ export function createPreviewRow(
 	row.className = "task-preview-row";
 	row.style.cssText =
 		"margin-top:4px;padding:1px 4px;border-radius:3px;font-size:0.8em;display:flex;align-items:center;gap:2px;flex-wrap:wrap;";
+
+	const textSpan = document.createElement("span");
+	textSpan.style.color = "var(--text-muted)";
+
 	if (saved) {
 		row.style.background = "rgba(71,133,47,0.15)";
-		row.innerHTML = `<span style="color:var(--text-muted);">📝 已保存: ${escapeHtml(previewText)}</span>`;
+		textSpan.textContent = `📝 已保存: ${previewText}`;
+		row.appendChild(textSpan);
 		if (onRevert) {
 			const rb = document.createElement("button");
 			rb.textContent = "撤回";
@@ -1045,7 +1050,8 @@ export function createPreviewRow(
 		}
 	} else {
 		row.style.background = "rgba(127,184,240,0.1)";
-		row.innerHTML = `<span style="color:var(--text-muted);">📝 预览: ${escapeHtml(previewText)}</span>`;
+		textSpan.textContent = `📝 预览: ${previewText}`;
+		row.appendChild(textSpan);
 		if (onSave) {
 			const sb = document.createElement("button");
 			sb.textContent = "保存";

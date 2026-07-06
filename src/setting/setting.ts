@@ -1,9 +1,10 @@
 // src/setting/setting.ts
 
-import { App, PluginSettingTab } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import { updateTaskFileConfig } from "../core/config/config";
 import { DataManager } from "../core/data/data-manager";
 import { safeMergeConfig } from "../util/validate-utils";
+import logger from "../util/logger";
 
 export interface PathFilterConfig {
 	pattern: string;
@@ -91,7 +92,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		this.plugin.saveAllSettings();
 		DataManager.getInstance().invalidate();
 
-		// 刷新当前视图
 		const leaves = this.app.workspace.getLeavesOfType("manage-view");
 		if (leaves.length > 0) {
 			const view = leaves[0].view as any;
@@ -121,10 +121,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		// ========== 任务路径 ==========
-		containerEl.createEl("h2", {
-			text: "任务路径",
-			attr: { style: "margin-bottom:12px;" },
-		});
+		new Setting(containerEl).setName("任务路径").setHeading();
 
 		const pathListContainer = containerEl.createDiv({ cls: "path-list" });
 		const rootPath = this.plugin.settings.taskRootPath || "";
@@ -256,27 +253,18 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 
 		// ========== 匹配任务 ==========
-		containerEl.createEl("h2", {
-			text: "匹配任务",
-			attr: { style: "margin-top:24px;margin-bottom:8px;" },
-		});
+		new Setting(containerEl).setName("匹配任务").setHeading();
 
 		const row1 = containerEl.createDiv({ cls: "filter-two-col" });
 		row1.style.cssText =
 			"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;";
 
 		const folderCol = row1.createDiv();
-		folderCol.createEl("h3", {
-			text: "任务文件夹",
-			attr: { style: "margin-bottom:4px;" },
-		});
+		new Setting(folderCol).setName("任务文件夹").setHeading();
 		this.renderFilterList(folderCol, "folderFilters", "任务文件夹匹配");
 
 		const fileCol = row1.createDiv();
-		fileCol.createEl("h3", {
-			text: "任务文件",
-			attr: { style: "margin-bottom:4px;" },
-		});
+		new Setting(fileCol).setName("任务文件").setHeading();
 		this.renderFilterList(fileCol, "fileFilters", "任务文件名匹配");
 
 		const row2 = containerEl.createDiv({ cls: "filter-two-col" });
@@ -284,24 +272,15 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;";
 
 		const headingCol = row2.createDiv();
-		headingCol.createEl("h3", {
-			text: "任务标题",
-			attr: { style: "margin-bottom:4px;" },
-		});
+		new Setting(headingCol).setName("任务标题").setHeading();
 		this.renderFilterList(headingCol, "headingFilters", "任务标题匹配");
 
 		const taskItemCol = row2.createDiv();
-		taskItemCol.createEl("h3", {
-			text: "任务项",
-			attr: { style: "margin-bottom:4px;" },
-		});
+		new Setting(taskItemCol).setName("任务项").setHeading();
 		this.renderTaskItemList(taskItemCol);
 
 		// ========== 导入导出插件配置 ==========
-		containerEl.createEl("h2", {
-			text: "插件配置",
-			attr: { style: "margin-top:24px;" },
-		});
+		new Setting(containerEl).setName("插件配置").setHeading();
 
 		const ioRow = containerEl.createDiv();
 		ioRow.style.cssText = "display:flex;gap:12px;";

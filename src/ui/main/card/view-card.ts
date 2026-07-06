@@ -21,6 +21,18 @@ export interface TaskCardOptions {
 	onEnterEdit?: (node: TaskTreeNode) => void;
 }
 
+function buildDescriptionDOM(
+	node: TaskTreeNode,
+	_compact: boolean,
+): DocumentFragment {
+	const frag = document.createDocumentFragment();
+	const text = buildDescription(node, _compact);
+	const span = document.createElement("span");
+	span.textContent = text;
+	frag.appendChild(span);
+	return frag;
+}
+
 function bindDescriptionEdit(
 	descEl: HTMLElement,
 	node: TaskTreeNode,
@@ -91,8 +103,6 @@ export function createViewCard(
 	const checked = isEditing ? editCtx!.selectedTasks.has(node.uid) : false;
 	const expandedButton = isEditing ? (editCtx?.expandedButton ?? null) : null;
 
-	const descHtml = buildDescription(node, compact);
-
 	const li = document.createElement("li");
 	li.className = "task-item";
 	if (compact) li.classList.add("task-item-compact");
@@ -119,12 +129,16 @@ export function createViewCard(
 	}
 
 	if (compact) {
-		li.innerHTML = `<div class="task-desc" style="font-weight:normal;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;line-height:1.5;">${descHtml}</div>`;
+		const descDiv = document.createElement("div");
+		descDiv.className = "task-desc";
+		descDiv.style.cssText =
+			"font-weight:normal;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;line-height:1.5;";
+		descDiv.appendChild(buildDescriptionDOM(node, compact));
+		li.appendChild(descDiv);
 	} else {
 		const row1 = document.createElement("div");
 		row1.style.cssText = "display:flex;align-items:center;gap:4px;";
 
-		// 批量模式：只对列表任务显示复选框
 		if (isBatchMode && editCtx && node.type === "list") {
 			row1.appendChild(
 				createCheckbox(checked, (newChecked) => {
@@ -135,7 +149,7 @@ export function createViewCard(
 
 		const descEl = document.createElement("span");
 		descEl.className = "task-desc";
-		descEl.innerHTML = descHtml;
+		descEl.appendChild(buildDescriptionDOM(node, compact));
 		descEl.style.cssText =
 			"font-weight:500;flex:1;cursor:" +
 			(isEditing ? "text" : "pointer") +
@@ -166,7 +180,6 @@ export function createViewCard(
 		});
 		li.appendChild(editBar);
 
-		// 批量模式且未选中编辑：隐藏编辑栏
 		if (isBatchMode && !isEditing) {
 			editBar.style.display = "none";
 		}
@@ -175,7 +188,6 @@ export function createViewCard(
 			const previewRow = createPreviewRow(
 				previewText,
 				saved,
-				// 批量模式下隐藏单个保存按钮
 				saved ? null : isBatchMode ? null : () => editCtx?.onSave(node),
 				saved ? () => editCtx?.onRevert(node) : null,
 				hasContentEdit,
@@ -190,7 +202,6 @@ export function createViewCard(
 		}
 	}
 
-	// ========== 简洁模式：单击回调 ==========
 	if (compact && options?.onSingleClick) {
 		li.addEventListener("click", (e) => {
 			e.stopPropagation();
@@ -198,7 +209,6 @@ export function createViewCard(
 		});
 	}
 
-	// ========== 双击跳转 ==========
 	if (options?.onClick && !isEditing && !compact) {
 		li.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
@@ -206,13 +216,11 @@ export function createViewCard(
 		});
 	}
 
-	// ========== 阅读模式：单击进入编辑 ==========
 	if (!compact && !isEditing && options?.onEnterEdit) {
 		let pending: ReturnType<typeof setTimeout> | null = null;
 
 		li.addEventListener("click", (e) => {
 			if (pending) {
-				// 双击的第二个 click，取消单击
 				clearTimeout(pending);
 				pending = null;
 				return;
@@ -226,7 +234,6 @@ export function createViewCard(
 		});
 	}
 
-	// ========== hover ==========
 	li.addEventListener("mouseenter", () => {
 		li.style.backgroundColor = compact
 			? "var(--background-modifier-hover)"
@@ -238,7 +245,6 @@ export function createViewCard(
 			: "var(--background-primary)";
 	});
 
-	// ========== tooltip ==========
 	if (showTooltip && compact) {
 		const tooltipHtml = buildTooltip(node);
 		if (tooltipHtml) {

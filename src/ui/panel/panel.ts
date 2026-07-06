@@ -162,36 +162,8 @@ export class Panels {
 			document.addEventListener("mouseup", onMouseUp);
 		});
 
-		this.injectStyles();
 		this.store.subscribe(() => this.syncState());
 		requestAnimationFrame(() => this.syncState());
-	}
-
-	private injectStyles() {
-		if (this.styleEl) return;
-		this.styleEl = document.createElement("style");
-		this.styleEl.textContent = `
-      .panel-btn{padding:3px 6px!important;font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;line-height:var(--line-height-normal)!important;margin:2px 4px 2px 0!important;text-align:left!important;white-space:nowrap;display:inline-flex!important;align-items:center;justify-content:flex-start;flex-grow:0!important;flex-shrink:0!important;width:auto!important;min-width:auto!important;height:auto!important;border-radius:16px;background:var(--interactive-normal);border:none;cursor:pointer}
-      .panel-btn.active{background:var(--interactive-accent)!important;color:white!important}
-      .panel-btn.sub-btn{padding:2px 5px!important;font-size:var(--font-ui-smaller)!important;border-radius:12px}
-      .panel-label{font-family:var(--font-text)!important;font-size:var(--font-ui-small)!important;font-weight:normal!important;color:var(--text-normal)!important;text-align:justify!important;text-align-last:justify!important;text-justify:inter-character!important;width:4em;flex-shrink:0;margin:0!important;margin-right:6px!important;padding:0!important;border:none!important;box-sizing:border-box!important;overflow:hidden;white-space:normal!important;word-break:keep-all}
-      .panel-row{display:flex;align-items:center;justify-content:flex-start;margin-bottom:4px;flex-wrap:wrap}
-      .panel-sub{margin-left:8px;gap:4px}
-      .panel-section{margin:0!important;padding:0!important}
-      .panel-header-btn{flex-shrink:0;display:flex;align-items:center;gap:4px;cursor:grab;padding:4px 8px;border-radius:6px;background:var(--background-primary);border:1px solid var(--background-modifier-border);user-select:none;font-size:12px;white-space:nowrap}
-      .panel-header-btn:hover{background:var(--background-modifier-hover)}
-      .panel-header-btn.active{background:var(--background-modifier-active)}
-      .panel-header-label{font-family:inherit;font-size:inherit;line-height:inherit;color:inherit}
-      .panel-view-btn{min-width:80px}
-      .panel-input{padding:4px 8px;border-radius:12px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);font-size:13px;min-width:200px}
-      .panel-input-sm{width:48px;min-width:48px;padding:3px 4px;font-size:14px;text-align:center}
-      .panel-content{padding:4px 6px;background:var(--background-secondary);}
-      .edit-date-input::-webkit-calendar-picker-indicator{margin-left:1px;padding:0;cursor:pointer;opacity:0.7;width:14px;height:14px;}
-      .edit-date-input::-webkit-datetime-edit-fields-wrapper{padding:0 1px;}
-      .edit-date-input::-webkit-datetime-edit{padding:0;}
-      .edit-date-input::-webkit-datetime-edit-text{padding:0 1px;}
-    `;
-		document.head.appendChild(this.styleEl);
 	}
 
 	public syncState() {

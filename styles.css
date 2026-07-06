@@ -635,3 +635,319 @@
 	flex-direction: column;
 	gap: 24px;
 }
+/* ========== 甘特图网格背景 ========== */
+.gantt-grid-overlay {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	pointer-events: none;
+	z-index: 0;
+}
+.gantt-grid-dense {
+	background-image:
+		repeating-linear-gradient(
+			to right,
+			rgba(128, 128, 128, 0.03) 0,
+			rgba(128, 128, 128, 0.03) calc(var(--day-width) - 0.5px),
+			rgba(128, 128, 128, 0.06) calc(var(--day-width) - 0.5px),
+			rgba(128, 128, 128, 0.06) var(--day-width)
+		),
+		repeating-linear-gradient(
+			to right,
+			rgba(128, 128, 128, 0.05) 0,
+			rgba(128, 128, 128, 0.05) calc(var(--day-width) * 7 - 0.5px),
+			rgba(128, 128, 128, 0.1) calc(var(--day-width) * 7 - 0.5px),
+			rgba(128, 128, 128, 0.1) calc(var(--day-width) * 7)
+		),
+		repeating-linear-gradient(
+			to right,
+			rgba(128, 128, 128, 0.08) 0,
+			rgba(128, 128, 128, 0.08) calc(var(--day-width) * 30 - 1px),
+			rgba(128, 128, 128, 0.12) calc(var(--day-width) * 30 - 1px),
+			rgba(128, 128, 128, 0.12) calc(var(--day-width) * 30)
+		);
+	background-size:
+		var(--day-width) 100%,
+		calc(var(--day-width) * 7) 100%,
+		calc(var(--day-width) * 30) 100%;
+	background-position: 0 0;
+	background-repeat: repeat-x;
+}
+.gantt-grid-medium {
+	background-image:
+		repeating-linear-gradient(
+			to right,
+			rgba(128, 128, 128, 0.05) 0,
+			rgba(128, 128, 128, 0.05) calc(var(--day-width) * 7 - 0.5px),
+			rgba(128, 128, 128, 0.1) calc(var(--day-width) * 7 - 0.5px),
+			rgba(128, 128, 128, 0.1) calc(var(--day-width) * 7)
+		),
+		repeating-linear-gradient(
+			to right,
+			rgba(128, 128, 128, 0.08) 0,
+			rgba(128, 128, 128, 0.08) calc(var(--day-width) * 30 - 1px),
+			rgba(128, 128, 128, 0.12) calc(var(--day-width) * 30 - 1px),
+			rgba(128, 128, 128, 0.12) calc(var(--day-width) * 30)
+		);
+	background-size:
+		calc(var(--day-width) * 7) 100%,
+		calc(var(--day-width) * 30) 100%;
+	background-position: 0 0;
+	background-repeat: repeat-x;
+}
+.gantt-grid-sparse {
+	background-image: repeating-linear-gradient(
+		to right,
+		rgba(128, 128, 128, 0.08) 0,
+		rgba(128, 128, 128, 0.08) calc(var(--day-width) * 30 - 1px),
+		rgba(128, 128, 128, 0.12) calc(var(--day-width) * 30 - 1px),
+		rgba(128, 128, 128, 0.12) calc(var(--day-width) * 30)
+	);
+	background-size: calc(var(--day-width) * 30) 100%;
+	background-position: 0 0;
+	background-repeat: repeat-x;
+}
+
+/* ========== 日历视图样式 ========== */
+.calendar-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+.timeline-block {
+	margin-bottom: 24px;
+}
+.timeline-block-title {
+	font-weight: bold;
+	margin-bottom: 4px;
+	color: var(--text-normal);
+	font-size: 1.1em;
+}
+.timeline-body {
+	position: relative;
+	width: 100%;
+}
+.timeline-grid-line {
+	position: absolute;
+	top: 0;
+	width: 1px;
+	background: var(--background-modifier-border);
+	pointer-events: none;
+}
+.timeline-bar {
+	position: absolute;
+	height: 16px;
+	border-radius: 3px;
+	display: flex;
+	align-items: center;
+	padding-left: 4px;
+	overflow: hidden;
+	cursor: pointer;
+	font-size: 11px;
+	color: white;
+	white-space: nowrap;
+}
+.timeline-bar-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.timeline-header-day {
+	text-align: center;
+	font-size: 11px;
+	padding: 2px 0;
+}
+.timeline-header-day.today {
+	color: var(--text-accent);
+	font-weight: bold;
+}
+.year-view-header {
+	display: grid;
+	grid-template-columns: repeat(31, 1fr);
+	width: 100%;
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: var(--background-primary);
+}
+.year-view-day {
+	text-align: center;
+	font-size: 11px;
+	padding: 4px 0;
+}
+.year-view-day.today {
+	color: var(--text-accent);
+	font-weight: bold;
+}
+.empty-periods-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	margin-top: 8px;
+	justify-content: flex-start;
+}
+.empty-period-tag {
+	font-size: 12px;
+	color: var(--text-muted);
+	padding: 1px 6px;
+	background: var(--background-secondary);
+	border-radius: 10px;
+	line-height: 1.4;
+}
+
+/* ========== 面板按钮样式（从 panel.ts injectStyles 移入） ========== */
+.panel-btn {
+	padding: 3px 6px !important;
+	font-family: var(--font-text) !important;
+	font-size: var(--font-ui-small) !important;
+	line-height: var(--line-height-normal) !important;
+	margin: 2px 4px 2px 0 !important;
+	text-align: left !important;
+	white-space: nowrap;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: flex-start;
+	flex-grow: 0 !important;
+	flex-shrink: 0 !important;
+	width: auto !important;
+	min-width: auto !important;
+	height: auto !important;
+	border-radius: 16px;
+	background: var(--interactive-normal);
+	border: none;
+	cursor: pointer;
+}
+.panel-btn.active {
+	background: var(--interactive-accent) !important;
+	color: white !important;
+}
+.panel-btn.sub-btn {
+	padding: 2px 5px !important;
+	font-size: var(--font-ui-smaller) !important;
+	border-radius: 12px;
+}
+.panel-label {
+	font-family: var(--font-text) !important;
+	font-size: var(--font-ui-small) !important;
+	font-weight: normal !important;
+	color: var(--text-normal) !important;
+	text-align: justify !important;
+	text-align-last: justify !important;
+	text-justify: inter-character !important;
+	width: 4em;
+	flex-shrink: 0;
+	margin: 0 !important;
+	margin-right: 6px !important;
+	padding: 0 !important;
+	border: none !important;
+	box-sizing: border-box !important;
+	overflow: hidden;
+	white-space: normal !important;
+	word-break: keep-all;
+}
+.panel-row {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	margin-bottom: 4px;
+	flex-wrap: wrap;
+}
+.panel-sub {
+	margin-left: 8px;
+	gap: 4px;
+}
+.panel-section {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+.panel-view-btn {
+	min-width: 80px;
+}
+.panel-input {
+	padding: 4px 8px;
+	border-radius: 12px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 13px;
+	min-width: 200px;
+}
+.panel-input-sm {
+	width: 48px;
+	min-width: 48px;
+	padding: 3px 4px;
+	font-size: 14px;
+	text-align: center;
+}
+.panel-content {
+	padding: 4px 6px;
+	background: var(--background-secondary);
+}
+.panel-header-btn {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	cursor: grab;
+	padding: 4px 8px;
+	border-radius: 6px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	user-select: none;
+	font-size: 12px;
+	white-space: nowrap;
+}
+.panel-header-btn:hover {
+	background: var(--background-modifier-hover);
+}
+.panel-header-btn.active {
+	background: var(--background-modifier-active);
+}
+.panel-header-label {
+	font-family: inherit;
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+}
+.edit-date-input::-webkit-calendar-picker-indicator {
+	margin-left: 1px;
+	padding: 0;
+	cursor: pointer;
+	opacity: 0.7;
+	width: 14px;
+	height: 14px;
+}
+.edit-date-input::-webkit-datetime-edit-fields-wrapper {
+	padding: 0 1px;
+}
+.edit-date-input::-webkit-datetime-edit {
+	padding: 0;
+}
+.edit-date-input::-webkit-datetime-edit-text {
+	padding: 0 1px;
+}
+/* ========== 日历任务线条状态颜色 ========== */
+.cal-span-line.todo,
+.timeline-bar.todo {
+	background: rgba(85, 90, 100, 0.75);
+}
+.cal-span-line.scheduled,
+.timeline-bar.scheduled {
+	background: rgba(105, 125, 170, 0.75);
+}
+.cal-span-line.in-progress,
+.timeline-bar.in-progress {
+	background: rgba(80, 140, 210, 0.8);
+}
+.cal-span-line.completed,
+.timeline-bar.completed {
+	background: rgba(80, 150, 120, 0.75);
+}
+.cal-span-line.cancelled,
+.timeline-bar.cancelled {
+	background: rgba(175, 62, 68, 0.7);
+}
+.cal-span-line.none,
+.timeline-bar.none {
+	background: rgba(128, 128, 128, 0.5);
+}

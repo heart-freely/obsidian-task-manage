@@ -33,7 +33,13 @@ class TooltipManager {
 	show(html: string, x: number, y: number) {
 		if (this.hideTimer) clearTimeout(this.hideTimer);
 		const div = this.ensureDiv();
-		div.innerHTML = html;
+		// 安全设置内容：将 <br> 转为换行，其余作为纯文本
+		while (div.firstChild) div.removeChild(div.firstChild);
+		const parts = html.split("<br>");
+		parts.forEach((part, i) => {
+			if (i > 0) div.appendChild(document.createElement("br"));
+			div.appendChild(document.createTextNode(part));
+		});
 		div.style.display = "block";
 
 		// 边界检测：不超出视口
@@ -41,7 +47,6 @@ class TooltipManager {
 		let left = x + padding;
 		let top = y + padding;
 
-		// 暂时设为可见才能获取尺寸
 		div.style.left = left + "px";
 		div.style.top = top + "px";
 		const rect = div.getBoundingClientRect();
