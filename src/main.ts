@@ -1,4 +1,5 @@
 // src/main.ts
+// src/main.ts
 
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
@@ -14,7 +15,6 @@ import {
 import { AppState, GlobalFilter, Preset } from "./type/type";
 import { ManageView } from "./ui/ui";
 import logger from "./util/logger";
-import { setSnapshotPersistFn } from "./core/edit/task-editor";
 
 export default class TaskManagePlugin extends Plugin {
 	store!: Store;
