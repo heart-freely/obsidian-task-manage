@@ -257,7 +257,7 @@ export default class TaskManagePlugin extends Plugin {
 		const { workspace } = this.app;
 		let leaf = workspace.getLeavesOfType(viewType)[0];
 		if (!leaf) {
-			leaf = workspace.getLeaf("tab");
+			leaf = workspace.getLeaf(true);
 			await leaf.setViewState({ type: viewType, active: true });
 		}
 		workspace.revealLeaf(leaf);
