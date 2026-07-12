@@ -143,11 +143,7 @@ export class BaseTaskEdit {
 				const cb = document.createElement("input");
 				cb.type = "checkbox";
 				cb.checked = checked;
-				cb.style.margin = "0 2px 0 0";
-				cb.style.flexShrink = "0";
-				cb.style.cursor = "pointer";
-				cb.style.width = "12px";
-				cb.style.height = "12px";
+				cb.className = "edit-checkbox";
 				cb.addEventListener("click", (e) => e.stopPropagation());
 				cb.addEventListener("change", () => {
 					this.editStore.toggleSelection(node);
@@ -408,11 +404,7 @@ export class BaseTaskEdit {
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			const newDescEl = descEl.cloneNode(true) as HTMLElement;
-			newDescEl.style.fontWeight = "500";
-			newDescEl.style.flex = "1";
-			newDescEl.style.cursor = "pointer";
-			newDescEl.style.marginBottom = "4px";
-			newDescEl.style.color = "var(--text-normal)";
+			newDescEl.className = "task-desc edit-desc-readonly";
 			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
 
@@ -455,11 +447,7 @@ export class BaseTaskEdit {
 			descEl.removeAttribute("contenteditable");
 			descEl.removeAttribute("data-edit-bound");
 			const newDescEl = descEl.cloneNode(true) as HTMLElement;
-			newDescEl.style.fontWeight = "500";
-			newDescEl.style.flex = "1";
-			newDescEl.style.cursor = "pointer";
-			newDescEl.style.marginBottom = "4px";
-			newDescEl.style.color = "var(--text-normal)";
+			newDescEl.className = "task-desc edit-desc-readonly";
 			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
 
