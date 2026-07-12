@@ -750,24 +750,6 @@
 	background: rgba(175, 62, 68, 0.7);
 }
 
-/* ========== 编辑日期输入框 ========== */
-.edit-date-input::-webkit-calendar-picker-indicator {
-	margin-left: 1px;
-	padding: 0;
-	cursor: pointer;
-	opacity: 0.7;
-	width: 14px;
-	height: 14px;
-}
-.edit-date-input::-webkit-datetime-edit-fields-wrapper {
-	padding: 0 1px;
-}
-.edit-date-input::-webkit-datetime-edit {
-	padding: 0;
-}
-.edit-date-input::-webkit-datetime-edit-text {
-	padding: 0 1px;
-}
 /* ========== 编辑模式组件 ========== */
 .edit-checkbox {
 	margin: 0 2px 0 0;
@@ -802,4 +784,449 @@
 .edit-preview-hidden {
 	display: none;
 	background: transparent;
+}
+
+/* ========== 编辑按钮通用 ========== */
+.edit-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	font-size: 0.8em;
+	color: var(--text-muted);
+	margin-top: 4px;
+	line-height: normal;
+}
+.edit-sub-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1px;
+	align-items: center;
+	padding: 1px 0;
+	border-top: 1px solid var(--background-modifier-border);
+	width: 100%;
+	flex-basis: 100%;
+}
+.edit-btn {
+	all: unset;
+	padding: 1px 3px;
+	border-radius: 3px;
+	cursor: pointer;
+	font-size: inherit;
+	font-family: inherit;
+	line-height: 1;
+	display: inline-flex;
+	align-items: center;
+	border: 1px solid transparent;
+	outline: none;
+	box-sizing: border-box;
+}
+.edit-btn-active {
+	background: var(--interactive-accent);
+	color: white;
+	border-color: var(--interactive-accent);
+}
+.edit-btn-hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	border-color: var(--background-modifier-border);
+}
+.edit-btn-hidden {
+	display: none;
+}
+.edit-file-name {
+	padding: 0;
+	border: none;
+	font-size: inherit;
+	line-height: normal;
+	color: inherit;
+	display: inline-flex;
+	align-items: center;
+}
+
+/* ========== 编辑子按钮 ========== */
+.edit-sub-btn {
+	padding: 0 3px;
+	border-radius: 3px;
+	border: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+	font-size: 10px;
+	font-family: inherit;
+	line-height: 16px;
+	min-height: 16px;
+	display: inline-flex;
+	align-items: center;
+	box-sizing: border-box;
+}
+.edit-sub-btn-active {
+	background: var(--interactive-accent);
+	color: white;
+}
+.edit-sub-btn-normal {
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+}
+
+/* ========== 编辑日期输入框 ========== */
+.edit-date-input {
+	padding: 0 3px;
+	border-radius: 3px;
+	border: 1px solid var(--background-modifier-border);
+	font-size: 10px;
+	font-family: inherit;
+	line-height: 16px;
+	min-height: 16px;
+	min-width: 100px;
+	box-sizing: border-box;
+	background: var(--background-primary);
+	cursor: pointer;
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	outline: none;
+}
+.edit-date-input::-webkit-calendar-picker-indicator {
+	margin-left: 1px;
+	padding: 0;
+	cursor: pointer;
+	opacity: 0.7;
+	width: 14px;
+	height: 14px;
+}
+.edit-date-input::-webkit-datetime-edit-fields-wrapper {
+	padding: 0 1px;
+}
+.edit-date-input::-webkit-datetime-edit {
+	padding: 0;
+}
+.edit-date-input::-webkit-datetime-edit-text {
+	padding: 0 1px;
+}
+
+/* ========== 编辑预览行 ========== */
+.edit-preview-row {
+	margin-top: 4px;
+	padding: 1px 4px;
+	border-radius: 3px;
+	font-size: 0.8em;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex-wrap: wrap;
+}
+.edit-preview-saved {
+	background: rgba(71, 133, 47, 0.15);
+}
+.edit-preview-unsaved {
+	background: rgba(127, 184, 240, 0.1);
+}
+.edit-preview-text {
+	color: var(--text-muted);
+}
+.edit-preview-btn {
+	all: unset;
+	padding: 0 3px;
+	border-radius: 3px;
+	border: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+	font-size: 9px;
+	font-family: inherit;
+	line-height: 14px;
+	min-height: 14px;
+	background: var(--interactive-normal);
+	color: var(--text-muted);
+	display: inline-flex;
+	align-items: center;
+	box-sizing: border-box;
+}
+.edit-preview-btn-save {
+	background: var(--interactive-accent);
+	color: white;
+}
+
+/* ========== 编辑删除/恢复按钮 ========== */
+.edit-del-btn {
+	all: unset;
+	padding: 0 3px;
+	border-radius: 3px;
+	border: 1px solid rgba(200, 80, 80, 0.3);
+	cursor: pointer;
+	font-size: 10px;
+	font-family: inherit;
+	line-height: 16px;
+	min-height: 16px;
+	background: rgba(200, 80, 80, 0.08);
+	color: var(--text-normal);
+	display: inline-flex;
+	align-items: center;
+	box-sizing: border-box;
+}
+.edit-restore-btn {
+	all: unset;
+	padding: 0 3px;
+	border-radius: 3px;
+	border: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+	font-size: 10px;
+	font-family: inherit;
+	line-height: 16px;
+	min-height: 16px;
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	display: inline-flex;
+	align-items: center;
+	box-sizing: border-box;
+}
+
+/* ========== 设置面板样式 ========== */
+.setting-path-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin-bottom: 6px;
+	position: relative;
+}
+.setting-path-input-wrapper {
+	flex: 1;
+	position: relative;
+}
+.setting-path-input {
+	width: 100%;
+}
+.setting-path-dropdown {
+	display: none;
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	max-height: 200px;
+	overflow-y: auto;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	z-index: 1000;
+}
+.setting-filter-two-col {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+.setting-filter-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 4px;
+	flex-wrap: wrap;
+}
+.setting-filter-input {
+	flex: 1;
+	min-width: 100px;
+}
+.setting-filter-input-sm {
+	flex: 1;
+	min-width: 100px;
+	max-width: 200px;
+}
+.setting-io-row {
+	display: flex;
+	gap: 12px;
+}
+.setting-del-btn {
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	color: var(--text-muted);
+	flex-shrink: 0;
+	margin-top: 4px;
+}
+.setting-toggle-btn-active {
+	border: none;
+	border-radius: 3px;
+	padding: 2px 6px;
+	cursor: pointer;
+	font-size: 11px;
+	color: white;
+}
+.setting-toggle-btn-inactive {
+	background: var(--background-modifier-border);
+	color: var(--text-muted);
+	border: none;
+	border-radius: 3px;
+	padding: 2px 6px;
+	cursor: pointer;
+	font-size: 11px;
+}
+.setting-add-btn {
+	padding: 4px 12px;
+}
+
+/* ========== 进度条 ========== */
+.progress-bar-container {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 60px;
+}
+.progress-bar {
+	flex: 1;
+	border-radius: 3px;
+	overflow: hidden;
+	background: var(--background-modifier-border);
+	display: flex;
+}
+.progress-bar-segment {
+	height: 100%;
+	flex-shrink: 0;
+}
+.progress-bar-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+/* ========== 滑动条 ========== */
+.slider-row {
+	width: 100%;
+	align-items: center;
+	flex-wrap: nowrap;
+}
+.slider-track {
+	flex: 1;
+	position: relative;
+	height: 4px;
+	cursor: pointer;
+	background: var(--background-modifier-border);
+	border-radius: 2px;
+	min-width: 60px;
+	overflow: visible;
+}
+.slider-fill {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	background: var(--interactive-accent);
+	border-radius: 2px;
+}
+.slider-handle {
+	position: absolute;
+	top: -6px;
+	width: 4px;
+	height: 16px;
+	background: var(--interactive-accent);
+	cursor: grab;
+	z-index: 2;
+}
+.slider-handle-start {
+	border-radius: 3px 0 0 3px;
+	transform: translateX(-100%);
+}
+.slider-handle-end {
+	border-radius: 0 3px 3px 0;
+	transform: translateX(0);
+}
+.slider-tick {
+	position: absolute;
+	top: 0;
+	transform: translateX(-50%);
+	width: 1px;
+	height: 8px;
+	background: var(--text-muted);
+	opacity: 0.4;
+	z-index: 1;
+}
+.slider-tick-today {
+	width: 2px;
+	height: 8px;
+	background: var(--text-accent);
+	opacity: 1;
+}
+.slider-midline {
+	position: absolute;
+	top: -2px;
+	width: 1px;
+	height: 8px;
+	background: var(--text-muted);
+	opacity: 0.5;
+	z-index: 1;
+}
+.slider-label {
+	font-size: var(--font-ui-smaller);
+	text-align: left;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-right: 8px;
+}
+
+/* ========== 甘特图组件 ========== */
+.gantt-bars-container {
+	position: absolute;
+	top: 48px;
+	left: 0;
+	z-index: 6;
+}
+.gantt-today-line {
+	position: absolute;
+	top: 48px;
+	width: 2px;
+	background: var(--interactive-accent, #7fb8f0);
+	opacity: 0.5;
+	z-index: 4;
+	pointer-events: none;
+}
+.gantt-timeline-lines {
+	position: absolute;
+	top: 48px;
+	pointer-events: none;
+	z-index: 0;
+}
+.gantt-dependency-svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 7;
+	overflow: visible;
+}
+.dataview-tooltip-visible {
+	display: block;
+}
+.dataview-tooltip-hidden {
+	display: none;
+}
+
+/* ================================================================
+   以下为新增样式 — 原 styles.css 中不存在的类，或需要追加变量的已有类
+   ================================================================ */
+
+编辑栏（新增类） .task-edit-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	font-size: 0.8em;
+	color: var(--text-muted);
+	margin-top: 4px;
+	line-height: normal;
+}
+
+/* 预览行（新增类，原 edit-utils.ts 中 style.cssText 的静态部分） */
+.task-preview-row {
+	margin-top: 4px;
+	padding: 1px 4px;
+	border-radius: 3px;
+	font-size: 0.8em;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex-wrap: wrap;
+}
+
+/* 看板列（新增类） */
+.kanban-col {
+	flex: 1;
+	min-width: 0;
 }

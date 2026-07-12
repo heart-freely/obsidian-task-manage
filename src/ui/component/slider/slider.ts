@@ -64,14 +64,27 @@ export function createSlider(options: SliderOptions): {
 
 	const sp = ((initS - min) / range) * 100;
 	const ep = ((initE - min) / range) * 100;
+
 	const fill = track.createDiv();
-	fill.style.cssText = `position:absolute;top:0;left:${sp}%;width:${Math.max(0, ep - sp)}%;height:100%;background:var(--interactive-accent);border-radius:2px;`;
+	fill.style.cssText =
+		"position:absolute;top:0;left:" +
+		sp +
+		"%;width:" +
+		Math.max(0, ep - sp) +
+		"%;height:100%;background:var(--interactive-accent);border-radius:2px;";
 
 	const createHandle = (pct: number, isStart: boolean): HTMLElement => {
 		const el = track.createDiv();
 		const radius = isStart ? "3px 0 0 3px" : "0 3px 3px 0";
 		const translate = isStart ? "translateX(-100%)" : "translateX(0)";
-		el.style.cssText = `position:absolute;top:-6px;left:${pct}%;width:4px;height:16px;background:var(--interactive-accent);border-radius:${radius};cursor:grab;transform:${translate};z-index:2;`;
+		el.style.cssText =
+			"position:absolute;top:-6px;left:" +
+			pct +
+			"%;width:4px;height:16px;background:var(--interactive-accent);border-radius:" +
+			radius +
+			";cursor:grab;transform:" +
+			translate +
+			";z-index:2;";
 		return el;
 	};
 
@@ -86,10 +99,13 @@ export function createSlider(options: SliderOptions): {
 	const updateHandles = (ns: number, ne: number) => {
 		const mnv = clamp(Math.min(ns, ne), min, max);
 		const mxv = clamp(Math.max(ns, ne), min, max);
-		startHandle.style.left = `${((mnv - min) / range) * 100}%`;
-		endHandle.style.left = `${((mxv - min) / range) * 100}%`;
-		fill.style.left = `${((mnv - min) / range) * 100}%`;
-		fill.style.width = `${((mxv - mnv) / range) * 100}%`;
+		startHandle.style.setProperty(
+			"left",
+			((mnv - min) / range) * 100 + "%",
+		);
+		endHandle.style.setProperty("left", ((mxv - min) / range) * 100 + "%");
+		fill.style.setProperty("left", ((mnv - min) / range) * 100 + "%");
+		fill.style.setProperty("width", ((mxv - mnv) / range) * 100 + "%");
 	};
 
 	const commitChange = (ns: number, ne: number) => {
@@ -106,7 +122,7 @@ export function createSlider(options: SliderOptions): {
 			ev.preventDefault();
 			ev.stopPropagation();
 			isDraggingHandle = true;
-			el.style.cursor = "grabbing";
+			el.style.setProperty("cursor", "grabbing");
 
 			const onMove = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
@@ -128,7 +144,7 @@ export function createSlider(options: SliderOptions): {
 			const onUp = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
 				isDraggingHandle = false;
-				el.style.cursor = "grab";
+				el.style.setProperty("cursor", "grab");
 				document.removeEventListener("mousemove", onMove);
 				document.removeEventListener("mouseup", onUp);
 				e.preventDefault();
@@ -248,7 +264,7 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		rowCls,
 	} = options;
 
-	const outerRow = container.createDiv({ cls: rowCls || "filter-row" });
+	const outerRow = container.createDiv({ cls: rowCls || "slider-row" });
 	outerRow.style.cssText = "width:100%;align-items:center;flex-wrap:nowrap;";
 
 	const range = max - min || 1;
@@ -258,21 +274,16 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	trackWrapper.style.cssText =
 		"flex:1;position:relative;min-width:60px;margin-right:8px;";
 
-	// 右侧文字
 	const labelSpan = outerRow.createSpan();
-	labelSpan.style.cssText = `
-		font-size:var(--font-ui-smaller);
-		width:${labelWidth || "160px"};
-		min-width:${labelWidth || "160px"};
-		max-width:${labelWidth || "160px"};
-		text-align:left;
-		flex-shrink:0;
-		color:var(--text-muted);
-		white-space:nowrap;
-		overflow:hidden;
-		text-overflow:ellipsis;
-		padding-right:8px;
-	`;
+	const lw = labelWidth || "160px";
+	labelSpan.style.cssText =
+		"font-size:var(--font-ui-smaller);width:" +
+		lw +
+		";min-width:" +
+		lw +
+		";max-width:" +
+		lw +
+		";text-align:left;flex-shrink:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px;";
 
 	const initS = clamp(Math.min(start, end), min, max);
 	const initE = clamp(Math.max(start, end), min, max);
@@ -302,7 +313,16 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	for (let v = min; v <= max; v += step) {
 		const isToday = todayValue !== undefined && v === todayValue;
 		const mark = track.createDiv();
-		mark.style.cssText = `position:absolute;top:0;left:${((v - min) / range) * 100}%;transform:translateX(-50%);width:${isToday ? "2px" : "1px"};height:8px;background:${isToday ? "var(--text-accent)" : "var(--text-muted)"};opacity:${isToday ? "1" : "0.4"};z-index:1;`;
+		mark.style.cssText =
+			"position:absolute;top:0;left:" +
+			((v - min) / range) * 100 +
+			"%;transform:translateX(-50%);width:" +
+			(isToday ? "2px" : "1px") +
+			";height:8px;background:" +
+			(isToday ? "var(--text-accent)" : "var(--text-muted)") +
+			";opacity:" +
+			(isToday ? "1" : "0.4") +
+			";z-index:1;";
 	}
 	if (
 		todayValue !== undefined &&
@@ -311,16 +331,22 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		(todayValue - min) % step !== 0
 	) {
 		const mark = track.createDiv();
-		mark.style.cssText = `position:absolute;top:0;left:${((todayValue - min) / range) * 100}%;transform:translateX(-50%);width:2px;height:8px;background:var(--text-accent);opacity:1;z-index:1;`;
+		mark.style.cssText =
+			"position:absolute;top:0;left:" +
+			((todayValue - min) / range) * 100 +
+			"%;transform:translateX(-50%);width:2px;height:8px;background:var(--text-accent);opacity:1;z-index:1;";
 	}
 
 	const midLine = track.createDiv();
 	midLine.style.cssText =
 		"position:absolute;top:-2px;width:1px;height:8px;background:var(--text-muted);opacity:0.5;z-index:1;";
 	if (midValue !== undefined) {
-		midLine.style.left = `${((clamp(midValue, min, max) - min) / range) * 100}%`;
+		midLine.style.setProperty(
+			"left",
+			((clamp(midValue, min, max) - min) / range) * 100 + "%",
+		);
 	} else {
-		midLine.style.display = "none";
+		midLine.style.setProperty("display", "none");
 	}
 
 	const updateAll = (s: number, e: number) => {
@@ -344,8 +370,11 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 			},
 		},
 		updateMidLine: (value: number) => {
-			midLine.style.left = `${((clamp(value, min, max) - min) / range) * 100}%`;
-			midLine.style.display = "";
+			midLine.style.setProperty(
+				"left",
+				((clamp(value, min, max) - min) / range) * 100 + "%",
+			);
+			midLine.style.removeProperty("display");
 		},
 		updateLabel: (text: string) => {
 			labelSpan.textContent = text;

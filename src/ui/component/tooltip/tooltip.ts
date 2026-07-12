@@ -33,22 +33,21 @@ class TooltipManager {
 	show(html: string, x: number, y: number) {
 		if (this.hideTimer) clearTimeout(this.hideTimer);
 		const div = this.ensureDiv();
-		// 安全设置内容：将 <br> 转为换行，其余作为纯文本
 		while (div.firstChild) div.removeChild(div.firstChild);
 		const parts = html.split("<br>");
 		parts.forEach((part, i) => {
 			if (i > 0) div.appendChild(document.createElement("br"));
 			div.appendChild(document.createTextNode(part));
 		});
-		div.style.display = "block";
+		div.classList.remove("dataview-tooltip-hidden");
+		div.classList.add("dataview-tooltip-visible");
 
-		// 边界检测：不超出视口
 		const padding = 15;
 		let left = x + padding;
 		let top = y + padding;
 
-		div.style.left = left + "px";
-		div.style.top = top + "px";
+		div.style.setProperty("left", left + "px");
+		div.style.setProperty("top", top + "px");
 		const rect = div.getBoundingClientRect();
 
 		if (rect.right > window.innerWidth) {
@@ -60,12 +59,15 @@ class TooltipManager {
 		if (left < 0) left = padding;
 		if (top < 0) top = padding;
 
-		div.style.left = left + "px";
-		div.style.top = top + "px";
+		div.style.setProperty("left", left + "px");
+		div.style.setProperty("top", top + "px");
 	}
 
 	move(x: number, y: number) {
-		if (this.div && this.div.style.display === "block") {
+		if (
+			this.div &&
+			this.div.classList.contains("dataview-tooltip-visible")
+		) {
 			const padding = 15;
 			let left = x + padding;
 			let top = y + padding;
@@ -77,13 +79,16 @@ class TooltipManager {
 			if (left < 0) left = padding;
 			if (top < 0) top = padding;
 
-			this.div.style.left = left + "px";
-			this.div.style.top = top + "px";
+			this.div.style.setProperty("left", left + "px");
+			this.div.style.setProperty("top", top + "px");
 		}
 	}
 
 	hide() {
-		if (this.div) this.div.style.display = "none";
+		if (this.div) {
+			this.div.classList.remove("dataview-tooltip-visible");
+			this.div.classList.add("dataview-tooltip-hidden");
+		}
 	}
 
 	remove() {

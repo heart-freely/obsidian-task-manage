@@ -1,5 +1,5 @@
 // src/util/edit-utils.ts
-// 编辑卡片通用工具函数
+// 编辑卡片通用工具函数 — 使用 CSS 类 + setProperty 替代 style.*=
 
 import { parseTaskLine } from "../core/parser/tasks-parser";
 import { TaskTreeNode } from "../core/task/task-tree";
@@ -112,7 +112,7 @@ const STATUS_EMOJI_MAP: Record<string, string> = {
 	completed: "✅",
 };
 
-// ========== 工具函数 ==========
+// ========== 工具函数（未改动） ==========
 
 export function getNodeMarkValue(
 	node: TaskTreeNode,
@@ -217,6 +217,8 @@ export interface EditBarOptions {
 	previewText?: string | null;
 	isEditing?: boolean;
 }
+
+// ========== 标记值提取（从文本行）— 未改动 ==========
 
 function hasMarkBeenEdited(
 	node: TaskTreeNode,
@@ -460,16 +462,16 @@ function getMarkDisplayTextFromLine(line: string, key: string): string {
 	}
 }
 
+// ========== 编辑栏构建（修正：保持原始类名，仅替换静态样式）==========
+
 export function createEditBar(
 	node: TaskTreeNode,
 	options: EditBarOptions,
 ): HTMLElement {
 	const bar = document.createElement("div");
 	bar.className = "task-edit-bar";
-	bar.style.cssText =
-		"display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:0.8em;color:var(--text-muted);margin-top:4px;line-height:normal;";
 
-	// 同步模式：非主任务隐藏编辑栏（仅在编辑模式下）
+	// 同步模式：非主任务隐藏编辑栏
 	const editCtx = getEditContext();
 	if (
 		options.isEditing &&
@@ -540,14 +542,19 @@ export function createEditBar(
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
 		const hasValue = hasMarkValue(node, group.key);
 
+		// 完全等价于原始代码的 style.cssText 设置
 		if (isExpanded || isEdited) {
-			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--interactive-accent);color:white;display:inline-flex;align-items:center;border:1px solid var(--interactive-accent);outline:none;box-sizing:border-box;`;
+			btn.style.cssText =
+				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--interactive-accent);color:white;display:inline-flex;align-items:center;border:1px solid var(--interactive-accent);outline:none;box-sizing:border-box;";
 		} else if (isHovered) {
-			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--background-modifier-hover);color:var(--text-normal);display:inline-flex;align-items:center;border:1px solid var(--background-modifier-border);outline:none;box-sizing:border-box;`;
+			btn.style.cssText =
+				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--background-modifier-hover);color:var(--text-normal);display:inline-flex;align-items:center;border:1px solid var(--background-modifier-border);outline:none;box-sizing:border-box;";
 		} else if (hasValue) {
-			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;`;
+			btn.style.cssText =
+				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;";
 		} else if (options.isEditing) {
-			btn.style.cssText = `all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;`;
+			btn.style.cssText =
+				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;";
 		} else {
 			btn.style.cssText = "display:none;";
 		}
@@ -555,6 +562,7 @@ export function createEditBar(
 
 	updateAllButtonStyles();
 
+	// 文件名
 	const fileName = node.path.split("/").pop()?.replace(".md", "") || "";
 	if (fileName) {
 		const fileNameSpan = document.createElement("span");
@@ -564,6 +572,7 @@ export function createEditBar(
 		bar.appendChild(fileNameSpan);
 	}
 
+	// 展开的子行
 	if (options.expandedButton) {
 		const group = EDIT_BUTTONS.find(
 			(g) => g.key === options.expandedButton,
@@ -574,6 +583,7 @@ export function createEditBar(
 		}
 	}
 
+	// 阅读模式且无任何可见按钮 → 隐藏整个编辑栏
 	if (!options.isEditing && !options.expandedButton) {
 		const hasAnyVisible = EDIT_BUTTONS.some((g) =>
 			hasMarkValue(node, g.key),
@@ -584,7 +594,7 @@ export function createEditBar(
 	return bar;
 }
 
-// ========== 子行构建上下文 ==========
+// ========== 子行上下文 — 未改动 ==========
 
 interface SubRowContext {
 	getMainBtn: () => HTMLElement | null;
@@ -628,6 +638,8 @@ function createSubRowContext(
 	};
 }
 
+// ========== 选项子行 — 仅替换静态 style.cssText ==========
+
 function createOptionsSubRow(
 	node: TaskTreeNode,
 	group: EditButtonGroup,
@@ -661,23 +673,34 @@ function createOptionsSubRow(
 						getNodeMarkValue(node, group.key) ===
 							opt.replace("🏁 ", "");
 		}
-		btn.style.cssText =
-			`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;` +
-			(isActive
-				? "background:var(--interactive-accent);color:white;"
-				: "background:var(--interactive-normal);color:var(--text-normal);");
+
+		// 静态样式用 CSS 类，动态颜色用 setProperty
+		btn.className = "edit-sub-btn";
+		if (isActive) {
+			btn.style.setProperty("background", "var(--interactive-accent)");
+			btn.style.setProperty("color", "white");
+		} else {
+			btn.style.setProperty("background", "var(--interactive-normal)");
+			btn.style.setProperty("color", "var(--text-normal)");
+		}
+
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			const value =
 				group.key === "status" ? STATUS_KEY_MAP[opt] || opt : opt;
 			const allBtns = btn.parentElement?.querySelectorAll("button");
 			allBtns?.forEach((b: Element) => {
-				(b as HTMLElement).style.background =
-					"var(--interactive-normal)";
-				(b as HTMLElement).style.color = "var(--text-normal)";
+				(b as HTMLElement).style.setProperty(
+					"background",
+					"var(--interactive-normal)",
+				);
+				(b as HTMLElement).style.setProperty(
+					"color",
+					"var(--text-normal)",
+				);
 			});
-			btn.style.background = "var(--interactive-accent)";
-			btn.style.color = "white";
+			btn.style.setProperty("background", "var(--interactive-accent)");
+			btn.style.setProperty("color", "white");
 			if (group.key === "status") {
 				const sk = STATUS_KEY_MAP[opt] || opt;
 				ctx.updateMainBtnText(
@@ -701,6 +724,8 @@ function createOptionsSubRow(
 	});
 }
 
+// ========== 日期子行 — 静态样式用 CSS 类 ==========
+
 function createDateSubRow(
 	node: TaskTreeNode,
 	group: EditButtonGroup,
@@ -720,19 +745,18 @@ function createDateSubRow(
 	const dateInput = document.createElement("input");
 	dateInput.type = "date";
 	dateInput.value = currentValue || "";
-	dateInput.style.cssText =
-		"padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);" +
-		"font-size:10px;font-family:inherit;line-height:16px;min-height:16px;" +
-		"min-width:100px;box-sizing:border-box;" +
-		"background:var(--background-primary);color:" +
-		(currentValue ? "var(--text-normal)" : "var(--text-muted)") +
-		";cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;outline:none;";
+	dateInput.className = "edit-date-input";
+	dateInput.style.setProperty(
+		"color",
+		currentValue ? "var(--text-normal)" : "var(--text-muted)",
+	);
 
 	dateInput.addEventListener("change", () => {
 		const val = dateInput.value;
-		dateInput.style.color = val
-			? "var(--text-normal)"
-			: "var(--text-muted)";
+		dateInput.style.setProperty(
+			"color",
+			val ? "var(--text-normal)" : "var(--text-muted)",
+		);
 		ctx.updateMainBtnText(
 			val ? `${group.icon} ${val}` : `${group.icon} ${group.label}`,
 		);
@@ -745,6 +769,9 @@ function createDateSubRow(
 
 	subRow.appendChild(dateInput);
 }
+
+// ========== 自定义子行（未改动核心逻辑）==========
+
 function createCustomSubRow(
 	node: TaskTreeNode,
 	group: EditButtonGroup,
@@ -753,12 +780,15 @@ function createCustomSubRow(
 ): void {
 	const subRow = (ctx as any)._subRow as HTMLElement;
 	const onEdit = options.onEdit;
+
 	if (group.key === "id") {
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
-		ci.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.className = "edit-sub-btn";
+		ci.style.setProperty("background", "var(--background-primary)");
+		ci.style.setProperty("color", "var(--text-normal)");
+		ci.style.setProperty("width", "70px");
 		ci.addEventListener("click", (e) => e.stopPropagation());
 		ci.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
@@ -771,10 +801,12 @@ function createCustomSubRow(
 			}
 		});
 		subRow.appendChild(ci);
+
 		const gb = document.createElement("button");
 		gb.textContent = "生成";
-		gb.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+		gb.className = "edit-sub-btn";
+		gb.style.setProperty("background", "var(--interactive-normal)");
+		gb.style.setProperty("color", "var(--text-normal)");
 		gb.addEventListener("click", (e) => {
 			e.stopPropagation();
 			const g = Math.random().toString(36).substring(2, 8);
@@ -786,8 +818,10 @@ function createCustomSubRow(
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "输入引用ID";
-		ci.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:120px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.className = "edit-sub-btn";
+		ci.style.setProperty("background", "var(--background-primary)");
+		ci.style.setProperty("color", "var(--text-normal)");
+		ci.style.setProperty("width", "120px");
 		ci.addEventListener("click", (e) => e.stopPropagation());
 		ci.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
@@ -803,14 +837,15 @@ function createCustomSubRow(
 
 		const sb = document.createElement("button");
 		sb.textContent = "选择";
-		sb.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+		sb.className = "edit-sub-btn";
+		sb.style.setProperty("background", "var(--interactive-normal)");
+		sb.style.setProperty("color", "var(--text-normal)");
 		sb.addEventListener("click", (e) => {
 			e.stopPropagation();
 			const editCtx = getEditContext();
 			if (!editCtx?.getIdOptions) return;
-			const options = editCtx.getIdOptions();
-			if (options.length === 0) return;
+			const idOpts = editCtx.getIdOptions();
+			if (idOpts.length === 0) return;
 
 			const existing = document.querySelector(".id-select-dropdown");
 			if (existing) {
@@ -821,23 +856,49 @@ function createCustomSubRow(
 			const dropdown = document.createElement("div");
 			dropdown.className = "id-select-dropdown";
 			const btnRect = sb.getBoundingClientRect();
-			dropdown.style.cssText = `position:fixed;z-index:1000;left:${btnRect.left}px;top:${btnRect.bottom + 4}px;background:var(--background-primary);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--background-modifier-border);border-radius:4px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.3);min-width:200px;`;
-			options.forEach((opt) => {
+			dropdown.style.setProperty("position", "fixed");
+			dropdown.style.setProperty("z-index", "1000");
+			dropdown.style.setProperty("left", btnRect.left + "px");
+			dropdown.style.setProperty("top", btnRect.bottom + 4 + "px");
+			dropdown.style.setProperty(
+				"background",
+				"var(--background-primary)",
+			);
+			dropdown.style.setProperty("backdrop-filter", "blur(8px)");
+			dropdown.style.setProperty("-webkit-backdrop-filter", "blur(8px)");
+			dropdown.style.setProperty(
+				"border",
+				"1px solid var(--background-modifier-border)",
+			);
+			dropdown.style.setProperty("border-radius", "4px");
+			dropdown.style.setProperty("max-height", "200px");
+			dropdown.style.setProperty("overflow-y", "auto");
+			dropdown.style.setProperty(
+				"box-shadow",
+				"0 4px 12px rgba(0,0,0,0.3)",
+			);
+			dropdown.style.setProperty("min-width", "200px");
+
+			idOpts.forEach((opt) => {
 				const item = document.createElement("div");
 				item.textContent = `${opt.id}: ${opt.desc}`;
 				item.title = `${opt.id}: ${opt.desc}`;
-				item.style.cssText =
-					"padding:4px 8px;cursor:pointer;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:350px;";
-				item.addEventListener(
-					"mouseenter",
-					() =>
-						(item.style.background =
-							"var(--background-modifier-hover)"),
+				item.style.setProperty("padding", "4px 8px");
+				item.style.setProperty("cursor", "pointer");
+				item.style.setProperty("font-size", "11px");
+				item.style.setProperty("white-space", "nowrap");
+				item.style.setProperty("overflow", "hidden");
+				item.style.setProperty("text-overflow", "ellipsis");
+				item.style.setProperty("max-width", "350px");
+				item.addEventListener("mouseenter", () =>
+					item.style.setProperty(
+						"background",
+						"var(--background-modifier-hover)",
+					),
 				);
-				item.addEventListener(
-					"mouseleave",
-					() => (item.style.background = ""),
-				);
+				item.addEventListener("mouseleave", () => {
+					item.style.removeProperty("background");
+				});
 				item.addEventListener("mousedown", (ev) => {
 					ev.preventDefault();
 					ev.stopPropagation();
@@ -871,11 +932,20 @@ function createCustomSubRow(
 					ctx.previewValue !== null
 						? ctx.previewValue === ov
 						: node.tag === ov;
-				b.style.cssText =
-					`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;` +
-					(ia
-						? "background:var(--interactive-accent);color:white;"
-						: "background:var(--interactive-normal);color:var(--text-normal);");
+				b.className = "edit-sub-btn";
+				if (ia) {
+					b.style.setProperty(
+						"background",
+						"var(--interactive-accent)",
+					);
+					b.style.setProperty("color", "white");
+				} else {
+					b.style.setProperty(
+						"background",
+						"var(--interactive-normal)",
+					);
+					b.style.setProperty("color", "var(--text-normal)");
+				}
 				b.addEventListener("click", (e) => {
 					e.stopPropagation();
 					ctx.updateMainBtnText(opt);
@@ -887,8 +957,10 @@ function createCustomSubRow(
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
-		ci.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.className = "edit-sub-btn";
+		ci.style.setProperty("background", "var(--background-primary)");
+		ci.style.setProperty("color", "var(--text-normal)");
+		ci.style.setProperty("width", "70px");
 		ci.addEventListener("click", (e) => e.stopPropagation());
 		ci.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
@@ -902,6 +974,7 @@ function createCustomSubRow(
 		});
 		subRow.appendChild(ci);
 	} else {
+		// repeat 等
 		if (group.subOptions) {
 			group.subOptions.forEach((opt) => {
 				const b = document.createElement("button");
@@ -911,11 +984,20 @@ function createCustomSubRow(
 						? ctx.previewValue === opt.replace("🔁 ", "")
 						: getNodeMarkValue(node, group.key) ===
 							opt.replace("🔁 ", "");
-				b.style.cssText =
-					`padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;display:inline-flex;align-items:center;box-sizing:border-box;` +
-					(ia
-						? "background:var(--interactive-accent);color:white;"
-						: "background:var(--interactive-normal);color:var(--text-normal);");
+				b.className = "edit-sub-btn";
+				if (ia) {
+					b.style.setProperty(
+						"background",
+						"var(--interactive-accent)",
+					);
+					b.style.setProperty("color", "white");
+				} else {
+					b.style.setProperty(
+						"background",
+						"var(--interactive-normal)",
+					);
+					b.style.setProperty("color", "var(--text-normal)");
+				}
 				b.addEventListener("click", (e) => {
 					e.stopPropagation();
 					ctx.updateMainBtnText(opt);
@@ -927,8 +1009,10 @@ function createCustomSubRow(
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
-		ci.style.cssText =
-			"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);font-size:10px;font-family:inherit;line-height:16px;min-height:16px;width:70px;box-sizing:border-box;background:var(--background-primary);color:var(--text-normal);";
+		ci.className = "edit-sub-btn";
+		ci.style.setProperty("background", "var(--background-primary)");
+		ci.style.setProperty("color", "var(--text-normal)");
+		ci.style.setProperty("width", "70px");
 		ci.addEventListener("click", (e) => e.stopPropagation());
 		ci.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
@@ -944,6 +1028,8 @@ function createCustomSubRow(
 	}
 }
 
+// ========== 辅助UI函数（新增） ==========
+
 function appendDeleteButton(
 	node: TaskTreeNode,
 	subRow: HTMLElement,
@@ -954,9 +1040,8 @@ function appendDeleteButton(
 	const onEdit = options.onEdit;
 	const delBtn = document.createElement("button");
 	delBtn.textContent = "删除";
-	delBtn.style.cssText =
-		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid rgba(200,80,80,0.3);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:rgba(200,80,80,0.08);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
-	if (!ctx.hasOriginalMark) delBtn.style.display = "none";
+	delBtn.className = "edit-del-btn";
+	if (!ctx.hasOriginalMark) delBtn.style.setProperty("display", "none");
 	delBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
 		onEdit(node, group.key, null);
@@ -974,10 +1059,9 @@ function appendRestoreButton(
 	const onEdit = options.onEdit;
 	const restoreBtn = document.createElement("button");
 	restoreBtn.textContent = "原文";
-	restoreBtn.style.cssText =
-		"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:10px;font-family:inherit;line-height:16px;min-height:16px;background:var(--interactive-normal);color:var(--text-normal);display:inline-flex;align-items:center;box-sizing:border-box;";
+	restoreBtn.className = "edit-restore-btn";
 	restoreBtn.title = "恢复为原始值";
-	if (!ctx.hasChanged) restoreBtn.style.display = "none";
+	if (!ctx.hasChanged) restoreBtn.style.setProperty("display", "none");
 	restoreBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
 		if (ctx.originalValue !== null)
@@ -1006,8 +1090,6 @@ export function createSubRow(
 ): HTMLElement {
 	const subRow = document.createElement("div");
 	subRow.className = "edit-sub-row";
-	subRow.style.cssText =
-		"display:flex;flex-wrap:wrap;gap:1px;align-items:center;padding:1px 0;border-top:1px solid var(--background-modifier-border);width:100%;flex-basis:100%;";
 	const ctx = createSubRowContext(node, group, options, subRow);
 	(ctx as any)._subRow = subRow;
 	const builder = subRowBuilders[group.subType || "custom"];
@@ -1016,6 +1098,8 @@ export function createSubRow(
 	appendRestoreButton(node, subRow, group, options, ctx);
 	return subRow;
 }
+
+// ========== 预览行（修正：保持原始类名）==========
 
 export function createPreviewRow(
 	previewText: string,
@@ -1027,21 +1111,18 @@ export function createPreviewRow(
 ): HTMLElement {
 	const row = document.createElement("div");
 	row.className = "task-preview-row";
-	row.style.cssText =
-		"margin-top:4px;padding:1px 4px;border-radius:3px;font-size:0.8em;display:flex;align-items:center;gap:2px;flex-wrap:wrap;";
 
 	const textSpan = document.createElement("span");
-	textSpan.style.color = "var(--text-muted)";
+	textSpan.style.setProperty("color", "var(--text-muted)");
 
 	if (saved) {
-		row.style.background = "rgba(71,133,47,0.15)";
+		row.style.setProperty("background", "rgba(71,133,47,0.15)");
 		textSpan.textContent = `📝 已保存: ${previewText}`;
 		row.appendChild(textSpan);
 		if (onRevert) {
 			const rb = document.createElement("button");
 			rb.textContent = "撤回";
-			rb.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;background:var(--interactive-normal);color:var(--text-muted);display:inline-flex;align-items:center;box-sizing:border-box;";
+			rb.className = "edit-preview-btn";
 			rb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				onRevert();
@@ -1049,26 +1130,34 @@ export function createPreviewRow(
 			row.appendChild(rb);
 		}
 	} else {
-		row.style.background = "rgba(127,184,240,0.1)";
+		row.style.setProperty("background", "rgba(127,184,240,0.1)");
 		textSpan.textContent = `📝 预览: ${previewText}`;
 		row.appendChild(textSpan);
 		if (onSave) {
 			const sb = document.createElement("button");
 			sb.textContent = "保存";
 			const ie = hasEdits !== undefined ? hasEdits : true;
-			sb.style.cssText =
-				`all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;display:inline-flex;align-items:center;box-sizing:border-box;` +
-				(ie
-					? "background:var(--interactive-accent);color:white;"
-					: "background:var(--interactive-normal);color:var(--text-muted);");
+			if (ie) {
+				sb.className = "edit-preview-btn";
+				sb.style.setProperty("background", "var(--interactive-accent)");
+				sb.style.setProperty("color", "white");
+			} else {
+				sb.className = "edit-preview-btn";
+			}
 			if (!ie) {
 				sb.addEventListener("mouseenter", () => {
-					sb.style.background = "var(--interactive-accent)";
-					sb.style.color = "white";
+					sb.style.setProperty(
+						"background",
+						"var(--interactive-accent)",
+					);
+					sb.style.setProperty("color", "white");
 				});
 				sb.addEventListener("mouseleave", () => {
-					sb.style.background = "var(--interactive-normal)";
-					sb.style.color = "var(--text-muted);";
+					sb.style.setProperty(
+						"background",
+						"var(--interactive-normal)",
+					);
+					sb.style.setProperty("color", "var(--text-muted)");
 				});
 			}
 			sb.addEventListener("click", (e) => {
@@ -1080,8 +1169,7 @@ export function createPreviewRow(
 		if (onRestore) {
 			const rb = document.createElement("button");
 			rb.textContent = "原文";
-			rb.style.cssText =
-				"all:unset;padding:0px 3px;border-radius:3px;border:1px solid var(--background-modifier-border);cursor:pointer;font-size:9px;font-family:inherit;line-height:14px;min-height:14px;background:var(--interactive-normal);color:var(--text-muted);display:inline-flex;align-items:center;box-sizing:border-box;";
+			rb.className = "edit-preview-btn";
 			rb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				onRestore();
@@ -1092,6 +1180,8 @@ export function createPreviewRow(
 	return row;
 }
 
+// ========== 复选框（未改动）==========
+
 export function createCheckbox(
 	checked: boolean,
 	onChange: (checked: boolean) => void,
@@ -1099,8 +1189,7 @@ export function createCheckbox(
 	const cb = document.createElement("input");
 	cb.type = "checkbox";
 	cb.checked = checked;
-	cb.style.cssText =
-		"margin:0 2px 0 0;flex-shrink:0;cursor:pointer;width:12px;height:12px;";
+	cb.className = "edit-checkbox";
 	cb.addEventListener("click", (e) => e.stopPropagation());
 	cb.addEventListener("change", () => onChange(cb.checked));
 	return cb;

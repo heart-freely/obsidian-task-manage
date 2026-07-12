@@ -1,5 +1,4 @@
-// 简易日志工具，生产模式下仅输出错误
-
+// src/util/logger.ts
 const isProduction = (() => {
 	try {
 		if (
@@ -14,16 +13,16 @@ const isProduction = (() => {
 })();
 
 const logger = {
-	info(...args) {
+	info(...args: any[]) {
 		if (!isProduction) console.log("[TASK-INFO]", ...args);
 	},
-	warn(...args) {
-		logger.warn("[TASK-WARN]", ...args); // 警告总是输出
+	warn(...args: any[]) {
+		console.warn("[TASK-WARN]", ...args);
 	},
-	error(...args) {
-		logger.error("[TASK-ERROR]", ...args);
+	error(...args: any[]) {
+		console.error("[TASK-ERROR]", ...args);
 	},
-	debug(...args) {
+	debug(...args: any[]) {
 		if (!isProduction) console.debug("[TASK-DEBUG]", ...args);
 	},
 };

@@ -353,13 +353,13 @@ npm test
 
 ### 必须修复（Error，阻止审核通过）
 
-| 规则                                     | 说明                              | 正确做法                                        |
-| ---------------------------------------- | --------------------------------- | ----------------------------------------------- |
-| `obsidianmd/no-unsupported-api`          | 不使用高于 `minAppVersion` 的 API | `minAppVersion` 设为使用的最新 API 版本         |
-| `obsidianmd/no-static-styles-assignment` | 不用 `el.style.cssText = "..."`   | 静态样式 → CSS 类，动态样式 → `setProperty`     |
-| `obsidianmd/no-innerhtml`                | 不用 `el.innerHTML = html`        | 用 `textContent` 或 DOM API                     |
-| `obsidianmd/no-dynamic-style-elements`   | 不动态创建 `<style>` 元素         | 写入 `styles.css`，状态颜色逐个 `setProperty`   |
-| `obsidianmd/no-html-headings`            | 设置面板不用 `createEl("h2/h3")`  | 用 `new Setting().setName("标题").setHeading()` |
+| 规则                                     | 说明                              | 正确做法                                                     |
+| ---------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| `obsidianmd/no-unsupported-api`          | 不使用高于 `minAppVersion` 的 API | `minAppVersion` 设为使用的最新 API 版本                      |
+| `obsidianmd/no-static-styles-assignment` | 不用 `el.style.cssText = "..."`   | 静态样式 → CSS 类，动态样式 → CSS 类+CSS 变量，style.setProperty("--xxx", value)。 |
+| `obsidianmd/no-innerhtml`                | 不用 `el.innerHTML = html`        | 用 `textContent` 或 DOM API                                  |
+| `obsidianmd/no-dynamic-style-elements`   | 不动态创建 `<style>` 元素         | 写入 `styles.css`，状态颜色逐个 `setProperty`                |
+| `obsidianmd/no-html-headings`            | 设置面板不用 `createEl("h2/h3")`  | 用 `new Setting().setName("标题").setHeading()`              |
 
 ### 注意事项（Warning/Recommendation，不阻止通过）
 
