@@ -10,6 +10,7 @@ import {
 } from "../../util/edit-utils";
 import { flattenTree, TaskTreeNode } from "../task/task-tree";
 import { EditStore } from "./task-edit-store";
+
 export class BaseTaskEdit {
 	protected editStore!: EditStore;
 	protected dataManager!: any;
@@ -142,13 +143,18 @@ export class BaseTaskEdit {
 				const cb = document.createElement("input");
 				cb.type = "checkbox";
 				cb.checked = checked;
-				cb.style.cssText =
-					"margin:0 2px 0 0;flex-shrink:0;cursor:pointer;width:12px;height:12px;";
+				cb.style.margin = "0 2px 0 0";
+				cb.style.flexShrink = "0";
+				cb.style.cursor = "pointer";
+				cb.style.width = "12px";
+				cb.style.height = "12px";
 				cb.addEventListener("click", (e) => e.stopPropagation());
 				cb.addEventListener("change", () => {
 					this.editStore.toggleSelection(node);
 					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
+					window.requestAnimationFrame(() =>
+						this.onEditStateChange(),
+					);
 				});
 				row1.insertBefore(cb, row1.firstChild);
 			} else {
@@ -236,17 +242,23 @@ export class BaseTaskEdit {
 						this.editStore.applyEdit(markKey, value, node.uid);
 					}
 					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
+					window.requestAnimationFrame(() =>
+						this.onEditStateChange(),
+					);
 				},
 				onContentEdit: (node, newContent) => {
 					this.editStore.applyContentEdit(node, newContent);
 					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
+					window.requestAnimationFrame(() =>
+						this.onEditStateChange(),
+					);
 				},
 				onCheckChange: (node, checked) => {
 					this.editStore.toggleSelection(node);
 					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
+					window.requestAnimationFrame(() =>
+						this.onEditStateChange(),
+					);
 				},
 				onSave: async (node) => {
 					await this.editStore.saveSingle(node);
@@ -283,7 +295,9 @@ export class BaseTaskEdit {
 					st.previews.set(node.uid, node.rawLine || "");
 					this.editStore.syncToStore();
 					this._needsEditRefresh = true;
-					requestAnimationFrame(() => this.onEditStateChange());
+					window.requestAnimationFrame(() =>
+						this.onEditStateChange(),
+					);
 				},
 				getIdOptions: () => {
 					const result: Array<{ id: string; desc: string }> = [];
@@ -314,14 +328,13 @@ export class BaseTaskEdit {
 		if (!state.editMode) {
 			this._lastSyncMode = false;
 			this.applyEditContext();
-			requestAnimationFrame(() => {
+			window.requestAnimationFrame(() => {
 				this.restoreEditedCards();
 				this.previouslyEditedUids.clear();
 			});
 			return;
 		}
 
-		// 同步模式切换：先更新上下文，再刷新所有勾选任务的编辑栏
 		if (state.syncMode !== this._lastSyncMode) {
 			this._lastSyncMode = state.syncMode;
 			this.applyEditContext();
@@ -345,7 +358,7 @@ export class BaseTaskEdit {
 			if (!this.previouslyEditedUids.has(uid)) {
 				this.setCardEditMode(uid);
 			} else {
-				requestAnimationFrame(() => {
+				window.requestAnimationFrame(() => {
 					this.refreshCardEditContent(uid);
 				});
 			}
@@ -358,7 +371,7 @@ export class BaseTaskEdit {
 
 	refreshEditCards() {
 		this._needsEditRefresh = true;
-		requestAnimationFrame(() => this.onEditStateChange());
+		window.requestAnimationFrame(() => this.onEditStateChange());
 	}
 
 	// ========== 卡片状态 ==========
@@ -395,8 +408,11 @@ export class BaseTaskEdit {
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			const newDescEl = descEl.cloneNode(true) as HTMLElement;
-			newDescEl.style.cssText =
-				"font-weight:500;flex:1;cursor:pointer;margin-bottom:4px;color:var(--text-normal);";
+			newDescEl.style.fontWeight = "500";
+			newDescEl.style.flex = "1";
+			newDescEl.style.cursor = "pointer";
+			newDescEl.style.marginBottom = "4px";
+			newDescEl.style.color = "var(--text-normal)";
 			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
 
@@ -418,7 +434,7 @@ export class BaseTaskEdit {
 			".task-preview-row",
 		) as HTMLElement;
 		if (previewRow) {
-			previewRow.innerHTML = "";
+			previewRow.replaceChildren();
 			previewRow.style.display = "none";
 			previewRow.style.background = "";
 		}
@@ -439,8 +455,11 @@ export class BaseTaskEdit {
 			descEl.removeAttribute("contenteditable");
 			descEl.removeAttribute("data-edit-bound");
 			const newDescEl = descEl.cloneNode(true) as HTMLElement;
-			newDescEl.style.cssText =
-				"font-weight:500;flex:1;cursor:pointer;margin-bottom:4px;color:var(--text-normal);";
+			newDescEl.style.fontWeight = "500";
+			newDescEl.style.flex = "1";
+			newDescEl.style.cursor = "pointer";
+			newDescEl.style.marginBottom = "4px";
+			newDescEl.style.color = "var(--text-normal)";
 			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
 
@@ -448,7 +467,7 @@ export class BaseTaskEdit {
 			".task-preview-row",
 		) as HTMLElement;
 		if (previewRow) {
-			previewRow.innerHTML = "";
+			previewRow.replaceChildren();
 			previewRow.style.display = "none";
 			previewRow.style.background = "";
 		}
@@ -614,7 +633,7 @@ export class BaseTaskEdit {
 				previewRow.style.display = "none";
 				card.appendChild(previewRow);
 			} else {
-				previewRow.innerHTML = "";
+				previewRow.replaceChildren();
 				previewRow.style.display = "none";
 				previewRow.style.background = "";
 			}
@@ -630,7 +649,7 @@ export class BaseTaskEdit {
 	}
 
 	protected refreshEditPanel() {
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			const panels = Panels.getInstance();
 			const editPanel = panels.getEditPanel();
 			if (editPanel) {
@@ -666,7 +685,6 @@ export class BaseTaskEdit {
 				return;
 		}
 
-		// ========== 面板区域 ==========
 		if (target.closest(".panel-host")) {
 			if (isBatchMode) {
 				if (target.closest("[data-panel-key='edit']")) {
@@ -700,12 +718,11 @@ export class BaseTaskEdit {
 					this.setCardReadMode(prevUid);
 				}
 				es.exitEditMode(false);
-				requestAnimationFrame(() => this.onEditStateChange());
+				window.requestAnimationFrame(() => this.onEditStateChange());
 				return;
 			}
 		}
 
-		// ========== 侧边栏 ==========
 		if (target.closest(".manage-sidebar")) {
 			const prevUids = Array.from(this.previouslyEditedUids);
 			for (const prevUid of prevUids) {
@@ -719,12 +736,11 @@ export class BaseTaskEdit {
 				this.refreshEditPanel();
 			} else {
 				es.exitEditMode(false);
-				requestAnimationFrame(() => this.onEditStateChange());
+				window.requestAnimationFrame(() => this.onEditStateChange());
 			}
 			return;
 		}
 
-		// ========== 卡片区域 ==========
 		const editTaskItem = target.closest(".task-item") as HTMLElement;
 		if (
 			editTaskItem &&
@@ -736,18 +752,17 @@ export class BaseTaskEdit {
 			const node = this.dataManager.getNodeByUid(uid);
 			if (!node) return;
 
-			// 同步模式：设为主任务
 			if (isBatchMode && es.getState().syncMode) {
 				es.setPrimaryTask(uid);
 				this._needsEditRefresh = true;
-				requestAnimationFrame(() => this.onEditStateChange());
+				window.requestAnimationFrame(() => this.onEditStateChange());
 				return;
 			}
 
 			if (isBatchMode) {
 				es.toggleSelection(node);
 				this._needsEditRefresh = true;
-				requestAnimationFrame(() => this.onEditStateChange());
+				window.requestAnimationFrame(() => this.onEditStateChange());
 				return;
 			} else {
 				if (state.selectedTasks.has(uid)) return;
@@ -761,7 +776,6 @@ export class BaseTaskEdit {
 			}
 		}
 
-		// ========== 其他区域 ==========
 		const prevUids = Array.from(this.previouslyEditedUids);
 		for (const prevUid of prevUids) {
 			this.setCardReadMode(prevUid);
@@ -774,7 +788,7 @@ export class BaseTaskEdit {
 			this.refreshEditPanel();
 		} else {
 			es.exitEditMode(false);
-			requestAnimationFrame(() => this.onEditStateChange());
+			window.requestAnimationFrame(() => this.onEditStateChange());
 		}
 	};
 }
