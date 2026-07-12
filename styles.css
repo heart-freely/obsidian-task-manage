@@ -768,7 +768,7 @@
 .edit-date-input::-webkit-datetime-edit-text {
 	padding: 0 1px;
 }
-/* ========== 编辑模式复选框 ========== */
+/* ========== 编辑模式组件 ========== */
 .edit-checkbox {
 	margin: 0 2px 0 0;
 	flex-shrink: 0;
@@ -776,12 +776,30 @@
 	width: 12px;
 	height: 12px;
 }
-
-/* ========== 编辑模式描述文本 ========== */
 .edit-desc-readonly {
 	font-weight: 500;
 	flex: 1;
 	cursor: pointer;
 	margin-bottom: 4px;
 	color: var(--text-normal);
+}
+.edit-desc-editing {
+	font-weight: 500;
+	flex: 1;
+	cursor: text;
+	margin-bottom: 4px;
+	color: var(--text-accent);
+}
+.edit-desc-editing-normal {
+	color: var(--text-normal);
+}
+.edit-card-editing {
+	cursor: default;
+}
+.edit-card-readonly {
+	cursor: pointer;
+}
+.edit-preview-hidden {
+	display: none;
+	background: transparent;
 }

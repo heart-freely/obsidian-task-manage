@@ -21,32 +21,19 @@ export class BaseTaskEdit {
 	public _needsEditRefresh: boolean = false;
 	private _lastSyncMode: boolean = false;
 
-	// ========== 编辑入口 ==========
-
 	protected handleEnterEdit(node: TaskTreeNode) {
-		if (node.type !== "list") {
-			return;
-		}
-
+		if (node.type !== "list") return;
 		const es = this.editStore;
 		const state = es.getState();
-
 		if (
 			state.editMode &&
 			!state.batchMode &&
 			state.selectedTasks.has(node.uid)
-		) {
+		)
 			return;
-		}
-		if (state.batchMode) {
-			return;
-		}
-
+		if (state.batchMode) return;
 		const prevUids = Array.from(this.previouslyEditedUids);
-		for (const prevUid of prevUids) {
-			this.setCardReadMode(prevUid);
-		}
-
+		for (const prevUid of prevUids) this.setCardReadMode(prevUid);
 		es.enterSingleEditMode(node);
 		this.applyEditContext();
 		this.setCardEditMode(node.uid);
@@ -54,12 +41,8 @@ export class BaseTaskEdit {
 	}
 
 	private async loadYamlContent(node: TaskTreeNode): Promise<string | null> {
-		if (!node.hasYaml) {
-			return "";
-		}
-		if (node.yamlStartLine < 0 || node.yamlEndLine < 0) {
-			return "";
-		}
+		if (!node.hasYaml) return "";
+		if (node.yamlStartLine < 0 || node.yamlEndLine < 0) return "";
 		try {
 			const app = (this as any).app;
 			if (!app) return null;
@@ -67,11 +50,9 @@ export class BaseTaskEdit {
 			if (!file) return null;
 			const content = await app.vault.cachedRead(file);
 			const lines = content.split("\n");
-			const yamlLines = lines.slice(
-				node.yamlStartLine + 1,
-				node.yamlEndLine,
-			);
-			return yamlLines.join("\n");
+			return lines
+				.slice(node.yamlStartLine + 1, node.yamlEndLine)
+				.join("\n");
 		} catch {
 			return null;
 		}
@@ -80,12 +61,9 @@ export class BaseTaskEdit {
 	public toggleBatchMode() {
 		const es = this.editStore;
 		const state = es.getState();
-
 		if (state.batchMode) {
-			const prevUids = Array.from(this.previouslyEditedUids);
-			for (const prevUid of prevUids) {
+			for (const prevUid of Array.from(this.previouslyEditedUids))
 				this.setCardReadMode(prevUid);
-			}
 			es.exitBatchToReading();
 			this.applyEditContext();
 			this.previouslyEditedUids.clear();
@@ -95,11 +73,8 @@ export class BaseTaskEdit {
 			const node = currentUid
 				? this.dataManager.getNodeByUid(currentUid)
 				: undefined;
-			if (node) {
-				es.enterBatchModeFromSingle(node);
-			} else {
-				es.enterBatchMode();
-			}
+			if (node) es.enterBatchModeFromSingle(node);
+			else es.enterBatchMode();
 			this.applyEditContext();
 			this.refreshAllCardsForBatchMode();
 		} else {
@@ -108,7 +83,6 @@ export class BaseTaskEdit {
 			this.previouslyEditedUids.clear();
 			this.refreshAllCardsForBatchMode();
 		}
-
 		this.refreshEditPanel();
 	}
 
@@ -117,26 +91,18 @@ export class BaseTaskEdit {
 		const cards = searchRoot.querySelectorAll(
 			".task-item:not(.task-item-compact)",
 		) as NodeListOf<HTMLElement>;
-
 		const isBatchMode = this.editStore.getState().batchMode;
-
 		cards.forEach((card) => {
 			const uid = card.getAttribute("data-uid");
 			if (!uid) return;
-
 			if (isBatchMode) {
 				if (card.querySelector("input[type='checkbox']")) return;
-
 				const node = this.dataManager.getNodeByUid(uid);
-				if (!node) return;
-
-				if (node.type !== "list") return;
-
+				if (!node || node.type !== "list") return;
 				const row1 = card.querySelector(
 					":scope > div:first-child",
 				) as HTMLElement;
 				if (!row1) return;
-
 				const checked = this.editStore
 					.getState()
 					.selectedTasks.has(uid);
@@ -163,12 +129,10 @@ export class BaseTaskEdit {
 	public toggleSelectAll(nodes: TaskTreeNode[]) {
 		const es = this.editStore;
 		if (!es.getState().batchMode) return;
-
 		const searchRoot = this.rightContentContainer || this.container;
 		const cards = searchRoot.querySelectorAll(
 			".task-item:not(.task-item-compact)",
 		) as NodeListOf<HTMLElement>;
-
 		const visibleNodes: TaskTreeNode[] = [];
 		cards.forEach((card) => {
 			const uid = card.getAttribute("data-uid");
@@ -177,45 +141,33 @@ export class BaseTaskEdit {
 				if (node && node.type === "list") visibleNodes.push(node);
 			}
 		});
-
 		let allSelected = visibleNodes.length > 0;
 		visibleNodes.forEach((n) => {
 			if (!es.getState().selectedTasks.has(n.uid)) allSelected = false;
 		});
-
-		const prevUids = Array.from(this.previouslyEditedUids);
-		for (const prevUid of prevUids) {
+		for (const prevUid of Array.from(this.previouslyEditedUids))
 			this.setCardBatchUnselected(prevUid);
-		}
 		es.getState().selectedTasks.clear();
 		es.getState().previews.clear();
 		es.getState().savedTasks.clear();
-
-		if (!allSelected) {
+		if (!allSelected)
 			visibleNodes.forEach((n) => {
 				es.getState().selectedTasks.add(n.uid);
 				es.getState().previews.set(n.uid, n.rawLine || "");
 				this.setCardEditMode(n.uid);
 			});
-		}
-
 		cards.forEach((card) => {
 			const uid = card.getAttribute("data-uid");
 			const cb = card.querySelector(
 				"input[type='checkbox']",
 			) as HTMLInputElement;
-			if (cb && uid) {
-				cb.checked = es.getState().selectedTasks.has(uid);
-			}
+			if (cb && uid) cb.checked = es.getState().selectedTasks.has(uid);
 		});
-
 		this.previouslyEditedUids = new Set(es.getState().selectedTasks);
 		es.syncToStore();
 		this.applyEditContext();
 		this.refreshEditPanel();
 	}
-
-	// ========== 编辑上下文 ==========
 
 	protected applyEditContext() {
 		const state = this.editStore.getState();
@@ -230,13 +182,11 @@ export class BaseTaskEdit {
 				syncMode: state.syncMode,
 				primaryTaskUid: state.primaryTaskUid,
 				onEdit: (node, markKey, value) => {
-					if (markKey.endsWith("_toggle")) {
+					if (markKey.endsWith("_toggle"))
 						this.editStore.toggleExpandedButton(
 							markKey.replace("_toggle", ""),
 						);
-					} else {
-						this.editStore.applyEdit(markKey, value, node.uid);
-					}
+					else this.editStore.applyEdit(markKey, value, node.uid);
 					this._needsEditRefresh = true;
 					window.requestAnimationFrame(() =>
 						this.onEditStateChange(),
@@ -297,15 +247,16 @@ export class BaseTaskEdit {
 				},
 				getIdOptions: () => {
 					const result: Array<{ id: string; desc: string }> = [];
-					const fullTree = this.dataManager.getFullTree();
-					const allNodes = flattenTree(fullTree);
+					const allNodes = flattenTree(
+						this.dataManager.getFullTree(),
+					);
 					const seen = new Set<string>();
-					for (const node of allNodes) {
-						if (node.id && !seen.has(node.id)) {
-							seen.add(node.id);
+					for (const n of allNodes) {
+						if (n.id && !seen.has(n.id)) {
+							seen.add(n.id);
 							result.push({
-								id: node.id,
-								desc: node.content || node.text || "",
+								id: n.id,
+								desc: n.content || n.text || "",
 							});
 						}
 					}
@@ -320,7 +271,6 @@ export class BaseTaskEdit {
 	protected onEditStateChange() {
 		const state = this.editStore.getState();
 		const currentUids = new Set(state.selectedTasks);
-
 		if (!state.editMode) {
 			this._lastSyncMode = false;
 			this.applyEditContext();
@@ -330,36 +280,26 @@ export class BaseTaskEdit {
 			});
 			return;
 		}
-
 		if (state.syncMode !== this._lastSyncMode) {
 			this._lastSyncMode = state.syncMode;
 			this.applyEditContext();
-			for (const uid of state.selectedTasks) {
+			for (const uid of state.selectedTasks)
 				this.refreshCardEditContent(uid);
-			}
 			return;
 		}
-
 		for (const uid of this.previouslyEditedUids) {
 			if (!currentUids.has(uid)) {
-				if (state.batchMode) {
-					this.setCardBatchUnselected(uid);
-				} else {
-					this.setCardReadMode(uid);
-				}
+				if (state.batchMode) this.setCardBatchUnselected(uid);
+				else this.setCardReadMode(uid);
 			}
 		}
-
 		for (const uid of currentUids) {
-			if (!this.previouslyEditedUids.has(uid)) {
-				this.setCardEditMode(uid);
-			} else {
-				window.requestAnimationFrame(() => {
-					this.refreshCardEditContent(uid);
-				});
-			}
+			if (!this.previouslyEditedUids.has(uid)) this.setCardEditMode(uid);
+			else
+				window.requestAnimationFrame(() =>
+					this.refreshCardEditContent(uid),
+				);
 		}
-
 		this.applyEditContext();
 		this.previouslyEditedUids = new Set(currentUids);
 		this.refreshEditPanel();
@@ -370,44 +310,34 @@ export class BaseTaskEdit {
 		window.requestAnimationFrame(() => this.onEditStateChange());
 	}
 
-	// ========== 卡片状态 ==========
-
 	protected getEditSearchRoot(): HTMLElement {
 		return this.rightContentContainer || this.container;
 	}
 
 	protected setCardEditMode(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
+		const card = this.getEditSearchRoot().querySelector(
 			`[data-uid="${uid}"]`,
 		) as HTMLElement;
 		if (!card) return;
-
-		card.classList.add("task-item-editing");
-		card.style.setProperty("cursor", "default");
+		card.classList.add("task-item-editing", "edit-card-editing");
 		this.refreshCardEditContent(uid);
 	}
 
 	protected setCardReadMode(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
+		const card = this.getEditSearchRoot().querySelector(
 			`[data-uid="${uid}"]`,
 		) as HTMLElement;
 		if (!card) return;
-
-		card.classList.remove("task-item-editing");
-		card.style.setProperty("cursor", "pointer");
-
+		card.classList.remove("task-item-editing", "edit-card-editing");
+		card.classList.add("edit-card-readonly");
 		const checkbox = card.querySelector("input[type='checkbox']");
 		if (checkbox) checkbox.remove();
-
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			const newDescEl = descEl.cloneNode(true) as HTMLElement;
 			newDescEl.className = "task-desc edit-desc-readonly";
 			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
-
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
 		if (editBar?.parentNode) {
 			const node = this.dataManager.getNodeByUid(uid);
@@ -421,27 +351,22 @@ export class BaseTaskEdit {
 				editBar.parentNode.replaceChild(newEditBar, editBar);
 			}
 		}
-
 		const previewRow = card.querySelector(
 			".task-preview-row",
 		) as HTMLElement;
 		if (previewRow) {
 			previewRow.replaceChildren();
-			previewRow.style.setProperty("display", "none");
-			previewRow.style.setProperty("background", "");
+			previewRow.classList.add("edit-preview-hidden");
 		}
 	}
 
 	protected setCardBatchUnselected(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
+		const card = this.getEditSearchRoot().querySelector(
 			`[data-uid="${uid}"]`,
 		) as HTMLElement;
 		if (!card) return;
-
-		card.classList.remove("task-item-editing");
-		card.style.setProperty("cursor", "pointer");
-
+		card.classList.remove("task-item-editing", "edit-card-editing");
+		card.classList.add("edit-card-readonly");
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			descEl.removeAttribute("contenteditable");
@@ -450,18 +375,15 @@ export class BaseTaskEdit {
 			newDescEl.className = "task-desc edit-desc-readonly";
 			descEl.parentNode?.replaceChild(newDescEl, descEl);
 		}
-
 		const previewRow = card.querySelector(
 			".task-preview-row",
 		) as HTMLElement;
 		if (previewRow) {
 			previewRow.replaceChildren();
-			previewRow.style.setProperty("display", "none");
-			previewRow.style.setProperty("background", "");
+			previewRow.classList.add("edit-preview-hidden");
 		}
-
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
-		if (editBar && editBar.parentNode) {
+		if (editBar?.parentNode) {
 			const nodeForBar = this.dataManager.getNodeByUid(uid);
 			if (nodeForBar) {
 				const newEditBar = createEditBar(nodeForBar, {
@@ -472,33 +394,24 @@ export class BaseTaskEdit {
 				});
 				try {
 					editBar.parentNode.replaceChild(newEditBar, editBar);
-				} catch (e) {
-					// 忽略
-				}
+				} catch (e) {}
 			}
 		}
-
 		const checkbox = card.querySelector(
 			"input[type='checkbox']",
 		) as HTMLInputElement;
-		if (checkbox) {
-			checkbox.checked = false;
-		}
+		if (checkbox) checkbox.checked = false;
 	}
 
 	private refreshCardEditContent(uid: string) {
-		const searchRoot = this.getEditSearchRoot();
-		const card = searchRoot.querySelector(
+		const card = this.getEditSearchRoot().querySelector(
 			`[data-uid="${uid}"].task-item-editing`,
 		) as HTMLElement;
 		if (!card) return;
-
 		const node = this.dataManager.getNodeByUid(uid);
 		if (!node) return;
-
 		const editCtx = getEditContext();
 		if (!editCtx) return;
-
 		const previewText = editCtx.previews.get(uid);
 		const hasContentEdit =
 			previewText !== null &&
@@ -507,12 +420,15 @@ export class BaseTaskEdit {
 
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
-			descEl.style.setProperty(
-				"color",
-				hasContentEdit ? "var(--text-accent)" : "var(--text-normal)",
+			descEl.classList.remove(
+				"edit-desc-editing-normal",
+				"edit-desc-editing",
 			);
-			descEl.style.setProperty("cursor", "text", "important");
-
+			descEl.classList.add(
+				hasContentEdit
+					? "edit-desc-editing"
+					: "edit-desc-editing-normal",
+			);
 			if (!descEl.hasAttribute("data-edit-bound")) {
 				descEl.setAttribute("data-edit-bound", "true");
 				descEl.addEventListener("click", (e) => {
@@ -535,9 +451,8 @@ export class BaseTaskEdit {
 							newContent &&
 							ctx &&
 							newContent !== (node.content || node.text)
-						) {
+						)
 							ctx.onContentEdit(node, newContent);
-						}
 						descEl.removeEventListener("blur", onBlur);
 					};
 					descEl.addEventListener("blur", onBlur);
@@ -571,20 +486,14 @@ export class BaseTaskEdit {
 			onEdit: (n, markKey, value) => {
 				const ctx = getEditContext();
 				if (!ctx) return;
-				if (markKey.endsWith("_toggle")) {
-					ctx.onEdit(n, markKey, null);
-				} else {
-					ctx.onEdit(n, markKey, value);
-				}
+				if (markKey.endsWith("_toggle")) ctx.onEdit(n, markKey, null);
+				else ctx.onEdit(n, markKey, value);
 			},
 		});
-
 		if (editBar) {
 			try {
 				editBar.parentNode!.replaceChild(newEditBar, editBar);
-			} catch (e) {
-				// 忽略
-			}
+			} catch (e) {}
 		} else {
 			card.appendChild(newEditBar);
 		}
@@ -609,92 +518,69 @@ export class BaseTaskEdit {
 						newPreviewRow,
 						previewRow,
 					);
-				} catch (e) {
-					// 忽略
-				}
+				} catch (e) {}
 			} else {
 				card.appendChild(newPreviewRow);
 			}
 		} else {
 			if (!previewRow) {
 				previewRow = document.createElement("div");
-				previewRow.className = "task-preview-row";
-				previewRow.style.setProperty("display", "none");
+				previewRow.className = "task-preview-row edit-preview-hidden";
 				card.appendChild(previewRow);
 			} else {
 				previewRow.replaceChildren();
-				previewRow.style.setProperty("display", "none");
-				previewRow.style.setProperty("background", "");
+				previewRow.classList.add("edit-preview-hidden");
 			}
 		}
 	}
 
 	protected restoreEditedCards() {
-		const searchRoot = this.getEditSearchRoot();
-		const uids = Array.from(this.previouslyEditedUids);
-		for (const uid of uids) {
+		for (const uid of Array.from(this.previouslyEditedUids))
 			this.setCardReadMode(uid);
-		}
 	}
 
 	protected refreshEditPanel() {
 		window.requestAnimationFrame(() => {
-			const panels = Panels.getInstance();
-			const editPanel = panels.getEditPanel();
-			if (editPanel) {
-				editPanel.render();
-			}
+			const ep = Panels.getInstance().getEditPanel();
+			if (ep) ep.render();
 		});
 	}
-
-	// ========== 全局点击 ==========
 
 	protected onGlobalClick = (e: MouseEvent) => {
 		const target = e.target as HTMLElement;
 		const es = this.editStore;
 		const state = es.getState();
-		const isEditMode = state.editMode;
-		const isBatchMode = state.batchMode;
-
-		if (!isEditMode) return;
-
+		if (!state.editMode) return;
 		if (
 			target.closest(".task-edit-bar") ||
 			target.closest(".task-preview-row") ||
 			target.getAttribute("contenteditable") === "true"
 		)
 			return;
-
-		if (target.closest(".manage-sidebar")) {
-			if (
-				target.closest(".side-top-row") ||
+		if (
+			target.closest(".manage-sidebar") &&
+			(target.closest(".side-top-row") ||
 				target.closest("[title*='折叠']") ||
-				target.closest("[title*='展开']")
-			)
-				return;
-		}
+				target.closest("[title*='展开']"))
+		)
+			return;
 
 		if (target.closest(".panel-host")) {
-			if (isBatchMode) {
+			if (state.batchMode) {
 				if (target.closest("[data-panel-key='edit']")) {
 					if (target.closest(".edit-batch-btn")) {
-						const prevUids = Array.from(this.previouslyEditedUids);
-						for (const prevUid of prevUids) {
-							this.setCardReadMode(prevUid);
-						}
+						for (const u of Array.from(this.previouslyEditedUids))
+							this.setCardReadMode(u);
 						es.exitBatchToReading();
 						this.applyEditContext();
 						this.previouslyEditedUids.clear();
 						this.refreshAllCardsForBatchMode();
 						this.refreshEditPanel();
-						return;
 					}
 					return;
 				}
-				const prevUids = Array.from(this.previouslyEditedUids);
-				for (const prevUid of prevUids) {
-					this.setCardReadMode(prevUid);
-				}
+				for (const u of Array.from(this.previouslyEditedUids))
+					this.setCardReadMode(u);
 				es.exitBatchToReading();
 				this.applyEditContext();
 				this.previouslyEditedUids.clear();
@@ -702,10 +588,8 @@ export class BaseTaskEdit {
 				this.refreshEditPanel();
 				return;
 			} else {
-				const prevUids = Array.from(this.previouslyEditedUids);
-				for (const prevUid of prevUids) {
-					this.setCardReadMode(prevUid);
-				}
+				for (const u of Array.from(this.previouslyEditedUids))
+					this.setCardReadMode(u);
 				es.exitEditMode(false);
 				window.requestAnimationFrame(() => this.onEditStateChange());
 				return;
@@ -713,11 +597,9 @@ export class BaseTaskEdit {
 		}
 
 		if (target.closest(".manage-sidebar")) {
-			const prevUids = Array.from(this.previouslyEditedUids);
-			for (const prevUid of prevUids) {
-				this.setCardReadMode(prevUid);
-			}
-			if (isBatchMode) {
+			for (const u of Array.from(this.previouslyEditedUids))
+				this.setCardReadMode(u);
+			if (state.batchMode) {
 				es.exitBatchToReading();
 				this.applyEditContext();
 				this.previouslyEditedUids.clear();
@@ -737,39 +619,30 @@ export class BaseTaskEdit {
 		) {
 			const uid = editTaskItem.getAttribute("data-uid");
 			if (!uid) return;
-
 			const node = this.dataManager.getNodeByUid(uid);
 			if (!node) return;
-
-			if (isBatchMode && es.getState().syncMode) {
+			if (state.batchMode && es.getState().syncMode) {
 				es.setPrimaryTask(uid);
 				this._needsEditRefresh = true;
 				window.requestAnimationFrame(() => this.onEditStateChange());
 				return;
 			}
-
-			if (isBatchMode) {
+			if (state.batchMode) {
 				es.toggleSelection(node);
 				this._needsEditRefresh = true;
 				window.requestAnimationFrame(() => this.onEditStateChange());
 				return;
-			} else {
-				if (state.selectedTasks.has(uid)) return;
-
-				const prevUids = Array.from(this.previouslyEditedUids);
-				for (const prevUid of prevUids) {
-					this.setCardReadMode(prevUid);
-				}
-				this.handleEnterEdit(node);
-				return;
 			}
+			if (state.selectedTasks.has(uid)) return;
+			for (const u of Array.from(this.previouslyEditedUids))
+				this.setCardReadMode(u);
+			this.handleEnterEdit(node);
+			return;
 		}
 
-		const prevUids = Array.from(this.previouslyEditedUids);
-		for (const prevUid of prevUids) {
-			this.setCardReadMode(prevUid);
-		}
-		if (isBatchMode) {
+		for (const u of Array.from(this.previouslyEditedUids))
+			this.setCardReadMode(u);
+		if (state.batchMode) {
 			es.exitBatchToReading();
 			this.applyEditContext();
 			this.previouslyEditedUids.clear();
