@@ -384,7 +384,7 @@ export class BaseTaskEdit {
 		if (!card) return;
 
 		card.classList.add("task-item-editing");
-		card.style.cursor = "default";
+		card.style.setProperty("cursor", "default");
 		this.refreshCardEditContent(uid);
 	}
 
@@ -396,7 +396,7 @@ export class BaseTaskEdit {
 		if (!card) return;
 
 		card.classList.remove("task-item-editing");
-		card.style.cursor = "pointer";
+		card.style.setProperty("cursor", "pointer");
 
 		const checkbox = card.querySelector("input[type='checkbox']");
 		if (checkbox) checkbox.remove();
@@ -427,8 +427,8 @@ export class BaseTaskEdit {
 		) as HTMLElement;
 		if (previewRow) {
 			previewRow.replaceChildren();
-			previewRow.style.display = "none";
-			previewRow.style.background = "";
+			previewRow.style.setProperty("display", "none");
+			previewRow.style.setProperty("background", "");
 		}
 	}
 
@@ -440,7 +440,7 @@ export class BaseTaskEdit {
 		if (!card) return;
 
 		card.classList.remove("task-item-editing");
-		card.style.cursor = "pointer";
+		card.style.setProperty("cursor", "pointer");
 
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
@@ -456,8 +456,8 @@ export class BaseTaskEdit {
 		) as HTMLElement;
 		if (previewRow) {
 			previewRow.replaceChildren();
-			previewRow.style.display = "none";
-			previewRow.style.background = "";
+			previewRow.style.setProperty("display", "none");
+			previewRow.style.setProperty("background", "");
 		}
 
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
@@ -507,9 +507,10 @@ export class BaseTaskEdit {
 
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
-			descEl.style.color = hasContentEdit
-				? "var(--text-accent)"
-				: "var(--text-normal)";
+			descEl.style.setProperty(
+				"color",
+				hasContentEdit ? "var(--text-accent)" : "var(--text-normal)",
+			);
 			descEl.style.setProperty("cursor", "text", "important");
 
 			if (!descEl.hasAttribute("data-edit-bound")) {
@@ -618,12 +619,12 @@ export class BaseTaskEdit {
 			if (!previewRow) {
 				previewRow = document.createElement("div");
 				previewRow.className = "task-preview-row";
-				previewRow.style.display = "none";
+				previewRow.style.setProperty("display", "none");
 				card.appendChild(previewRow);
 			} else {
 				previewRow.replaceChildren();
-				previewRow.style.display = "none";
-				previewRow.style.background = "";
+				previewRow.style.setProperty("display", "none");
+				previewRow.style.setProperty("background", "");
 			}
 		}
 	}
