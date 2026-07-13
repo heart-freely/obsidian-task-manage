@@ -48,11 +48,12 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	b.addEventListener("click", (e) => {
 		e.stopPropagation();
 		e.preventDefault();
-		if (childContainer.style.display === "none") {
-			childContainer.style.display = "";
+		const isHidden = childContainer.classList.contains("task-hidden");
+		if (isHidden) {
+			childContainer.removeClass("task-hidden");
 			b.textContent = "▼";
 		} else {
-			childContainer.style.display = "none";
+			childContainer.addClass("task-hidden");
 			b.textContent = "▶";
 		}
 		const treeRoot =
