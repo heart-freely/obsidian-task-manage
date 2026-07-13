@@ -33,11 +33,7 @@ export class ManageView extends ItemView {
 		container.empty();
 		const viewHeader = this.containerEl.querySelector(".view-header");
 		if (viewHeader)
-			(viewHeader as HTMLElement).style.setProperty(
-				"display",
-				"none",
-				"important",
-			);
+			(viewHeader as HTMLElement).addClass("task-hidden-important");
 		this.cleanup = createManageLayout(container, this.store, this.app);
 	}
 
@@ -151,8 +147,8 @@ export function createManageLayout(
 		"task-min-h-0",
 		"task-p-0",
 		"task-relative",
+		"task-pt-0",
 	);
-	viewEl.style.paddingTop = "0px";
 
 	new SidebarPanel(sidebarEl, store, app);
 

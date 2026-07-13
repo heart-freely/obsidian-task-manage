@@ -1,5 +1,5 @@
 // src/util/edit-utils.ts
-// 编辑卡片通用工具函数 — 使用 CSS 类 + setProperty 替代 style.*=
+// 编辑卡片通用工具函数
 
 import { parseTaskLine } from "../core/parser/tasks-parser";
 import { TaskTreeNode } from "../core/task/task-tree";
@@ -112,8 +112,6 @@ const STATUS_EMOJI_MAP: Record<string, string> = {
 	completed: "✅",
 };
 
-// ========== 工具函数（未改动） ==========
-
 export function getNodeMarkValue(
 	node: TaskTreeNode,
 	key: string,
@@ -156,11 +154,9 @@ export function formatDate(d: Date): string {
 		d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
 	);
 }
-
 export function getTodayStr(): string {
 	return formatDate(new Date());
 }
-
 export function escapeHtml(str: string): string {
 	return str
 		.replace(/&/g, "&amp;")
@@ -209,16 +205,12 @@ export function hasContentBeenEdited(
 	return origTask.content !== prevTask.content;
 }
 
-// ========== 编辑行 DOM ==========
-
 export interface EditBarOptions {
 	expandedButton: string | null;
 	onEdit: (node: TaskTreeNode, markKey: string, value: string | null) => void;
 	previewText?: string | null;
 	isEditing?: boolean;
 }
-
-// ========== 标记值提取（从文本行）— 未改动 ==========
 
 function hasMarkBeenEdited(
 	node: TaskTreeNode,
@@ -227,18 +219,19 @@ function hasMarkBeenEdited(
 ): boolean {
 	const previewText = options.previewText;
 	if (!previewText || previewText === node.rawLine) return false;
-	const originalMarkInfo = extractMarkFromText(node.rawLine, key);
-	const previewMarkInfo = extractMarkFromText(previewText, key);
-	return originalMarkInfo !== previewMarkInfo;
+	return (
+		extractMarkFromText(node.rawLine, key) !==
+		extractMarkFromText(previewText, key)
+	);
 }
 
 function extractMarkFromText(line: string, key: string): string {
 	switch (key) {
 		case "status": {
-			const match = line.match(/^- \[(.)\]/);
-			if (!match) return "none";
-			const s = match[1];
-			const m: Record<string, string> = {
+			const m = line.match(/^- \[(.)\]/);
+			if (!m) return "none";
+			const s = m[1];
+			const map: Record<string, string> = {
 				" ": "todo",
 				"?": "scheduled",
 				">": "in-progress",
@@ -248,7 +241,7 @@ function extractMarkFromText(line: string, key: string): string {
 				X: "completed",
 				"-": "cancelled",
 			};
-			return m[s] || "none";
+			return map[s] || "none";
 		}
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
@@ -305,10 +298,10 @@ function extractMarkFromText(line: string, key: string): string {
 function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 	switch (key) {
 		case "status": {
-			const match = rawLine.match(/^- \[(.)\]/);
-			if (!match) return null;
-			const s = match[1];
-			const m: Record<string, string> = {
+			const m = rawLine.match(/^- \[(.)\]/);
+			if (!m) return null;
+			const s = m[1];
+			const map: Record<string, string> = {
 				" ": "todo",
 				"?": "scheduled",
 				">": "in-progress",
@@ -318,7 +311,7 @@ function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 				X: "completed",
 				"-": "cancelled",
 			};
-			return m[s] || null;
+			return map[s] || null;
 		}
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
@@ -462,7 +455,7 @@ function getMarkDisplayTextFromLine(line: string, key: string): string {
 	}
 }
 
-// ========== 编辑栏构建（修正：保持原始类名，仅替换静态样式）==========
+// ========== 编辑栏构建 ==========
 
 export function createEditBar(
 	node: TaskTreeNode,
@@ -471,7 +464,6 @@ export function createEditBar(
 	const bar = document.createElement("div");
 	bar.className = "task-edit-bar";
 
-	// 同步模式：非主任务隐藏编辑栏
 	const editCtx = getEditContext();
 	if (
 		options.isEditing &&
@@ -483,7 +475,6 @@ export function createEditBar(
 	}
 
 	let hoveredButtonKey: string | null = null;
-
 	bar.addEventListener("mouseleave", () => {
 		hoveredButtonKey = null;
 		updateAllButtonStyles();
@@ -496,15 +487,13 @@ export function createEditBar(
 		const hasValue = hasMarkValue(node, group.key);
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
 
-		if (isEdited && options.previewText) {
-			btn.textContent =
-				getMarkDisplayTextFromLine(options.previewText, group.key) ||
-				`${group.icon} ${group.label}`;
-		} else {
-			btn.textContent = hasValue
-				? getMarkDisplayText(node, group.key)
-				: `${group.icon} ${group.label}`;
-		}
+		btn.textContent =
+			isEdited && options.previewText
+				? getMarkDisplayTextFromLine(options.previewText, group.key) ||
+					`${group.icon} ${group.label}`
+				: hasValue
+					? getMarkDisplayText(node, group.key)
+					: `${group.icon} ${group.label}`;
 
 		btn.title = group.label;
 		btn.setAttribute("data-mark-key", group.key);
@@ -532,6 +521,19 @@ export function createEditBar(
 		buttons.push({ btn, group });
 	});
 
+	const EDIT_BTN_BASE =
+		"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;display:inline-flex;align-items:center;outline:none;box-sizing:border-box;";
+	const EDIT_BTN_ACTIVE =
+		EDIT_BTN_BASE +
+		"background:var(--interactive-accent);color:white;border:1px solid var(--interactive-accent);";
+	const EDIT_BTN_HOVER =
+		EDIT_BTN_BASE +
+		"background:var(--background-modifier-hover);color:var(--text-normal);border:1px solid var(--background-modifier-border);";
+	const EDIT_BTN_DEFAULT =
+		EDIT_BTN_BASE +
+		"background:transparent;color:inherit;border:1px solid transparent;";
+	const EDIT_BTN_HIDDEN = "display:none;";
+
 	function updateAllButtonStyles() {
 		buttons.forEach(({ btn, group }) => updateButtonStyle(btn, group));
 	}
@@ -542,27 +544,21 @@ export function createEditBar(
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
 		const hasValue = hasMarkValue(node, group.key);
 
-		// 完全等价于原始代码的 style.cssText 设置
 		if (isExpanded || isEdited) {
-			btn.style.cssText =
-				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--interactive-accent);color:white;display:inline-flex;align-items:center;border:1px solid var(--interactive-accent);outline:none;box-sizing:border-box;";
+			btn.style.cssText = EDIT_BTN_ACTIVE;
 		} else if (isHovered) {
-			btn.style.cssText =
-				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:var(--background-modifier-hover);color:var(--text-normal);display:inline-flex;align-items:center;border:1px solid var(--background-modifier-border);outline:none;box-sizing:border-box;";
+			btn.style.cssText = EDIT_BTN_HOVER;
 		} else if (hasValue) {
-			btn.style.cssText =
-				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;";
+			btn.style.cssText = EDIT_BTN_DEFAULT;
 		} else if (options.isEditing) {
-			btn.style.cssText =
-				"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;background:transparent;color:inherit;display:inline-flex;align-items:center;border:1px solid transparent;outline:none;box-sizing:border-box;";
+			btn.style.cssText = EDIT_BTN_DEFAULT;
 		} else {
-			btn.style.cssText = "display:none;";
+			btn.style.cssText = EDIT_BTN_HIDDEN;
 		}
 	}
 
 	updateAllButtonStyles();
 
-	// 文件名
 	const fileName = node.path.split("/").pop()?.replace(".md", "") || "";
 	if (fileName) {
 		const fileNameSpan = document.createElement("span");
@@ -572,7 +568,6 @@ export function createEditBar(
 		bar.appendChild(fileNameSpan);
 	}
 
-	// 展开的子行
 	if (options.expandedButton) {
 		const group = EDIT_BUTTONS.find(
 			(g) => g.key === options.expandedButton,
@@ -583,7 +578,6 @@ export function createEditBar(
 		}
 	}
 
-	// 阅读模式且无任何可见按钮 → 隐藏整个编辑栏
 	if (!options.isEditing && !options.expandedButton) {
 		const hasAnyVisible = EDIT_BUTTONS.some((g) =>
 			hasMarkValue(node, g.key),
@@ -594,7 +588,7 @@ export function createEditBar(
 	return bar;
 }
 
-// ========== 子行上下文 — 未改动 ==========
+// ========== 子行上下文 ==========
 
 interface SubRowContext {
 	getMainBtn: () => HTMLElement | null;
@@ -638,7 +632,7 @@ function createSubRowContext(
 	};
 }
 
-// ========== 选项子行 — 仅替换静态 style.cssText ==========
+// ========== 选项子行 ==========
 
 function createOptionsSubRow(
 	node: TaskTreeNode,
@@ -673,8 +667,6 @@ function createOptionsSubRow(
 						getNodeMarkValue(node, group.key) ===
 							opt.replace("🏁 ", "");
 		}
-
-		// 静态样式用 CSS 类，动态颜色用 setProperty
 		btn.className = "edit-sub-btn";
 		if (isActive) {
 			btn.style.setProperty("background", "var(--interactive-accent)");
@@ -683,7 +675,6 @@ function createOptionsSubRow(
 			btn.style.setProperty("background", "var(--interactive-normal)");
 			btn.style.setProperty("color", "var(--text-normal)");
 		}
-
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			const value =
@@ -724,7 +715,7 @@ function createOptionsSubRow(
 	});
 }
 
-// ========== 日期子行 — 静态样式用 CSS 类 ==========
+// ========== 日期子行 ==========
 
 function createDateSubRow(
 	node: TaskTreeNode,
@@ -734,14 +725,12 @@ function createDateSubRow(
 ): void {
 	const subRow = (ctx as any)._subRow as HTMLElement;
 	const onEdit = options.onEdit;
-
 	let currentValue: string | null = null;
 	if (options.previewText) {
 		const extracted = extractMarkFromText(options.previewText, group.key);
 		if (extracted) currentValue = extracted;
 	}
 	if (!currentValue) currentValue = getNodeMarkValue(node, group.key);
-
 	const dateInput = document.createElement("input");
 	dateInput.type = "date";
 	dateInput.value = currentValue || "";
@@ -750,7 +739,6 @@ function createDateSubRow(
 		"color",
 		currentValue ? "var(--text-normal)" : "var(--text-muted)",
 	);
-
 	dateInput.addEventListener("change", () => {
 		const val = dateInput.value;
 		dateInput.style.setProperty(
@@ -762,15 +750,13 @@ function createDateSubRow(
 		);
 		onEdit(node, group.key, val || null);
 	});
-
 	dateInput.addEventListener("click", (e) => {
 		e.stopPropagation();
 	});
-
 	subRow.appendChild(dateInput);
 }
 
-// ========== 自定义子行（未改动核心逻辑）==========
+// ========== 自定义子行 ==========
 
 function createCustomSubRow(
 	node: TaskTreeNode,
@@ -780,7 +766,6 @@ function createCustomSubRow(
 ): void {
 	const subRow = (ctx as any)._subRow as HTMLElement;
 	const onEdit = options.onEdit;
-
 	if (group.key === "id") {
 		const ci = document.createElement("input");
 		ci.type = "text";
@@ -801,7 +786,6 @@ function createCustomSubRow(
 			}
 		});
 		subRow.appendChild(ci);
-
 		const gb = document.createElement("button");
 		gb.textContent = "生成";
 		gb.className = "edit-sub-btn";
@@ -834,7 +818,6 @@ function createCustomSubRow(
 			}
 		});
 		subRow.appendChild(ci);
-
 		const sb = document.createElement("button");
 		sb.textContent = "选择";
 		sb.className = "edit-sub-btn";
@@ -846,59 +829,30 @@ function createCustomSubRow(
 			if (!editCtx?.getIdOptions) return;
 			const idOpts = editCtx.getIdOptions();
 			if (idOpts.length === 0) return;
-
 			const existing = document.querySelector(".id-select-dropdown");
 			if (existing) {
 				existing.remove();
 				return;
 			}
-
 			const dropdown = document.createElement("div");
 			dropdown.className = "id-select-dropdown";
 			const btnRect = sb.getBoundingClientRect();
-			dropdown.style.setProperty("position", "fixed");
-			dropdown.style.setProperty("z-index", "1000");
-			dropdown.style.setProperty("left", btnRect.left + "px");
-			dropdown.style.setProperty("top", btnRect.bottom + 4 + "px");
-			dropdown.style.setProperty(
-				"background",
-				"var(--background-primary)",
-			);
-			dropdown.style.setProperty("backdrop-filter", "blur(8px)");
-			dropdown.style.setProperty("-webkit-backdrop-filter", "blur(8px)");
-			dropdown.style.setProperty(
-				"border",
-				"1px solid var(--background-modifier-border)",
-			);
-			dropdown.style.setProperty("border-radius", "4px");
-			dropdown.style.setProperty("max-height", "200px");
-			dropdown.style.setProperty("overflow-y", "auto");
-			dropdown.style.setProperty(
-				"box-shadow",
-				"0 4px 12px rgba(0,0,0,0.3)",
-			);
-			dropdown.style.setProperty("min-width", "200px");
-
+			dropdown.style.cssText = `position:fixed;z-index:1000;left:${btnRect.left}px;top:${btnRect.bottom + 4}px;background:var(--background-primary);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--background-modifier-border);border-radius:4px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.3);min-width:200px;`;
 			idOpts.forEach((opt) => {
 				const item = document.createElement("div");
 				item.textContent = `${opt.id}: ${opt.desc}`;
 				item.title = `${opt.id}: ${opt.desc}`;
-				item.style.setProperty("padding", "4px 8px");
-				item.style.setProperty("cursor", "pointer");
-				item.style.setProperty("font-size", "11px");
-				item.style.setProperty("white-space", "nowrap");
-				item.style.setProperty("overflow", "hidden");
-				item.style.setProperty("text-overflow", "ellipsis");
-				item.style.setProperty("max-width", "350px");
+				item.style.cssText =
+					"padding:4px 8px;cursor:pointer;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:350px;";
 				item.addEventListener("mouseenter", () =>
 					item.style.setProperty(
 						"background",
 						"var(--background-modifier-hover)",
 					),
 				);
-				item.addEventListener("mouseleave", () => {
-					item.style.removeProperty("background");
-				});
+				item.addEventListener("mouseleave", () =>
+					item.style.removeProperty("background"),
+				);
 				item.addEventListener("mousedown", (ev) => {
 					ev.preventDefault();
 					ev.stopPropagation();
@@ -908,7 +862,6 @@ function createCustomSubRow(
 				});
 				dropdown.appendChild(item);
 			});
-
 			document.body.appendChild(dropdown);
 			const closeDropdown = (ev: MouseEvent) => {
 				if (!dropdown.contains(ev.target as Node)) {
@@ -922,90 +875,7 @@ function createCustomSubRow(
 			);
 		});
 		subRow.appendChild(sb);
-	} else if (group.key === "tag") {
-		if (group.subOptions) {
-			group.subOptions.forEach((opt) => {
-				const b = document.createElement("button");
-				b.textContent = opt;
-				const ov = opt.replace("🏁 ", "");
-				const ia =
-					ctx.previewValue !== null
-						? ctx.previewValue === ov
-						: node.tag === ov;
-				b.className = "edit-sub-btn";
-				if (ia) {
-					b.style.setProperty(
-						"background",
-						"var(--interactive-accent)",
-					);
-					b.style.setProperty("color", "white");
-				} else {
-					b.style.setProperty(
-						"background",
-						"var(--interactive-normal)",
-					);
-					b.style.setProperty("color", "var(--text-normal)");
-				}
-				b.addEventListener("click", (e) => {
-					e.stopPropagation();
-					ctx.updateMainBtnText(opt);
-					onEdit(node, group.key, ov);
-				});
-				subRow.appendChild(b);
-			});
-		}
-		const ci = document.createElement("input");
-		ci.type = "text";
-		ci.placeholder = "自定义";
-		ci.className = "edit-sub-btn";
-		ci.style.setProperty("background", "var(--background-primary)");
-		ci.style.setProperty("color", "var(--text-normal)");
-		ci.style.setProperty("width", "70px");
-		ci.addEventListener("click", (e) => e.stopPropagation());
-		ci.addEventListener("keydown", (e) => {
-			if (e.key === "Enter") {
-				e.preventDefault();
-				const v = ci.value.trim();
-				if (v) {
-					ctx.updateMainBtnText(`🏁 ${v}`);
-					onEdit(node, group.key, v);
-				}
-			}
-		});
-		subRow.appendChild(ci);
 	} else {
-		// repeat 等
-		if (group.subOptions) {
-			group.subOptions.forEach((opt) => {
-				const b = document.createElement("button");
-				b.textContent = opt;
-				const ia =
-					ctx.previewValue !== null
-						? ctx.previewValue === opt.replace("🔁 ", "")
-						: getNodeMarkValue(node, group.key) ===
-							opt.replace("🔁 ", "");
-				b.className = "edit-sub-btn";
-				if (ia) {
-					b.style.setProperty(
-						"background",
-						"var(--interactive-accent)",
-					);
-					b.style.setProperty("color", "white");
-				} else {
-					b.style.setProperty(
-						"background",
-						"var(--interactive-normal)",
-					);
-					b.style.setProperty("color", "var(--text-normal)");
-				}
-				b.addEventListener("click", (e) => {
-					e.stopPropagation();
-					ctx.updateMainBtnText(opt);
-					onEdit(node, group.key, opt);
-				});
-				subRow.appendChild(b);
-			});
-		}
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
@@ -1028,8 +898,6 @@ function createCustomSubRow(
 	}
 }
 
-// ========== 辅助UI函数（新增） ==========
-
 function appendDeleteButton(
 	node: TaskTreeNode,
 	subRow: HTMLElement,
@@ -1037,18 +905,16 @@ function appendDeleteButton(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const onEdit = options.onEdit;
 	const delBtn = document.createElement("button");
 	delBtn.textContent = "删除";
 	delBtn.className = "edit-del-btn";
 	if (!ctx.hasOriginalMark) delBtn.style.setProperty("display", "none");
 	delBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		onEdit(node, group.key, null);
+		options.onEdit(node, group.key, null);
 	});
 	subRow.appendChild(delBtn);
 }
-
 function appendRestoreButton(
 	node: TaskTreeNode,
 	subRow: HTMLElement,
@@ -1056,7 +922,6 @@ function appendRestoreButton(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const onEdit = options.onEdit;
 	const restoreBtn = document.createElement("button");
 	restoreBtn.textContent = "原文";
 	restoreBtn.className = "edit-restore-btn";
@@ -1065,8 +930,8 @@ function appendRestoreButton(
 	restoreBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
 		if (ctx.originalValue !== null)
-			onEdit(node, group.key, ctx.originalValue);
-		else onEdit(node, group.key, null);
+			options.onEdit(node, group.key, ctx.originalValue);
+		else options.onEdit(node, group.key, null);
 	});
 	subRow.appendChild(restoreBtn);
 }
@@ -1099,8 +964,6 @@ export function createSubRow(
 	return subRow;
 }
 
-// ========== 预览行（修正：保持原始类名）==========
-
 export function createPreviewRow(
 	previewText: string,
 	saved: boolean,
@@ -1111,10 +974,8 @@ export function createPreviewRow(
 ): HTMLElement {
 	const row = document.createElement("div");
 	row.className = "task-preview-row";
-
 	const textSpan = document.createElement("span");
 	textSpan.style.setProperty("color", "var(--text-muted)");
-
 	if (saved) {
 		row.style.setProperty("background", "rgba(71,133,47,0.15)");
 		textSpan.textContent = `📝 已保存: ${previewText}`;
@@ -1136,29 +997,11 @@ export function createPreviewRow(
 		if (onSave) {
 			const sb = document.createElement("button");
 			sb.textContent = "保存";
+			sb.className = "edit-preview-btn";
 			const ie = hasEdits !== undefined ? hasEdits : true;
 			if (ie) {
-				sb.className = "edit-preview-btn";
 				sb.style.setProperty("background", "var(--interactive-accent)");
 				sb.style.setProperty("color", "white");
-			} else {
-				sb.className = "edit-preview-btn";
-			}
-			if (!ie) {
-				sb.addEventListener("mouseenter", () => {
-					sb.style.setProperty(
-						"background",
-						"var(--interactive-accent)",
-					);
-					sb.style.setProperty("color", "white");
-				});
-				sb.addEventListener("mouseleave", () => {
-					sb.style.setProperty(
-						"background",
-						"var(--interactive-normal)",
-					);
-					sb.style.setProperty("color", "var(--text-muted)");
-				});
 			}
 			sb.addEventListener("click", (e) => {
 				e.stopPropagation();
@@ -1179,8 +1022,6 @@ export function createPreviewRow(
 	}
 	return row;
 }
-
-// ========== 复选框（未改动）==========
 
 export function createCheckbox(
 	checked: boolean,

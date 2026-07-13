@@ -119,7 +119,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		// ========== 任务路径 ==========
 		new Setting(containerEl).setName("任务路径").setHeading();
 
 		const pathListContainer = containerEl.createDiv({ cls: "path-list" });
@@ -182,7 +181,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 				const showDropdown = (keyword: string) => {
 					if (dropdownTimer) clearTimeout(dropdownTimer);
 					if (
-						dropdown.style.display === "block" &&
+						!dropdown.hasClass("task-hidden") &&
 						dropdown.dataset["keyword"] === keyword
 					)
 						return;
@@ -194,12 +193,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 								keyword,
 								(selectedPath) => {
 									pathInput.value = selectedPath;
-									dropdown.style.display = "none";
+									dropdown.addClass("task-hidden");
 									paths[index] = selectedPath;
 									saveAllPaths();
 								},
 							);
-							dropdown.style.display = "block";
+							dropdown.removeClass("task-hidden");
 						} catch (e) {
 							console.warn("[TaskManage] 下拉渲染失败:", e);
 						}
@@ -223,7 +222,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 						saveAllPaths();
 					}
 					setTimeout(() => {
-						dropdown.style.display = "none";
+						dropdown.addClass("task-hidden");
 					}, 150);
 				});
 				pathInput.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -234,7 +233,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 							paths[index] = value;
 							saveAllPaths();
 						}
-						dropdown.style.display = "none";
+						dropdown.addClass("task-hidden");
 					}
 				});
 
@@ -272,7 +271,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			renderPaths();
 		});
 
-		// ========== 匹配任务 ==========
 		new Setting(containerEl).setName("匹配任务").setHeading();
 
 		const row1 = containerEl.createDiv({ cls: "filter-two-col" });
@@ -307,7 +305,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		new Setting(taskItemCol).setName("任务项").setHeading();
 		this.renderTaskItemList(taskItemCol);
 
-		// ========== 导入导出插件配置 ==========
 		new Setting(containerEl).setName("插件配置").setHeading();
 
 		const ioRow = containerEl.createDiv();
@@ -414,10 +411,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			);
 			item.textContent = path;
 			item.addEventListener("mouseenter", () => {
-				item.style.backgroundColor = "var(--background-modifier-hover)";
+				item.addClass("task-dropdown-hover");
 			});
 			item.addEventListener("mouseleave", () => {
-				item.style.backgroundColor = "";
+				item.removeClass("task-dropdown-hover");
 			});
 			item.addEventListener("mousedown", (e) => {
 				e.preventDefault();
@@ -507,11 +504,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "Aa",
 			cls: "filter-toggle-btn",
 		});
-		caseBtn.style.cssText = this.toggleStyle(filter.caseSensitive);
+		this.applyToggleStyle(caseBtn, filter.caseSensitive);
 		caseBtn.title = "区分大小写";
 		caseBtn.addEventListener("click", async () => {
 			filter.caseSensitive = !filter.caseSensitive;
-			caseBtn.style.cssText = this.toggleStyle(filter.caseSensitive);
+			this.applyToggleStyle(caseBtn, filter.caseSensitive);
 			await this.saveSettings();
 		});
 
@@ -519,11 +516,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "ab",
 			cls: "filter-toggle-btn",
 		});
-		wordBtn.style.cssText = this.toggleStyle(filter.wholeWord);
+		this.applyToggleStyle(wordBtn, filter.wholeWord);
 		wordBtn.title = "全字匹配";
 		wordBtn.addEventListener("click", async () => {
 			filter.wholeWord = !filter.wholeWord;
-			wordBtn.style.cssText = this.toggleStyle(filter.wholeWord);
+			this.applyToggleStyle(wordBtn, filter.wholeWord);
 			await this.saveSettings();
 		});
 
@@ -531,11 +528,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "正则",
 			cls: "filter-toggle-btn",
 		});
-		regexBtn.style.cssText = this.toggleStyle(filter.useRegex);
+		this.applyToggleStyle(regexBtn, filter.useRegex);
 		regexBtn.title = "使用正则表达式匹配";
 		regexBtn.addEventListener("click", async () => {
 			filter.useRegex = !filter.useRegex;
-			regexBtn.style.cssText = this.toggleStyle(filter.useRegex);
+			this.applyToggleStyle(regexBtn, filter.useRegex);
 			await this.saveSettings();
 		});
 
@@ -543,14 +540,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "排除",
 			cls: "filter-toggle-btn",
 		});
-		excludeBtn.style.cssText = this.toggleStyle(filter.exclude, "#c3393e");
+		this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
 		excludeBtn.title = "排除匹配项";
 		excludeBtn.addEventListener("click", async () => {
 			filter.exclude = !filter.exclude;
-			excludeBtn.style.cssText = this.toggleStyle(
-				filter.exclude,
-				"#c3393e",
-			);
+			this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
 			await this.saveSettings();
 		});
 
@@ -627,14 +621,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "排除",
 			cls: "filter-toggle-btn",
 		});
-		excludeBtn.style.cssText = this.toggleStyle(filter.exclude, "#c3393e");
+		this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
 		excludeBtn.title = "排除匹配项";
 		excludeBtn.addEventListener("click", async () => {
 			filter.exclude = !filter.exclude;
-			excludeBtn.style.cssText = this.toggleStyle(
-				filter.exclude,
-				"#c3393e",
-			);
+			this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
 			await this.saveSettings();
 		});
 
@@ -658,10 +649,22 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 	}
 
-	private toggleStyle(active: boolean, activeColor?: string): string {
+	private applyToggleStyle(
+		btn: HTMLElement,
+		active: boolean,
+		activeColor?: string,
+	) {
+		btn.removeClass(
+			"setting-toggle-btn-active",
+			"setting-toggle-btn-inactive",
+		);
 		if (active) {
-			return `background:${activeColor || "var(--interactive-accent)"};color:white;border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:11px;`;
+			btn.addClass("setting-toggle-btn-active");
+			btn.setCssProps({
+				"--task-toggle-bg": activeColor || "var(--interactive-accent)",
+			});
+		} else {
+			btn.addClass("setting-toggle-btn-inactive");
 		}
-		return "background:var(--background-modifier-border);color:var(--text-muted);border:none;border-radius:3px;padding:2px 6px;cursor:pointer;font-size:11px;";
 	}
 }

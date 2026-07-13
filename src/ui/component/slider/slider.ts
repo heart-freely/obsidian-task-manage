@@ -40,8 +40,6 @@ function clamp(v: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, v));
 }
 
-// ========== 纯滑动条 ==========
-
 export function createSlider(options: SliderOptions): {
 	refs: SliderRef;
 	update: (start: number, end: number) => void;
@@ -80,14 +78,15 @@ export function createSlider(options: SliderOptions): {
 		"task-h-full",
 		"task-bg-accent",
 		"task-rounded-sm",
+		"slider-fill-dynamic",
 	);
-	fill.style.left = sp + "%";
-	fill.style.width = Math.max(0, ep - sp) + "%";
+	fill.setCssProps({
+		"--slider-left": sp + "%",
+		"--slider-width": Math.max(0, ep - sp) + "%",
+	});
 
 	const createHandle = (pct: number, isStart: boolean): HTMLElement => {
 		const el = track.createDiv();
-		const radius = isStart ? "3px 0 0 3px" : "0 3px 3px 0";
-		const translate = isStart ? "translateX(-100%)" : "translateX(0)";
 		el.addClass(
 			"task-absolute",
 			"task-top--6",
@@ -95,10 +94,15 @@ export function createSlider(options: SliderOptions): {
 			"task-h-4",
 			"task-bg-accent",
 			"task-clickable-grab",
+			"slider-handle-dynamic",
 		);
-		el.style.left = pct + "%";
-		el.style.borderRadius = radius;
-		el.style.transform = translate;
+		el.setCssProps({
+			"--slider-left": pct + "%",
+			"--slider-radius": isStart ? "3px 0 0 3px" : "0 3px 3px 0",
+			"--slider-transform": isStart
+				? "translateX(-100%)"
+				: "translateX(0)",
+		});
 		return el;
 	};
 
@@ -113,10 +117,16 @@ export function createSlider(options: SliderOptions): {
 	const updateHandles = (ns: number, ne: number) => {
 		const mnv = clamp(Math.min(ns, ne), min, max);
 		const mxv = clamp(Math.max(ns, ne), min, max);
-		startHandle.style.left = ((mnv - min) / range) * 100 + "%";
-		endHandle.style.left = ((mxv - min) / range) * 100 + "%";
-		fill.style.left = ((mnv - min) / range) * 100 + "%";
-		fill.style.width = ((mxv - mnv) / range) * 100 + "%";
+		startHandle.setCssProps({
+			"--slider-left": ((mnv - min) / range) * 100 + "%",
+		});
+		endHandle.setCssProps({
+			"--slider-left": ((mxv - min) / range) * 100 + "%",
+		});
+		fill.setCssProps({
+			"--slider-left": ((mnv - min) / range) * 100 + "%",
+			"--slider-width": ((mxv - mnv) / range) * 100 + "%",
+		});
 	};
 
 	const commitChange = (ns: number, ne: number) => {
@@ -133,7 +143,8 @@ export function createSlider(options: SliderOptions): {
 			ev.preventDefault();
 			ev.stopPropagation();
 			isDraggingHandle = true;
-			el.style.cursor = "grabbing";
+			el.addClass("task-cursor-grabbing");
+			el.removeClass("task-clickable-grab");
 
 			const onMove = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
@@ -155,7 +166,8 @@ export function createSlider(options: SliderOptions): {
 			const onUp = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
 				isDraggingHandle = false;
-				el.style.cursor = "grab";
+				el.removeClass("task-cursor-grabbing");
+				el.addClass("task-clickable-grab");
 				document.removeEventListener("mousemove", onMove);
 				document.removeEventListener("mouseup", onUp);
 				e.preventDefault();
@@ -253,8 +265,6 @@ export function createSlider(options: SliderOptions): {
 	};
 }
 
-// ========== 增强滑动条 ==========
-
 export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	refs: EnhancedSliderRef;
 	updateMidLine: (value: number) => void;
@@ -303,11 +313,13 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		"task-overflow-hidden",
 		"task-text-ellipsis",
 		"task-flex-shrink-0",
+		"slider-label-dynamic",
 	);
-	labelSpan.style.width = lw;
-	labelSpan.style.minWidth = lw;
-	labelSpan.style.maxWidth = lw;
-	labelSpan.style.textAlign = "left";
+	labelSpan.setCssProps({
+		"--slider-label-width": lw,
+		"--slider-label-min-width": lw,
+		"--slider-label-max-width": lw,
+	});
 
 	const initS = clamp(Math.min(start, end), min, max);
 	const initE = clamp(Math.max(start, end), min, max);
@@ -337,15 +349,20 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	for (let v = min; v <= max; v += step) {
 		const isToday = todayValue !== undefined && v === todayValue;
 		const mark = track.createDiv();
-		mark.addClass("task-absolute", "task-top-0", "task-z-1");
-		mark.style.left = ((v - min) / range) * 100 + "%";
-		mark.style.transform = "translateX(-50%)";
-		mark.style.width = isToday ? "2px" : "1px";
-		mark.style.height = "8px";
-		mark.style.background = isToday
-			? "var(--text-accent)"
-			: "var(--text-muted)";
-		mark.style.opacity = isToday ? "1" : "0.4";
+		mark.addClass(
+			"task-absolute",
+			"task-top-0",
+			"task-z-1",
+			"slider-tick-dynamic",
+		);
+		mark.setCssProps({
+			"--slider-left": ((v - min) / range) * 100 + "%",
+		});
+		if (isToday) {
+			mark.addClass("slider-tick-today-dynamic");
+		} else {
+			mark.addClass("slider-tick-normal-dynamic");
+		}
 	}
 	if (
 		todayValue !== undefined &&
@@ -354,26 +371,33 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		(todayValue - min) % step !== 0
 	) {
 		const mark = track.createDiv();
-		mark.addClass("task-absolute", "task-top-0", "task-z-1");
-		mark.style.left = ((todayValue - min) / range) * 100 + "%";
-		mark.style.transform = "translateX(-50%)";
-		mark.style.width = "2px";
-		mark.style.height = "8px";
-		mark.style.background = "var(--text-accent)";
-		mark.style.opacity = "1";
+		mark.addClass(
+			"task-absolute",
+			"task-top-0",
+			"task-z-1",
+			"slider-tick-dynamic",
+			"slider-tick-today-dynamic",
+		);
+		mark.setCssProps({
+			"--slider-left": ((todayValue - min) / range) * 100 + "%",
+		});
 	}
 
 	const midLine = track.createDiv();
-	midLine.addClass("task-absolute", "task-top--2", "task-z-1");
-	midLine.style.width = "1px";
-	midLine.style.height = "8px";
-	midLine.style.background = "var(--text-muted)";
-	midLine.style.opacity = "0.5";
+	midLine.addClass(
+		"task-absolute",
+		"task-top--2",
+		"task-z-1",
+		"slider-midline-dynamic",
+	);
 	if (midValue !== undefined) {
-		midLine.style.left =
-			((clamp(midValue, min, max) - min) / range) * 100 + "%";
+		midLine.setCssProps({
+			"--slider-left":
+				((clamp(midValue, min, max) - min) / range) * 100 + "%",
+		});
+		midLine.removeClass("task-hidden");
 	} else {
-		midLine.style.display = "none";
+		midLine.addClass("task-hidden");
 	}
 
 	const updateAll = (s: number, e: number) => {
@@ -397,9 +421,11 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 			},
 		},
 		updateMidLine: (value: number) => {
-			midLine.style.left =
-				((clamp(value, min, max) - min) / range) * 100 + "%";
-			midLine.style.display = "";
+			midLine.removeClass("task-hidden");
+			midLine.setCssProps({
+				"--slider-left":
+					((clamp(value, min, max) - min) / range) * 100 + "%",
+			});
 		},
 		updateLabel: (text: string) => {
 			labelSpan.textContent = text;

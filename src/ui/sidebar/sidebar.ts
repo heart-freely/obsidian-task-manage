@@ -30,7 +30,7 @@ export class SidebarPanel {
 		const allBtns = this.container.querySelectorAll(".preset-btn");
 		allBtns.forEach((btn) => {
 			const el = btn as HTMLElement;
-			el.style.removeProperty("width");
+			el.setCssProps({ "--task-sidebar-btn-width": "" });
 			el.removeClass("task-sidebar-btn-auto", "task-sidebar-btn-fixed");
 		});
 		this.container.empty();
@@ -69,8 +69,11 @@ export class SidebarPanel {
 		);
 
 		if (collapsed) {
-			this.container.addClass("task-sidebar-collapsed");
-			this.container.removeClass("task-sidebar-expanded");
+			this.container.setCssProps({
+				"--task-sidebar-width": "40px",
+				"--task-sidebar-min-width": "40px",
+			});
+			this.container.addClass("task-sidebar-dynamic-width");
 
 			const iconBar = contentDiv.createDiv({ cls: "preset-list" });
 			state.presets.forEach((preset) => {
@@ -92,8 +95,8 @@ export class SidebarPanel {
 			return;
 		}
 
-		this.container.removeClass("task-sidebar-collapsed");
-		this.container.addClass("task-sidebar-expanded");
+		this.container.setCssProps({ "--task-sidebar-min-width": "48px" });
+		this.container.addClass("task-sidebar-dynamic-min-width");
 
 		const listDiv = contentDiv.createDiv({ cls: "preset-list" });
 		state.presets.forEach((preset) => {
@@ -141,8 +144,7 @@ export class SidebarPanel {
 			btn.removeClass("task-sidebar-btn-fixed");
 			btn.addClass("task-sidebar-btn-auto");
 		});
-		this.container.removeClass("task-sidebar-width-fixed");
-		this.container.addClass("task-sidebar-width-auto");
+		this.container.setCssProps({ "--task-sidebar-width": "auto" });
 		buttons[0].offsetHeight;
 		let maxWidth = 0;
 		buttons.forEach((btn) => {
@@ -154,9 +156,7 @@ export class SidebarPanel {
 			btn.addClass("task-sidebar-btn-fixed");
 			btn.setCssProps({ "--task-sidebar-btn-width": maxWidth + "px" });
 		});
-		this.container.removeClass("task-sidebar-width-auto");
-		this.container.addClass("task-sidebar-width-fixed");
-		this.container.style.setProperty("padding-right", "0");
+		this.container.addClass("task-pr-0");
 		const newWidth = maxWidth + 4;
 		if (
 			this.lastSidebarWidth === null ||

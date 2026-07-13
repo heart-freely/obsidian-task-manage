@@ -319,9 +319,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 		if (currentStyle === "tree") {
 			const viewContainer = this.container.createDiv({
-				cls: "view-content",
+				cls: "view-content task-view-padding-reset",
 			});
-			viewContainer.style.cssText = "padding:0;margin:0;";
 			renderTaskTree(viewContainer, {
 				root: dateFilteredTree,
 				focusRoot: this.focusedTreeNode || undefined,
@@ -333,9 +332,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			});
 		} else if (currentStyle === "gantt") {
 			const viewContainer = this.container.createDiv({
-				cls: "view-content",
+				cls: "view-content task-view-full",
 			});
-			viewContainer.style.cssText = "height:100%;overflow:hidden;";
 			this.ganttInstance = renderGanttWithTree(
 				viewContainer,
 				dateFilteredTree,
@@ -465,22 +463,25 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		const panelWidth = preset?.taskTreeNavWidth ?? 280;
 
 		const layoutContainer = this.container.createDiv({
-			cls: "split-layout",
+			cls: "split-layout task-split-layout",
 		});
-		layoutContainer.style.cssText =
-			"display:flex;height:100%;position:relative;overflow:hidden;";
 
 		this.taskTreeNavContainer = layoutContainer.createDiv({
 			cls: "task-tree-nav",
 		});
-		this.taskTreeNavContainer.style.cssText = `width:${panelCollapsed ? "0px" : panelWidth + "px"};min-width:${panelCollapsed ? "0px" : "200px"};max-width:500px;border-right:${panelCollapsed ? "none" : "1px solid var(--background-modifier-border)"};background:var(--background-primary);overflow:hidden;transition:width 0.2s ease,min-width 0.2s ease;display:flex;flex-direction:column;flex-shrink:0;`;
+		this.taskTreeNavContainer.addClass("task-tree-nav-dynamic");
+		this.taskTreeNavContainer.setCssProps({
+			"--tree-nav-width": panelCollapsed ? "0px" : panelWidth + "px",
+			"--tree-nav-min-width": panelCollapsed ? "0px" : "200px",
+			"--tree-nav-border-right": panelCollapsed
+				? "none"
+				: "1px solid var(--background-modifier-border)",
+		});
 
 		if (!panelCollapsed) {
 			const treeContent = this.taskTreeNavContainer.createDiv({
-				cls: "task-tree-nav-content",
+				cls: "task-tree-nav-content task-tree-nav-content-inner",
 			});
-			treeContent.style.cssText =
-				"flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0;";
 
 			renderTaskTree(treeContent, {
 				root: displayTree,
@@ -494,14 +495,11 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			});
 
 			this.resizeHandle = layoutContainer.createDiv({
-				cls: "task-tree-nav-resize",
+				cls: "task-tree-nav-resize task-tree-nav-resize-visible",
 			});
-			this.resizeHandle.style.cssText =
-				"width:8px;min-width:8px;cursor:col-resize;background:rgba(128,128,128,0.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;flex-shrink:0;position:relative;";
 
 			const arrow = document.createElement("span");
-			arrow.style.cssText =
-				"cursor:pointer;font-size:8px;color:rgba(255,255,255,0.8);line-height:1;user-select:none;writing-mode:vertical-lr;";
+			arrow.addClass("task-tree-nav-arrow");
 			arrow.textContent = "◀";
 			arrow.title = "折叠任务树";
 			arrow.addEventListener("mousedown", (e) => {
@@ -516,11 +514,11 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 			this.resizeHandle.addEventListener("mouseenter", () => {
 				if (!this.isResizing && this.resizeHandle)
-					this.resizeHandle.style.opacity = "1";
+					this.resizeHandle.style.setProperty("opacity", "1");
 			});
 			this.resizeHandle.addEventListener("mouseleave", () => {
 				if (!this.isResizing && this.resizeHandle)
-					this.resizeHandle.style.opacity = "0";
+					this.resizeHandle.style.setProperty("opacity", "0");
 			});
 			this.resizeHandle.addEventListener("mousedown", (e) => {
 				if (e.target === arrow) return;
@@ -528,14 +526,11 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			});
 		} else {
 			const resizeHandle = layoutContainer.createDiv({
-				cls: "task-tree-nav-resize",
+				cls: "task-tree-nav-resize task-tree-nav-resize-hidden",
 			});
-			resizeHandle.style.cssText =
-				"width:8px;min-width:8px;cursor:col-resize;background:rgba(128,128,128,0.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;flex-shrink:0;position:relative;";
 
 			const arrow = document.createElement("span");
-			arrow.style.cssText =
-				"cursor:pointer;font-size:8px;color:rgba(255,255,255,0.8);line-height:1;user-select:none;writing-mode:vertical-lr;";
+			arrow.addClass("task-tree-nav-arrow");
 			arrow.textContent = "▶";
 			arrow.title = "展开任务树";
 			arrow.addEventListener("mousedown", (e) => {
@@ -549,19 +544,17 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			resizeHandle.appendChild(arrow);
 
 			resizeHandle.addEventListener("mouseenter", () => {
-				resizeHandle.style.opacity = "1";
+				resizeHandle.addClass("task-opacity-100");
 			});
 			resizeHandle.addEventListener("mouseleave", () => {
-				resizeHandle.style.opacity = "0";
+				resizeHandle.addClass("task-opacity-40");
 			});
 			this.resizeHandle = resizeHandle;
 		}
 
 		this.rightContentContainer = layoutContainer.createDiv({
-			cls: "right-content",
+			cls: "right-content task-right-content",
 		});
-		this.rightContentContainer.style.cssText =
-			"flex:1;overflow:auto;min-width:0;padding:0;";
 		this.renderByStyle(
 			this.rightContentContainer,
 			sortedNodes,
@@ -653,8 +646,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	private startResize(e: MouseEvent) {
 		e.preventDefault();
 		this.isResizing = true;
-		document.body.style.cursor = "col-resize";
-		document.body.style.userSelect = "none";
+		document.body.addClass("task-cursor-col-resize");
+		document.body.addClass("task-select-none");
 	}
 
 	private onResize(e: MouseEvent) {
@@ -662,17 +655,24 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		const r =
 			this.taskTreeNavContainer.parentElement?.getBoundingClientRect();
 		if (!r) return;
-		this.taskTreeNavContainer.style.width =
-			Math.min(500, Math.max(200, e.clientX - r.left)) + "px";
+		this.taskTreeNavContainer.setCssProps({
+			"--tree-nav-width":
+				Math.min(500, Math.max(200, e.clientX - r.left)) + "px",
+		});
 	}
 
 	private stopResize() {
 		if (!this.isResizing) return;
 		this.isResizing = false;
-		document.body.style.cursor = "";
-		document.body.style.userSelect = "";
+		document.body.removeClass("task-cursor-col-resize");
+		document.body.removeClass("task-select-none");
 		if (this.taskTreeNavContainer) {
-			const w = parseInt(this.taskTreeNavContainer.style.width) || 280;
+			const w =
+				parseInt(
+					getComputedStyle(
+						this.taskTreeNavContainer,
+					).getPropertyValue("--tree-nav-width"),
+				) || 280;
 			const p = this.store.getActivePreset();
 			if (p) {
 				this.store.updateSilent({
@@ -793,8 +793,9 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				break;
 
 			case "calendar": {
-				const cc = container.createDiv({ cls: "calendar-content" });
-				cc.style.padding = "0";
+				const cc = container.createDiv({
+					cls: "calendar-content task-p-0",
+				});
 
 				const preset = this.store.getActivePreset();
 				const calSubView = preset?.calendarSubView || "day";
@@ -968,7 +969,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		}
 		this.cleanupSplitLayout();
 
-		// ========== O3：补充清理，避免残留引用 ==========
 		this.scrollPositions.clear();
 		this.selectedTreeNode = null;
 		this.focusedTreeNode = null;

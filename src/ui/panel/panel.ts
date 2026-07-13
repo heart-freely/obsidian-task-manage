@@ -67,57 +67,33 @@ export class Panels {
 		this.app = app;
 
 		this.panelHost = container.createDiv({ cls: "panel-host" });
-		this.panelHost.style.position = "absolute";
-		this.panelHost.style.top = "0";
-		this.panelHost.style.left = "0";
-		this.panelHost.style.right = "0";
-		this.panelHost.style.zIndex = "50";
-		this.panelHost.style.pointerEvents = "auto";
+		this.panelHost.addClass("panel-host-layout");
 
 		this.buttonBarEl = document.createElement("div");
 		this.buttonBarEl.className = "panel-header";
-		this.buttonBarEl.style.cssText =
-			"padding:4px 6px;display:flex;flex-wrap:nowrap;overflow-x:auto;background-color:var(--background-primary);border:none;border-bottom:1px solid var(--background-modifier-border);border-radius:0;box-sizing:border-box;gap:0;flex-shrink:0;";
+		this.buttonBarEl.addClass("panel-header-layout");
 
 		this.headPanel = new HeadPanel(this.buttonBarEl, store);
 
 		this.panelsContainer = document.createElement("div");
 		this.panelsContainer.className = "panel-container";
-		this.panelsContainer.style.position = "relative";
-		this.panelsContainer.style.zIndex = "49";
-		this.panelsContainer.style.background = "var(--background-primary)";
-		this.panelsContainer.style.border =
-			"1px solid var(--background-modifier-border)";
-		this.panelsContainer.style.borderRadius = "6px";
-		this.panelsContainer.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
-		this.panelsContainer.style.padding = "0";
-		this.panelsContainer.style.marginBottom = "0";
-		this.panelsContainer.style.marginTop = "0";
-		this.panelsContainer.style.display = "flex";
-		this.panelsContainer.style.flexDirection = "column";
-		this.panelsContainer.style.gap = "0";
-		this.panelsContainer.style.overflowY = "auto";
-		this.panelsContainer.style.overflowX = "hidden";
-		this.panelsContainer.style.boxSizing = "border-box";
+		this.panelsContainer.addClass("panel-container-layout");
 
 		this.panelContentInner = document.createElement("div");
-		this.panelContentInner.style.cssText =
-			"display:flex;flex-direction:column;gap:0;";
+		this.panelContentInner.addClass("panel-content-inner");
 		this.panelContentInner.appendChild(this.buttonBarEl);
 		this.panelsContainer.appendChild(this.panelContentInner);
 
 		this.panelHost.appendChild(this.panelsContainer);
 
 		this.resizeHandle = document.createElement("div");
-		this.resizeHandle.className = "panel-resize-handle";
-		this.resizeHandle.style.cssText =
-			"height:8px;min-height:8px;cursor:row-resize;background:rgba(128,128,128,0.4);border-radius:0 0 4px 4px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;box-sizing:border-box;position:relative;z-index:60;flex-shrink:0;margin-top:0;";
+		this.resizeHandle.className =
+			"panel-resize-handle panel-resize-handle-layout";
 		this.resizeHandle.title = "拖拽调整高度 / 点击中间箭头折叠";
 		this.panelHost.appendChild(this.resizeHandle);
 
 		const arrow = document.createElement("span");
-		arrow.style.cssText =
-			"cursor:pointer;font-size:10px;color:rgba(255,255,255,0.8);line-height:1;";
+		arrow.addClass("panel-resize-arrow");
 		arrow.textContent = "▲";
 		arrow.addEventListener("mousedown", (e) => {
 			e.stopPropagation();
@@ -130,10 +106,12 @@ export class Panels {
 		this.resizeHandle.appendChild(arrow);
 
 		this.resizeHandle.addEventListener("mouseenter", () => {
-			if (this.resizeHandle) this.resizeHandle.style.opacity = "1";
+			if (this.resizeHandle)
+				this.resizeHandle.style.setProperty("opacity", "1");
 		});
 		this.resizeHandle.addEventListener("mouseleave", () => {
-			if (this.resizeHandle) this.resizeHandle.style.opacity = "0";
+			if (this.resizeHandle)
+				this.resizeHandle.style.setProperty("opacity", "0");
 		});
 
 		let startY = 0,
@@ -154,7 +132,10 @@ export class Panels {
 					Math.max(30, newHeight),
 				);
 				if (this.panelsContainer)
-					this.panelsContainer.style.height = newHeight + "px";
+					this.panelsContainer.style.setProperty(
+						"height",
+						newHeight + "px",
+					);
 				this.panelHeight = newHeight;
 				this.updatePreset({ toolbarPanelsHeight: newHeight });
 				this.updateViewPadding();
@@ -204,17 +185,22 @@ export class Panels {
 
 	public applyVisibility() {
 		if (!this.panelsContainer || !this.resizeHandle) return;
-		this.resizeHandle.style.display = "flex";
+		this.resizeHandle.style.setProperty("display", "flex");
 		if (this.isPanelsCollapsed) {
-			this.panelsContainer.style.display = "none";
-			this.panelsContainer.style.height = "0px";
-			this.panelsContainer.style.padding = "0";
-			this.panelsContainer.style.border = "none";
+			this.panelsContainer.addClass("task-hidden");
+			this.panelsContainer.style.setProperty("height", "0px");
+			this.panelsContainer.style.setProperty("padding", "0");
+			this.panelsContainer.style.setProperty("border", "none");
 		} else {
-			this.panelsContainer.style.display = "flex";
-			this.panelsContainer.style.height = this.panelHeight + "px";
-			this.panelsContainer.style.border =
-				"1px solid var(--background-modifier-border)";
+			this.panelsContainer.removeClass("task-hidden");
+			this.panelsContainer.style.setProperty(
+				"height",
+				this.panelHeight + "px",
+			);
+			this.panelsContainer.style.setProperty(
+				"border",
+				"1px solid var(--background-modifier-border)",
+			);
 		}
 		this.updateArrow();
 		this.updateViewPadding();
@@ -235,9 +221,7 @@ export class Panels {
 			"config",
 		];
 
-		// ===== 根据 barVisibility 过滤可见面板 =====
 		const barVisibility = preset.barVisibility ?? {};
-		// 默认显示：如果 barVisibility 中没有设置，默认显示
 		const visibleKeys = toolbarOrder.filter(
 			(key) => barVisibility[key] !== false,
 		);
@@ -315,15 +299,17 @@ export class Panels {
 
 	private updateViewPadding() {
 		if (!this.panelsContainer) {
-			this.viewEl.style.paddingTop = "0px";
+			this.viewEl.style.setProperty("padding-top", "0px");
 			return;
 		}
 		const handleHeight = 8;
 		if (this.isPanelsCollapsed) {
-			this.viewEl.style.paddingTop = handleHeight + "px";
+			this.viewEl.style.setProperty("padding-top", handleHeight + "px");
 		} else {
-			this.viewEl.style.paddingTop =
-				this.panelHeight + handleHeight + "px";
+			this.viewEl.style.setProperty(
+				"padding-top",
+				this.panelHeight + handleHeight + "px",
+			);
 		}
 	}
 

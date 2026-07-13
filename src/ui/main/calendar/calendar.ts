@@ -2,10 +2,6 @@
 // 统一日历视图 — 日/周/月/季/年（时间轴换行方案）
 
 import {
-	getStatusColors,
-	STATUS_SORT_ORDER,
-} from "../../../core/config/config";
-import {
 	buildDateTaskMap,
 	buildGlobalOrder,
 	formatDate,
@@ -26,22 +22,16 @@ import { createTaskCard } from "../card/card";
 let cachedNodesFingerprint: string = "";
 let cachedIntervalMode: string | null = null;
 let cachedDateTaskMap: Map<string, TaskTreeNode[]> | null = null;
-// ========== 常量 ==========
 
 const YEAR_HEAT_RGB = "64, 120, 209";
 const TIMELINE_ROW_HEIGHT = 20;
 const TIMELINE_BAR_HEIGHT = 16;
-// ========== 工具函数 ==========
 
 function padTwo(n: number): string {
 	return n < 10 ? "0" + n : String(n);
 }
 
-// ========== 样式注入 ==========
-
 let currentStyleEl: HTMLStyleElement | null = null;
-
-// ========== 时间轴组件（行组方案，任务条各自独占一行）==========
 
 function renderTimeline(
 	container: HTMLElement,
@@ -123,12 +113,10 @@ function renderTimeline(
 			rowTaskIntervals.push(new Map());
 			const rowStart = row * colsPerRow;
 			const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
-
 			for (const task of allTasks) {
 				const interval = taskIntervals.get(task.uid);
 				let taskStart = -1,
 					taskEnd = -1;
-
 				if (interval) {
 					const startDate = setStart(new Date(interval.start));
 					const endDate = setEnd(new Date(interval.end));
@@ -158,10 +146,8 @@ function renderTimeline(
 						if (idx >= 0) taskStart = taskEnd = idx;
 					}
 				}
-
 				if (taskStart < 0) continue;
 				if (taskEnd < rowStart || taskStart > rowEnd) continue;
-
 				rowTasks[row].push(task);
 				rowTaskIntervals[row].set(task.uid, { taskStart, taskEnd });
 			}
@@ -182,14 +168,14 @@ function renderTimeline(
 			const rowHeight = TIMELINE_ROW_HEIGHT + taskAreaHeight;
 
 			const rowGroup = document.createElement("div");
-			rowGroup.style.position = "relative";
-			rowGroup.style.height = rowHeight + "px";
+			rowGroup.addClass("timeline-row-group");
+			rowGroup.setCssProps({ "--timeline-row-height": rowHeight + "px" });
 
 			const dateRow = document.createElement("div");
-			dateRow.style.display = "grid";
-			dateRow.style.gridTemplateColumns = `repeat(${colsPerRow}, 1fr)`;
-			dateRow.style.borderBottom =
-				"1px solid var(--background-modifier-border)";
+			dateRow.addClass("timeline-date-row");
+			dateRow.setCssProps({
+				"--timeline-cols": `repeat(${colsPerRow}, 1fr)`,
+			});
 
 			for (let col = 0; col < colsPerRow; col++) {
 				const idx = row * colsPerRow + col;
@@ -210,10 +196,13 @@ function renderTimeline(
 						count > 0
 					) {
 						const intensity = 0.05 + (count / heatMapMax) * 0.3;
-						dayEl.style.backgroundColor = `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`;
+						dayEl.addClass("timeline-heat-day");
+						dayEl.setCssProps({
+							"--timeline-heat-bg": `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`,
+						});
 					}
 					if (onDayClick) {
-						dayEl.style.cursor = "pointer";
+						dayEl.addClass("task-clickable");
 						dayEl.addEventListener("click", () => onDayClick(d));
 					}
 				}
@@ -222,17 +211,19 @@ function renderTimeline(
 			rowGroup.appendChild(dateRow);
 
 			const taskArea = document.createElement("div");
-			taskArea.style.position = "absolute";
-			taskArea.style.top = TIMELINE_ROW_HEIGHT + "px";
-			taskArea.style.left = "0";
-			taskArea.style.right = "0";
-			taskArea.style.height = taskAreaHeight + "px";
+			taskArea.addClass("timeline-task-area");
+			taskArea.setCssProps({
+				"--timeline-task-top": TIMELINE_ROW_HEIGHT + "px",
+				"--timeline-task-height": taskAreaHeight + "px",
+			});
 
 			for (let col = 0; col <= colsPerRow; col++) {
 				const line = document.createElement("div");
-				line.className = "timeline-grid-line";
-				line.style.left = col * colWidth + "%";
-				line.style.height = "100%";
+				line.className =
+					"timeline-grid-line timeline-grid-line-dynamic";
+				line.setCssProps({
+					"--timeline-line-left": col * colWidth + "%",
+				});
 				taskArea.appendChild(line);
 			}
 
@@ -240,7 +231,6 @@ function renderTimeline(
 			const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
 
 			tasksInRow.forEach((task, taskIdx) => {
-				const interval = taskIntervals.get(task.uid);
 				const taskInfo = rowTaskIntervals[row].get(task.uid);
 				if (!taskInfo) return;
 
@@ -250,10 +240,13 @@ function renderTimeline(
 				const spanCols = clampedEnd - clampedStart + 1;
 
 				const bar = document.createElement("div");
-				bar.className = `timeline-bar ${task.status}`;
-				bar.style.left = col * colWidth + "%";
-				bar.style.top = taskIdx * TIMELINE_ROW_HEIGHT + 2 + "px";
-				bar.style.width = spanCols * colWidth + "%";
+				bar.className = `timeline-bar timeline-bar-dynamic ${task.status}`;
+				bar.setCssProps({
+					"--timeline-bar-left": col * colWidth + "%",
+					"--timeline-bar-top":
+						taskIdx * TIMELINE_ROW_HEIGHT + 2 + "px",
+					"--timeline-bar-width": spanCols * colWidth + "%",
+				});
 
 				const label = document.createElement("span");
 				label.className = "timeline-bar-text";
@@ -272,7 +265,8 @@ function renderTimeline(
 					bar.addEventListener("mouseleave", () => tooltip.hide());
 				}
 
-				if (!interval) bar.style.opacity = "0.5";
+				const interval = taskIntervals.get(task.uid);
+				if (!interval) bar.addClass("timeline-bar-no-interval");
 
 				if (onTaskClick) {
 					bar.addEventListener("dblclick", (e) => {
@@ -286,7 +280,7 @@ function renderTimeline(
 							onTaskClick(task);
 						}
 					});
-					bar.style.cursor = "pointer";
+					bar.addClass("task-clickable");
 				}
 
 				taskArea.appendChild(bar);
@@ -303,8 +297,6 @@ function renderTimeline(
 		return false;
 	}
 }
-
-// ========== 主入口 ==========
 
 export function renderCalendarView(
 	container: HTMLElement,
@@ -352,7 +344,6 @@ export function renderCalendarView(
 			: new Date(),
 	};
 
-	// 轻量指纹缓存：节点数量 + 首尾 uid
 	const fingerprint =
 		nodes.length > 0
 			? `${nodes.length}-${nodes[0].uid}-${nodes[nodes.length - 1].uid}`
@@ -386,8 +377,7 @@ export function renderCalendarView(
 	}
 
 	const titleEl = document.createElement("div");
-	titleEl.style.cssText =
-		"margin-bottom:8px; font-weight:bold; font-size:14px; color:var(--text-muted);";
+	titleEl.addClass("calendar-filter-title");
 	titleEl.textContent =
 		"🔍 " +
 		(options?.filterTitle ||
@@ -422,16 +412,13 @@ export function renderCalendarView(
 	if (subView === "day") {
 		const selectedDateStr = formatDate(selectedDate);
 		const dayNodes = dateTaskMap.get(selectedDateStr) || [];
-
 		const dayGroup = document.createElement("div");
 		dayGroup.className = "day-group";
 		stackDiv.appendChild(dayGroup);
-
 		const header = document.createElement("div");
 		header.className = "day-header";
 		header.textContent = selectedDateStr;
 		dayGroup.appendChild(header);
-
 		if (dayNodes.length === 0) {
 			const empty = document.createElement("div");
 			empty.className = "empty-message";
@@ -466,19 +453,14 @@ export function renderCalendarView(
 				d.setDate(week.start.getDate() + i);
 				days.push(d);
 			}
-
 			const weekBlock = document.createElement("div");
 			weekBlock.className = "timeline-block";
 			stackDiv.appendChild(weekBlock);
-
 			const weekNum = getISOWeekNumber(week.start);
-			const weekEndDate = new Date(week.start);
-			weekEndDate.setDate(week.start.getDate() + 6);
 			const title = document.createElement("div");
 			title.className = "timeline-block-title";
 			title.textContent = `${week.start.getFullYear()}年${padTwo(week.start.getMonth() + 1)}月${padTwo(weekNum)}周`;
 			weekBlock.appendChild(title);
-
 			const hasContent = renderTimeline(
 				weekBlock,
 				days,
@@ -501,19 +483,15 @@ export function renderCalendarView(
 		for (const m of getMonthsInRange(startDate, endDate)) {
 			const daysInMonth = new Date(m.year, m.month + 1, 0).getDate();
 			const days: Date[] = [];
-			for (let d = 1; d <= daysInMonth; d++) {
+			for (let d = 1; d <= daysInMonth; d++)
 				days.push(new Date(m.year, m.month, d));
-			}
-
 			const block = document.createElement("div");
 			block.className = "timeline-block";
 			stackDiv.appendChild(block);
-
 			const title = document.createElement("div");
 			title.className = "timeline-block-title";
 			title.textContent = `${m.year}年${padTwo(m.month + 1)}月`;
 			block.appendChild(title);
-
 			const hasContent = renderTimeline(
 				block,
 				days,
@@ -537,32 +515,24 @@ export function renderCalendarView(
 			const quarterBlock = document.createElement("div");
 			quarterBlock.className = "timeline-block";
 			stackDiv.appendChild(quarterBlock);
-
 			const title = document.createElement("div");
-			title.className = "timeline-block-title";
-			title.style.fontSize = "1.2em";
+			title.className = "timeline-block-title calendar-quarter-title";
 			title.textContent = `${q.year}年${padTwo(q.quarter)}季`;
 			quarterBlock.appendChild(title);
-
 			for (let mo = 0; mo < 3; mo++) {
 				const monthIdx = startMonth + mo;
 				const daysInMonth = new Date(q.year, monthIdx + 1, 0).getDate();
 				const days: Date[] = [];
-				for (let d = 1; d <= daysInMonth; d++) {
+				for (let d = 1; d <= daysInMonth; d++)
 					days.push(new Date(q.year, monthIdx, d));
-				}
-
-				let monthHasContent = false;
 				const monthBlock = document.createElement("div");
 				monthBlock.className = "timeline-block";
 				quarterBlock.appendChild(monthBlock);
-
 				const monthTitle = document.createElement("div");
-				monthTitle.className = "timeline-block-title";
-				monthTitle.style.fontSize = "1em";
+				monthTitle.className =
+					"timeline-block-title calendar-month-title";
 				monthTitle.textContent = `${padTwo(monthIdx + 1)}月`;
 				monthBlock.appendChild(monthTitle);
-
 				const hasContent = renderTimeline(
 					monthBlock,
 					days,
@@ -591,20 +561,15 @@ export function renderCalendarView(
 			const yearBlock = document.createElement("div");
 			yearBlock.className = "timeline-block";
 			stackDiv.appendChild(yearBlock);
-
 			const title = document.createElement("div");
-			title.className = "timeline-block-title";
-			title.style.fontSize = "1.3em";
+			title.className = "timeline-block-title calendar-year-title";
 			title.textContent = `${y}年`;
 			yearBlock.appendChild(title);
-
 			for (let m = 0; m < 12; m++) {
 				const daysInMonth = new Date(y, m + 1, 0).getDate();
 				const days: Date[] = [];
-				for (let d = 1; d <= daysInMonth; d++) {
+				for (let d = 1; d <= daysInMonth; d++)
 					days.push(new Date(y, m, d));
-				}
-
 				let monthHasTask = false;
 				for (const d of days) {
 					if ((dateTaskMap.get(formatDate(d)) || []).length > 0) {
@@ -613,24 +578,19 @@ export function renderCalendarView(
 					}
 				}
 				if (!monthHasTask) continue;
-
 				yearHasContent = true;
 				const monthBlock = document.createElement("div");
 				monthBlock.className = "timeline-block";
 				yearBlock.appendChild(monthBlock);
-
 				const monthTitle = document.createElement("div");
-				monthTitle.className = "timeline-block-title";
-				monthTitle.style.fontSize = "1em";
+				monthTitle.className =
+					"timeline-block-title calendar-month-title";
 				monthTitle.textContent = `${padTwo(m + 1)}月`;
 				monthBlock.appendChild(monthTitle);
-
 				const actualDays = days.length;
 				const todayStr = formatDate(new Date());
-
 				const scrollDiv = document.createElement("div");
-				scrollDiv.style.cssText = "position:relative;";
-
+				scrollDiv.addClass("task-relative");
 				const header = document.createElement("div");
 				header.className = "year-view-header";
 				for (let i = 0; i < actualDays; i++) {
@@ -638,23 +598,22 @@ export function renderCalendarView(
 					const dateStr = formatDate(d);
 					const count = (dateTaskMap.get(dateStr) || []).length;
 					const isToday = dateStr === todayStr;
-
 					const dayEl = document.createElement("div");
 					dayEl.className =
 						"year-view-day" + (isToday ? " today" : "");
 					dayEl.textContent = padTwo(d.getDate());
-					dayEl.style.cursor = "pointer";
-
+					dayEl.addClass("task-clickable");
 					if (globalMaxCount > 0 && count > 0) {
 						const intensity = 0.1 + (count / globalMaxCount) * 0.9;
-						dayEl.style.backgroundColor = `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`;
+						dayEl.addClass("year-heat-day");
+						dayEl.setCssProps({
+							"--year-heat-bg": `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`,
+						});
 						dayEl.title = `${count}个任务`;
 					}
-
 					if (onDayClick) {
 						dayEl.addEventListener("click", () => onDayClick(d));
 					}
-
 					header.appendChild(dayEl);
 				}
 				scrollDiv.appendChild(header);

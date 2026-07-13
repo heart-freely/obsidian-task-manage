@@ -21,8 +21,6 @@ export class BaseTaskEdit {
 	public _needsEditRefresh: boolean = false;
 	private _lastSyncMode: boolean = false;
 
-	// ========== 编辑入口 ==========
-
 	protected handleEnterEdit(node: TaskTreeNode) {
 		if (node.type !== "list") {
 			return;
@@ -216,8 +214,6 @@ export class BaseTaskEdit {
 		this.refreshEditPanel();
 	}
 
-	// ========== 编辑上下文 ==========
-
 	protected applyEditContext() {
 		const state = this.editStore.getState();
 		if (state.editMode) {
@@ -371,8 +367,6 @@ export class BaseTaskEdit {
 		window.requestAnimationFrame(() => this.onEditStateChange());
 	}
 
-	// ========== 卡片状态 ==========
-
 	protected getEditSearchRoot(): HTMLElement {
 		return this.rightContentContainer || this.container;
 	}
@@ -385,7 +379,7 @@ export class BaseTaskEdit {
 		if (!card) return;
 
 		card.addClass("task-item-editing");
-		card.style.cursor = "default";
+		card.addClass("task-cursor-default");
 		this.refreshCardEditContent(uid);
 	}
 
@@ -397,7 +391,8 @@ export class BaseTaskEdit {
 		if (!card) return;
 
 		card.removeClass("task-item-editing");
-		card.style.cursor = "pointer";
+		card.removeClass("task-cursor-default");
+		card.addClass("task-clickable");
 
 		const checkbox = card.querySelector("input[type='checkbox']");
 		if (checkbox) checkbox.remove();
@@ -428,8 +423,8 @@ export class BaseTaskEdit {
 		) as HTMLElement;
 		if (previewRow) {
 			previewRow.replaceChildren();
-			previewRow.style.display = "none";
-			previewRow.style.background = "";
+			previewRow.addClass("task-hidden");
+			previewRow.style.setProperty("background", "");
 		}
 	}
 
@@ -441,7 +436,8 @@ export class BaseTaskEdit {
 		if (!card) return;
 
 		card.removeClass("task-item-editing");
-		card.style.cursor = "pointer";
+		card.removeClass("task-cursor-default");
+		card.addClass("task-clickable");
 
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
@@ -457,8 +453,8 @@ export class BaseTaskEdit {
 		) as HTMLElement;
 		if (previewRow) {
 			previewRow.replaceChildren();
-			previewRow.style.display = "none";
-			previewRow.style.background = "";
+			previewRow.addClass("task-hidden");
+			previewRow.style.setProperty("background", "");
 		}
 
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
@@ -508,10 +504,14 @@ export class BaseTaskEdit {
 
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
-			descEl.style.color = hasContentEdit
-				? "var(--text-accent)"
-				: "var(--text-normal)";
-			descEl.style.cursor = "text";
+			descEl.removeClass("task-text-accent", "task-text-normal");
+			if (hasContentEdit) {
+				descEl.addClass("task-text-accent");
+			} else {
+				descEl.addClass("task-text-normal");
+			}
+			descEl.removeClass("task-cursor-pointer");
+			descEl.addClass("task-cursor-text");
 
 			if (!descEl.hasAttribute("data-edit-bound")) {
 				descEl.setAttribute("data-edit-bound", "true");
@@ -618,13 +618,12 @@ export class BaseTaskEdit {
 		} else {
 			if (!previewRow) {
 				previewRow = document.createElement("div");
-				previewRow.className = "task-preview-row";
-				previewRow.style.display = "none";
+				previewRow.className = "task-preview-row task-hidden";
 				card.appendChild(previewRow);
 			} else {
 				previewRow.replaceChildren();
-				previewRow.style.display = "none";
-				previewRow.style.background = "";
+				previewRow.addClass("task-hidden");
+				previewRow.style.setProperty("background", "");
 			}
 		}
 	}
@@ -646,8 +645,6 @@ export class BaseTaskEdit {
 			}
 		});
 	}
-
-	// ========== 全局点击 ==========
 
 	protected onGlobalClick = (e: MouseEvent) => {
 		const target = e.target as HTMLElement;
