@@ -347,105 +347,57 @@ this.registerView(VIEW_TYPE, (leaf) => new MyView(leaf));
 npm test
 ```
 
----
+## 审核
 
-## 审查
+### 审核报错修复
 
-### CSS设置语法
+| 规则                          | 正确做法                                        |
+| :---------------------------- | :---------------------------------------------- |
+| `no-static-styles-assignment` | 用 CSS 类 + CSS 变量方式（见 CSS 语法规范）     |
+| `no-unsupported-api`          | `minAppVersion` 设为使用的最新 API 版本         |
+| `no-innerhtml`                | 用 `textContent` 或 DOM API                     |
+| `no-dynamic-style-elements`   | 写入 `styles.css`，状态颜色逐个 `setProperty`   |
+| `no-html-headings`            | 用 `new Setting().setName("标题").setHeading()` |
 
-#### 目标
+#### CSS 语法规范
 
-项目中避免所有 `el.style.xxx = "..."` 的直接样式操作，替换为符合 Obsidian 规范的 CSS 类 + CSS 变量方式。
+用 CSS 类 + CSS 变量替代所有 `el.style.xxx` 直接样式操作，仅替换样式写法，不改变业务逻辑。
 
-#### 核心替换规则
+| 原则       | 说明                                                         |
+| :--------- | :----------------------------------------------------------- |
+| 静态样式   | `el.addClass("task-xxx")`                                    |
+| 动态样式   | `el.addClass("task-dynamic-xxx")` + `el.setCssProps({ "--task-xxx": value })` |
+| 显隐切换   | `el.toggleClass("task-hidden", condition)`                   |
+| 类名前缀   | 统一 `task-`，避免冲突                                       |
+| 动态值设置 | 用 `setCssProps` 或 `style.setProperty`                      |
+| 类操作     | 优先 `addClass` / `removeClass` / `toggleClass`              |
 
-| 原则                             | 说明                                                         |
-| :------------------------------- | :----------------------------------------------------------- |
-| **静态样式 → CSS 类**            | 固定值使用 `el.addClass("task-xxx")`                         |
-| **动态样式 → CSS 类 + CSS 变量** | 动态值使用 `el.addClass("task-dynamic-xxx")` + `el.setCssProps({ "--task-xxx": value })` |
-| **显示/隐藏切换**                | 使用 `task-hidden` / `task-block` / `task-flex` 等工具类切换 |
-| **类名前缀**                     | 所有自定义类以 `task-` 开头，避免与 Obsidian 核心样式冲突    |
-| **仅修改样式**                   | 不改变任何业务逻辑，只替换 `el.style.xxx` 为 CSS 类          |
+替换示例
 
-
-
-| 场景               | 原始写法                        | 替换写法                                           |
-| ------------------ | ------------------------------- | -------------------------------------------------- |
-| 静态样式（固定值） | `el.style.display = "flex"`     | `el.addClass("task-flex")`                         |
-| 显示/隐藏切换      | `el.style.display = "none"`     | `el.toggleClass("task-hidden", condition)`         |
-| 动态颜色           | `el.style.color = userColor`    | `el.setCssProps({ "--task-color": userColor })`    |
-| 动态尺寸           | `el.style.width = width + "px"` | `el.setCssProps({ "--task-width": width + "px" })` |
-
-
-
-#### 类名规范
-
-- 所有新增类名统一以 `task-` 开头，避免与 Obsidian 核心或其他插件冲突
-- 静态样式类：直接对应 CSS 属性值（如 `task-flex`, `task-hidden`, `task-p-2`）
-- 动态样式类：使用 CSS 变量驱动（如 `task-dynamic-bg`, `task-dynamic-width`）
-
-#### 动态样式示例
-
-
+| 原写法                      | 替换写法                                   |
+| :-------------------------- | :----------------------------------------- |
+| `el.style.display = "flex"` | `el.addClass("task-flex")`                 |
+| `el.style.display = "none"` | `el.toggleClass("task-hidden", condition)` |
+| `el.style.color = c`        | `el.setCssProps({ "--task-color": c })`    |
 
 ```typescript
-// 动态颜色
 el.addClass("task-dynamic-bg");
 el.setCssProps({ "--task-bg": userColor });
-
-// 动态尺寸
-el.addClass("task-dynamic-width");
-el.setCssProps({ "--task-width": `${width}px` });
-
-// 动态位置
-el.addClass("task-dynamic-transform");
-el.setCssProps({ "--task-transform": `translateX(${value}px)` });
 ```
-
 ```css
-/* 对应 CSS */
-.task-dynamic-bg {
-    background-color: var(--task-bg, var(--background-primary));
-}
-.task-dynamic-width {
-    width: var(--task-width, 100%);
-}
-.task-dynamic-transform {
-    transform: var(--task-transform, none);
-}
+.task-dynamic-bg { background-color: var(--task-bg, var(--background-primary)); }
 ```
 
-#### 修改过程中的要求
+### 审核警告消除
 
-| 序号 | 要求                                                |
-| :--- | :-------------------------------------------------- |
-| 1    | 只替换 `el.style.xxx` 为 CSS 类，不改变任何业务逻辑 |
-| 2    | 不要保留原代码注释，只提供修改后的完整文件          |
-| 3    | 不要修改不相关的代码（如添加新功能、重写函数）      |
-| 4    | 所有类名以 `task-` 前缀开头                         |
-| 5    | 动态值使用 `setCssProps` 或 `style.setProperty`     |
-| 6    | 优先使用 `addClass` / `removeClass` / `toggleClass` |
-
-### 审核报错
-
-| 规则                                     | 说明                              | 正确做法                                        |
-| ---------------------------------------- | --------------------------------- | ----------------------------------------------- |
-| `obsidianmd/no-unsupported-api`          | 不使用高于 `minAppVersion` 的 API | `minAppVersion` 设为使用的最新 API 版本         |
-| `obsidianmd/no-static-styles-assignment` | 不用 `el.style.cssText = "..."`   | 静态样式 → CSS 类，动态样式 → CSS 类+CSS 变量。 |
-| `obsidianmd/no-innerhtml`                | 不用 `el.innerHTML = html`        | 用 `textContent` 或 DOM API                     |
-| `obsidianmd/no-dynamic-style-elements`   | 不动态创建 `<style>` 元素         | 写入 `styles.css`，状态颜色逐个 `setProperty`   |
-| `obsidianmd/no-html-headings`            | 设置面板不用 `createEl("h2/h3")`  | 用 `new Setting().setName("标题").setHeading()` |
-
-### 审核警告
-
-- 不用 `any` 类型，定义接口替代
-- 不用 `localStorage`，改用 Obsidian 数据 API
+- 用接口替代 `any`
+- 用 Obsidian 数据 API 替代 `localStorage`
 - 用 `activeDocument` 替代 `document`
 - `setTimeout`/`requestAnimationFrame` 加 `window.` 前缀
 - 删除未使用的变量和函数
 - `manifest.json` description 末尾加标点
-- README 必须包含英文
-- `fundingUrl` 链接确保有效
+- README 须含英文
+- `fundingUrl` 确保有效
 
 ## 版本发布与社区提交
 

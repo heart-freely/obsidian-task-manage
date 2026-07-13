@@ -107,11 +107,11 @@ export class Panels {
 
 		this.resizeHandle.addEventListener("mouseenter", () => {
 			if (this.resizeHandle)
-				this.resizeHandle.addClass("task-opacity-100");
+				this.resizeHandle.setCssProps({ "--resize-opacity": "1" });
 		});
 		this.resizeHandle.addEventListener("mouseleave", () => {
 			if (this.resizeHandle)
-				this.resizeHandle.removeClass("task-opacity-100");
+				this.resizeHandle.setCssProps({ "--resize-opacity": "0" });
 		});
 
 		let startY = 0,

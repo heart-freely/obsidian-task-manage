@@ -514,11 +514,11 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 			this.resizeHandle.addEventListener("mouseenter", () => {
 				if (!this.isResizing && this.resizeHandle)
-					this.resizeHandle.style.setProperty("opacity", "1");
+					this.resizeHandle.setCssProps({ "--resize-opacity": "1" });
 			});
 			this.resizeHandle.addEventListener("mouseleave", () => {
 				if (!this.isResizing && this.resizeHandle)
-					this.resizeHandle.style.setProperty("opacity", "0");
+					this.resizeHandle.setCssProps({ "--resize-opacity": "0" });
 			});
 			this.resizeHandle.addEventListener("mousedown", (e) => {
 				if (e.target === arrow) return;
@@ -544,10 +544,10 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			resizeHandle.appendChild(arrow);
 
 			resizeHandle.addEventListener("mouseenter", () => {
-				resizeHandle.style.setProperty("opacity", "1");
+				resizeHandle.setCssProps({ "--resize-opacity": "1" });
 			});
 			resizeHandle.addEventListener("mouseleave", () => {
-				resizeHandle.style.setProperty("opacity", "0");
+				resizeHandle.setCssProps({ "--resize-opacity": "0" });
 			});
 			this.resizeHandle = resizeHandle;
 		}
