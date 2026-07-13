@@ -357,9 +357,17 @@ npm test
 
 项目中避免所有 `el.style.xxx = "..."` 的直接样式操作，替换为符合 Obsidian 规范的 CSS 类 + CSS 变量方式。
 
-
-
 #### 核心替换规则
+
+| 原则                             | 说明                                                         |
+| :------------------------------- | :----------------------------------------------------------- |
+| **静态样式 → CSS 类**            | 固定值使用 `el.addClass("task-xxx")`                         |
+| **动态样式 → CSS 类 + CSS 变量** | 动态值使用 `el.addClass("task-dynamic-xxx")` + `el.setCssProps({ "--task-xxx": value })` |
+| **显示/隐藏切换**                | 使用 `task-hidden` / `task-block` / `task-flex` 等工具类切换 |
+| **类名前缀**                     | 所有自定义类以 `task-` 开头，避免与 Obsidian 核心样式冲突    |
+| **仅修改样式**                   | 不改变任何业务逻辑，只替换 `el.style.xxx` 为 CSS 类          |
+
+
 
 | 场景               | 原始写法                        | 替换写法                                           |
 | ------------------ | ------------------------------- | -------------------------------------------------- |
@@ -367,6 +375,8 @@ npm test
 | 显示/隐藏切换      | `el.style.display = "none"`     | `el.toggleClass("task-hidden", condition)`         |
 | 动态颜色           | `el.style.color = userColor`    | `el.setCssProps({ "--task-color": userColor })`    |
 | 动态尺寸           | `el.style.width = width + "px"` | `el.setCssProps({ "--task-width": width + "px" })` |
+
+
 
 #### 类名规范
 
@@ -376,21 +386,45 @@ npm test
 
 #### 动态样式示例
 
+
+
 ```typescript
-// 用户自定义颜色
+// 动态颜色
 el.addClass("task-dynamic-bg");
 el.setCssProps({ "--task-bg": userColor });
+
+// 动态尺寸
+el.addClass("task-dynamic-width");
+el.setCssProps({ "--task-width": `${width}px` });
+
+// 动态位置
+el.addClass("task-dynamic-transform");
+el.setCssProps({ "--task-transform": `translateX(${value}px)` });
 ```
 
-对应 CSS：
-
 ```css
+/* 对应 CSS */
 .task-dynamic-bg {
     background-color: var(--task-bg, var(--background-primary));
 }
+.task-dynamic-width {
+    width: var(--task-width, 100%);
+}
+.task-dynamic-transform {
+    transform: var(--task-transform, none);
+}
 ```
 
+#### 修改过程中的要求
 
+| 序号 | 要求                                                |
+| :--- | :-------------------------------------------------- |
+| 1    | 只替换 `el.style.xxx` 为 CSS 类，不改变任何业务逻辑 |
+| 2    | 不要保留原代码注释，只提供修改后的完整文件          |
+| 3    | 不要修改不相关的代码（如添加新功能、重写函数）      |
+| 4    | 所有类名以 `task-` 前缀开头                         |
+| 5    | 动态值使用 `setCssProps` 或 `style.setProperty`     |
+| 6    | 优先使用 `addClass` / `removeClass` / `toggleClass` |
 
 ### 审核报错
 

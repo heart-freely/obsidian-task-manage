@@ -1,4 +1,4 @@
-// src/ui/panel/sidebar-panel.ts
+// src/ui/sidebar/sidebar.ts
 // 侧边栏面板
 
 import { Store } from "../../core/store/store";
@@ -28,12 +28,16 @@ export class SidebarPanel {
 
 	private render() {
 		const allBtns = this.container.querySelectorAll(".preset-btn");
-		allBtns.forEach((btn) => ((btn as HTMLElement).style.width = ""));
+		allBtns.forEach((btn) => {
+			const el = btn as HTMLElement;
+			el.style.removeProperty("width");
+			el.removeClass("task-sidebar-btn-auto", "task-sidebar-btn-fixed");
+		});
 		this.container.empty();
 		const state = this.store.getState();
 		const collapsed = state.sidebarCollapsed;
 		this.container.addClass("task-overflow-hidden", "task-relative");
-		this.container.style.zIndex = "1";
+		this.container.addClass("task-z-1");
 
 		const topRow = this.container.createDiv({
 			cls:
@@ -65,8 +69,9 @@ export class SidebarPanel {
 		);
 
 		if (collapsed) {
-			this.container.style.width = "40px";
-			this.container.style.minWidth = "40px";
+			this.container.addClass("task-sidebar-collapsed");
+			this.container.removeClass("task-sidebar-expanded");
+
 			const iconBar = contentDiv.createDiv({ cls: "preset-list" });
 			state.presets.forEach((preset) => {
 				const btn = iconBar.createEl("button", {
@@ -87,7 +92,9 @@ export class SidebarPanel {
 			return;
 		}
 
-		this.container.style.minWidth = "48px";
+		this.container.removeClass("task-sidebar-collapsed");
+		this.container.addClass("task-sidebar-expanded");
+
 		const listDiv = contentDiv.createDiv({ cls: "preset-list" });
 		state.presets.forEach((preset) => {
 			const row = listDiv.createDiv({ cls: "preset-row" });
@@ -131,11 +138,11 @@ export class SidebarPanel {
 		) as NodeListOf<HTMLElement>;
 		if (buttons.length === 0) return;
 		buttons.forEach((btn) => {
-			btn.style.width = "auto";
-			btn.style.boxSizing = "border-box";
-			btn.style.padding = "4px 6px";
+			btn.removeClass("task-sidebar-btn-fixed");
+			btn.addClass("task-sidebar-btn-auto");
 		});
-		this.container.style.width = "auto";
+		this.container.removeClass("task-sidebar-width-fixed");
+		this.container.addClass("task-sidebar-width-auto");
 		buttons[0].offsetHeight;
 		let maxWidth = 0;
 		buttons.forEach((btn) => {
@@ -143,15 +150,21 @@ export class SidebarPanel {
 			if (w > maxWidth) maxWidth = w;
 		});
 		buttons.forEach((btn) => {
-			btn.style.width = maxWidth + "px";
+			btn.removeClass("task-sidebar-btn-auto");
+			btn.addClass("task-sidebar-btn-fixed");
+			btn.setCssProps({ "--task-sidebar-btn-width": maxWidth + "px" });
 		});
-		this.container.style.paddingRight = "0";
+		this.container.removeClass("task-sidebar-width-auto");
+		this.container.addClass("task-sidebar-width-fixed");
+		this.container.style.setProperty("padding-right", "0");
 		const newWidth = maxWidth + 4;
 		if (
 			this.lastSidebarWidth === null ||
 			Math.abs(this.lastSidebarWidth - newWidth) > 1
 		) {
-			this.container.style.width = newWidth + "px";
+			this.container.setCssProps({
+				"--task-sidebar-width": newWidth + "px",
+			});
 			this.lastSidebarWidth = newWidth;
 		}
 	}

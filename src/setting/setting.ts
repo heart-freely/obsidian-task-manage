@@ -4,7 +4,6 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import { updateTaskFileConfig } from "../core/config/config";
 import { DataManager } from "../core/data/data-manager";
 import { safeMergeConfig } from "../util/validate-utils";
-import logger from "../util/logger";
 
 export interface PathFilterConfig {
 	pattern: string;
@@ -142,24 +141,40 @@ export class TaskManageSettingTab extends PluginSettingTab {
 				const pathRow = pathListContainer.createDiv({
 					cls: "path-row",
 				});
-				pathRow.style.cssText =
-					"display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;position:relative;";
+				pathRow.addClass(
+					"task-flex",
+					"task-items-start",
+					"task-gap-2",
+					"task-mb-1",
+					"task-relative",
+				);
 
 				const inputWrapper = pathRow.createDiv();
-				inputWrapper.style.cssText = "flex:1;position:relative;";
+				inputWrapper.addClass("task-flex-1", "task-relative");
 
 				const pathInput = inputWrapper.createEl("input", {
 					type: "text",
 					attr: { placeholder: "输入关键字搜索文件夹，默认根目录" },
 				});
 				pathInput.value = path;
-				pathInput.style.cssText = "width:100%;";
+				pathInput.addClass("task-w-full");
 
 				const dropdown = inputWrapper.createDiv({
 					cls: "folder-dropdown",
 				});
-				dropdown.style.cssText =
-					"display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--background-primary);border:1px solid var(--background-modifier-border);border-radius:4px;z-index:1000;";
+				dropdown.addClass(
+					"task-hidden",
+					"task-absolute",
+					"task-top-full",
+					"task-left-0",
+					"task-right-0",
+					"task-max-h-50",
+					"task-overflow-y-auto",
+					"task-bg-primary",
+					"task-border",
+					"task-rounded",
+					"task-z-1000",
+				);
 
 				let dropdownTimer: ReturnType<typeof setTimeout> | null = null;
 				let hasUserInteracted = false;
@@ -186,7 +201,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 							);
 							dropdown.style.display = "block";
 						} catch (e) {
-							logger.warn("[TaskManage] 下拉渲染失败:", e);
+							console.warn("[TaskManage] 下拉渲染失败:", e);
 						}
 					}, 200);
 				};
@@ -227,8 +242,14 @@ export class TaskManageSettingTab extends PluginSettingTab {
 					text: "✕",
 					cls: "path-del-btn",
 				});
-				delBtn.style.cssText =
-					"border:none;background:transparent;cursor:pointer;color:var(--text-muted);flex-shrink:0;margin-top:4px;";
+				delBtn.addClass(
+					"task-border-none",
+					"task-bg-transparent",
+					"task-clickable",
+					"task-text-muted",
+					"task-flex-shrink-0",
+					"task-mt-1",
+				);
 				delBtn.addEventListener("click", async () => {
 					paths.splice(index, 1);
 					if (paths.length === 0) paths.push("");
@@ -244,8 +265,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "+ 添加任务路径",
 			cls: "filter-add-btn",
 		});
-		addPathBtn.style.cssText =
-			"margin-top:4px;margin-bottom:8px;padding:4px 12px;";
+		addPathBtn.addClass("task-mt-1", "task-mb-2", "task-px-3", "task-py-1");
 		addPathBtn.addEventListener("click", async () => {
 			paths.push("");
 			saveAllPaths();
@@ -256,8 +276,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName("匹配任务").setHeading();
 
 		const row1 = containerEl.createDiv({ cls: "filter-two-col" });
-		row1.style.cssText =
-			"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;";
+		row1.addClass(
+			"task-grid",
+			"task-grid-cols-2",
+			"task-gap-3",
+			"task-mb-2",
+		);
 
 		const folderCol = row1.createDiv();
 		new Setting(folderCol).setName("任务文件夹").setHeading();
@@ -268,8 +292,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		this.renderFilterList(fileCol, "fileFilters", "任务文件名匹配");
 
 		const row2 = containerEl.createDiv({ cls: "filter-two-col" });
-		row2.style.cssText =
-			"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;";
+		row2.addClass(
+			"task-grid",
+			"task-grid-cols-2",
+			"task-gap-3",
+			"task-mt-2",
+		);
 
 		const headingCol = row2.createDiv();
 		new Setting(headingCol).setName("任务标题").setHeading();
@@ -283,7 +311,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName("插件配置").setHeading();
 
 		const ioRow = containerEl.createDiv();
-		ioRow.style.cssText = "display:flex;gap:12px;";
+		ioRow.addClass("task-flex", "task-gap-3");
 
 		const importBtn = ioRow.createEl("button", {
 			text: "📥 导入插件配置",
@@ -347,7 +375,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			this.folderCache = [...folders].sort();
 			return this.folderCache;
 		} catch (e) {
-			logger.warn("[TaskManage] 获取文件夹列表失败:", e);
+			console.warn("[TaskManage] 获取文件夹列表失败:", e);
 			return [];
 		}
 	}
@@ -366,11 +394,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			: folders;
 
 		if (filtered.length === 0) {
-			container.createDiv({
+			const empty = container.createDiv({
 				text: "未找到匹配的文件夹",
 				cls: "dropdown-empty",
-			}).style.cssText =
-				"padding:8px;color:var(--text-muted);font-size:12px;";
+			});
+			empty.addClass("task-p-2", "task-text-muted", "task-text-xs");
 			return;
 		}
 
@@ -378,8 +406,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		const displayItems = filtered.slice(0, limit);
 		displayItems.forEach((path) => {
 			const item = container.createDiv({ cls: "dropdown-item" });
-			item.style.cssText =
-				"padding:4px 8px;cursor:pointer;font-size:13px;";
+			item.addClass(
+				"task-px-2",
+				"task-py-1",
+				"task-clickable",
+				"task-text-sm",
+			);
 			item.textContent = path;
 			item.addEventListener("mouseenter", () => {
 				item.style.backgroundColor = "var(--background-modifier-hover)";
@@ -394,11 +426,16 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 
 		if (filtered.length > limit) {
-			container.createDiv({
+			const more = container.createDiv({
 				text: `... 还有 ${filtered.length - limit} 个结果`,
 				cls: "dropdown-empty",
-			}).style.cssText =
-				"padding:4px 8px;color:var(--text-muted);font-size:11px;";
+			});
+			more.addClass(
+				"task-px-2",
+				"task-py-1",
+				"task-text-muted",
+				"task-text-xs",
+			);
 		}
 	}
 
@@ -418,7 +455,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "+ 添加" + label,
 			cls: "filter-add-btn",
 		});
-		addBtn.style.cssText = "margin-top:4px;padding:4px 12px;";
+		addBtn.addClass("task-mt-1", "task-px-3", "task-py-1");
 		addBtn.addEventListener("click", async () => {
 			filters.push({
 				pattern: "",
@@ -447,15 +484,20 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		label: string,
 	) {
 		const row = containerEl.createDiv({ cls: "filter-row" });
-		row.style.cssText =
-			"display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;";
+		row.addClass(
+			"task-flex",
+			"task-items-center",
+			"task-gap-1",
+			"task-mb-1",
+			"task-flex-wrap",
+		);
 
 		const input = row.createEl("input", {
 			type: "text",
 			attr: { placeholder: label + "模式" },
 		});
 		input.value = filter.pattern || "";
-		input.style.cssText = "flex:1;min-width:100px;";
+		input.addClass("task-flex-1", "task-min-w-25");
 		input.addEventListener("input", async () => {
 			filter.pattern = input.value;
 			await this.saveSettings();
@@ -516,8 +558,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "✕",
 			cls: "filter-del-btn",
 		});
-		delBtn.style.cssText =
-			"border:none;background:transparent;cursor:pointer;color:var(--text-muted);";
+		delBtn.addClass(
+			"task-border-none",
+			"task-bg-transparent",
+			"task-clickable",
+			"task-text-muted",
+		);
 		delBtn.addEventListener("click", async () => {
 			const filters: PathFilterConfig[] = this.plugin.settings[key] || [];
 			filters.splice(index, 1);
@@ -540,7 +586,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "+ 添加任务项匹配",
 			cls: "filter-add-btn",
 		});
-		addBtn.style.cssText = "margin-top:12px;padding:4px 12px;";
+		addBtn.addClass("task-mt-3", "task-px-3", "task-py-1");
 		addBtn.addEventListener("click", async () => {
 			filters.push({ pattern: "", exclude: false });
 			this.plugin.settings.taskItemFilters = filters;
@@ -559,15 +605,19 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		index: number,
 	) {
 		const row = containerEl.createDiv({ cls: "filter-row" });
-		row.style.cssText =
-			"display:flex;align-items:center;gap:6px;margin-bottom:4px;";
+		row.addClass(
+			"task-flex",
+			"task-items-center",
+			"task-gap-1",
+			"task-mb-1",
+		);
 
 		const input = row.createEl("input", {
 			type: "text",
 			attr: { placeholder: "输入状态符号，如 x" },
 		});
 		input.value = filter.pattern || "";
-		input.style.cssText = "flex:1;min-width:100px;max-width:200px;";
+		input.addClass("task-flex-1", "task-min-w-25", "task-max-w-50");
 		input.addEventListener("input", async () => {
 			filter.pattern = input.value;
 			await this.saveSettings();
@@ -592,8 +642,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			text: "✕",
 			cls: "filter-del-btn",
 		});
-		delBtn.style.cssText =
-			"border:none;background:transparent;cursor:pointer;color:var(--text-muted);";
+		delBtn.addClass(
+			"task-border-none",
+			"task-bg-transparent",
+			"task-clickable",
+			"task-text-muted",
+		);
 		delBtn.addEventListener("click", async () => {
 			const list: TaskItemFilterConfig[] =
 				this.plugin.settings.taskItemFilters || [];

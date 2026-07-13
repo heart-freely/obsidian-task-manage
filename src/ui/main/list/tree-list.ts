@@ -25,7 +25,8 @@ export interface TreeListOptions {
 function createRowWrapper(depth: number): HTMLElement {
 	const w = document.createElement("div");
 	w.addClass("task-flex", "task-items-center", "task-gap-0");
-	w.style.marginLeft = `${depth * INDENT_WIDTH}px`;
+	w.addClass("task-tree-indent");
+	w.setCssProps({ "--task-indent": `${depth * INDENT_WIDTH}px` });
 	return w;
 }
 
