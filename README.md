@@ -1,231 +1,247 @@
-# 任务管理 (Task Manage)
+# Task Manage
+
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.zh.md">简体中文</a>
+</p>
 
 [![GitHub release](https://img.shields.io/github/v/release/heart-freely/obsidian-task-manage)](https://github.com/heart-freely/obsidian-task-manage/releases)
 [![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22obsidian-task-manage%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)](https://obsidian.md/plugins?id=obsidian-task-manage)
 
-Obsidian 全功能任务管理插件，将 Markdown 任务标记转化为结构化数据，提供列表、看板、矩阵、日历、甘特图、任务树、统计图表等 19 种可视化视图，覆盖任务收集、整理、组织、回顾、执行、统计全流程。
+3-level task management (file/heading/list), 19 views (kanban/matrix/calendar/Gantt/task tree/statistics), batch edit task marks, supports multiple task management methods.
 
-## 为什么选择任务管理插件
+## Why Choose Task Manage
 
-- **19 种视图**：从简单列表到高级甘特图，满足不同场景需求
-- **全局筛选**：一次配置，所有视图同步生效
-- **方案驱动**：保存多套视图配置，一键切换工作场景
-- **批量编辑**：支持批量修改任务标记，快照撤回保安全
-- **日历与甘特图**：时间维度可视化，直观掌握任务分布与依赖关系
+- **19 Views**: From simple lists to advanced Gantt charts, meeting diverse scenario needs
+- **Global Filtering**: Configure once, apply to all views simultaneously
+- **Solution-Driven**: Save multiple view configurations, switch work scenarios with one click
+- **Batch Editing**: Batch modify task marks with snapshot rollback for safety
+- **Calendar & Gantt Chart**: Visualize time dimensions to intuitively grasp task distribution and dependencies
 
-## 依赖
+## Dependencies
 
-本插件需要以下插件提供数据支持：
+This plugin requires the following plugin for data support:
 
-- [Tasks](https://obsidian.md/plugins?id=obsidian-tasks-plugin) — 任务标记解析与编辑
+- [Tasks](https://obsidian.md/plugins?id=obsidian-tasks-plugin) — Task mark parsing and editing
 
-> 请先在 Obsidian 中安装并启用此插件。
+> Please install and enable this plugin in Obsidian first.
 
-## 安装
+## Installation
 
-### 社区插件市场（推荐）
+### Community Plugin Marketplace (Recommended)
 
-1. 打开 Obsidian **设置 → 社区插件**
-2. 点击 **浏览**，搜索 **任务管理**
-3. 安装并启用
+1. Open Obsidian **Settings → Community Plugins**
+2. Click **Browse**, search for **Task Manage**
+3. Install and enable
 
-### 手动安装
+### Manual Installation
 
-1. 从 [Releases](https://github.com/heart-freely/obsidian-task-manage/releases) 下载 `main.js`、`manifest.json`、`styles.css`
-2. 放入 `<vault>/.obsidian/plugins/obsidian-task-manage/`
-3. 重启 Obsidian 并启用插件
+1. Download `main.js`, `manifest.json`, `styles.css` from [Releases](https://github.com/heart-freely/obsidian-task-manage/releases)
+2. Place them in `<vault>/.obsidian/plugins/obsidian-task-manage/`
+3. Restart Obsidian and enable the plugin
 
-## 快速上手
+## Quick Start
 
-### 1. 配置任务路径
+### 1. Configure Task Paths
 
-安装后打开 **设置 → 任务管理**，在"任务路径"中添加包含任务的文件夹。插件会自动扫描其中的 Markdown 文件。
+After installation, open **Settings → Task Manage**, add folders containing tasks in the "Task Path" field. The plugin will automatically scan Markdown files within them.
 
-### 2. 打开主面板
+### 2. Open Main Panel
 
-点击左侧功能区的 ![](https://api.iconify.design/lucide/list-checks.svg) 图标，或使用命令面板搜索"任务管理"。
+Click the ![](https://api.iconify.design/lucide/list-checks.svg) icon in the left ribbon, or search for "Task Manage" in the command palette.
 
-### 3. 选择视图
+### 3. Choose a View
 
-左侧边栏提供预设视图：
+The left sidebar provides preset views:
 
-| 视图     | 说明                           |
-| -------- | ------------------------------ |
-| 待办任务 | 待办中 + 计划中的任务          |
-| 重要任务 | 高优先级（🔺⏫🔼）的进行中任务 |
-| 今天任务 | 日期为今天的任务               |
-| 未来任务 | 未来 15 天内的任务             |
-| 所有任务 | 全部任务                       |
+| View            | Description                                       | Use Case                      |
+| --------------- | ------------------------------------------------- | ----------------------------- |
+| Todo Tasks      | Tasks that are Todo + Planned                     | Daily todo review             |
+| Important Tasks | High-priority (🔺⏫🔼) tasks that are In Progress | Focus on high-priority tasks  |
+| Today Tasks     | Tasks due today                                   | Handle tasks due today        |
+| Future Tasks    | Tasks due within the next 15 days                 | Plan ahead for near-term work |
+| All Tasks       | All tasks, no filter                              | Global browsing or batch ops  |
 
-点击 **➕ 新建视图** 可创建自定义方案。
+Click **➕ New View** to create custom solutions.
 
-### 4. 筛选与排序
+### 4. Filter & Sort
 
-顶部视图配置面板提供 9 个功能栏：
+The top view configuration panel provides 9 toolbars:
 
-| 面板     | 功能                                                                 |
-| -------- | -------------------------------------------------------------------- |
-| 筛选状态 | 按执行状态筛选（待办/计划/进行中/已完成/已取消），主按钮全选/全不选  |
-| 筛选描述 | 关键词搜索（空格分隔，多词"且"逻辑），回车搜索                       |
-| 筛选标记 | 优先级/循环周期/创建/计划/开始/取消/完成/截止日期/唯一ID/引用ID/标签 |
-| 筛选时间 | 动态滑动条（日/周/月/季/年）+ 静态滑动条，支持"使用动态"联动         |
-| 任务视图 | 4 组 19 种视图样式（基础/标记/管理/统计）                            |
-| 视图隐藏 | 隐藏循环/已完成/已取消/指定状态/优先级/描述/标记任务                 |
-| 视图排序 | 原始顺序 + 14 种排序字段，支持升降序                                 |
-| 视图编辑 | 批量编辑/补全时间/标记排序/保存修改/快照撤回                         |
-| 视图配置 | 视图名称与图标/导入导出 JSON/恢复默认/删除视图                       |
+| Panel           | Function                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| Filter Status   | Filter by execution status (Todo/Planned/In Progress/Done/Cancelled), main button for Select All/Deselect All |
+| Filter Describe | Keyword search (space-separated, multiple words with "AND" logic), press Enter to search                      |
+| Filter Marks    | Priority/Recurrence/Created/Planned/Start/Cancelled/Done/Due Date/Unique ID/Reference ID/Tag                  |
+| Filter Time     | Dynamic slider (Day/Week/Month/Quarter/Year) + Static slider, with "Use Dynamic" linkage support              |
+| Task View       | 4 groups of 19 view styles (Basic/Mark/Manage/Statistics)                                                     |
+| View Hide       | Hide Recurring/Done/Cancelled/Specific Status/Priority/Description/Marked tasks                               |
+| View Sort       | Original order + 14 sort fields, with ascending/descending support                                            |
+| View Edit       | Batch edit/Complete time/Mark sort/Save changes/Snapshot rollback                                             |
+| View Config     | View name & icon/Import & Export JSON/Restore default/Delete view                                             |
 
-所有筛选条件自动保存，重启后恢复。
+All filter conditions are automatically saved and restored on restart.
 
-## 视图介绍
+## View Introduction
 
-### 基础视图（列表 / 卡片 / 表格）
+### Basic Views (List / Card / Table)
 
-- **列表**：详细模式显示完整标记信息，简洁模式仅显示描述
-- **卡片**：网格布局，左侧颜色条标识状态
-- **表格**：可排序表格，空列自动隐藏
+- **List**: Detailed mode displays full mark information, concise mode displays only descriptions
+- **Card**: Grid layout with left color bar indicating status
+- **Table**: Sortable table with empty columns automatically hidden
 
-### 标记视图（状态 / 优先级 / 循环 / 日期 / 标签 / 唯一ID / 引用ID）
+### Mark Views (Status / Priority / Recurrence / Date / Tag / Unique ID / Reference ID)
 
-按指定标记类型分组展示，每组独立颜色条。
+Group tasks by the selected mark type (e.g., "Priority"), each group identified by an independent color bar. For example, selecting the "Priority" view groups all tasks into 5 categories: 🔺/⏫/🔼/🔽/⏬.
 
-### 管理视图
+### Management Views
 
-#### 看板
+#### Kanban
 
-待办中 / 计划中 / 进行中 三列横向排列。
+Three columns arranged horizontally: Todo / Planned / In Progress.
 
-#### 矩阵
+#### Matrix
 
-四象限分类：🔺紧急重要 / ⏫不紧急重要 / 🔼紧急不重要 / 🔽⏬不紧急不重要。
+Four-quadrant classification: 🔺 Urgent & Important / ⏫ Not Urgent but Important / 🔼 Urgent but Not Important / 🔽⏬ Not Urgent & Not Important.
 
-#### 逾期
+#### Overdue
 
-按逾期天数分组（今天到期 / 逾期 1 天 / 逾期 N 天）。
+Grouped by overdue days (Due Today / Overdue 1 day / Overdue N days).
 
-#### 时间轴
+#### Timeline
 
-按截止日期分组，时间线展示任务分布。
+Grouped by due date, displaying task distribution along a timeline.
 
-#### 日历图
+#### Calendar View
 
-日 / 周 / 月 / 季 / 年五种视图：
+Five views: Year / Quarter / Month / Week / Day:
 
-- **日视图**：卡片列表
-- **周/月/季视图**：时间轴方案，7 列换行
-- **年视图**：热力图，颜色深浅表示任务密度
+- **Year View**: Heatmap, color intensity indicates task density
+- **Quarter View**: 7 columns, task bars
+- **Month View**: 7 columns, task bars
+- **Week View**: 7 columns, task bars
+- **Day View**: Card list
 
-交互：点击日期头跳转日视图，双击任务条跳转源文件，鼠标悬停显示完整信息。
+Interactions: Click date header to jump to Day View, double-click task bar to jump to source file, hover to show full information.
 
-#### 甘特图
+#### Gantt Chart
 
-- 左侧任务树 + 右侧时间轴
-- 任务条按执行状态着色
-- 依赖箭头（⛔ 标记）自动绘制
-- Alt + 滚轮缩放，拖拽平移
-- 点击 ➤ 按钮定位任务条
-- 单击任务条定位到任务树节点
+- Left task tree + right timeline
+- Task bars colored by execution status
+- Dependency arrows (⛔ mark) automatically drawn
+- Hold `Alt` and scroll mouse wheel to zoom timeline, drag blank area to pan
+- Click ➤ button to automatically locate task bar
+- Click task bar to jump to corresponding task tree node in the left panel
 
-#### 任务树
+#### Task Tree
 
-按文件 → 标题 → 列表任务三级展示：
+Three-level display: File → Heading → List Task:
 
-- 折叠/展开节点
-- 进度条显示子任务完成情况
-- 支持任务间父子关系（YAML `父任务` + Wiki 链接）
+- Collapse/expand nodes
+- Progress bar showing subtask completion status
+- Supports parent-child relationships between tasks (YAML `父任务` + Wiki link)
 
-### 统计视图
+### Statistics Views
 
-- **标记统计**：6 个饼图，统计状态/优先级/循环/日期/依赖/标签
-- **详细统计**：堆叠柱状图，按日期展示各状态任务数量变化
+- **Mark Statistics**: 6 pie charts, counting Status/Priority/Recurrence/Date/Dependency/Tag
+- **Detailed Statistics**: Stacked bar chart showing task count changes by date across statuses
 
-## 任务标记格式
+## Task Mark Format
 
-插件解析任务行中的 Emoji 标记：
-任务描述 🔺 🔁 every week ➕ 2025-09-06 ⏳ 2025-09-06 🛫 2025-09-06 📅 2026-04-06 🆔 dcf64c ⛔ dcf64c 🏁 keep
+The plugin parses Emoji marks in task lines:
 
-text
+```text
+- [ ] Task description 🔺 🔁 every week ➕ 2025-09-06 ⏳ 2025-09-06 🛫 2025-09-06 📅 2026-04-06 🆔 dcf64c ⛔ dcf64c 🏁 keep
+```
 
-| 标记            | 含义       | 示例                     |
-| --------------- | ---------- | ------------------------ |
-| `- [ ]`         | 待办中     | 执行状态（空格/?/>/x/-） |
-| `🔺⏫🔼🔽⏬`    | 优先级     | 🔺（最高）→ ⏬（最低）   |
-| `🔁 every ...`  | 循环周期   | 🔁 every week            |
-| `➕ YYYY-MM-DD` | 创建日期   | ➕ 2025-09-06            |
-| `⏳ YYYY-MM-DD` | 计划日期   | ⏳ 2025-09-06            |
-| `🛫 YYYY-MM-DD` | 开始日期   | 🛫 2025-09-06            |
-| `📅 YYYY-MM-DD` | 截止日期   | 📅 2026-04-06            |
-| `✅ YYYY-MM-DD` | 完成日期   | ✅ 2023-04-17            |
-| `❌ YYYY-MM-DD` | 取消日期   | ❌ 2023-04-18            |
-| `🆔 id`         | 唯一标识   | 🆔 dcf64c                |
-| `⛔ id1,id2`    | 依赖任务   | ⛔ dcf64c,h17ye          |
-| `🏁 keyword`    | 自定义标签 | 🏁 keep                  |
+| Mark            | Meaning           | Example                          |
+| --------------- | ----------------- | -------------------------------- |
+| `- [ ]`         | Todo              | Execution status (space/?/>/x/-) |
+| `🔺⏫🔼🔽⏬`    | Priority          | 🔺 (Highest) → ⏬ (Lowest)       |
+| `🔁 every ...`  | Recurrence        | 🔁 every week                    |
+| `➕ YYYY-MM-DD` | Created Date      | ➕ 2025-09-06                    |
+| `⏳ YYYY-MM-DD` | Planned Date      | ⏳ 2025-09-06                    |
+| `🛫 YYYY-MM-DD` | Start Date        | 🛫 2025-09-06                    |
+| `📅 YYYY-MM-DD` | Due Date          | 📅 2026-04-06                    |
+| `✅ YYYY-MM-DD` | Done Date         | ✅ 2023-04-17                    |
+| `❌ YYYY-MM-DD` | Cancelled Date    | ❌ 2023-04-18                    |
+| `🆔 id`         | Unique ID         | 🆔 dcf64c                        |
+| `⛔ id1,id2`    | Task Dependencies | ⛔ dcf64c,h17ye                  |
+| `🏁 keyword`    | Custom Tag        | 🏁 keep                          |
 
-> 标记顺序不敏感，插件会自动按规范排序。
+> Mark order is not sensitive; the plugin will automatically sort them according to specification.
 
-## 编辑功能
+## Editing Features
 
-在列表/卡片视图下，**单击任务卡片**进入编辑模式：
+In List/Card view, **click a task card** to enter edit mode:
 
-### 单个编辑
+### Single Edit
 
-- 点击标记按钮（状态/优先级/循环/日期/标签/ID 等）修改对应标记
-- 描述可直接点击编辑
-- 预览实时显示修改结果
-- 点击"保存"写入文件
+- Click mark buttons (Status/Priority/Recurrence/Date/Tag/ID, etc.) to modify corresponding marks
+- Description can be edited directly by clicking
+- Preview shows changes in real-time
+- Click "Save" to write to file
 
-### 批量编辑
+### Batch Edit
 
-1. 点击面板中"批量编辑"按钮
-2. 勾选需要编辑的任务（支持全选/全不选）
-3. 点击编辑按钮同步修改所有勾选任务
-4. 支持补全时间、标记排序
-5. 保存后可在"批量撤回"中恢复
+1. Click the "Batch Edit" button in the panel
+2. Check tasks to edit (supports Select All/Deselect All)
+3. Click edit buttons to sync modifications to all checked tasks
+4. Supports completing time and mark sorting
+5. Can be restored via "Batch Rollback" after saving
 
-## 文件间任务关系
+## Cross-File Task Relationships
 
-插件支持通过以下方式建立任务文件间的父子关系：
+The plugin supports establishing parent-child relationships between tasks across files through:
 
-- **YAML 元属性**：在子任务文件 frontmatter 中设置 `父任务: 父文件名`
-- **Wiki 链接**：在父文件中使用 `[[子文件名]]`
+- **YAML Meta Property**: Set `父任务: 父文件名` in the frontmatter of subtask files
+- **Wiki Link**: Use `[[子文件名]]` in the parent file
 
-两种方式并存时优先使用 YAML 声明。
+When both methods exist, the YAML declaration takes precedence.
 
-## 插件设置
+### Plugin Settings
 
-**设置 → 任务管理** 提供：
+**Settings → Task Manage** provides:
 
-| 设置项    | 说明                                     |
-| --------- | ---------------------------------------- |
-| 任务路径  | 任务文件所在文件夹（支持多个，逗号分隔） |
-| 匹配任务  | 文件夹/文件/标题/任务项四级过滤器        |
-| 导入/导出 | 插件配置的 JSON 导入导出                 |
+| Setting       | Description                                                        |
+| ------------- | ------------------------------------------------------------------ |
+| Task Path     | Folders containing task files (supports multiple, comma-separated) |
+| Match Tasks   | Four-level filter: Folder/File/Heading/Task Item                   |
+| Import/Export | JSON import/export of plugin configuration                         |
 
-## 常见问题
+## FAQ
 
-**Q: 为什么打开面板后没有任务显示？**
-A: 请检查以下几项：
+**Q: Why are no tasks displayed after opening the panel?**
+A: Please check the following:
 
-1. 在 **设置 → 任务管理** 中正确配置了任务文件所在文件夹路径
-2. 任务文件中包含有效的任务标记（至少需要 `- [ ]` 开头）
-3. 已安装并启用 [Tasks](https://obsidian.md/plugins?id=obsidian-tasks-plugin) 插件
+1. The task file folder path is correctly configured in **Settings → Task Manage**
+2. Task files contain valid task marks (at least `- [ ]` at the beginning)
+3. The [Tasks](https://obsidian.md/plugins?id=obsidian-tasks-plugin) plugin is installed and enabled
 
-**Q: 甘特图为什么只有少量任务？**
-A: 甘特图需要任务包含日期标记才能显示时间条。请确保任务至少包含以下之一：计划日期 `⏳`、开始日期 `🛫`、截止日期 `📅`。
+**Q: Why does the Gantt chart show only a few tasks?**
+A: The Gantt chart requires tasks to have date marks to display time bars. Ensure tasks contain at least one of: Planned Date `⏳`, Start Date `🛫`, or Due Date `📅`.
 
-**Q: 依赖箭头为什么不显示？**
-A: 依赖箭头需要两个条件：
+**Q: Why aren't dependency arrows displayed?**
+A: Dependency arrows require two conditions:
 
-1. 被依赖的任务有 `🆔` 唯一标识
-2. 依赖方任务有 `⛔` 引用该标识
-3. 两个任务都有日期范围且在当前筛选结果中可见
+1. The depended task has a `🆔` Unique ID
+2. The dependent task references that ID via `⛔`
+3. Both tasks have date ranges and are visible in the current filter results
 
-**Q: 如何备份和恢复视图配置？**
-A: 在视图配置面板中点击 **📤 导出配置** 保存为 JSON 文件，需要时点击 **📥 导入配置** 恢复。插件配置可在设置中导入导出。
+**Q: How do I back up and restore view configurations?**
+A: Click **📤 Export Config** in the view configuration panel to save as a JSON file, and click **📥 Import Config** when needed to restore. Plugin configurations can be imported/exported in settings.
 
-**Q: 插件支持移动端吗？**
-A: 当前版本仅在桌面端测试通过，移动端兼容性将在后续版本中完善。
+**Q: Does the plugin modify my original task files?**
+A: Yes. All editing operations (single edit/batch edit) directly modify Markdown files. It is recommended to back up or commit with Git before batch operations. The plugin's built-in "Snapshot Rollback" feature can undo the most recent batch edit.
 
-## 许可
+**Q: Does the plugin support mobile?**
+A: The current version is tested only on desktop. Mobile compatibility will be improved in future releases.
+
+## Feedback & Contributions
+
+- Found an issue? Submit it on [GitHub Issues](https://github.com/heart-freely/obsidian-task-manage/issues)
+- Pull requests are welcome!
+- Like this plugin? Give it a ⭐!
+
+## License
 
 [MIT](LICENSE)
