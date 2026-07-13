@@ -544,10 +544,10 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			resizeHandle.appendChild(arrow);
 
 			resizeHandle.addEventListener("mouseenter", () => {
-				resizeHandle.addClass("task-opacity-100");
+				resizeHandle.style.setProperty("opacity", "1");
 			});
 			resizeHandle.addEventListener("mouseleave", () => {
-				resizeHandle.addClass("task-opacity-40");
+				resizeHandle.style.setProperty("opacity", "0");
 			});
 			this.resizeHandle = resizeHandle;
 		}

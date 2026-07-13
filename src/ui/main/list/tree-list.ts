@@ -24,8 +24,12 @@ export interface TreeListOptions {
 
 function createRowWrapper(depth: number): HTMLElement {
 	const w = document.createElement("div");
-	w.addClass("task-flex", "task-items-center", "task-gap-0");
-	w.addClass("task-tree-indent");
+	w.addClass(
+		"task-flex",
+		"task-items-center",
+		"task-gap-0",
+		"task-tree-indent",
+	);
 	w.setCssProps({ "--task-indent": `${depth * INDENT_WIDTH}px` });
 	return w;
 }
@@ -236,6 +240,10 @@ function renderNode(
 		onClick: options?.onDoubleClick,
 		onSingleClick: options?.onClick,
 	});
+	const descEl = card.querySelector(".task-desc") as HTMLElement;
+	if (descEl) {
+		descEl.addClass("task-text-sm");
+	}
 	contentContainer.appendChild(card);
 	if (total > 0 && hasChildren)
 		addProgressBadge(contentContainer, counts, total);

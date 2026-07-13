@@ -424,7 +424,10 @@ export class BaseTaskEdit {
 		if (previewRow) {
 			previewRow.replaceChildren();
 			previewRow.addClass("task-hidden");
-			previewRow.style.setProperty("background", "");
+			previewRow.removeClass(
+				"task-edit-preview-saved",
+				"task-edit-preview-unsaved",
+			);
 		}
 	}
 
@@ -454,7 +457,10 @@ export class BaseTaskEdit {
 		if (previewRow) {
 			previewRow.replaceChildren();
 			previewRow.addClass("task-hidden");
-			previewRow.style.setProperty("background", "");
+			previewRow.removeClass(
+				"task-edit-preview-saved",
+				"task-edit-preview-unsaved",
+			);
 		}
 
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
@@ -469,9 +475,7 @@ export class BaseTaskEdit {
 				});
 				try {
 					editBar.parentNode.replaceChild(newEditBar, editBar);
-				} catch (e) {
-					// 忽略
-				}
+				} catch (e) {}
 			}
 		}
 
@@ -582,9 +586,7 @@ export class BaseTaskEdit {
 		if (editBar) {
 			try {
 				editBar.parentNode!.replaceChild(newEditBar, editBar);
-			} catch (e) {
-				// 忽略
-			}
+			} catch (e) {}
 		} else {
 			card.appendChild(newEditBar);
 		}
@@ -609,9 +611,7 @@ export class BaseTaskEdit {
 						newPreviewRow,
 						previewRow,
 					);
-				} catch (e) {
-					// 忽略
-				}
+				} catch (e) {}
 			} else {
 				card.appendChild(newPreviewRow);
 			}
@@ -623,7 +623,10 @@ export class BaseTaskEdit {
 			} else {
 				previewRow.replaceChildren();
 				previewRow.addClass("task-hidden");
-				previewRow.style.setProperty("background", "");
+				previewRow.removeClass(
+					"task-edit-preview-saved",
+					"task-edit-preview-unsaved",
+				);
 			}
 		}
 	}

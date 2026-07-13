@@ -1,3 +1,5 @@
+整理gantt部分：
+
 /* ================================================================
    Obsidian Task Manage — 完整样式文件
    ================================================================ */
@@ -599,85 +601,6 @@
 	color: var(--text-muted);
 	white-space: nowrap;
 	flex-shrink: 0;
-}
-
-/* ========== 甘特图 ========== */
-.gantt-scroll-area {
-	flex: 1;
-	overflow: auto;
-	position: relative;
-}
-.gantt-header {
-	position: sticky;
-	top: 0;
-	z-index: 3;
-	background: var(--background-primary);
-	border-bottom: 1px solid var(--background-modifier-border);
-	overflow: hidden;
-	flex-shrink: 0;
-}
-.gantt-content {
-	position: relative;
-	min-height: 200px;
-	padding-bottom: 40px;
-	overflow: hidden;
-}
-.gantt-tree-container {
-	position: relative;
-	z-index: 2;
-	display: inline-block;
-}
-.gantt-bar {
-	position: absolute;
-	top: 50%;
-	transform: translateY(-50%);
-	border-radius: 4px;
-	cursor: pointer;
-	opacity: 0.85;
-	z-index: 2;
-	display: flex;
-	align-items: center;
-	overflow: hidden;
-	transition: opacity 0.1s;
-}
-.gantt-bar:hover {
-	filter: brightness(1.2);
-	z-index: 5;
-}
-.gantt-grid-overlay {
-	position: absolute;
-	top: 0;
-	height: 100%;
-	pointer-events: none;
-	z-index: 0;
-}
-.gantt-bars-container {
-	position: absolute;
-	top: 48px;
-	left: 0;
-	z-index: 6;
-}
-.gantt-today-line {
-	position: absolute;
-	top: 48px;
-	width: 2px;
-	background: var(--interactive-accent, #7fb8f0);
-	opacity: 0.5;
-	z-index: 4;
-	pointer-events: none;
-}
-.gantt-timeline-lines {
-	position: absolute;
-	top: 48px;
-	pointer-events: none;
-	z-index: 0;
-}
-.gantt-dependency-svg {
-	position: absolute;
-	top: 0;
-	left: 0;
-	z-index: 7;
-	overflow: visible;
 }
 
 /* ========== 统计图表 ========== */
@@ -1492,8 +1415,8 @@
 }
 
 /* 编辑按钮 */
+/* 编辑按钮基类 - 不用 all:unset，使用透明默认值 */
 .edit-btn {
-	all: unset;
 	padding: 1px 3px;
 	border-radius: 3px;
 	cursor: pointer;
@@ -1502,27 +1425,36 @@
 	line-height: 1;
 	display: inline-flex;
 	align-items: center;
-	border: 1px solid transparent;
-	outline: none;
 	box-sizing: border-box;
+	background: transparent !important;
+	color: inherit !important;
+	border: 1px solid transparent !important;
 }
+
+/* 编辑按钮 - 激活态（编辑模式下有值或展开时） */
 .edit-btn-active {
-	background: var(--interactive-accent);
-	color: white;
-	border-color: var(--interactive-accent);
+	background: var(--interactive-accent) !important;
+	color: white !important;
+	border: 1px solid var(--interactive-accent) !important;
 }
+
+/* 编辑按钮 - 悬停态 */
 .edit-btn-hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-	border-color: var(--background-modifier-border);
+	background: var(--background-modifier-hover) !important;
+	color: var(--text-normal) !important;
+	border: 1px solid var(--background-modifier-border) !important;
 }
+
+/* 编辑按钮 - 默认态（阅读模式下透明，编辑模式下显示文字） */
 .edit-btn-default {
-	background: transparent;
-	color: inherit;
-	border-color: transparent;
+	background: transparent !important;
+	color: inherit !important;
+	border: 1px solid transparent !important;
 }
+
+/* 编辑按钮 - 隐藏态 */
 .edit-btn-hidden {
-	display: none;
+	display: none !important;
 }
 .edit-file-name {
 	padding: 0;
@@ -2326,4 +2258,270 @@
 
 .task-cursor-default {
 	cursor: default;
+}
+.panel-container-layout {
+	height: var(--panel-height, 300px);
+	padding: var(--panel-padding, 0);
+	border: var(--panel-border, 1px solid var(--background-modifier-border));
+}
+.manage-view {
+	padding-top: var(--view-padding-top, 0px);
+}
+/* ========== 甘特图 ========== */
+.gantt-scroll-area {
+	flex: 1;
+	overflow: auto;
+	position: relative;
+}
+.gantt-header {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	background: var(--background-primary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	overflow: hidden;
+	flex-shrink: 0;
+	transform: var(--gantt-header-translate, none);
+}
+.gantt-content {
+	position: relative;
+	min-height: 200px;
+	padding-bottom: 40px;
+	overflow: hidden;
+}
+.gantt-tree-container {
+	position: relative;
+	z-index: 2;
+	display: inline-block;
+}
+.gantt-bar {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	border-radius: 4px;
+	cursor: pointer;
+	opacity: 0.85;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	overflow: hidden;
+	transition: opacity 0.1s;
+}
+.gantt-bar:hover {
+	filter: brightness(1.2);
+	z-index: 5;
+}
+.gantt-grid-overlay {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	pointer-events: none;
+	z-index: 0;
+}
+.gantt-bars-container {
+	position: absolute;
+	top: 48px;
+	left: 0;
+	z-index: 6;
+}
+.gantt-today-line {
+	position: absolute;
+	top: 48px;
+	width: 2px;
+	background: var(--interactive-accent, #7fb8f0);
+	opacity: 0.5;
+	z-index: 4;
+	pointer-events: none;
+}
+.gantt-timeline-lines {
+	position: absolute;
+	top: 48px;
+	pointer-events: none;
+	z-index: 0;
+}
+.gantt-dependency-svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 7;
+	overflow: visible;
+}
+
+/* 甘特图动态样式 */
+.gantt-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	background: transparent;
+	user-select: none;
+}
+.gantt-header-dynamic {
+	height: var(--gantt-header-height, 48px);
+	width: var(--gantt-header-width, auto);
+}
+.gantt-header-spacer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: var(--gantt-spacer-width, 200px);
+	height: 100%;
+	background: var(--background-primary);
+	z-index: 5;
+}
+.gantt-header-inner-dynamic {
+	position: absolute;
+	top: 0;
+	left: var(--gantt-inner-left, 200px);
+	height: 100%;
+	width: var(--gantt-inner-width, auto);
+	content-visibility: auto;
+}
+.gantt-header-label {
+	position: absolute;
+	left: var(--gantt-label-left, 0px);
+	top: var(--gantt-label-top, 0px);
+	width: var(--gantt-label-width, 0px);
+	height: var(--gantt-label-height, 0px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--gantt-label-font-size, 10px);
+	font-weight: var(--gantt-label-font-weight, normal);
+	color: var(--gantt-label-color, var(--text-normal));
+	white-space: nowrap;
+	overflow: hidden;
+}
+.gantt-header-label-border-right {
+	border-right: 1px solid
+		var(--gantt-label-border-color, var(--background-modifier-border));
+}
+.gantt-header-top {
+	top: 0;
+}
+.gantt-bar-dynamic {
+	position: absolute;
+	left: var(--gantt-bar-left, 0px);
+	top: var(--gantt-bar-top, 0px);
+	width: var(--gantt-bar-width, 0px);
+	height: var(--gantt-bar-height, 20px);
+	background: var(--gantt-bar-bg, var(--interactive-accent));
+	border-radius: var(--gantt-bar-radius, 4px);
+	cursor: pointer;
+	opacity: 1;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	overflow: hidden;
+	transform: translateY(-50%);
+}
+.gantt-bar-desc {
+	font-size: 10px;
+	color: var(--text-on-accent, white);
+	line-height: 1;
+	padding: 0 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	position: relative;
+	z-index: 1;
+	flex: 1;
+}
+.gantt-bar-label {
+	font-size: 10px;
+	color: var(--text-on-accent, white);
+	line-height: 1;
+	padding: 0 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	position: relative;
+	z-index: 1;
+	flex-shrink: 0;
+}
+.gantt-dependency-svg-dynamic {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: var(--gantt-svg-width, auto);
+	z-index: 7;
+	pointer-events: none;
+	overflow: visible;
+}
+.gantt-svg-top {
+	top: 48px;
+}
+.gantt-svg-z {
+	z-index: var(--gantt-svg-z, 7);
+}
+.gantt-svg-height {
+	height: calc(100% - 48px);
+}
+.gantt-grid-overlay-dynamic {
+	position: absolute;
+	top: 48px;
+	left: var(--gantt-grid-left, 0px);
+	width: var(--gantt-grid-width, 0px);
+	background-image: var(--gantt-grid-bg-image, none);
+	background-size: var(--gantt-grid-bg-size, auto);
+	background-position: 0 0;
+	background-repeat: repeat-x;
+}
+.gantt-grid-overlay-height {
+	height: calc(100% - 48px);
+}
+.gantt-today-line-dynamic {
+	position: absolute;
+	top: 48px;
+	left: var(--gantt-today-left, 0px);
+	width: 2px;
+	background: var(--interactive-accent, #7fb8f0);
+	opacity: 0.5;
+	z-index: 4;
+	pointer-events: none;
+}
+.gantt-today-line-height {
+	height: calc(100% - 48px);
+}
+.gantt-bars-dynamic {
+	position: absolute;
+	top: 48px;
+	left: 0;
+	width: var(--gantt-bars-width, auto);
+	z-index: 6;
+}
+.gantt-timeline-lines-dynamic {
+	position: absolute;
+	top: 48px;
+	left: var(--gantt-lines-left, 0px);
+	width: var(--gantt-lines-width, 0px);
+	pointer-events: none;
+	z-index: 0;
+}
+.gantt-timeline-lines-height {
+	height: calc(100% - 48px);
+}
+.gantt-timeline-line {
+	position: absolute;
+	left: var(--gantt-line-left, 0px);
+	top: 0;
+	width: 1px;
+	height: 100%;
+	background: var(--background-modifier-border);
+	opacity: 0.15;
+}
+.gantt-tree-container-dynamic {
+	position: sticky;
+	top: var(--gantt-tree-top, 48px);
+	z-index: 5;
+	display: inline-block;
+	vertical-align: top;
+	background: var(--background-secondary);
+	min-height: 100px;
+}
+.gantt-locate-btn {
+	cursor: pointer;
+	font-size: 11px;
+	margin-left: 2px;
+	opacity: 0.5;
+	flex-shrink: 0;
 }

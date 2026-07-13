@@ -470,7 +470,7 @@ export function createEditBar(
 		editCtx?.syncMode &&
 		editCtx.primaryTaskUid !== node.uid
 	) {
-		bar.style.display = "none";
+		bar.addClass("task-hidden");
 		return bar;
 	}
 
@@ -484,6 +484,7 @@ export function createEditBar(
 
 	EDIT_BUTTONS.forEach((group) => {
 		const btn = document.createElement("button");
+		btn.className = "edit-btn";
 		const hasValue = hasMarkValue(node, group.key);
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
 
@@ -521,19 +522,6 @@ export function createEditBar(
 		buttons.push({ btn, group });
 	});
 
-	const EDIT_BTN_BASE =
-		"all:unset;padding:1px 3px;border-radius:3px;cursor:pointer;font-size:inherit;font-family:inherit;line-height:1;display:inline-flex;align-items:center;outline:none;box-sizing:border-box;";
-	const EDIT_BTN_ACTIVE =
-		EDIT_BTN_BASE +
-		"background:var(--interactive-accent);color:white;border:1px solid var(--interactive-accent);";
-	const EDIT_BTN_HOVER =
-		EDIT_BTN_BASE +
-		"background:var(--background-modifier-hover);color:var(--text-normal);border:1px solid var(--background-modifier-border);";
-	const EDIT_BTN_DEFAULT =
-		EDIT_BTN_BASE +
-		"background:transparent;color:inherit;border:1px solid transparent;";
-	const EDIT_BTN_HIDDEN = "display:none;";
-
 	function updateAllButtonStyles() {
 		buttons.forEach(({ btn, group }) => updateButtonStyle(btn, group));
 	}
@@ -544,16 +532,21 @@ export function createEditBar(
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
 		const hasValue = hasMarkValue(node, group.key);
 
+		btn.removeClass(
+			"edit-btn-active",
+			"edit-btn-hover",
+			"edit-btn-default",
+			"edit-btn-hidden",
+		);
+
 		if (isExpanded || isEdited) {
-			btn.style.cssText = EDIT_BTN_ACTIVE;
+			btn.addClass("edit-btn-active");
 		} else if (isHovered) {
-			btn.style.cssText = EDIT_BTN_HOVER;
-		} else if (hasValue) {
-			btn.style.cssText = EDIT_BTN_DEFAULT;
-		} else if (options.isEditing) {
-			btn.style.cssText = EDIT_BTN_DEFAULT;
+			btn.addClass("edit-btn-hover");
+		} else if (hasValue || options.isEditing) {
+			btn.addClass("edit-btn-default");
 		} else {
-			btn.style.cssText = EDIT_BTN_HIDDEN;
+			btn.addClass("edit-btn-hidden");
 		}
 	}
 
@@ -563,8 +556,7 @@ export function createEditBar(
 	if (fileName) {
 		const fileNameSpan = document.createElement("span");
 		fileNameSpan.textContent = `📄 ${fileName}`;
-		fileNameSpan.style.cssText =
-			"padding:0;border:none;font-size:inherit;line-height:normal;color:inherit;display:inline-flex;align-items:center;";
+		fileNameSpan.className = "edit-file-name";
 		bar.appendChild(fileNameSpan);
 	}
 
@@ -582,7 +574,7 @@ export function createEditBar(
 		const hasAnyVisible = EDIT_BUTTONS.some((g) =>
 			hasMarkValue(node, g.key),
 		);
-		if (!hasAnyVisible) bar.style.display = "none";
+		if (!hasAnyVisible) bar.addClass("task-hidden");
 	}
 
 	return bar;
@@ -646,6 +638,7 @@ function createOptionsSubRow(
 	group.subOptions.forEach((opt) => {
 		const btn = document.createElement("button");
 		btn.textContent = opt;
+		btn.className = "edit-sub-btn";
 		let isActive = false;
 		if (group.key === "status") {
 			const sk = STATUS_KEY_MAP[opt];
@@ -667,13 +660,8 @@ function createOptionsSubRow(
 						getNodeMarkValue(node, group.key) ===
 							opt.replace("🏁 ", "");
 		}
-		btn.className = "edit-sub-btn";
 		if (isActive) {
-			btn.style.setProperty("background", "var(--interactive-accent)");
-			btn.style.setProperty("color", "white");
-		} else {
-			btn.style.setProperty("background", "var(--interactive-normal)");
-			btn.style.setProperty("color", "var(--text-normal)");
+			btn.addClass("edit-sub-btn-active");
 		}
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
@@ -681,17 +669,9 @@ function createOptionsSubRow(
 				group.key === "status" ? STATUS_KEY_MAP[opt] || opt : opt;
 			const allBtns = btn.parentElement?.querySelectorAll("button");
 			allBtns?.forEach((b: Element) => {
-				(b as HTMLElement).style.setProperty(
-					"background",
-					"var(--interactive-normal)",
-				);
-				(b as HTMLElement).style.setProperty(
-					"color",
-					"var(--text-normal)",
-				);
+				(b as HTMLElement).removeClass("edit-sub-btn-active");
 			});
-			btn.style.setProperty("background", "var(--interactive-accent)");
-			btn.style.setProperty("color", "white");
+			btn.addClass("edit-sub-btn-active");
 			if (group.key === "status") {
 				const sk = STATUS_KEY_MAP[opt] || opt;
 				ctx.updateMainBtnText(
@@ -735,16 +715,22 @@ function createDateSubRow(
 	dateInput.type = "date";
 	dateInput.value = currentValue || "";
 	dateInput.className = "edit-date-input";
-	dateInput.style.setProperty(
-		"color",
-		currentValue ? "var(--text-normal)" : "var(--text-muted)",
-	);
+	if (currentValue) {
+		dateInput.addClass("edit-date-input-has-value");
+	} else {
+		dateInput.addClass("edit-date-input-empty");
+	}
 	dateInput.addEventListener("change", () => {
 		const val = dateInput.value;
-		dateInput.style.setProperty(
-			"color",
-			val ? "var(--text-normal)" : "var(--text-muted)",
+		dateInput.removeClass(
+			"edit-date-input-has-value",
+			"edit-date-input-empty",
 		);
+		if (val) {
+			dateInput.addClass("edit-date-input-has-value");
+		} else {
+			dateInput.addClass("edit-date-input-empty");
+		}
 		ctx.updateMainBtnText(
 			val ? `${group.icon} ${val}` : `${group.icon} ${group.label}`,
 		);
@@ -770,10 +756,7 @@ function createCustomSubRow(
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
-		ci.className = "edit-sub-btn";
-		ci.style.setProperty("background", "var(--background-primary)");
-		ci.style.setProperty("color", "var(--text-normal)");
-		ci.style.setProperty("width", "70px");
+		ci.className = "edit-sub-btn edit-sub-btn-input";
 		ci.addEventListener("click", (e) => e.stopPropagation());
 		ci.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
@@ -789,8 +772,6 @@ function createCustomSubRow(
 		const gb = document.createElement("button");
 		gb.textContent = "生成";
 		gb.className = "edit-sub-btn";
-		gb.style.setProperty("background", "var(--interactive-normal)");
-		gb.style.setProperty("color", "var(--text-normal)");
 		gb.addEventListener("click", (e) => {
 			e.stopPropagation();
 			const g = Math.random().toString(36).substring(2, 8);
@@ -802,10 +783,8 @@ function createCustomSubRow(
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "输入引用ID";
-		ci.className = "edit-sub-btn";
-		ci.style.setProperty("background", "var(--background-primary)");
-		ci.style.setProperty("color", "var(--text-normal)");
-		ci.style.setProperty("width", "120px");
+		ci.className = "edit-sub-btn edit-sub-btn-input";
+		ci.addClass("task-w-30");
 		ci.addEventListener("click", (e) => e.stopPropagation());
 		ci.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
@@ -821,8 +800,6 @@ function createCustomSubRow(
 		const sb = document.createElement("button");
 		sb.textContent = "选择";
 		sb.className = "edit-sub-btn";
-		sb.style.setProperty("background", "var(--interactive-normal)");
-		sb.style.setProperty("color", "var(--text-normal)");
 		sb.addEventListener("click", (e) => {
 			e.stopPropagation();
 			const editCtx = getEditContext();
@@ -835,23 +812,22 @@ function createCustomSubRow(
 				return;
 			}
 			const dropdown = document.createElement("div");
-			dropdown.className = "id-select-dropdown";
+			dropdown.className = "id-select-dropdown task-id-select-dropdown";
 			const btnRect = sb.getBoundingClientRect();
-			dropdown.style.cssText = `position:fixed;z-index:1000;left:${btnRect.left}px;top:${btnRect.bottom + 4}px;background:var(--background-primary);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--background-modifier-border);border-radius:4px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.3);min-width:200px;`;
+			dropdown.setCssProps({
+				"--task-dropdown-left": btnRect.left + "px",
+				"--task-dropdown-top": btnRect.bottom + 4 + "px",
+			});
 			idOpts.forEach((opt) => {
 				const item = document.createElement("div");
 				item.textContent = `${opt.id}: ${opt.desc}`;
 				item.title = `${opt.id}: ${opt.desc}`;
-				item.style.cssText =
-					"padding:4px 8px;cursor:pointer;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:350px;";
+				item.className = "task-id-select-item";
 				item.addEventListener("mouseenter", () =>
-					item.style.setProperty(
-						"background",
-						"var(--background-modifier-hover)",
-					),
+					item.addClass("task-bg-hover"),
 				);
 				item.addEventListener("mouseleave", () =>
-					item.style.removeProperty("background"),
+					item.removeClass("task-bg-hover"),
 				);
 				item.addEventListener("mousedown", (ev) => {
 					ev.preventDefault();
@@ -879,10 +855,7 @@ function createCustomSubRow(
 		const ci = document.createElement("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
-		ci.className = "edit-sub-btn";
-		ci.style.setProperty("background", "var(--background-primary)");
-		ci.style.setProperty("color", "var(--text-normal)");
-		ci.style.setProperty("width", "70px");
+		ci.className = "edit-sub-btn edit-sub-btn-input";
 		ci.addEventListener("click", (e) => e.stopPropagation());
 		ci.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
@@ -908,7 +881,7 @@ function appendDeleteButton(
 	const delBtn = document.createElement("button");
 	delBtn.textContent = "删除";
 	delBtn.className = "edit-del-btn";
-	if (!ctx.hasOriginalMark) delBtn.style.setProperty("display", "none");
+	if (!ctx.hasOriginalMark) delBtn.addClass("task-hidden");
 	delBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
 		options.onEdit(node, group.key, null);
@@ -926,7 +899,7 @@ function appendRestoreButton(
 	restoreBtn.textContent = "原文";
 	restoreBtn.className = "edit-restore-btn";
 	restoreBtn.title = "恢复为原始值";
-	if (!ctx.hasChanged) restoreBtn.style.setProperty("display", "none");
+	if (!ctx.hasChanged) restoreBtn.addClass("task-hidden");
 	restoreBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
 		if (ctx.originalValue !== null)
@@ -974,10 +947,15 @@ export function createPreviewRow(
 ): HTMLElement {
 	const row = document.createElement("div");
 	row.className = "task-preview-row";
-	const textSpan = document.createElement("span");
-	textSpan.style.setProperty("color", "var(--text-muted)");
 	if (saved) {
-		row.style.setProperty("background", "rgba(71,133,47,0.15)");
+		row.addClass("task-edit-preview-saved");
+	} else {
+		row.addClass("task-edit-preview-unsaved");
+	}
+
+	const textSpan = document.createElement("span");
+	textSpan.className = "edit-preview-text";
+	if (saved) {
 		textSpan.textContent = `📝 已保存: ${previewText}`;
 		row.appendChild(textSpan);
 		if (onRevert) {
@@ -991,17 +969,14 @@ export function createPreviewRow(
 			row.appendChild(rb);
 		}
 	} else {
-		row.style.setProperty("background", "rgba(127,184,240,0.1)");
 		textSpan.textContent = `📝 预览: ${previewText}`;
 		row.appendChild(textSpan);
 		if (onSave) {
 			const sb = document.createElement("button");
 			sb.textContent = "保存";
 			sb.className = "edit-preview-btn";
-			const ie = hasEdits !== undefined ? hasEdits : true;
-			if (ie) {
-				sb.style.setProperty("background", "var(--interactive-accent)");
-				sb.style.setProperty("color", "white");
+			if (hasEdits) {
+				sb.addClass("edit-preview-btn-save");
 			}
 			sb.addEventListener("click", (e) => {
 				e.stopPropagation();

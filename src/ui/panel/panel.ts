@@ -107,11 +107,11 @@ export class Panels {
 
 		this.resizeHandle.addEventListener("mouseenter", () => {
 			if (this.resizeHandle)
-				this.resizeHandle.style.setProperty("opacity", "1");
+				this.resizeHandle.addClass("task-opacity-100");
 		});
 		this.resizeHandle.addEventListener("mouseleave", () => {
 			if (this.resizeHandle)
-				this.resizeHandle.style.setProperty("opacity", "0");
+				this.resizeHandle.removeClass("task-opacity-100");
 		});
 
 		let startY = 0,
@@ -132,10 +132,9 @@ export class Panels {
 					Math.max(30, newHeight),
 				);
 				if (this.panelsContainer)
-					this.panelsContainer.style.setProperty(
-						"height",
-						newHeight + "px",
-					);
+					this.panelsContainer.setCssProps({
+						"--panel-height": newHeight + "px",
+					});
 				this.panelHeight = newHeight;
 				this.updatePreset({ toolbarPanelsHeight: newHeight });
 				this.updateViewPadding();
@@ -185,22 +184,20 @@ export class Panels {
 
 	public applyVisibility() {
 		if (!this.panelsContainer || !this.resizeHandle) return;
-		this.resizeHandle.style.setProperty("display", "flex");
+		this.resizeHandle.addClass("task-flex");
 		if (this.isPanelsCollapsed) {
 			this.panelsContainer.addClass("task-hidden");
-			this.panelsContainer.style.setProperty("height", "0px");
-			this.panelsContainer.style.setProperty("padding", "0");
-			this.panelsContainer.style.setProperty("border", "none");
+			this.panelsContainer.setCssProps({
+				"--panel-height": "0px",
+				"--panel-padding": "0",
+				"--panel-border": "none",
+			});
 		} else {
 			this.panelsContainer.removeClass("task-hidden");
-			this.panelsContainer.style.setProperty(
-				"height",
-				this.panelHeight + "px",
-			);
-			this.panelsContainer.style.setProperty(
-				"border",
-				"1px solid var(--background-modifier-border)",
-			);
+			this.panelsContainer.setCssProps({
+				"--panel-height": this.panelHeight + "px",
+				"--panel-border": "1px solid var(--background-modifier-border)",
+			});
 		}
 		this.updateArrow();
 		this.updateViewPadding();
@@ -299,17 +296,18 @@ export class Panels {
 
 	private updateViewPadding() {
 		if (!this.panelsContainer) {
-			this.viewEl.style.setProperty("padding-top", "0px");
+			this.viewEl.setCssProps({ "--view-padding-top": "0px" });
 			return;
 		}
 		const handleHeight = 8;
 		if (this.isPanelsCollapsed) {
-			this.viewEl.style.setProperty("padding-top", handleHeight + "px");
+			this.viewEl.setCssProps({
+				"--view-padding-top": handleHeight + "px",
+			});
 		} else {
-			this.viewEl.style.setProperty(
-				"padding-top",
-				this.panelHeight + handleHeight + "px",
-			);
+			this.viewEl.setCssProps({
+				"--view-padding-top": this.panelHeight + handleHeight + "px",
+			});
 		}
 	}
 
