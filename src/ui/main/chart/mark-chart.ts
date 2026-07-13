@@ -89,9 +89,8 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 
 		const chartHeight = getChartHeight(data.length);
 		const chartDiv = document.createElement("div");
-		chartDiv.className = "chart-body";
-		chartDiv.style.height = chartHeight;
-		chartDiv.style.width = "100%";
+		chartDiv.className = "chart-body task-chart-dynamic-height task-w-full";
+		chartDiv.setCssProps({ "--task-chart-height": chartHeight });
 		item.appendChild(chartDiv);
 
 		grid.appendChild(item);

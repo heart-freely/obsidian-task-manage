@@ -128,8 +128,9 @@ export function createViewCard(
 			"task-text-normal",
 			"task-transition-bg",
 		);
-		li.style.borderLeft = `3px solid ${statusColor}`;
-		if (isEditing) li.style.cursor = "default";
+		li.addClass("task-card-status-border");
+		li.setCssProps({ "--task-status-color": statusColor });
+		if (isEditing) li.addClass("task-cursor-default");
 	} else {
 		li.addClass(
 			"task-card-compact",

@@ -2131,3 +2131,12 @@
 .task-tree-indent {
 	margin-left: var(--task-indent, 0px);
 }
+.task-card-status-border {
+	border-left: 3px solid var(--task-status-color, var(--interactive-accent));
+}
+.task-cursor-default {
+	cursor: default;
+}
+.task-chart-dynamic-height {
+	height: var(--task-chart-height, 300px);
+}
