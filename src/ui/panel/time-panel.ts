@@ -376,7 +376,8 @@ export class TimePanel {
 			todayValue: 0,
 			midValue: 0,
 		});
-		result.refs.row.style.paddingLeft = "calc(4em + 6px)";
+		// 原代码：result.refs.row.style.paddingLeft = "calc(4em + 6px)";
+		result.refs.row.addClass("task-pl-4");
 		result.refs.labelSpan.textContent =
 			minV === maxV
 				? formatDynamicValue(minV, this.dynamicUnit)
@@ -486,7 +487,8 @@ export class TimePanel {
 			todayValue: todayVal,
 			midValue: todayVal,
 		});
-		result.refs.row.style.paddingLeft = "calc(4em + 6px)";
+		// 原代码：result.refs.row.style.paddingLeft = "calc(4em + 6px)";
+		result.refs.row.addClass("task-pl-4");
 		this.enhancedSliders.set(key, result.refs);
 		this.updateMidLines.set(key, result.updateMidLine);
 	}
@@ -611,7 +613,7 @@ export class TimePanel {
 			if (r.minTime) this.taskMinYear = new Date(r.minTime).getFullYear();
 			if (r.maxTime) this.taskMaxYear = new Date(r.maxTime).getFullYear();
 		} catch (e) {
-			logger.warn("[TimePanel] 初始化时间范围失败:", e);
+			console.warn("[TimePanel] 初始化时间范围失败:", e);
 		}
 	}
 
@@ -679,8 +681,13 @@ export class TimePanel {
 		};
 
 		const subPanel = mr.createDiv({ cls: "panel-sub" });
-		subPanel.style.cssText =
-			"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		subPanel.addClass(
+			"task-flex",
+			"task-flex-wrap",
+			"task-gap-1",
+			"task-ml-2",
+		);
 
 		const modes = [
 			{ key: "any-date", label: "任意时间" },

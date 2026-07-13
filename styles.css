@@ -115,7 +115,7 @@
 	border-radius: 6px;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 	padding: 0;
-	display: none;
+	display: flex; /* 默认显示 */
 	flex-direction: column;
 	gap: 0;
 	overflow-y: auto;
@@ -195,8 +195,11 @@
 	flex-wrap: wrap;
 }
 .panel-sub {
-	margin-left: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
 	gap: 4px;
+	margin-left: 8px;
 }
 .panel-section {
 	margin: 0;
@@ -258,6 +261,10 @@
 	font-size: inherit;
 	line-height: inherit;
 	color: inherit;
+}
+.panel-eye {
+	font-size: 12px;
+	cursor: pointer;
 }
 
 /* 拖拽手柄 */
@@ -495,6 +502,10 @@
 	display: flex;
 	gap: 12px;
 	align-items: flex-start;
+}
+.kanban-col {
+	flex: 1;
+	min-width: 0;
 }
 
 /* ========== 矩阵 ========== */
@@ -1199,10 +1210,69 @@
 }
 
 /* ================================================================
-   以下为新增样式 — 原 styles.css 中不存在的类，或需要追加变量的已有类
+   新增样式 — 用于替代直接操作 el.style.xxx
    ================================================================ */
 
-编辑栏（新增类） .task-edit-bar {
+/* ---------- HeadPanel 头部栏 ---------- */
+.task-head-bar {
+	padding: 4px 6px;
+	display: flex;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	background: var(--background-secondary);
+	border: none;
+	border-bottom: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	box-sizing: border-box;
+	gap: 0;
+}
+
+/* ---------- 基础工具类 ---------- */
+.task-flex {
+	display: flex;
+}
+.task-flex-nowrap {
+	flex-wrap: nowrap;
+}
+.task-flex-wrap {
+	flex-wrap: wrap;
+}
+.task-overflow-x-auto {
+	overflow-x: auto;
+}
+.task-bg-secondary {
+	background: var(--background-secondary);
+}
+.task-border-bottom {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.task-p-1 {
+	padding: 4px 6px;
+}
+.task-gap-0 {
+	gap: 0;
+}
+.task-gap-1 {
+	gap: 4px;
+}
+.task-mr-1 {
+	margin-right: 6px;
+}
+.task-ml-2 {
+	margin-left: 8px;
+}
+.task-opacity-100 {
+	opacity: 1;
+}
+.task-opacity-40 {
+	opacity: 0.4;
+}
+.task-w-380 {
+	width: 380px;
+}
+
+/* ---------- 编辑栏 ---------- */
+.task-edit-bar {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10px;
@@ -1213,7 +1283,7 @@
 	line-height: normal;
 }
 
-/* 预览行（新增类，原 edit-utils.ts 中 style.cssText 的静态部分） */
+/* ---------- 预览行 ---------- */
 .task-preview-row {
 	margin-top: 4px;
 	padding: 1px 4px;
@@ -1223,537 +1293,4 @@
 	align-items: center;
 	gap: 2px;
 	flex-wrap: wrap;
-}
-
-/* 看板列（新增类） */
-.kanban-col {
-	flex: 1;
-	min-width: 0;
-}
-/* ================================================================
-   以下为新增样式 — 根据 ESLint 规则 obsidianmd/no-static-styles-assignment
-   用于替代直接操作 el.style.xxx 的写法
-   ================================================================ */
-
-/* ---------- 静态工具类 ---------- */
-
-/* 显示控制 */
-.task-hidden {
-	display: none;
-}
-.task-block {
-	display: block;
-}
-.task-flex {
-	display: flex;
-}
-.task-inline-flex {
-	display: inline-flex;
-}
-.task-grid {
-	display: grid;
-}
-.task-inline-block {
-	display: inline-block;
-}
-.task-invisible {
-	visibility: hidden;
-}
-.task-visible {
-	visibility: visible;
-}
-
-/* Flex 布局 */
-.task-flex-col {
-	flex-direction: column;
-}
-.task-flex-row {
-	flex-direction: row;
-}
-.task-flex-wrap {
-	flex-wrap: wrap;
-}
-.task-flex-nowrap {
-	flex-wrap: nowrap;
-}
-.task-flex-1 {
-	flex: 1;
-}
-.task-flex-shrink-0 {
-	flex-shrink: 0;
-}
-.task-flex-grow-1 {
-	flex-grow: 1;
-}
-
-/* 对齐 */
-.task-items-center {
-	align-items: center;
-}
-.task-items-start {
-	align-items: flex-start;
-}
-.task-items-end {
-	align-items: flex-end;
-}
-.task-items-stretch {
-	align-items: stretch;
-}
-.task-justify-center {
-	justify-content: center;
-}
-.task-justify-start {
-	justify-content: flex-start;
-}
-.task-justify-end {
-	justify-content: flex-end;
-}
-.task-justify-between {
-	justify-content: space-between;
-}
-.task-justify-around {
-	justify-content: space-around;
-}
-.task-self-center {
-	align-self: center;
-}
-
-/* 间距 */
-.task-gap-0 {
-	gap: 0;
-}
-.task-gap-1 {
-	gap: 4px;
-}
-.task-gap-2 {
-	gap: 8px;
-}
-.task-gap-3 {
-	gap: 12px;
-}
-.task-gap-4 {
-	gap: 16px;
-}
-.task-gap-6 {
-	gap: 24px;
-}
-.task-gap-8 {
-	gap: 32px;
-}
-.task-p-0 {
-	padding: 0;
-}
-.task-p-1 {
-	padding: 4px;
-}
-.task-p-2 {
-	padding: 8px;
-}
-.task-p-3 {
-	padding: 12px;
-}
-.task-p-4 {
-	padding: 16px;
-}
-.task-px-1 {
-	padding-left: 4px;
-	padding-right: 4px;
-}
-.task-px-2 {
-	padding-left: 8px;
-	padding-right: 8px;
-}
-.task-py-1 {
-	padding-top: 4px;
-	padding-bottom: 4px;
-}
-.task-py-2 {
-	padding-top: 8px;
-	padding-bottom: 8px;
-}
-.task-m-0 {
-	margin: 0;
-}
-.task-m-1 {
-	margin: 4px;
-}
-.task-m-2 {
-	margin: 8px;
-}
-.task-m-3 {
-	margin: 12px;
-}
-.task-m-4 {
-	margin: 16px;
-}
-.task-mx-auto {
-	margin-left: auto;
-	margin-right: auto;
-}
-.task-ml-auto {
-	margin-left: auto;
-}
-.task-mr-auto {
-	margin-right: auto;
-}
-
-/* 尺寸 */
-.task-w-full {
-	width: 100%;
-}
-.task-h-full {
-	height: 100%;
-}
-.task-w-auto {
-	width: auto;
-}
-.task-h-auto {
-	height: auto;
-}
-.task-min-w-0 {
-	min-width: 0;
-}
-.task-min-h-0 {
-	min-height: 0;
-}
-.task-overflow-hidden {
-	overflow: hidden;
-}
-.task-overflow-auto {
-	overflow: auto;
-}
-.task-overflow-visible {
-	overflow: visible;
-}
-
-/* 文本 */
-.task-text-center {
-	text-align: center;
-}
-.task-text-left {
-	text-align: left;
-}
-.task-text-right {
-	text-align: right;
-}
-.task-text-muted {
-	color: var(--text-muted);
-}
-.task-text-accent {
-	color: var(--text-accent);
-}
-.task-text-error {
-	color: var(--text-error);
-}
-.task-text-success {
-	color: var(--text-success);
-}
-.task-text-ellipsis {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-.task-text-nowrap {
-	white-space: nowrap;
-}
-.task-break-words {
-	word-break: break-word;
-}
-
-/* 边框 */
-.task-border {
-	border: 1px solid var(--background-modifier-border);
-}
-.task-border-bottom {
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-.task-border-top {
-	border-top: 1px solid var(--background-modifier-border);
-}
-.task-border-none {
-	border: none;
-}
-.task-rounded {
-	border-radius: 6px;
-}
-.task-rounded-full {
-	border-radius: 50%;
-}
-.task-rounded-sm {
-	border-radius: 4px;
-}
-
-/* 定位 */
-.task-relative {
-	position: relative;
-}
-.task-absolute {
-	position: absolute;
-}
-.task-fixed {
-	position: fixed;
-}
-.task-sticky {
-	position: sticky;
-}
-.task-inset-0 {
-	top: 0;
-	right: 0;
-	bottom: 0;
-	left: 0;
-}
-
-/* z-index */
-.task-z-1 {
-	z-index: 1;
-}
-.task-z-5 {
-	z-index: 5;
-}
-.task-z-10 {
-	z-index: 10;
-}
-.task-z-20 {
-	z-index: 20;
-}
-.task-z-50 {
-	z-index: 50;
-}
-
-/* 交互 */
-.task-clickable {
-	cursor: pointer;
-}
-.task-clickable:hover {
-	background-color: var(--background-modifier-hover);
-}
-.task-disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-	pointer-events: none;
-}
-.task-select-none {
-	user-select: none;
-}
-
-/* 背景 */
-.task-bg-primary {
-	background-color: var(--background-primary);
-}
-.task-bg-secondary {
-	background-color: var(--background-secondary);
-}
-.task-bg-hover {
-	background-color: var(--background-modifier-hover);
-}
-.task-bg-transparent {
-	background: transparent;
-}
-
-/* 阴影 */
-.task-shadow {
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-.task-shadow-lg {
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
-}
-.task-shadow-none {
-	box-shadow: none;
-}
-
-/* ---------- 动态样式类（由 CSS 变量驱动） ---------- */
-
-/* 颜色 */
-.task-dynamic-bg {
-	background-color: var(--task-bg, var(--background-primary));
-}
-.task-dynamic-text {
-	color: var(--task-color, var(--text-normal));
-}
-.task-dynamic-border {
-	border-color: var(--task-border, var(--background-modifier-border));
-}
-.task-dynamic-accent {
-	color: var(--task-accent, var(--text-accent));
-}
-.task-dynamic-error {
-	color: var(--task-error, var(--text-error));
-}
-.task-dynamic-success {
-	color: var(--task-success, var(--text-success));
-}
-.task-dynamic-outline {
-	outline: 1px solid var(--task-outline-color, transparent);
-}
-
-/* 尺寸 */
-.task-dynamic-width {
-	width: var(--task-width, 100%);
-}
-.task-dynamic-height {
-	height: var(--task-height, auto);
-}
-.task-dynamic-size {
-	width: var(--task-size, auto);
-	height: var(--task-size, auto);
-}
-.task-dynamic-max-width {
-	max-width: var(--task-max-width, none);
-}
-.task-dynamic-min-width {
-	min-width: var(--task-min-width, 0);
-}
-
-/* 位置/变换 */
-.task-dynamic-transform {
-	transform: var(--task-transform, none);
-}
-.task-dynamic-left {
-	left: var(--task-left, auto);
-}
-.task-dynamic-top {
-	top: var(--task-top, auto);
-}
-.task-dynamic-right {
-	right: var(--task-right, auto);
-}
-.task-dynamic-bottom {
-	bottom: var(--task-bottom, auto);
-}
-.task-dynamic-z-index {
-	z-index: var(--task-z-index, auto);
-}
-
-/* 间距 */
-.task-dynamic-margin {
-	margin: var(--task-margin, 0);
-}
-.task-dynamic-padding {
-	padding: var(--task-padding, 0);
-}
-.task-dynamic-gap {
-	gap: var(--task-gap, 0);
-}
-
-/* 字体 */
-.task-dynamic-font-size {
-	font-size: var(--task-font-size, 14px);
-}
-.task-dynamic-font-weight {
-	font-weight: var(--task-font-weight, 400);
-}
-.task-dynamic-line-height {
-	line-height: var(--task-line-height, 1.5);
-}
-
-/* ---------- 组件专用动态类 ---------- */
-
-/* 进度条 */
-.task-progress-bar {
-	width: var(--progress-width, 0%);
-	height: var(--progress-height, 6px);
-	background-color: var(--progress-color, var(--interactive-accent));
-	border-radius: var(--progress-radius, 3px);
-	transition: width 0.3s ease;
-}
-
-/* 滑块 */
-.task-slider-thumb {
-	transform: var(--thumb-offset, translateX(0));
-	transition: transform 0.1s ease;
-}
-.task-slider-fill {
-	width: var(--slider-fill-width, 0%);
-	background-color: var(--slider-fill-color, var(--interactive-accent));
-	height: 100%;
-	border-radius: 2px;
-}
-
-/* 甘特图 */
-.task-gantt-bar {
-	left: var(--gantt-left, 0);
-	width: var(--gantt-width, 0%);
-	background-color: var(--gantt-color, var(--interactive-accent));
-}
-.task-gantt-bar-completed {
-	background-color: var(--gantt-completed-color, var(--text-success));
-}
-.task-gantt-bar-in-progress {
-	background-color: var(--gantt-progress-color, var(--interactive-accent));
-}
-
-/* 日历 */
-.task-calendar-day {
-	background-color: var(--calendar-day-bg, transparent);
-	color: var(--calendar-day-color, var(--text-normal));
-}
-.task-calendar-day-hover:hover {
-	background-color: var(--background-modifier-hover);
-}
-
-/* 树形列表 */
-.task-tree-indent {
-	width: var(--indent-width, 16px);
-	flex-shrink: 0;
-	display: inline-block;
-}
-
-/* 侧边栏 */
-.task-sidebar-width {
-	width: var(--sidebar-width, 240px);
-}
-
-/* ---------- 编辑模式辅助类 ---------- */
-.task-edit-preview-saved {
-	background: rgba(71, 133, 47, 0.15);
-}
-.task-edit-preview-unsaved {
-	background: rgba(127, 184, 240, 0.1);
-}
-.task-edit-text-muted {
-	color: var(--text-muted);
-}
-.task-edit-text-accent {
-	color: var(--text-accent);
-}
-.task-edit-text-normal {
-	color: var(--text-normal);
-}
-.task-edit-cursor-text {
-	cursor: text;
-}
-.task-edit-cursor-pointer {
-	cursor: pointer;
-}
-.task-edit-display-none {
-	display: none;
-}
-.task-edit-display-flex {
-	display: flex;
-}
-.task-edit-flex-wrap {
-	flex-wrap: wrap;
-}
-.task-edit-align-center {
-	align-items: center;
-}
-
-/* ---------- 其他辅助 ---------- */
-.task-opacity-0 {
-	opacity: 0;
-}
-.task-opacity-50 {
-	opacity: 0.5;
-}
-.task-opacity-100 {
-	opacity: 1;
-}
-.task-transition-fast {
-	transition: all 0.15s ease;
-}
-.task-transition-medium {
-	transition: all 0.3s ease;
-}
-.task-transition-slow {
-	transition: all 0.5s ease;
 }

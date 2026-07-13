@@ -6,10 +6,16 @@ import { EditPanel } from "./edit-panel";
 import { FilterPanel } from "./filter-panel";
 import { HeadPanel } from "./head-panel";
 import { HidePanel } from "./hide-panel";
-import { PresetPanel } from "./preset-panel";
+import { SidebarPanel } from "./sidebar-panel";
 import { SortPanel } from "./sort-panel";
 import { TimePanel } from "./time-panel";
 import { ViewPanel } from "./view-panel";
+
+const logger = {
+	warn: (...args: any[]) => console.warn("[TaskManage]", ...args),
+	error: (...args: any[]) => console.error("[TaskManage]", ...args),
+	info: (...args: any[]) => console.log("[TaskManage]", ...args),
+};
 
 type PanelComponentClass = new (
 	container: HTMLElement,
@@ -18,7 +24,7 @@ type PanelComponentClass = new (
 ) => any;
 
 const PANEL_COMPONENTS: Record<string, PanelComponentClass> = {
-	config: PresetPanel,
+	config: SidebarPanel,
 	time: TimePanel,
 	filter: FilterPanel,
 	view: ViewPanel,
@@ -87,7 +93,7 @@ export class Panels {
 		this.panelsContainer.style.padding = "0";
 		this.panelsContainer.style.marginBottom = "0";
 		this.panelsContainer.style.marginTop = "0";
-		this.panelsContainer.style.display = "none";
+		this.panelsContainer.style.display = "flex";
 		this.panelsContainer.style.flexDirection = "column";
 		this.panelsContainer.style.gap = "0";
 		this.panelsContainer.style.overflowY = "auto";
@@ -105,7 +111,7 @@ export class Panels {
 		this.resizeHandle = document.createElement("div");
 		this.resizeHandle.className = "panel-resize-handle";
 		this.resizeHandle.style.cssText =
-			"height:8px;min-height:8px;cursor:row-resize;background:rgba(128,128,128,0.4);border-radius:0 0 4px 4px;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;box-sizing:border-box;position:relative;z-index:60;flex-shrink:0;margin-top:0;";
+			"height:8px;min-height:8px;cursor:row-resize;background:rgba(128,128,128,0.4);border-radius:0 0 4px 4px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;box-sizing:border-box;position:relative;z-index:60;flex-shrink:0;margin-top:0;";
 		this.resizeHandle.title = "拖拽调整高度 / 点击中间箭头折叠";
 		this.panelHost.appendChild(this.resizeHandle);
 
@@ -186,7 +192,7 @@ export class Panels {
 			this.refreshContent();
 			requestAnimationFrame(() => this.updateViewPadding());
 		} catch (e) {
-			logger.warn("[TaskManage] 面板状态同步失败:", e);
+			console.warn("[TaskManage] 面板状态同步失败:", e);
 		}
 	}
 
@@ -218,9 +224,23 @@ export class Panels {
 		if (!this.panelsContainer || !this.panelContentInner) return;
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
+
+		const toolbarOrder = preset.toolbarOrder ?? [
+			"filter",
+			"time",
+			"view",
+			"hide",
+			"edit",
+			"sort",
+			"config",
+		];
+
+		// ===== 根据 barVisibility 过滤可见面板 =====
 		const barVisibility = preset.barVisibility ?? {};
-		const toolbarOrder = preset.toolbarOrder ?? [];
-		const visibleKeys = toolbarOrder.filter((key) => barVisibility[key]);
+		// 默认显示：如果 barVisibility 中没有设置，默认显示
+		const visibleKeys = toolbarOrder.filter(
+			(key) => barVisibility[key] !== false,
+		);
 
 		const activeEl = document.activeElement;
 		const isInputFocused =
@@ -277,7 +297,7 @@ export class Panels {
 		if (needReorder) {
 			const fragment = document.createDocumentFragment();
 			for (const panel of expectedOrder) {
-				fragment.appendChild(panel!);
+				fragment.appendChild(panel);
 			}
 			this.panelContentInner.appendChild(fragment);
 		}

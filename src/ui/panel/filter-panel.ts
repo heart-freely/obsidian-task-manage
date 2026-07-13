@@ -1,4 +1,4 @@
-// src/ui/panel/mark-panel.ts
+// src/ui/panel/filter-panel.ts
 // 筛选面板 — 状态筛选 + 描述搜索 + 标记筛选
 // 同时导出共用的按钮组构建工具函数，供 hide-panel.ts 引用
 
@@ -88,39 +88,24 @@ const HIDE_GROUPS: HideGroupDef[] = [
 // ========== 共用按钮组构建函数 ==========
 
 export interface ToggleGroupOptions {
-	/** 面板行容器 */
 	row: HTMLElement;
-	/** 组标签 */
 	label: string;
-	/** 组类型 */
 	type:
 		| "statuses"
 		| "searchText"
 		| "priorityValues"
 		| "repeatCycles"
 		| "marks";
-	/** 标记键列表（marks 类型时使用） */
 	keys?: string[];
-	/** 当前已选中的值列表 */
 	selected: string[];
-	/** 当前搜索文本（searchText 类型时使用） */
 	currentSearchText?: string;
-	/** 选中值变更回调 */
 	onChange: (newSelected: string[]) => void;
-	/** 搜索文本变更回调 */
 	onSearchChange?: (text: string) => void;
-	/** 输入保护：外部维护的当前值引用 */
 	currentValueRef?: { value: string };
-	/** 面板标签文字映射（statuses 类型时使用） */
 	statusLabels?: Record<string, string>;
-	/** 隐藏模式下的按钮文字（覆盖默认"状态"/"优先级"等） */
 	mainBtnTextOverrides?: Partial<Record<string, string>>;
 }
 
-/**
- * 构建一组切换按钮（状态/优先级/循环/标记/搜索文本）
- * filter 和 hide 面板共用
- */
 export function buildToggleGroup(options: ToggleGroupOptions): void {
 	const {
 		row,
@@ -152,8 +137,13 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		};
 
 		const subPanel = row.createDiv({ cls: "panel-sub" });
-		subPanel.style.cssText =
-			"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		subPanel.addClass(
+			"task-flex",
+			"task-flex-wrap",
+			"task-gap-1",
+			"task-ml-2",
+		);
 
 		BASIC_STATUSES.forEach((st) => {
 			const btn = subPanel.createEl("button", {
@@ -180,7 +170,8 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 				placeholder: "输入关键词，多个关键词用空格分隔，回车搜索",
 			},
 		});
-		input.style.width = "380px";
+		// 原代码：input.style.width = "380px";
+		input.addClass("task-w-380");
 		input.value = options.currentSearchText || "";
 
 		const applySearch = () => {
@@ -219,8 +210,13 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		};
 
 		const subPanel = row.createDiv({ cls: "panel-sub" });
-		subPanel.style.cssText =
-			"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		subPanel.addClass(
+			"task-flex",
+			"task-flex-wrap",
+			"task-gap-1",
+			"task-ml-2",
+		);
 
 		PRIORITY_ICONS.forEach((icon) => {
 			const btn = subPanel.createEl("button", {
@@ -252,8 +248,13 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		};
 
 		const subPanel = row.createDiv({ cls: "panel-sub" });
-		subPanel.style.cssText =
-			"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		subPanel.addClass(
+			"task-flex",
+			"task-flex-wrap",
+			"task-gap-1",
+			"task-ml-2",
+		);
 
 		REPEAT_ORDER.forEach((cycle) => {
 			const btn = subPanel.createEl("button", {
@@ -288,8 +289,13 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		};
 
 		const subPanel = row.createDiv({ cls: "panel-sub" });
-		subPanel.style.cssText =
-			"display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
+		subPanel.addClass(
+			"task-flex",
+			"task-flex-wrap",
+			"task-gap-1",
+			"task-ml-2",
+		);
 
 		keys.forEach((markKey) => {
 			const btn = subPanel.createEl("button", {

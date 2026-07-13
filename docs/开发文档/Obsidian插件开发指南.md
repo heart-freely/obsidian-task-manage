@@ -351,17 +351,56 @@ npm test
 
 ## 审查
 
-### 必须修复（Error，阻止审核通过）
+### CSS设置语法
 
-| 规则                                     | 说明                              | 正确做法                                                     |
-| ---------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
-| `obsidianmd/no-unsupported-api`          | 不使用高于 `minAppVersion` 的 API | `minAppVersion` 设为使用的最新 API 版本                      |
-| `obsidianmd/no-static-styles-assignment` | 不用 `el.style.cssText = "..."`   | 静态样式 → CSS 类，动态样式 → CSS 类+CSS 变量，style.setProperty("--xxx", value)。 |
-| `obsidianmd/no-innerhtml`                | 不用 `el.innerHTML = html`        | 用 `textContent` 或 DOM API                                  |
-| `obsidianmd/no-dynamic-style-elements`   | 不动态创建 `<style>` 元素         | 写入 `styles.css`，状态颜色逐个 `setProperty`                |
-| `obsidianmd/no-html-headings`            | 设置面板不用 `createEl("h2/h3")`  | 用 `new Setting().setName("标题").setHeading()`              |
+#### 目标
 
-### 注意事项（Warning/Recommendation，不阻止通过）
+项目中避免所有 `el.style.xxx = "..."` 的直接样式操作，替换为符合 Obsidian 规范的 CSS 类 + CSS 变量方式。
+
+#### 核心替换规则
+
+| 场景               | 原始写法                        | 替换写法                                           |
+| ------------------ | ------------------------------- | -------------------------------------------------- |
+| 静态样式（固定值） | `el.style.display = "flex"`     | `el.addClass("task-flex")`                         |
+| 显示/隐藏切换      | `el.style.display = "none"`     | `el.toggleClass("task-hidden", condition)`         |
+| 动态颜色           | `el.style.color = userColor`    | `el.setCssProps({ "--task-color": userColor })`    |
+| 动态尺寸           | `el.style.width = width + "px"` | `el.setCssProps({ "--task-width": width + "px" })` |
+
+#### 类名规范
+
+- 所有新增类名统一以 `task-` 开头，避免与 Obsidian 核心或其他插件冲突
+- 静态样式类：直接对应 CSS 属性值（如 `task-flex`, `task-hidden`, `task-p-2`）
+- 动态样式类：使用 CSS 变量驱动（如 `task-dynamic-bg`, `task-dynamic-width`）
+
+#### 动态样式示例
+
+```typescript
+// 用户自定义颜色
+el.addClass("task-dynamic-bg");
+el.setCssProps({ "--task-bg": userColor });
+```
+
+对应 CSS：
+
+```css
+.task-dynamic-bg {
+    background-color: var(--task-bg, var(--background-primary));
+}
+```
+
+
+
+### 审核报错
+
+| 规则                                     | 说明                              | 正确做法                                        |
+| ---------------------------------------- | --------------------------------- | ----------------------------------------------- |
+| `obsidianmd/no-unsupported-api`          | 不使用高于 `minAppVersion` 的 API | `minAppVersion` 设为使用的最新 API 版本         |
+| `obsidianmd/no-static-styles-assignment` | 不用 `el.style.cssText = "..."`   | 静态样式 → CSS 类，动态样式 → CSS 类+CSS 变量。 |
+| `obsidianmd/no-innerhtml`                | 不用 `el.innerHTML = html`        | 用 `textContent` 或 DOM API                     |
+| `obsidianmd/no-dynamic-style-elements`   | 不动态创建 `<style>` 元素         | 写入 `styles.css`，状态颜色逐个 `setProperty`   |
+| `obsidianmd/no-html-headings`            | 设置面板不用 `createEl("h2/h3")`  | 用 `new Setting().setName("标题").setHeading()` |
+
+### 审核警告
 
 - 不用 `any` 类型，定义接口替代
 - 不用 `localStorage`，改用 Obsidian 数据 API
