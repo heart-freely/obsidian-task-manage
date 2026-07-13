@@ -1213,7 +1213,362 @@
    新增样式 — 用于替代直接操作 el.style.xxx
    ================================================================ */
 
-/* ---------- HeadPanel 头部栏 ---------- */
+/* ---------- 基础工具类 ---------- */
+.task-flex {
+	display: flex;
+}
+.task-block {
+	display: block;
+}
+.task-hidden {
+	display: none;
+}
+.task-grid {
+	display: grid;
+}
+.task-flex-nowrap {
+	flex-wrap: nowrap;
+}
+.task-flex-wrap {
+	flex-wrap: wrap;
+}
+.task-flex-col {
+	flex-direction: column;
+}
+.task-flex-row {
+	flex-direction: row;
+}
+.task-flex-1 {
+	flex: 1;
+}
+.task-flex-shrink-0 {
+	flex-shrink: 0;
+}
+.task-overflow-x-auto {
+	overflow-x: auto;
+}
+.task-overflow-auto {
+	overflow: auto;
+}
+.task-overflow-hidden {
+	overflow: hidden;
+}
+.task-overflow-visible {
+	overflow: visible;
+}
+.task-bg-secondary {
+	background: var(--background-secondary);
+}
+.task-bg-primary {
+	background-color: var(--background-primary);
+}
+.task-bg-transparent {
+	background: transparent;
+}
+.task-bg-border {
+	background: var(--background-modifier-border);
+}
+.task-bg-accent {
+	background-color: var(--interactive-accent);
+}
+.task-border-bottom {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.task-border {
+	border: 1px solid var(--background-modifier-border);
+}
+.task-border-none {
+	border: none;
+}
+.task-p-1 {
+	padding: 4px 6px;
+}
+.task-p-2 {
+	padding: 8px;
+}
+.task-p-3 {
+	padding: 12px;
+}
+.task-p-4 {
+	padding: 16px;
+}
+.task-px-1 {
+	padding-left: 4px;
+	padding-right: 4px;
+}
+.task-px-2 {
+	padding-left: 8px;
+	padding-right: 8px;
+}
+.task-px-3 {
+	padding-left: 12px;
+	padding-right: 12px;
+}
+.task-px-4 {
+	padding-left: 16px;
+	padding-right: 16px;
+}
+.task-py-0 {
+	padding-top: 0;
+	padding-bottom: 0;
+}
+.task-py-1 {
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+.task-py-2 {
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+.task-gap-0 {
+	gap: 0;
+}
+.task-gap-1 {
+	gap: 4px;
+}
+.task-gap-2 {
+	gap: 8px;
+}
+.task-gap-3 {
+	gap: 12px;
+}
+.task-gap-4 {
+	gap: 16px;
+}
+.task-m-1 {
+	margin: 4px;
+}
+.task-m-2 {
+	margin: 8px;
+}
+.task-mr-1 {
+	margin-right: 4px;
+}
+.task-mr-2 {
+	margin-right: 8px;
+}
+.task-ml-1 {
+	margin-left: 4px;
+}
+.task-ml-2 {
+	margin-left: 8px;
+}
+.task-mb-1 {
+	margin-bottom: 4px;
+}
+.task-mb-2 {
+	margin-bottom: 8px;
+}
+.task-w-1 {
+	width: 4px;
+}
+.task-w-4 {
+	width: 16px;
+}
+.task-w-12 {
+	width: 48px;
+}
+.task-w-15 {
+	width: 60px;
+}
+.task-w-66 {
+	width: 66%;
+}
+.task-w-380 {
+	width: 380px;
+}
+.task-w-full {
+	width: 100%;
+}
+.task-h-1 {
+	height: 4px;
+}
+.task-h-4 {
+	height: 16px;
+}
+.task-h-5 {
+	height: 22px;
+}
+.task-h-full {
+	height: 100%;
+}
+.task-min-w-0 {
+	min-width: 0;
+}
+.task-min-w-15 {
+	min-width: 60px;
+}
+.task-max-w-55 {
+	max-width: 220px;
+}
+.task-max-w-150 {
+	max-width: 150px;
+}
+.task-max-w-full {
+	max-width: 100%;
+}
+.task-opacity-100 {
+	opacity: 1;
+}
+.task-opacity-40 {
+	opacity: 0.4;
+}
+.task-clickable {
+	cursor: pointer;
+}
+.task-clickable-grab {
+	cursor: grab;
+}
+.task-select-none {
+	user-select: none;
+}
+.task-text-left {
+	text-align: left;
+}
+.task-text-center {
+	text-align: center;
+}
+.task-text-muted {
+	color: var(--text-muted);
+}
+.task-text-normal {
+	color: var(--text-normal);
+}
+.task-text-accent {
+	color: var(--text-accent);
+}
+.task-text-white {
+	color: white;
+}
+.task-text-sm {
+	font-size: var(--font-ui-small);
+}
+.task-text-smaller {
+	font-size: var(--font-ui-smaller);
+}
+.task-text-base {
+	font-size: 16px;
+}
+.task-text-xs {
+	font-size: 10px;
+}
+.task-text-nowrap {
+	white-space: nowrap;
+}
+.task-text-wrap {
+	white-space: normal;
+}
+.task-text-ellipsis {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.task-font-medium {
+	font-weight: 500;
+}
+.task-font-semibold {
+	font-weight: 600;
+}
+.task-font-bold {
+	font-weight: 700;
+}
+.task-rounded {
+	border-radius: 4px;
+}
+.task-rounded-sm {
+	border-radius: 2px;
+}
+.task-rounded-full {
+	border-radius: 9999px;
+}
+.task-relative {
+	position: relative;
+}
+.task-absolute {
+	position: absolute;
+}
+.task-top-0 {
+	top: 0;
+}
+.task-top--2 {
+	top: -2px;
+}
+.task-top--6 {
+	top: -6px;
+}
+.task-z-1 {
+	z-index: 1;
+}
+.task-z-2 {
+	z-index: 2;
+}
+.task-items-center {
+	align-items: center;
+}
+.task-items-start {
+	align-items: flex-start;
+}
+.task-items-end {
+	align-items: flex-end;
+}
+.task-justify-center {
+	justify-content: center;
+}
+.task-justify-between {
+	justify-content: space-between;
+}
+.task-justify-start {
+	justify-content: flex-start;
+}
+.task-inline-flex {
+	display: inline-flex;
+}
+.task-break-word {
+	word-break: break-word;
+}
+.task-overflow-wrap {
+	overflow-wrap: break-word;
+}
+.task-align-top {
+	vertical-align: top;
+}
+.task-box-border {
+	box-sizing: border-box;
+}
+.task-appearance-none {
+	appearance: none;
+}
+.task-h-auto {
+	height: auto;
+}
+.task-min-h-unset {
+	min-height: unset;
+}
+.task-leading-normal {
+	line-height: 22px;
+}
+.task-pl-0 {
+	padding-left: 0;
+}
+.task-list-none {
+	list-style: none;
+}
+.task-transition-bg {
+	transition: background 0.1s;
+}
+
+/* ---------- 阴影工具类 ---------- */
+.task-shadow-sm {
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.task-shadow-hover {
+	transition: box-shadow 0.2s ease;
+}
+.task-shadow-hover:hover {
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* ---------- HeadPanel ---------- */
 .task-head-bar {
 	padding: 4px 6px;
 	display: flex;
@@ -1225,50 +1580,6 @@
 	border-radius: 0;
 	box-sizing: border-box;
 	gap: 0;
-}
-
-/* ---------- 基础工具类 ---------- */
-.task-flex {
-	display: flex;
-}
-.task-flex-nowrap {
-	flex-wrap: nowrap;
-}
-.task-flex-wrap {
-	flex-wrap: wrap;
-}
-.task-overflow-x-auto {
-	overflow-x: auto;
-}
-.task-bg-secondary {
-	background: var(--background-secondary);
-}
-.task-border-bottom {
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-.task-p-1 {
-	padding: 4px 6px;
-}
-.task-gap-0 {
-	gap: 0;
-}
-.task-gap-1 {
-	gap: 4px;
-}
-.task-mr-1 {
-	margin-right: 6px;
-}
-.task-ml-2 {
-	margin-left: 8px;
-}
-.task-opacity-100 {
-	opacity: 1;
-}
-.task-opacity-40 {
-	opacity: 0.4;
-}
-.task-w-380 {
-	width: 380px;
 }
 
 /* ---------- 编辑栏 ---------- */
@@ -1293,4 +1604,197 @@
 	align-items: center;
 	gap: 2px;
 	flex-wrap: wrap;
+}
+
+/* ---------- 看板 ---------- */
+.task-kanban-board {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	overflow-x: auto;
+	padding: 8px 0;
+}
+.task-kanban-col {
+	flex: 1;
+	min-width: 240px;
+	background-color: var(--background-secondary);
+	border-radius: 8px;
+	padding: 12px;
+}
+
+/* ---------- 网格 ---------- */
+.task-grid-cols-2 {
+	grid-template-columns: 1fr 1fr;
+}
+.task-grid-rows-2 {
+	grid-template-rows: 1fr 1fr;
+}
+.task-grid-rows-auto {
+	grid-template-rows: auto auto;
+}
+.task-grid-cols-auto-fill {
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.task-card-border-left {
+	border-left: 3px solid rgba(180, 180, 180, 0.2);
+}
+
+/* ---------- 分组卡片 ---------- */
+.task-group-card {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	margin-bottom: 12px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
+}
+.task-bg-hover {
+	background-color: var(--background-modifier-hover);
+}
+.task-block {
+	display: block;
+}
+/* 图表网格 */
+.task-grid-cols-3 {
+	grid-template-columns: repeat(3, 1fr);
+}
+.task-gap-4 {
+	gap: 16px;
+}
+.task-min-w-0 {
+	min-width: 0;
+}
+.task-text-center {
+	text-align: center;
+}
+.task-mb-1 {
+	margin-bottom: 4px;
+}
+.task-text-sm {
+	font-size: var(--font-ui-small);
+}
+.task-items-center {
+	align-items: center;
+}
+.task-justify-center {
+	justify-content: center;
+}
+.task-text-muted {
+	color: var(--text-muted);
+}
+/* 详细统计图 */
+.task-min-h-100 {
+	min-height: 400px;
+}
+.task-relative {
+	position: relative;
+}
+.task-top-2 {
+	top: 8px;
+}
+.task-right-2 {
+	right: 8px;
+}
+.task-bg-none {
+	background: none;
+}
+.task-text-base {
+	font-size: 16px;
+}
+.task-h-125 {
+	height: 500px;
+}
+.task-fixed {
+	position: fixed;
+}
+.task-inset-0 {
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+.task-bg-overlay {
+	background: rgba(0, 0, 0, 0.8);
+}
+.task-z-9999 {
+	z-index: 9999;
+}
+.task-top-5 {
+	top: 20px;
+}
+.task-right-8 {
+	right: 30px;
+}
+.task-text-2xl {
+	font-size: 24px;
+}
+.task-text-white {
+	color: white;
+}
+.task-w-90 {
+	width: 90vw;
+}
+.task-h-90 {
+	height: 90vh;
+}
+.task-overflow-hidden {
+	overflow: hidden;
+}
+.task-relative {
+	position: relative;
+}
+.task-overflow-y-auto {
+	overflow-y: auto;
+}
+.task-flex-1 {
+	flex: 1;
+}
+.task-overflow-x-hidden {
+	overflow-x: hidden;
+}
+/* UI 布局 */
+.task-h-full {
+	height: 100%;
+}
+.task-flex-1 {
+	flex: 1;
+}
+.task-min-h-0 {
+	min-height: 0;
+}
+.task-min-w-0 {
+	min-width: 0;
+}
+.task-p-0 {
+	padding: 0;
+}
+.task-m-0 {
+	margin: 0;
+}
+.task-relative {
+	position: relative;
+}
+.task-absolute {
+	position: absolute;
+}
+.task-top-0 {
+	top: 0;
+}
+.task-left-0 {
+	left: 0;
+}
+.task-right-0 {
+	right: 0;
+}
+.task-z-10 {
+	z-index: 10;
+}
+.task-pointer-none {
+	pointer-events: none;
+}
+.task-overflow-hidden {
+	overflow: hidden;
+}
+.task-flex-col {
+	flex-direction: column;
 }

@@ -23,14 +23,22 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 
 	const container = document.createElement("div");
 	container.className = "task-progress-bar";
-	container.style.cssText =
-		"display:flex;align-items:center;gap:4px;min-width:60px;";
+	container.addClass(
+		"task-flex",
+		"task-items-center",
+		"task-gap-1",
+		"task-min-w-15",
+	);
 
 	const barWrapper = document.createElement("div");
-	barWrapper.style.cssText =
-		"flex:1;height:" +
-		barHeight +
-		";border-radius:3px;overflow:hidden;background:var(--background-modifier-border);display:flex;";
+	barWrapper.addClass(
+		"task-flex-1",
+		"task-rounded-sm",
+		"task-overflow-hidden",
+		"task-bg-border",
+		"task-flex",
+	);
+	barWrapper.style.height = barHeight;
 
 	const statusColors = getStatusColors();
 	const order = [
@@ -48,12 +56,10 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 			const pct = Math.min((count / safeTotal) * 100, 100 - accumulated);
 			accumulated += pct;
 			const segment = document.createElement("div");
-			segment.style.cssText =
-				"width:" +
-				pct +
-				"%;height:100%;background:" +
-				(statusColors[status] || "var(--text-muted)") +
-				";flex-shrink:0;";
+			segment.addClass("task-h-full", "task-flex-shrink-0");
+			segment.style.width = pct + "%";
+			segment.style.background =
+				statusColors[status] || "var(--text-muted)";
 			barWrapper.appendChild(segment);
 		}
 	});
@@ -66,8 +72,12 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		const done = completed + cancelled;
 		const pct = Math.min(Math.round((done / safeTotal) * 100), 100);
 		const label = document.createElement("span");
-		label.style.cssText =
-			"font-size:var(--font-ui-smaller);color:var(--text-muted);white-space:nowrap;flex-shrink:0;";
+		label.addClass(
+			"task-text-smaller",
+			"task-text-muted",
+			"task-text-nowrap",
+			"task-flex-shrink-0",
+		);
 		label.textContent = pct + "%";
 		container.appendChild(label);
 	}

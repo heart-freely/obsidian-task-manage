@@ -46,9 +46,6 @@ export class ManageView extends ItemView {
 		this.cleanup = undefined;
 	}
 
-	/**
-	 * 外部文件修改后刷新视图
-	 */
 	refreshView() {
 		this.store.triggerFullRender();
 	}
@@ -108,7 +105,7 @@ export class ViewContainer {
 			);
 			await this.currentView.render();
 		} catch (e) {
-			logger.warn("[TaskManage] 视图加载失败:", e);
+			console.warn("[TaskManage] 视图加载失败:", e);
 			this.container.empty();
 			this.container.createDiv({
 				text: `视图加载失败: ${(e as Error).message}`,
@@ -123,20 +120,39 @@ export function createManageLayout(
 	app: any,
 ) {
 	container.addClass("manage-root");
-	container.style.display = "flex";
-	container.style.height = "100%";
+	container.addClass("task-flex", "task-h-full");
 
 	const sidebarEl = container.createDiv({ cls: "manage-sidebar" });
 	const mainEl = container.createDiv({ cls: "manage-main" });
-	mainEl.style.cssText =
-		"flex:1;display:flex;flex-direction:column;min-height:0;min-width:0;padding:0;margin:0;position:relative;";
+	mainEl.addClass(
+		"task-flex-1",
+		"task-flex",
+		"task-flex-col",
+		"task-min-h-0",
+		"task-min-w-0",
+		"task-p-0",
+		"task-m-0",
+		"task-relative",
+	);
 	const toolbarEl = mainEl.createDiv({ cls: "manage-toolbar" });
-	toolbarEl.style.cssText =
-		"position:absolute;top:0;left:0;right:0;z-index:10;pointer-events:none;";
+	toolbarEl.addClass(
+		"task-absolute",
+		"task-top-0",
+		"task-left-0",
+		"task-right-0",
+		"task-z-10",
+		"task-pointer-none",
+	);
 
 	const viewEl = mainEl.createDiv({ cls: "manage-view" });
-	viewEl.style.cssText =
-		"flex:1;overflow:hidden;min-height:0;padding:0;padding-top:0px;position:relative;";
+	viewEl.addClass(
+		"task-flex-1",
+		"task-overflow-hidden",
+		"task-min-h-0",
+		"task-p-0",
+		"task-relative",
+	);
+	viewEl.style.paddingTop = "0px";
 
 	new SidebarPanel(sidebarEl, store, app);
 

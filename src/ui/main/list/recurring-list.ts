@@ -31,10 +31,12 @@ export function renderRecurring(
 
 	const grid = document.createElement("div");
 	grid.className = "recurring-grid";
-	grid.style.display = "grid";
-	grid.style.gridTemplateColumns = "1fr 1fr";
-	grid.style.gridTemplateRows = "auto auto";
-	grid.style.gap = "12px";
+	grid.addClass(
+		"task-grid",
+		"task-grid-cols-2",
+		"task-grid-rows-auto",
+		"task-gap-3",
+	);
 
 	cycleOrder.forEach((cycle, index) => {
 		const tasksInGroup = groups[cycle] || [];

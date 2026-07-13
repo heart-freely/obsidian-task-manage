@@ -37,7 +37,6 @@ DATE_MARK_ORDER.forEach((k) => {
 const MISSING_COLOR = "rgba(128,128,128,0.5)";
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
-	// 逐个释放子 ECharts 实例（每个 .chart-body 元素上可能挂载了独立实例）
 	container.querySelectorAll(".chart-body").forEach((el) => {
 		const instance = echarts.getInstanceByDom(el as HTMLElement);
 		if (instance) instance.dispose();
@@ -57,8 +56,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 
 	const grid = document.createElement("div");
 	grid.className = "chart-grid";
-	grid.style.cssText =
-		"display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;";
+	grid.addClass("task-grid", "task-grid-cols-3", "task-gap-4", "task-w-full");
 	container.appendChild(grid);
 
 	const theme = getComputedStyle(document.body);
@@ -76,19 +74,24 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	) {
 		const item = document.createElement("div");
 		item.className = "chart-item";
-		item.style.cssText = "min-width:0;";
+		item.addClass("task-min-w-0");
 
 		const header = document.createElement("div");
 		header.className = "chart-header";
-		header.style.cssText =
-			"text-align:center;font-weight:600;margin-bottom:4px;font-size:var(--font-ui-small);";
+		header.addClass(
+			"task-text-center",
+			"task-font-semibold",
+			"task-mb-1",
+			"task-text-sm",
+		);
 		header.textContent = title;
 		item.appendChild(header);
 
 		const chartHeight = getChartHeight(data.length);
 		const chartDiv = document.createElement("div");
 		chartDiv.className = "chart-body";
-		chartDiv.style.cssText = `width:100%;height:${chartHeight};`;
+		chartDiv.style.height = chartHeight;
+		chartDiv.style.width = "100%";
 		item.appendChild(chartDiv);
 
 		grid.appendChild(item);
@@ -146,10 +149,14 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 				],
 			});
 		} catch (e) {
-			logger.error("[TaskManage] 图表初始化失败:", e);
+			console.error("[TaskManage] 图表初始化失败:", e);
 			chartDiv.textContent = "图表加载失败";
-			chartDiv.style.cssText +=
-				"display:flex;align-items:center;justify-content:center;color:var(--text-muted);";
+			chartDiv.addClass(
+				"task-flex",
+				"task-items-center",
+				"task-justify-center",
+				"task-text-muted",
+			);
 		}
 	}
 	function makeHasNonePie(title: string, hasCount: number, hasColor: string) {
@@ -221,7 +228,6 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		}
 	});
 
-	// 循环周期饼图数据顺序调整
 	makePieChart(
 		"🔄 循环周期",
 		[

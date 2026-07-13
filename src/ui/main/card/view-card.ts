@@ -115,29 +115,56 @@ export function createViewCard(
 	const statusColor = statusColors[node.status] || statusColors["todo"];
 
 	if (!compact) {
-		li.style.cssText =
-			"margin:6px 0; padding:8px 10px; background:var(--background-primary); border-radius:8px; font-size:0.9em; cursor:pointer; display:flex; flex-direction:column; color:var(--text-normal); transition:background 0.1s; box-sizing:border-box;";
+		li.addClass(
+			"task-card",
+			"task-m-1",
+			"task-p-2",
+			"task-bg-primary",
+			"task-rounded",
+			"task-text-sm",
+			"task-clickable",
+			"task-flex",
+			"task-flex-col",
+			"task-text-normal",
+			"task-transition-bg",
+		);
 		li.style.borderLeft = `3px solid ${statusColor}`;
 		if (isEditing) li.style.cursor = "default";
 	} else {
-		li.style.cssText =
-			"margin:0;padding:1px 0;background:transparent;border-radius:4px;font-size:var(--font-ui-small);cursor:pointer;border:none;display:block;list-style:none;";
+		li.addClass(
+			"task-card-compact",
+			"task-m-0",
+			"task-py-0",
+			"task-px-0",
+			"task-bg-transparent",
+			"task-rounded",
+			"task-text-xs",
+			"task-clickable",
+			"task-border-none",
+			"task-block",
+			"task-list-none",
+		);
 	}
 
 	if (!node.display) {
-		li.style.opacity = "0.4";
+		li.addClass("task-opacity-40");
 	}
 
 	if (compact) {
 		const descDiv = document.createElement("div");
 		descDiv.className = "task-desc";
-		descDiv.style.cssText =
-			"font-weight:normal;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;line-height:1.5;";
+		descDiv.addClass(
+			"task-font-normal",
+			"task-mb-0",
+			"task-text-ellipsis",
+			"task-pl-0",
+			"task-leading-normal",
+		);
 		descDiv.appendChild(buildDescriptionDOM(node, compact));
 		li.appendChild(descDiv);
 	} else {
 		const row1 = document.createElement("div");
-		row1.style.cssText = "display:flex;align-items:center;gap:4px;";
+		row1.addClass("task-flex", "task-items-center", "task-gap-1");
 
 		if (isBatchMode && editCtx && node.type === "list") {
 			row1.appendChild(
@@ -150,12 +177,20 @@ export function createViewCard(
 		const descEl = document.createElement("span");
 		descEl.className = "task-desc";
 		descEl.appendChild(buildDescriptionDOM(node, compact));
-		descEl.style.cssText =
-			"font-weight:500;flex:1;cursor:" +
-			(isEditing ? "text" : "pointer") +
-			";margin-bottom:4px;color:" +
-			(hasContentEdit ? "var(--text-accent)" : "var(--text-normal)") +
-			";";
+		descEl.addClass(
+			"task-font-medium",
+			"task-flex-1",
+			"task-mb-1",
+			"task-cursor-pointer",
+		);
+		if (hasContentEdit) {
+			descEl.addClass("task-text-accent");
+		} else {
+			descEl.addClass("task-text-normal");
+		}
+		if (isEditing) {
+			descEl.addClass("task-cursor-text");
+		}
 
 		if (isEditing && editCtx) {
 			bindDescriptionEdit(descEl, node, editCtx);
@@ -181,7 +216,7 @@ export function createViewCard(
 		li.appendChild(editBar);
 
 		if (isBatchMode && !isEditing) {
-			editBar.style.display = "none";
+			editBar.addClass("task-hidden");
 		}
 
 		if (previewText) {
@@ -197,7 +232,7 @@ export function createViewCard(
 		} else {
 			const previewRow = document.createElement("div");
 			previewRow.className = "task-preview-row";
-			previewRow.style.display = "none";
+			previewRow.addClass("task-hidden");
 			li.appendChild(previewRow);
 		}
 	}
@@ -235,14 +270,15 @@ export function createViewCard(
 	}
 
 	li.addEventListener("mouseenter", () => {
-		li.style.backgroundColor = compact
-			? "var(--background-modifier-hover)"
-			: "var(--background-modifier-hover)";
+		li.addClass("task-bg-hover");
 	});
 	li.addEventListener("mouseleave", () => {
-		li.style.backgroundColor = compact
-			? "transparent"
-			: "var(--background-primary)";
+		li.removeClass("task-bg-hover");
+		if (compact) {
+			li.addClass("task-bg-transparent");
+		} else {
+			li.addClass("task-bg-primary");
+		}
 	});
 
 	if (showTooltip && compact) {

@@ -32,9 +32,7 @@ export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
 
 	const board = document.createElement("div");
 	board.className = "kanban-board";
-	board.style.display = "flex";
-	board.style.gap = "12px";
-	board.style.alignItems = "flex-start";
+	board.addClass("task-flex", "task-gap-3", "task-items-start");
 
 	columns.forEach((col) => {
 		const card = createGroupCard({
@@ -43,8 +41,7 @@ export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
 			tasks: groups[col.key],
 			color: col.color,
 		});
-		card.style.flex = "1";
-		card.style.minWidth = "0";
+		card.addClass("task-flex-1", "task-min-w-0");
 		board.appendChild(card);
 	});
 

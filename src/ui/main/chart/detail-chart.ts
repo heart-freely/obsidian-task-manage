@@ -72,20 +72,24 @@ export function renderDetail(
 
 	const wrapper = document.createElement("div");
 	wrapper.className = "detail-chart-wrapper";
-	wrapper.style.width = "100%";
-	wrapper.style.minHeight = "400px";
-	wrapper.style.position = "relative";
+	wrapper.addClass("task-w-full", "task-min-h-100", "task-relative");
 
 	const chartDiv = document.createElement("div");
-	chartDiv.style.width = "100%";
-	chartDiv.style.height = "500px";
+	chartDiv.addClass("task-w-full", "task-h-125");
 	wrapper.appendChild(chartDiv);
 
 	const zoomBtn = document.createElement("button");
 	zoomBtn.className = "zoom-btn";
 	zoomBtn.textContent = "🔍";
-	zoomBtn.style.cssText =
-		"position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:16px;";
+	zoomBtn.addClass(
+		"task-absolute",
+		"task-top-2",
+		"task-right-2",
+		"task-bg-none",
+		"task-border-none",
+		"task-clickable",
+		"task-text-base",
+	);
 	wrapper.appendChild(zoomBtn);
 	container.appendChild(wrapper);
 
@@ -93,21 +97,28 @@ export function renderDetail(
 	try {
 		chart = echarts.init(chartDiv);
 	} catch (e) {
-		logger.error("[TaskManage] 详细统计图初始化失败:", e);
+		console.error("[TaskManage] 详细统计图初始化失败:", e);
 		chartDiv.textContent = "图表加载失败";
-		chartDiv.style.cssText +=
-			"display:flex;align-items:center;justify-content:center;color:var(--text-muted);";
+		chartDiv.addClass(
+			"task-flex",
+			"task-items-center",
+			"task-justify-center",
+			"task-text-muted",
+		);
 		return;
 	}
+
+	const theme = getComputedStyle(document.body);
+	const textColor = theme.getPropertyValue("--text-normal") || "#333";
 
 	const option = {
 		tooltip: getEChartsTooltipConfig("axis"),
 		xAxis: {
 			type: "category",
 			data: dates,
-			axisLabel: { rotate: 30, fontSize: 10 },
+			axisLabel: { rotate: 30, fontSize: 10, color: textColor },
 		},
-		yAxis: { type: "value" },
+		yAxis: { type: "value", nameTextStyle: { color: textColor } },
 		series: ALLOWED_STATUSES.map((st) => ({
 			name: STATUS_ICONS[st] + " " + STATUS_NAMES[st],
 			type: "bar",
@@ -116,23 +127,41 @@ export function renderDetail(
 			itemStyle: { color: statusColors[st] || undefined },
 		})),
 		grid: { left: "8%", right: "5%", top: "15%", bottom: "25%" },
-		legend: { bottom: 0, textStyle: { fontSize: 10 } },
+		legend: {
+			bottom: 0,
+			textStyle: { fontSize: 10, color: textColor },
+		},
+		textStyle: { color: textColor },
 	};
 	chart.setOption(option);
 
 	zoomBtn.onclick = () => {
 		const modal = document.createElement("div");
-		modal.style.cssText =
-			"position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;";
+		modal.addClass(
+			"task-fixed",
+			"task-inset-0",
+			"task-bg-overlay",
+			"task-z-9999",
+			"task-flex",
+			"task-items-center",
+			"task-justify-center",
+		);
 
 		const closeBtn = document.createElement("button");
 		closeBtn.textContent = "✖";
-		closeBtn.style.cssText =
-			"position:absolute;top:20px;right:30px;font-size:24px;background:transparent;border:none;color:white;cursor:pointer;";
+		closeBtn.addClass(
+			"task-absolute",
+			"task-top-5",
+			"task-right-8",
+			"task-text-2xl",
+			"task-bg-transparent",
+			"task-border-none",
+			"task-text-white",
+			"task-clickable",
+		);
 
 		const bigChartDiv = document.createElement("div");
-		bigChartDiv.style.width = "90vw";
-		bigChartDiv.style.height = "90vh";
+		bigChartDiv.addClass("task-w-90", "task-h-90");
 		modal.appendChild(bigChartDiv);
 		modal.appendChild(closeBtn);
 		document.body.appendChild(modal);
@@ -142,10 +171,14 @@ export function renderDetail(
 			bigChart = echarts.init(bigChartDiv);
 			bigChart.setOption(option);
 		} catch (e) {
-			logger.error("[TaskManage] 放大图表初始化失败:", e);
+			console.error("[TaskManage] 放大图表初始化失败:", e);
 			bigChartDiv.textContent = "图表加载失败";
-			bigChartDiv.style.cssText +=
-				"display:flex;align-items:center;justify-content:center;color:white;";
+			bigChartDiv.addClass(
+				"task-flex",
+				"task-items-center",
+				"task-justify-center",
+				"task-text-white",
+			);
 		}
 
 		const closeModal = () => {

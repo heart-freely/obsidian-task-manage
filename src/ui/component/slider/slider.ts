@@ -50,11 +50,19 @@ export function createSlider(options: SliderOptions): {
 	const { container, min, max, start, end, onChange, rowCls } = options;
 
 	const row = container.createDiv({ cls: rowCls || "slider-row" });
-	row.style.cssText = "width:100%;align-items:center;flex-wrap:nowrap;";
+	row.addClass("task-w-full", "task-items-center", "task-flex-nowrap");
 
 	const track = row.createDiv();
-	track.style.cssText =
-		"flex:1;position:relative;height:4px;cursor:pointer;background:var(--background-modifier-border);border-radius:2px;min-width:60px;overflow:visible;";
+	track.addClass(
+		"task-flex-1",
+		"task-relative",
+		"task-h-1",
+		"task-clickable",
+		"task-bg-border",
+		"task-rounded-sm",
+		"task-min-w-15",
+		"task-overflow-visible",
+	);
 
 	const step = Math.max(1, Math.ceil((max - min) / 20));
 	const range = max - min || 1;
@@ -66,25 +74,31 @@ export function createSlider(options: SliderOptions): {
 	const ep = ((initE - min) / range) * 100;
 
 	const fill = track.createDiv();
-	fill.style.cssText =
-		"position:absolute;top:0;left:" +
-		sp +
-		"%;width:" +
-		Math.max(0, ep - sp) +
-		"%;height:100%;background:var(--interactive-accent);border-radius:2px;";
+	fill.addClass(
+		"task-absolute",
+		"task-top-0",
+		"task-h-full",
+		"task-bg-accent",
+		"task-rounded-sm",
+	);
+	fill.style.left = sp + "%";
+	fill.style.width = Math.max(0, ep - sp) + "%";
 
 	const createHandle = (pct: number, isStart: boolean): HTMLElement => {
 		const el = track.createDiv();
 		const radius = isStart ? "3px 0 0 3px" : "0 3px 3px 0";
 		const translate = isStart ? "translateX(-100%)" : "translateX(0)";
-		el.style.cssText =
-			"position:absolute;top:-6px;left:" +
-			pct +
-			"%;width:4px;height:16px;background:var(--interactive-accent);border-radius:" +
-			radius +
-			";cursor:grab;transform:" +
-			translate +
-			";z-index:2;";
+		el.addClass(
+			"task-absolute",
+			"task-top--6",
+			"task-w-1",
+			"task-h-4",
+			"task-bg-accent",
+			"task-clickable-grab",
+		);
+		el.style.left = pct + "%";
+		el.style.borderRadius = radius;
+		el.style.transform = translate;
 		return el;
 	};
 
@@ -99,13 +113,10 @@ export function createSlider(options: SliderOptions): {
 	const updateHandles = (ns: number, ne: number) => {
 		const mnv = clamp(Math.min(ns, ne), min, max);
 		const mxv = clamp(Math.max(ns, ne), min, max);
-		startHandle.style.setProperty(
-			"left",
-			((mnv - min) / range) * 100 + "%",
-		);
-		endHandle.style.setProperty("left", ((mxv - min) / range) * 100 + "%");
-		fill.style.setProperty("left", ((mnv - min) / range) * 100 + "%");
-		fill.style.setProperty("width", ((mxv - mnv) / range) * 100 + "%");
+		startHandle.style.left = ((mnv - min) / range) * 100 + "%";
+		endHandle.style.left = ((mxv - min) / range) * 100 + "%";
+		fill.style.left = ((mnv - min) / range) * 100 + "%";
+		fill.style.width = ((mxv - mnv) / range) * 100 + "%";
 	};
 
 	const commitChange = (ns: number, ne: number) => {
@@ -122,7 +133,7 @@ export function createSlider(options: SliderOptions): {
 			ev.preventDefault();
 			ev.stopPropagation();
 			isDraggingHandle = true;
-			el.style.setProperty("cursor", "grabbing");
+			el.style.cursor = "grabbing";
 
 			const onMove = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
@@ -144,7 +155,7 @@ export function createSlider(options: SliderOptions): {
 			const onUp = (e: MouseEvent) => {
 				if (!isDraggingHandle) return;
 				isDraggingHandle = false;
-				el.style.setProperty("cursor", "grab");
+				el.style.cursor = "grab";
 				document.removeEventListener("mousemove", onMove);
 				document.removeEventListener("mouseup", onUp);
 				e.preventDefault();
@@ -265,25 +276,38 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 	} = options;
 
 	const outerRow = container.createDiv({ cls: rowCls || "slider-row" });
-	outerRow.style.cssText = "width:100%;align-items:center;flex-wrap:nowrap;";
+	outerRow.addClass(
+		"task-flex",
+		"task-items-center",
+		"task-w-full",
+		"task-py-1",
+	);
 
 	const range = max - min || 1;
 	const step = tickStep ?? Math.max(1, Math.ceil((max - min) / 20));
 
 	const trackWrapper = outerRow.createDiv();
-	trackWrapper.style.cssText =
-		"flex:1;position:relative;min-width:60px;margin-right:8px;";
+	trackWrapper.addClass(
+		"task-flex-1",
+		"task-relative",
+		"task-min-w-15",
+		"task-mr-2",
+	);
 
 	const labelSpan = outerRow.createSpan();
 	const lw = labelWidth || "160px";
-	labelSpan.style.cssText =
-		"font-size:var(--font-ui-smaller);width:" +
-		lw +
-		";min-width:" +
-		lw +
-		";max-width:" +
-		lw +
-		";text-align:left;flex-shrink:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px;";
+	labelSpan.addClass(
+		"task-text-smaller",
+		"task-text-muted",
+		"task-text-nowrap",
+		"task-overflow-hidden",
+		"task-text-ellipsis",
+		"task-flex-shrink-0",
+	);
+	labelSpan.style.width = lw;
+	labelSpan.style.minWidth = lw;
+	labelSpan.style.maxWidth = lw;
+	labelSpan.style.textAlign = "left";
 
 	const initS = clamp(Math.min(start, end), min, max);
 	const initE = clamp(Math.max(start, end), min, max);
@@ -307,22 +331,21 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		onChange: wrappedOnChange,
 		rowCls: "slider-inner-row",
 	});
-	slider.refs.row.style.cssText = "width:100%;";
+	slider.refs.row.addClass("task-w-full");
 
 	const track = slider.refs.track;
 	for (let v = min; v <= max; v += step) {
 		const isToday = todayValue !== undefined && v === todayValue;
 		const mark = track.createDiv();
-		mark.style.cssText =
-			"position:absolute;top:0;left:" +
-			((v - min) / range) * 100 +
-			"%;transform:translateX(-50%);width:" +
-			(isToday ? "2px" : "1px") +
-			";height:8px;background:" +
-			(isToday ? "var(--text-accent)" : "var(--text-muted)") +
-			";opacity:" +
-			(isToday ? "1" : "0.4") +
-			";z-index:1;";
+		mark.addClass("task-absolute", "task-top-0", "task-z-1");
+		mark.style.left = ((v - min) / range) * 100 + "%";
+		mark.style.transform = "translateX(-50%)";
+		mark.style.width = isToday ? "2px" : "1px";
+		mark.style.height = "8px";
+		mark.style.background = isToday
+			? "var(--text-accent)"
+			: "var(--text-muted)";
+		mark.style.opacity = isToday ? "1" : "0.4";
 	}
 	if (
 		todayValue !== undefined &&
@@ -331,22 +354,26 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		(todayValue - min) % step !== 0
 	) {
 		const mark = track.createDiv();
-		mark.style.cssText =
-			"position:absolute;top:0;left:" +
-			((todayValue - min) / range) * 100 +
-			"%;transform:translateX(-50%);width:2px;height:8px;background:var(--text-accent);opacity:1;z-index:1;";
+		mark.addClass("task-absolute", "task-top-0", "task-z-1");
+		mark.style.left = ((todayValue - min) / range) * 100 + "%";
+		mark.style.transform = "translateX(-50%)";
+		mark.style.width = "2px";
+		mark.style.height = "8px";
+		mark.style.background = "var(--text-accent)";
+		mark.style.opacity = "1";
 	}
 
 	const midLine = track.createDiv();
-	midLine.style.cssText =
-		"position:absolute;top:-2px;width:1px;height:8px;background:var(--text-muted);opacity:0.5;z-index:1;";
+	midLine.addClass("task-absolute", "task-top--2", "task-z-1");
+	midLine.style.width = "1px";
+	midLine.style.height = "8px";
+	midLine.style.background = "var(--text-muted)";
+	midLine.style.opacity = "0.5";
 	if (midValue !== undefined) {
-		midLine.style.setProperty(
-			"left",
-			((clamp(midValue, min, max) - min) / range) * 100 + "%",
-		);
+		midLine.style.left =
+			((clamp(midValue, min, max) - min) / range) * 100 + "%";
 	} else {
-		midLine.style.setProperty("display", "none");
+		midLine.style.display = "none";
 	}
 
 	const updateAll = (s: number, e: number) => {
@@ -370,11 +397,9 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 			},
 		},
 		updateMidLine: (value: number) => {
-			midLine.style.setProperty(
-				"left",
-				((clamp(value, min, max) - min) / range) * 100 + "%",
-			);
-			midLine.style.removeProperty("display");
+			midLine.style.left =
+				((clamp(value, min, max) - min) / range) * 100 + "%";
+			midLine.style.display = "";
 		},
 		updateLabel: (text: string) => {
 			labelSpan.textContent = text;

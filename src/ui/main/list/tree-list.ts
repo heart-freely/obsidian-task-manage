@@ -24,15 +24,25 @@ export interface TreeListOptions {
 
 function createRowWrapper(depth: number): HTMLElement {
 	const w = document.createElement("div");
-	w.style.cssText = `margin-left:${depth * INDENT_WIDTH}px;display:flex;align-items:center;gap:0;`;
+	w.addClass("task-flex", "task-items-center", "task-gap-0");
+	w.style.marginLeft = `${depth * INDENT_WIDTH}px`;
 	return w;
 }
 
 function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	const b = document.createElement("span");
 	b.className = "tree-toggle-btn";
-	b.style.cssText =
-		"display:inline-flex;align-items:center;justify-content:center;width:16px;min-width:16px;height:22px;font-size:10px;flex-shrink:0;cursor:pointer;user-select:none;";
+	b.addClass(
+		"task-inline-flex",
+		"task-items-center",
+		"task-justify-center",
+		"task-w-4",
+		"task-h-5",
+		"task-text-smaller",
+		"task-flex-shrink-0",
+		"task-clickable",
+		"task-select-none",
+	);
 	b.textContent = "▼";
 	b.addEventListener("click", (e) => {
 		e.stopPropagation();
@@ -58,7 +68,7 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 
 function createSpacer(): HTMLElement {
 	const s = document.createElement("span");
-	s.style.cssText = "display:inline-flex;width:16px;flex-shrink:0;";
+	s.addClass("task-inline-flex", "task-w-4", "task-flex-shrink-0");
 	return s;
 }
 
@@ -68,20 +78,24 @@ function addProgressBadge(
 	total: number,
 ) {
 	const w = document.createElement("div");
-	w.style.cssText =
-		"display:flex;align-items:center;gap:4px;margin-left:4px;flex-shrink:0;";
+	w.addClass(
+		"task-flex",
+		"task-items-center",
+		"task-gap-1",
+		"task-flex-shrink-0",
+		"task-ml-1",
+	);
 	const pb = createProgressBar({
 		counts,
 		total,
 		height: "8px",
 		showPercent: true,
 	});
-	pb.style.cssText += "width:60px;min-width:60px;flex-shrink:0;";
+	pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 	w.appendChild(pb);
 	const b = document.createElement("span");
 	b.textContent = "(" + total + ")";
-	b.style.cssText =
-		"font-size:var(--font-ui-smaller);color:var(--text-muted);flex-shrink:0;";
+	b.addClass("task-text-smaller", "task-text-muted", "task-flex-shrink-0");
 	w.appendChild(b);
 	container.appendChild(w);
 }
@@ -97,13 +111,16 @@ export function renderTaskTree(
 	const tree = document.createElement("div");
 	tree.className = "task-tree";
 
-	// 聚焦模式：显示"返回全树"标题栏
 	if (options.focusRoot) {
 		const focusBar = document.createElement("div");
-		focusBar.style.cssText =
-			"padding:2px 4px; cursor:pointer; font-size:var(--font-ui-small); color:var(--text-accent);";
+		focusBar.addClass(
+			"task-px-1",
+			"task-py-0",
+			"task-clickable",
+			"task-text-sm",
+			"task-text-accent",
+		);
 
-		// 根据节点类型显示对应符号
 		const typeIcons: Record<string, string> = {
 			file: "📄",
 			heading: "H" + (displayRoot.headingLevel || displayRoot.depth),
@@ -111,7 +128,6 @@ export function renderTaskTree(
 		};
 		const icon = typeIcons[displayRoot.type] || "📂";
 		let displayText = displayRoot.text;
-		// 标题任务去除 number headings 序号
 		if (displayRoot.type === "heading") {
 			displayText = removeHeadingNumber(displayText);
 		}
@@ -120,16 +136,19 @@ export function renderTaskTree(
 		focusBar.addEventListener("click", () => options.onRestore?.());
 		tree.appendChild(focusBar);
 	} else {
-		// 全树模式：虚拟根节点
 		const { counts, total } = countNodeStatuses(options.root);
 
 		const rootRow = document.createElement("div");
-		rootRow.style.cssText =
-			"display:flex; align-items:center; gap:4px; padding:2px 4px;";
+		rootRow.addClass(
+			"task-flex",
+			"task-items-center",
+			"task-gap-1",
+			"task-px-1",
+			"task-py-0",
+		);
 
 		const rootTitle = document.createElement("span");
-		rootTitle.style.cssText =
-			"font-size:var(--font-ui-small); color:var(--text-muted);";
+		rootTitle.addClass("task-text-sm", "task-text-muted");
 		rootTitle.textContent = "🗂️ 任务管理";
 		rootRow.appendChild(rootTitle);
 
@@ -154,12 +173,15 @@ export function renderTaskTree(
 				height: "8px",
 				showPercent: true,
 			});
-			pb.style.cssText += "width:60px; min-width:60px; flex-shrink:0;";
+			pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 			rootRow.appendChild(pb);
 
 			const badge = document.createElement("span");
-			badge.style.cssText =
-				"font-size:var(--font-ui-smaller); color:var(--text-muted); flex-shrink:0;";
+			badge.addClass(
+				"task-text-smaller",
+				"task-text-muted",
+				"task-flex-shrink-0",
+			);
 			badge.textContent = "(" + childTotal + ")";
 			rootRow.appendChild(badge);
 		}
@@ -192,15 +214,19 @@ function renderNode(
 	const childContainer = document.createElement("div");
 	const { counts, total } = countNodeStatuses(node);
 
-	// 使用修正后的深度
 	const displayDepth = Math.max(0, node.depth - depthOffset);
 	const rowWrapper = createRowWrapper(displayDepth);
 	if (hasChildren) rowWrapper.appendChild(createToggleBtn(childContainer));
 	else rowWrapper.appendChild(createSpacer());
 
 	const contentContainer = document.createElement("div");
-	contentContainer.style.cssText =
-		"display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:100%;";
+	contentContainer.addClass(
+		"task-flex",
+		"task-items-center",
+		"task-gap-1",
+		"task-flex-shrink-0",
+		"task-max-w-full",
+	);
 
 	const card = createTaskCard(node, {
 		showTooltip: true,
@@ -214,7 +240,7 @@ function renderNode(
 
 	rowWrapper.appendChild(contentContainer);
 	const rightSpacer = document.createElement("div");
-	rightSpacer.style.cssText = "flex:1;";
+	rightSpacer.addClass("task-flex-1");
 	rowWrapper.appendChild(rightSpacer);
 	parentEl.appendChild(rowWrapper);
 

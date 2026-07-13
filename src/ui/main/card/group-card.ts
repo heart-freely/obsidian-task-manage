@@ -17,32 +17,38 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 
 	const colDiv = document.createElement("div");
 	colDiv.className = "group-card";
-	colDiv.style.background = "var(--background-primary)";
-	colDiv.style.border = "1px solid var(--background-modifier-border)";
-	colDiv.style.borderRadius = "8px";
-	colDiv.style.marginBottom = "12px";
-	colDiv.style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)";
-	colDiv.style.overflow = "hidden";
+	colDiv.addClass(
+		"task-group-card",
+		"task-bg-primary",
+		"task-border",
+		"task-rounded",
+		"task-mb-2",
+		"task-shadow-sm",
+		"task-overflow-hidden",
+	);
 
-	if (color) colDiv.style.borderLeft = `4px solid ${color}`;
+	if (color) {
+		colDiv.style.borderLeft = `4px solid ${color}`;
+	}
 
 	const header = document.createElement("div");
 	header.className = "group-card-header";
-	header.style.padding = "8px 12px";
-	header.style.fontWeight = "600";
-	header.style.borderBottom = "1px solid var(--background-modifier-border)";
-	header.style.display = "flex";
-	header.style.justifyContent = "flex-start";
-	header.style.alignItems = "center";
-	header.style.gap = "8px";
+	header.addClass(
+		"task-flex",
+		"task-justify-start",
+		"task-items-center",
+		"task-gap-2",
+		"task-p-2",
+		"task-font-semibold",
+		"task-border-bottom",
+	);
 
 	const titleSpan = document.createElement("span");
 	titleSpan.textContent = title;
 
 	const countSpan = document.createElement("span");
 	countSpan.className = "group-card-count";
-	countSpan.style.color = "var(--text-muted)";
-	countSpan.style.whiteSpace = "nowrap";
+	countSpan.addClass("task-text-muted", "task-text-nowrap");
 	countSpan.textContent = String(count);
 
 	header.appendChild(titleSpan);
@@ -50,12 +56,11 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 
 	const body = document.createElement("div");
 	body.className = "group-card-body";
-	body.style.padding = "8px 0";
+	body.addClass("task-py-1");
 
 	const list = document.createElement("ul");
 	list.className = "task-list";
-	list.style.paddingLeft = "0";
-	list.style.listStyle = "none";
+	list.addClass("task-pl-0", "task-list-none");
 	tasks.forEach((node) => {
 		const card = createTaskCard(node, {
 			onClick,

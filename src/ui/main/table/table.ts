@@ -123,8 +123,7 @@ export function renderTaskTable(
 
 	const table = document.createElement("table");
 	table.className = "task-table";
-	table.style.width = "100%";
-	table.style.borderCollapse = "collapse";
+	table.addClass("task-w-full", "task-border-collapse");
 
 	const thead = document.createElement("thead");
 	const headerRow = document.createElement("tr");
@@ -139,6 +138,7 @@ export function renderTaskTable(
 	nodes.forEach((node) => {
 		const row = document.createElement("tr");
 		row.className = "task-row";
+		row.addClass("task-clickable");
 		row.addEventListener("dblclick", () => options.onClick?.(node));
 
 		visibleColumns.forEach((col) => {
@@ -155,31 +155,39 @@ export function renderTaskTable(
 function createTh(text: string, mode: "nowrap" | "wrap"): HTMLTableCellElement {
 	const th = document.createElement("th");
 	th.textContent = text;
-	th.style.padding = "4px 8px";
-	th.style.textAlign = "left";
-	th.style.borderBottom = "1px solid var(--background-modifier-border)";
-	th.style.fontSize = "var(--font-ui-smaller)";
-	th.style.color = "var(--text-muted)";
-	th.style.fontWeight = "600";
-	th.style.whiteSpace = "nowrap";
-	if (mode === "nowrap") th.style.width = "1px";
-	else th.style.width = "66%";
+	th.addClass(
+		"task-px-2",
+		"task-py-1",
+		"task-text-left",
+		"task-border-bottom",
+		"task-text-smaller",
+		"task-text-muted",
+		"task-font-semibold",
+		"task-text-nowrap",
+	);
+	if (mode === "nowrap") {
+		th.addClass("task-w-1");
+	} else {
+		th.addClass("task-w-66");
+	}
 	return th;
 }
 
 function createTd(text: string, wrap: boolean): HTMLTableCellElement {
 	const td = document.createElement("td");
 	td.textContent = text;
-	td.style.padding = "4px 8px";
-	td.style.borderBottom = "1px solid var(--background-modifier-border)";
-	td.style.fontSize = "var(--font-ui-smaller)";
-	td.style.verticalAlign = "top";
+	td.addClass(
+		"task-px-2",
+		"task-py-1",
+		"task-border-bottom",
+		"task-text-smaller",
+		"task-text-normal",
+		"task-align-top",
+	);
 	if (wrap) {
-		td.style.whiteSpace = "normal";
-		td.style.wordBreak = "break-word";
-		td.style.overflowWrap = "break-word";
+		td.addClass("task-text-wrap", "task-break-word", "task-overflow-wrap");
 	} else {
-		td.style.whiteSpace = "nowrap";
+		td.addClass("task-text-nowrap");
 	}
 	return td;
 }

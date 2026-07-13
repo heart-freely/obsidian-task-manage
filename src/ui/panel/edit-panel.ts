@@ -50,7 +50,7 @@ export class EditPanel {
 
 		// ========== 行1：批量编辑 ==========
 		const row1 = this.container.createDiv({ cls: "panel-row" });
-		row1.style.cssText = "flex-wrap:wrap;gap:6px;margin-bottom:4px;";
+		row1.addClass("task-flex-wrap", "task-gap-1", "task-mb-1");
 		row1.createSpan({ text: "批量编辑", cls: "panel-label" });
 
 		const batchBtn = row1.createEl("button", {
@@ -64,8 +64,13 @@ export class EditPanel {
 		});
 
 		const subPanel1 = row1.createDiv({ cls: "panel-sub" });
-		subPanel1.style.cssText =
-			"display:flex;flex-wrap:wrap;gap:6px;margin-left:8px;align-items:center;";
+		subPanel1.addClass(
+			"task-flex",
+			"task-flex-wrap",
+			"task-gap-1",
+			"task-ml-2",
+			"task-items-center",
+		);
 
 		// 同步模式按钮
 		const syncBtn = subPanel1.createEl("button", {
@@ -109,8 +114,11 @@ export class EditPanel {
 
 		// 补全时间
 		const autoCompleteRow = subPanel1.createDiv();
-		autoCompleteRow.style.cssText =
-			"display:inline-flex;align-items:center;gap:4px;";
+		autoCompleteRow.addClass(
+			"task-inline-flex",
+			"task-items-center",
+			"task-gap-1",
+		);
 
 		const autoCompleteBtn = document.createElement("button");
 		autoCompleteBtn.textContent = "补全时间";
@@ -132,8 +140,18 @@ export class EditPanel {
 		daysInput.type = "number";
 		daysInput.value = this.savedDaysValue;
 		daysInput.min = "0";
-		daysInput.style.cssText =
-			"width:48px;height:22px;text-align:center;padding:0 4px;border-radius:12px;border:1px solid var(--background-modifier-border);font-size:var(--font-ui-smaller);line-height:22px;box-sizing:border-box;";
+		daysInput.addClass(
+			"task-w-12",
+			"task-h-5",
+			"task-text-center",
+			"task-px-1",
+			"task-py-0",
+			"task-rounded-full",
+			"task-border",
+			"task-text-smaller",
+			"task-leading-normal",
+			"task-box-border",
+		);
 		if (!isBatchMode || !hasSelected) {
 			daysInput.disabled = true;
 			daysInput.style.cssText += disabledStyle;
@@ -145,8 +163,13 @@ export class EditPanel {
 
 		const daysLabel = document.createElement("span");
 		daysLabel.textContent = "天";
-		daysLabel.style.cssText =
-			"font-size:var(--font-ui-smaller);color:var(--text-muted);line-height:22px;display:inline-flex;align-items:center;";
+		daysLabel.addClass(
+			"task-text-smaller",
+			"task-text-muted",
+			"task-leading-normal",
+			"task-inline-flex",
+			"task-items-center",
+		);
 		if (!isBatchMode || !hasSelected)
 			daysLabel.style.cssText += disabledStyle;
 		autoCompleteRow.appendChild(daysLabel);
@@ -182,13 +205,17 @@ export class EditPanel {
 
 		// ========== 行2：批量撤回 ==========
 		const row2 = this.container.createDiv({ cls: "panel-row" });
-		row2.style.cssText = "flex-wrap:wrap;gap:6px;";
+		row2.addClass("task-flex-wrap", "task-gap-1");
 		row2.createSpan({ text: "批量撤回", cls: "panel-label" });
 
 		const snapshotSelect = row2.createEl("select");
 		snapshotSelect.className = "panel-btn";
-		snapshotSelect.style.cssText +=
-			"max-width:220px;height:auto;min-height:unset;appearance:none;";
+		snapshotSelect.addClass(
+			"task-max-w-55",
+			"task-h-auto",
+			"task-min-h-unset",
+			"task-appearance-none",
+		);
 		if (!hasSnapshots) {
 			snapshotSelect.createEl("option", {
 				text: "无编辑备份",
@@ -228,11 +255,10 @@ export class EditPanel {
 			if (!hasSnapshots) return;
 			if (confirm("确定清空所有编辑备份？")) {
 				localStorage.removeItem("organizeSnapshots");
-				// 清除 task-editor.ts 中的缓存
 				es?.syncToStore();
 				clearSnapshotBtn.addClass("active");
 				setTimeout(() => clearSnapshotBtn.removeClass("active"), 300);
-				this.render(); // 立即刷新面板
+				this.render();
 			}
 		});
 	}

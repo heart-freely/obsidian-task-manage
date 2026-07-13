@@ -15,8 +15,7 @@ export function renderTaskList(
 	options: TaskListOptions = {},
 ) {
 	const ul = container.createEl("ul", { cls: "task-list" });
-	ul.style.paddingLeft = "0";
-	ul.style.listStyle = "none";
+	ul.addClass("task-pl-0", "task-list-none");
 	nodes.forEach((node) => {
 		const card = createTaskCard(node, {
 			compact: options.compact,
@@ -24,11 +23,13 @@ export function renderTaskList(
 			onEnterEdit: options.onEnterEdit,
 		});
 		if (options.compact) {
-			card.classList.add("task-item-compact");
+			card.addClass("task-item-compact");
 			const meta = card.querySelector(".task-meta");
 			if (meta) meta.remove();
 			const desc = card.querySelector(".task-desc");
-			if (desc) (desc as HTMLElement).style.whiteSpace = "nowrap";
+			if (desc) {
+				desc.addClass("task-text-nowrap");
+			}
 		}
 		ul.appendChild(card);
 	});

@@ -34,10 +34,12 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 
 	const grid = document.createElement("div");
 	grid.className = "matrix-grid";
-	grid.style.display = "grid";
-	grid.style.gridTemplateColumns = "1fr 1fr";
-	grid.style.gridTemplateRows = "1fr 1fr";
-	grid.style.gap = "12px";
+	grid.addClass(
+		"task-grid",
+		"task-grid-cols-2",
+		"task-grid-rows-2",
+		"task-gap-3",
+	);
 
 	labels.forEach((label, idx) => {
 		const card = createGroupCard({

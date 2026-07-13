@@ -20,16 +20,16 @@ export function renderCards(
 
 	const grid = document.createElement("div");
 	grid.className = "task-cards-grid";
-	grid.style.display = "grid";
-	grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(280px, 1fr))";
-	grid.style.gap = "12px";
+	grid.addClass("task-grid", "task-grid-cols-auto-fill", "task-gap-3");
 
 	nodes.forEach((node) => {
 		const card = createTaskCard(node, {
 			onClick: options?.onClick,
 			onEnterEdit: options?.onEnterEdit,
 		});
-		card.style.borderLeft = "3px solid rgba(180,180,180,0.2)";
+		// 原代码：card.style.borderLeft = "3px solid rgba(180,180,180,0.2)";
+		// 替换为 CSS 类
+		card.addClass("task-card-border-left");
 		grid.appendChild(card);
 	});
 

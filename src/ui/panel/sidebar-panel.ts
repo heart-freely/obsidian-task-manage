@@ -51,7 +51,9 @@ export class SidebarPanel {
 			type: "text",
 			attr: { placeholder: "输入视图名称" },
 		});
-		nameInput.style.maxWidth = "150px";
+		// 原代码：nameInput.style.maxWidth = "150px";
+		// 替换为 CSS 类
+		nameInput.addClass("task-max-w-150");
 		nameInput.value = preset.name || "";
 		nameInput.addEventListener("change", () =>
 			updatePreset({ name: nameInput.value.trim() || "未命名" }),
@@ -86,11 +88,8 @@ export class SidebarPanel {
 			const defaultPresets = getDefaultPresets();
 			const def = defaultPresets.find((dp) => dp.id === pr.id);
 			if (!def) return;
-			// 恢复默认配置，保留 id 和 name
 			updatePreset({ ...def, id: pr.id, name: pr.name } as any);
-			// 刷新时间面板
 			Panels.getInstance().refreshTimePanel();
-			// 重新渲染当前面板以显示更新后的配置
 			this.render();
 		};
 

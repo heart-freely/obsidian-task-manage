@@ -32,8 +32,7 @@ export class SidebarPanel {
 		this.container.empty();
 		const state = this.store.getState();
 		const collapsed = state.sidebarCollapsed;
-		this.container.style.overflow = "hidden";
-		this.container.style.position = "relative";
+		this.container.addClass("task-overflow-hidden", "task-relative");
 		this.container.style.zIndex = "1";
 
 		const topRow = this.container.createDiv({
@@ -59,7 +58,11 @@ export class SidebarPanel {
 		};
 
 		const contentDiv = this.container.createDiv({ cls: "side-content" });
-		contentDiv.style.cssText = "overflow-y:auto;flex:1;overflow-x:hidden;";
+		contentDiv.addClass(
+			"task-overflow-y-auto",
+			"task-flex-1",
+			"task-overflow-x-hidden",
+		);
 
 		if (collapsed) {
 			this.container.style.width = "40px";
