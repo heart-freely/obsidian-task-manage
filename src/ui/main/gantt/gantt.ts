@@ -247,7 +247,7 @@ function createDependencySVG(
 	return svg;
 }
 
-export function renderGanttWithTree(
+export async function renderGanttWithTree(
 	container: HTMLElement,
 	treeRoot: TaskTreeNode,
 	options?: {
@@ -277,7 +277,7 @@ export function renderGanttWithTree(
 		Math.ceil((timeRange.maxTime - timeRange.minTime) / 86400000),
 		1,
 	);
-	const savedZoom = loadZoomState();
+	const savedZoom = await loadZoomState();
 	const initialDayWidth =
 		savedZoom?.dayWidth || GANTT_CONFIG.DEFAULT_DAY_WIDTH;
 	const zoomState = {
@@ -624,7 +624,7 @@ export function renderGanttWithTree(
 	});
 	scrollArea.addEventListener("mouseout", () => tooltip.hide());
 
-	function rebuild() {
+	async function rebuild() {
 		const sl = scrollArea.scrollLeft,
 			st = scrollArea.scrollTop;
 		scrollArea.innerHTML = "";
@@ -855,7 +855,7 @@ export function renderGanttWithTree(
 	window.addEventListener("mousemove", onMouseMove);
 	window.addEventListener("mouseup", onMouseUp);
 
-	rebuild();
+	await rebuild();
 
 	return {
 		taskMap,

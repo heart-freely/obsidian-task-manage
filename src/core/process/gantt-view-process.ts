@@ -1,4 +1,5 @@
-// src/core/component/gantt-view-process.ts
+// src/core/process/gantt-view-process.ts
+// 甘特图数据处理 — 时间区间、范围推断、网格级别、依赖路径
 
 import { DateUtils } from "../../util/date-utils";
 import { YEAR_RANGE_OFFSET } from "../store/preset/panel-preset";
@@ -24,8 +25,37 @@ export const GANTT_CONFIG = {
 	MAX_DAY_WIDTH: 40,
 	DEFAULT_DAY_WIDTH: 40,
 	TREE_MIN_WIDTH: 200,
-	STORAGE_KEY: "ganttZoomState",
 };
+
+// ========== 持久化存储（内存缓存 + 异步持久化）==========
+
+let _zoomCache: { dayWidth: number } | null = null;
+let _zoomSaveFn: ((data: { dayWidth: number } | null) => Promise<void>) | null =
+	null;
+
+export function initGanttStorage(
+	initialZoom: { dayWidth: number } | null,
+	saveFn: (data: { dayWidth: number } | null) => Promise<void>,
+) {
+	_zoomCache = initialZoom;
+	_zoomSaveFn = saveFn;
+}
+
+export function getZoomCache(): { dayWidth: number } | null {
+	return _zoomCache;
+}
+
+export function loadZoomState(): { dayWidth: number } | null {
+	return _zoomCache;
+}
+
+export function saveZoomState(dayWidth: number) {
+	const data = { dayWidth };
+	_zoomCache = data;
+	if (_zoomSaveFn) {
+		_zoomSaveFn(data).catch(() => {});
+	}
+}
 
 export function getTaskInterval(
 	node: TaskTreeNode,
@@ -87,27 +117,6 @@ export function calcTreeMaxWidth(roots: TaskTreeNode[]): number {
 		GANTT_CONFIG.TREE_MIN_WIDTH,
 		maxDepth * 24 + maxTextLen * 8 + 100,
 	);
-}
-
-export function loadZoomState(): { dayWidth: number } | null {
-	try {
-		const saved = localStorage.getItem(GANTT_CONFIG.STORAGE_KEY);
-		if (saved) return JSON.parse(saved);
-	} catch {
-		/* ignore */
-	}
-	return null;
-}
-
-export function saveZoomState(dayWidth: number) {
-	try {
-		localStorage.setItem(
-			GANTT_CONFIG.STORAGE_KEY,
-			JSON.stringify({ dayWidth }),
-		);
-	} catch {
-		/* ignore */
-	}
 }
 
 export function isDarkTheme(): boolean {

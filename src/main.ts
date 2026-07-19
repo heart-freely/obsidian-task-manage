@@ -4,6 +4,11 @@ import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
 import { DataManager } from "./core/data/data-manager";
+import { getSnapshotCache, initStorage } from "./core/edit/task-editor";
+import {
+	getZoomCache,
+	initGanttStorage,
+} from "./core/process/gantt-view-process";
 import { getDefaultPresets } from "./core/store/preset/panel-preset";
 import { Store } from "./core/store/store";
 import {
@@ -26,12 +31,27 @@ export default class TaskManagePlugin extends Plugin {
 
 		try {
 			savedData = (await this.loadData()) || {};
-			this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
 		} catch (e) {
 			logger.warn("[TaskManage] 加载设置失败:", e);
-			this.settings = { ...DEFAULT_SETTINGS };
+			savedData = {};
 		}
 
+		// ========== 初始化内存缓存存储（最先执行，确保后续组件读取时缓存已就绪）==========
+		initStorage(savedData?.organizeSnapshots || [], async (snapshots) => {
+			const data = (await this.loadData()) || {};
+			data.organizeSnapshots = snapshots;
+			await this.saveData(data);
+		});
+		initGanttStorage(
+			savedData?.ganttZoomState || null,
+			async (zoomState) => {
+				const data = (await this.loadData()) || {};
+				data.ganttZoomState = zoomState;
+				await this.saveData(data);
+			},
+		);
+
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
 		this.settings.taskRootPath = this.settings.taskRootPath || "";
 		this.settings.folderFilters =
 			this.settings.folderFilters || DEFAULT_SETTINGS.folderFilters;
@@ -55,6 +75,9 @@ export default class TaskManagePlugin extends Plugin {
 				if (state) {
 					Object.assign(dataToSave, state);
 				}
+				// 从内存缓存读取快照和缩放状态（而非从文件读取）
+				dataToSave.organizeSnapshots = getSnapshotCache();
+				dataToSave.ganttZoomState = getZoomCache();
 				await this.saveData(dataToSave);
 			} catch (e) {
 				logger.error("[TaskManage] 持久化失败:", e);
@@ -260,6 +283,6 @@ export default class TaskManagePlugin extends Plugin {
 			leaf = workspace.getLeaf(true);
 			await leaf.setViewState({ type: viewType, active: true });
 		}
-		workspace.setActiveLeaf(leaf, { focus: true });
+		workspace.revealLeaf(leaf);
 	}
 }

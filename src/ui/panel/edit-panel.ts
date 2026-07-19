@@ -72,7 +72,6 @@ export class EditPanel {
 			"task-items-center",
 		);
 
-		// 同步模式按钮
 		const syncBtn = subPanel1.createEl("button", {
 			text: "同步模式",
 			cls: "panel-btn sub-btn",
@@ -87,7 +86,6 @@ export class EditPanel {
 			this.taskView?.refreshEditCards?.();
 		});
 
-		// 全选/全不选按钮
 		const selectAllBtn = subPanel1.createEl("button", {
 			text: allSelected && isBatchMode ? "全不选" : "全选",
 			cls: "panel-btn sub-btn",
@@ -98,7 +96,6 @@ export class EditPanel {
 			this.taskView?.toggleSelectAll([]);
 		});
 
-		// 标记排序
 		const sortBtn = subPanel1.createEl("button", {
 			text: "标记排序",
 			cls: "panel-btn sub-btn",
@@ -112,7 +109,6 @@ export class EditPanel {
 			setTimeout(() => sortBtn.removeClass("active"), 300);
 		});
 
-		// 补全时间
 		const autoCompleteRow = subPanel1.createDiv();
 		autoCompleteRow.addClass(
 			"task-inline-flex",
@@ -175,7 +171,6 @@ export class EditPanel {
 		autoCompleteRow.appendChild(daysLabel);
 		subPanel1.appendChild(autoCompleteRow);
 
-		// 恢复原文
 		const clearBtn = subPanel1.createEl("button", {
 			text: "恢复原文",
 			cls: "panel-btn sub-btn",
@@ -189,7 +184,6 @@ export class EditPanel {
 			setTimeout(() => clearBtn.removeClass("active"), 300);
 		});
 
-		// 保存编辑
 		const saveBtn = subPanel1.createEl("button", {
 			text: "保存编辑",
 			cls: "panel-btn sub-btn",
@@ -253,13 +247,10 @@ export class EditPanel {
 		if (!hasSnapshots) clearSnapshotBtn.style.cssText += disabledStyle;
 		clearSnapshotBtn.addEventListener("click", () => {
 			if (!hasSnapshots) return;
-			if (confirm("确定清空所有编辑备份？")) {
-				localStorage.removeItem("organizeSnapshots");
-				es?.syncToStore();
-				clearSnapshotBtn.addClass("active");
-				setTimeout(() => clearSnapshotBtn.removeClass("active"), 300);
-				this.render();
-			}
+			es?.clearAllSnapshots();
+			clearSnapshotBtn.addClass("active");
+			setTimeout(() => clearSnapshotBtn.removeClass("active"), 300);
+			this.render();
 		});
 	}
 }

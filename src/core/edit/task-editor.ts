@@ -1,5 +1,4 @@
 // src/core/edit/task-editor.ts
-// src/core/edit/task-editor.ts
 // 编辑操作对象 + 快照管理 + 文件写入
 
 import { EditState } from "../../type/type";
@@ -7,7 +6,46 @@ import { TASKS_RX } from "../config/tasks-config";
 import { TaskTreeNode } from "../task/task-tree";
 const AUTOCOMPLETE_DAYS = 0;
 const MAX_SNAPSHOTS = 5;
-const STORAGE_KEY_SNAPSHOTS = "organizeSnapshots";
+
+// ========== 持久化存储（内存缓存 + 异步持久化）==========
+
+let _snapshotCache: any[] = [];
+let _snapshotSaveFn: ((snapshots: any[]) => Promise<void>) | null = null;
+
+export function initStorage(
+	initialSnapshots: any[],
+	saveFn: (snapshots: any[]) => Promise<void>,
+) {
+	_snapshotCache = initialSnapshots || [];
+	_snapshotSaveFn = saveFn;
+}
+
+export function getSnapshotCache(): any[] {
+	return _snapshotCache;
+}
+
+export function loadSnapshots(): any[] {
+	return _snapshotCache;
+}
+
+export function saveSnapshots(snapshots: any[]) {
+	_snapshotCache = [...snapshots];
+	if (_snapshotSaveFn) {
+		_snapshotSaveFn([...snapshots]).catch((e) => {
+			console.warn("快照持久化失败:", e);
+		});
+	}
+}
+
+function addSnapshot(snapshot: Record<string, string>) {
+	const snapshots = loadSnapshots();
+	snapshots.unshift({
+		time: new Date().toLocaleString(),
+		snapshot,
+	});
+	if (snapshots.length > MAX_SNAPSHOTS) snapshots.length = MAX_SNAPSHOTS;
+	saveSnapshots(snapshots);
+}
 
 // ========== 辅助函数 ==========
 
@@ -121,9 +159,6 @@ const PRIORITY_TO_YAML_VALUE: Record<number, string> = {
 	5: "无",
 };
 
-/**
- * 将编辑值转换为 YAML 格式值
- */
 function toYamlValue(key: string, value: string): string {
 	switch (key) {
 		case "status":
@@ -278,15 +313,6 @@ export const Op = {
 		return replaceMark(line, TASKS_RX.forbid, undefined);
 	},
 
-	// ========== YAML 编辑操作 ==========
-
-	/**
-	 * 设置 YAML 字段值（用于文件/标题任务）
-	 * @param yamlContent YAML 内容（多行字符串）
-	 * @param key 字段键名（如 "status"、"priority" 等）
-	 * @param value 新值（已转换为 YAML 格式），null 表示删除
-	 * @returns 修改后的 YAML 内容
-	 */
 	setYamlField(
 		yamlContent: string,
 		key: string,
@@ -321,16 +347,10 @@ export const Op = {
 		return lines.filter((l) => l.trim() !== "").join("\n");
 	},
 
-	/**
-	 * 删除 YAML 字段
-	 */
 	delYamlField(yamlContent: string, key: string): string {
 		return Op.setYamlField(yamlContent, key, null);
 	},
 
-	/**
-	 * 在 YAML 中设置描述（任务简介/任务名称）
-	 */
 	setYamlContent(yamlContent: string, newContent: string): string {
 		const lines = yamlContent.split("\n");
 		let found = false;
@@ -419,7 +439,6 @@ export const Op = {
 			}
 		}
 
-		// 保留原始前缀和描述，只移除标记
 		const prefixMatch = line.match(/^(\s*- \[.\]\s*)/);
 		const prefix = prefixMatch ? prefixMatch[1] : "- [ ] ";
 
@@ -433,34 +452,6 @@ export const Op = {
 		return prefix + desc + " " + tags.join(" ");
 	},
 };
-
-// ========== 快照管理 ==========
-
-export function loadSnapshots(): any[] {
-	try {
-		const raw = localStorage.getItem("organizeSnapshots");
-		return raw ? JSON.parse(raw) : [];
-	} catch {
-		return [];
-	}
-}
-
-export function saveSnapshots(snapshots: any[]) {
-	try {
-		localStorage.setItem("organizeSnapshots", JSON.stringify(snapshots));
-	} catch (e) {
-		console.warn("快照 localStorage 写入失败:", e);
-	}
-}
-function addSnapshot(snapshot: Record<string, string>) {
-	const snapshots = loadSnapshots();
-	snapshots.unshift({
-		time: new Date().toLocaleString(),
-		snapshot,
-	});
-	if (snapshots.length > 5) snapshots.length = 5;
-	saveSnapshots(snapshots);
-}
 
 // ========== 文件写入 ==========
 
@@ -611,9 +602,8 @@ export async function writeToFiles(
 
 	return count;
 }
-// ========== 保存与撤回 ==========
 
-let saveLogCount = 0;
+// ========== 保存与撤回 ==========
 
 export async function saveSingleTask(
 	state: EditState,
@@ -633,8 +623,6 @@ export async function saveSingleTask(
 	state.savedTasks.add(uid);
 	return state;
 }
-
-// ========== 保存与撤回 ==========
 
 export async function saveAllChanges(
 	state: EditState,
@@ -661,8 +649,6 @@ export async function saveAllChanges(
 
 	if (toSave.length === 0) return { state, previews };
 
-	const snapshots = loadSnapshots();
-
 	if (toSave.length > 500) {
 		const batchSize = 500;
 		for (let i = 0; i < toSave.length; i += batchSize) {
@@ -671,10 +657,10 @@ export async function saveAllChanges(
 			for (const uid of batch) {
 				batchSnapshot[uid] = snapshotMap[uid];
 			}
-			addSnapshot(snapshots, batchSnapshot);
+			addSnapshot(batchSnapshot);
 		}
 	} else {
-		addSnapshot(snapshots, snapshotMap);
+		addSnapshot(snapshotMap);
 	}
 
 	await writeToFiles(app, getNode, toSave, linesMap);

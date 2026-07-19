@@ -1,6 +1,6 @@
 // src/setting/setting.ts
 
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import { updateTaskFileConfig } from "../core/config/config";
 import { DataManager } from "../core/data/data-manager";
 import { safeMergeConfig } from "../util/validate-utils";
@@ -323,14 +323,14 @@ export class TaskManageSettingTab extends PluginSettingTab {
 				try {
 					const data = JSON.parse(await input.files[0].text());
 					if (!data || typeof data !== "object") {
-						alert("导入失败：文件格式不正确");
+						new Notice("导入失败：文件格式不正确");
 						return;
 					}
 					safeMergeConfig(this.plugin.settings, data, CONFIG_SCHEMA);
 					await this.saveSettings();
 					this.display();
 				} catch {
-					alert("导入失败：文件格式不正确");
+					new Notice("导入失败：文件格式不正确");
 				}
 			};
 			input.click();

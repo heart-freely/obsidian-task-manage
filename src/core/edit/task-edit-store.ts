@@ -7,7 +7,7 @@ import { parseTaskLine } from "../parser/tasks-parser";
 import { Store } from "../store/store";
 import { TaskTreeNode } from "../task/task-tree";
 import {
-	loadSnapshots, // 新增的
+	loadSnapshots,
 	Op,
 	revertSingleTask,
 	saveAllChanges,
@@ -198,7 +198,6 @@ export class EditStore {
 			}
 		}
 
-		// 同步模式：自动维护主任务
 		if (this.state.syncMode) {
 			const remaining = [...this.state.selectedTasks];
 			if (
@@ -279,7 +278,6 @@ export class EditStore {
 		if (this.state.selectedTasks.size === 0) return;
 
 		if (this.state.syncMode) {
-			// 同步模式：遍历所有勾选任务，同步编辑
 			const uids = Array.from(this.state.selectedTasks).filter(
 				(uid) => !this.state.savedTasks.has(uid),
 			);
@@ -294,7 +292,6 @@ export class EditStore {
 			return;
 		}
 
-		// 非同步模式：只编辑 sourceUid
 		const node = this.getNode(sourceUid);
 		if (!node || this.state.savedTasks.has(sourceUid)) return;
 		const currentPreview =
@@ -627,6 +624,11 @@ export class EditStore {
 
 	getSnapshots() {
 		return loadSnapshots();
+	}
+
+	clearAllSnapshots() {
+		saveSnapshots([]);
+		this.syncToStore();
 	}
 
 	// ========== 私有辅助方法 ==========
