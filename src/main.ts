@@ -283,6 +283,6 @@ export default class TaskManagePlugin extends Plugin {
 			leaf = workspace.getLeaf(true);
 			await leaf.setViewState({ type: viewType, active: true });
 		}
-		workspace.revealLeaf(leaf);
+		workspace.setActiveLeaf(leaf, { focus: true });
 	}
 }
