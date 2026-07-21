@@ -1,9 +1,9 @@
 // src/ui/main/card/view-card.ts
-// 统一任务卡片组件 — 根据当前模式渲染对应 UI
 
 import { getStatusColors } from "../../../core/config/config";
 import { buildDescription, buildTooltip } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { createEl } from "../../../util/dom-utils";
 import {
 	createCheckbox,
 	createEditBar,
@@ -26,9 +26,8 @@ function buildDescriptionDOM(
 	_compact: boolean,
 ): DocumentFragment {
 	const frag = document.createDocumentFragment();
-	const text = buildDescription(node, _compact);
-	const span = createEl("span");
-	span.textContent = text;
+	const span = document.createElement("span");
+	span.textContent = buildDescription(node, _compact);
 	frag.appendChild(span);
 	return frag;
 }
@@ -42,26 +41,21 @@ function bindDescriptionEdit(
 		e.stopPropagation();
 		if (descEl.getAttribute("contenteditable") === "true") return;
 		descEl.setAttribute("contenteditable", "true");
-
 		descEl.textContent = node.content || node.text || "";
-
 		descEl.focus();
 		const range = document.createRange();
 		range.selectNodeContents(descEl);
-		const sel = window.getSelection();
-		sel?.removeAllRanges();
-		sel?.addRange(range);
-
+		window.getSelection()?.removeAllRanges();
+		window.getSelection()?.addRange(range);
 		const onBlur = () => {
 			descEl.removeAttribute("contenteditable");
-			const newContent = descEl.textContent?.trim();
-			if (newContent && newContent !== (node.content || node.text)) {
-				editCtx.onContentEdit(node, newContent);
-			}
+			const nc = descEl.textContent?.trim();
+			const ctx = getEditContext();
+			if (nc && ctx && nc !== (node.content || node.text))
+				ctx.onContentEdit(node, nc);
 			descEl.removeEventListener("blur", onBlur);
 		};
 		descEl.addEventListener("blur", onBlur);
-
 		const onKeyDown = (ke: KeyboardEvent) => {
 			if (ke.key === "Enter" && !ke.shiftKey) {
 				ke.preventDefault();
@@ -75,13 +69,13 @@ function bindDescriptionEdit(
 		descEl.addEventListener("keydown", onKeyDown);
 		descEl.addEventListener(
 			"blur",
-			() => {
-				descEl.removeEventListener("keydown", onKeyDown);
-			},
+			() => descEl.removeEventListener("keydown", onKeyDown),
 			{ once: true },
 		);
 	});
 }
+
+import { getEditContext } from "./card";
 
 export function createViewCard(
 	node: TaskTreeNode,
@@ -100,7 +94,8 @@ export function createViewCard(
 		? previewText !== null &&
 			hasContentBeenEdited(node.rawLine, previewText)
 		: false;
-	const checked = isEditing ? editCtx!.selectedTasks.has(node.uid) : false;
+	const checked =
+		isEditing && editCtx ? editCtx.selectedTasks.has(node.uid) : false;
 	const expandedButton = isEditing ? (editCtx?.expandedButton ?? null) : null;
 
 	const li = createEl("li");
@@ -110,7 +105,6 @@ export function createViewCard(
 	li.setAttribute("data-path", node.path);
 	li.setAttribute("data-line-number", String(node.line));
 	li.setAttribute("data-uid", node.uid);
-
 	const statusColors = getStatusColors();
 	const statusColor = statusColors[node.status] || statusColors["todo"];
 
@@ -146,10 +140,7 @@ export function createViewCard(
 			"task-list-none",
 		);
 	}
-
-	if (!node.display) {
-		li.addClass("task-opacity-40");
-	}
+	if (!node.display) li.addClass("task-opacity-40");
 
 	if (compact) {
 		const descDiv = createEl("div");
@@ -166,15 +157,13 @@ export function createViewCard(
 	} else {
 		const row1 = createEl("div");
 		row1.addClass("task-flex", "task-items-center", "task-gap-1");
-
 		if (isBatchMode && editCtx && node.type === "list") {
 			row1.appendChild(
 				createCheckbox(checked, (newChecked: boolean) => {
-					editCtx!.onCheckChange(node, newChecked);
+					editCtx.onCheckChange(node, newChecked);
 				}),
 			);
 		}
-
 		const descEl = createEl("span");
 		descEl.className = "task-desc";
 		descEl.appendChild(buildDescriptionDOM(node, compact));
@@ -184,57 +173,46 @@ export function createViewCard(
 			"task-mb-1",
 			"task-cursor-pointer",
 		);
-		if (hasContentEdit) {
-			descEl.addClass("task-text-accent");
-		} else {
-			descEl.addClass("task-text-normal");
-		}
-		if (isEditing) {
-			descEl.addClass("task-cursor-text");
-		}
-
-		if (isEditing && editCtx) {
-			bindDescriptionEdit(descEl, node, editCtx);
-		}
-
+		descEl.addClass(
+			hasContentEdit ? "task-text-accent" : "task-text-normal",
+		);
+		if (isEditing) descEl.addClass("task-cursor-text");
+		if (isEditing && editCtx) bindDescriptionEdit(descEl, node, editCtx);
 		row1.appendChild(descEl);
 		li.appendChild(row1);
-
 		const editBar = createEditBar(node, {
 			expandedButton,
 			previewText,
 			isEditing,
-			onEdit: (n, markKey, value) => {
-				if (editCtx) {
-					if (markKey.endsWith("_toggle")) {
-						editCtx.onEdit(n, markKey, null);
-					} else {
-						editCtx.onEdit(n, markKey, value);
-					}
-				}
+			onEdit: (n, mk, v) => {
+				if (editCtx)
+					mk.endsWith("_toggle")
+						? editCtx.onEdit(n, mk, null)
+						: editCtx.onEdit(n, mk, v);
 			},
 		});
 		li.appendChild(editBar);
-
-		if (isBatchMode && !isEditing) {
-			editBar.addClass("task-hidden");
-		}
-
+		if (isBatchMode && !isEditing) editBar.addClass("task-hidden");
 		if (previewText) {
-			const previewRow = createPreviewRow(
-				previewText,
-				saved,
-				saved ? null : isBatchMode ? null : () => editCtx?.onSave(node),
-				saved ? () => editCtx?.onRevert(node) : null,
-				hasContentEdit,
-				editCtx?.onRestore ? () => editCtx.onRestore!(node) : null,
+			li.appendChild(
+				createPreviewRow(
+					previewText,
+					saved,
+					saved
+						? null
+						: isBatchMode
+							? null
+							: () => editCtx?.onSave(node),
+					saved ? () => editCtx?.onRevert(node) : null,
+					hasContentEdit,
+					editCtx?.onRestore ? () => editCtx.onRestore!(node) : null,
+				),
 			);
-			li.appendChild(previewRow);
 		} else {
-			const previewRow = createEl("div");
-			previewRow.className = "task-preview-row";
-			previewRow.addClass("task-hidden");
-			li.appendChild(previewRow);
+			const pr = createEl("div");
+			pr.className = "task-preview-row";
+			pr.addClass("task-hidden");
+			li.appendChild(pr);
 		}
 	}
 
@@ -244,17 +222,14 @@ export function createViewCard(
 			options.onSingleClick!(node);
 		});
 	}
-
 	if (options?.onClick && !isEditing && !compact) {
 		li.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
 			options.onClick!(node);
 		});
 	}
-
 	if (!compact && !isEditing && options?.onEnterEdit) {
 		let pending: ReturnType<typeof setTimeout> | null = null;
-
 		li.addEventListener("click", (e) => {
 			if (pending) {
 				window.clearTimeout(pending);
@@ -269,24 +244,18 @@ export function createViewCard(
 			}, 300);
 		});
 	}
-
 	li.addEventListener("mouseenter", () => {
 		li.addClass("task-bg-hover");
 	});
 	li.addEventListener("mouseleave", () => {
 		li.removeClass("task-bg-hover");
-		if (compact) {
-			li.addClass("task-bg-transparent");
-		} else {
-			li.addClass("task-bg-primary");
-		}
+		li.addClass(compact ? "task-bg-transparent" : "task-bg-primary");
 	});
-
 	if (showTooltip && compact) {
-		const tooltipHtml = buildTooltip(node);
-		if (tooltipHtml) {
+		const tipHtml = buildTooltip(node);
+		if (tipHtml) {
 			li.addEventListener("mouseenter", (e) =>
-				tooltip.show(tooltipHtml, e.clientX, e.clientY),
+				tooltip.show(tipHtml, e.clientX, e.clientY),
 			);
 			li.addEventListener("mousemove", (e) =>
 				tooltip.move(e.clientX, e.clientY),
@@ -294,6 +263,5 @@ export function createViewCard(
 			li.addEventListener("mouseleave", () => tooltip.hide());
 		}
 	}
-
 	return li;
 }

@@ -34,7 +34,6 @@ export class EditPanel {
 	private savedDaysValue = "0";
 	private editStore: unknown;
 	private taskView: unknown;
-
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;

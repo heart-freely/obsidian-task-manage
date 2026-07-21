@@ -3,13 +3,13 @@
 import { getDefaultPresets } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
 import { Preset } from "../../type/type";
+import { createEl } from "../../util/dom-utils";
 import { Panels } from "./panel";
 
 export class SidebarPanel {
 	private container: HTMLElement;
 	private store: Store;
 	private unsub: (() => void) | null = null;
-
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
@@ -28,7 +28,6 @@ export class SidebarPanel {
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
-
 		const updatePreset = (changes: Partial<Preset>) => {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
@@ -66,13 +65,12 @@ export class SidebarPanel {
 
 		const row4 = this.container.createDiv({ cls: "panel-row" });
 		row4.createSpan({ text: "视图配置", cls: "panel-label" });
-
 		const importBtn = row4.createEl("button", {
 			text: "📥 导入配置",
 			cls: "panel-btn",
 		});
 		importBtn.addEventListener("click", () => {
-			const input = document.createElement("input");
+			const input = createEl("input");
 			input.type = "file";
 			input.accept = ".json";
 			input.addEventListener("change", () => {
@@ -110,7 +108,6 @@ export class SidebarPanel {
 			});
 			input.click();
 		});
-
 		const exportBtn = row4.createEl("button", {
 			text: "📤 导出配置",
 			cls: "panel-btn",
@@ -122,12 +119,11 @@ export class SidebarPanel {
 			const blob = new Blob([JSON.stringify(pr, null, 2)], {
 				type: "application/json",
 			});
-			const a = document.createElement("a");
+			const a = createEl("a");
 			a.href = URL.createObjectURL(blob);
 			a.download = `task-view-${pr.name}.json`;
 			a.click();
 		});
-
 		const resetBtn = row4.createEl("button", {
 			text: "🔄 恢复默认",
 			cls: "panel-btn",
@@ -142,7 +138,6 @@ export class SidebarPanel {
 			Panels.getInstance().refreshTimePanel();
 			this.render();
 		});
-
 		const delBtn = row4.createEl("button", {
 			text: "🗑️ 删除视图",
 			cls: "panel-btn",

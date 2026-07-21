@@ -34,7 +34,6 @@ function createRowWrapper(depth: number): HTMLElement {
 	w.setCssProps({ "--task-indent": `${depth * INDENT_WIDTH}px` });
 	return w;
 }
-
 function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	const b = createEl("span");
 	b.className = "tree-toggle-btn";
@@ -72,7 +71,6 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	});
 	return b;
 }
-
 function createSpacer(): HTMLElement {
 	const s = createEl("span");
 	s.addClass("task-inline-flex", "task-w-4", "task-flex-shrink-0");
@@ -113,10 +111,8 @@ export function renderTaskTree(
 ) {
 	container.empty();
 	const displayRoot = options.focusRoot || options.root;
-
 	const tree = createEl("div");
 	tree.className = "task-tree";
-
 	if (options.focusRoot) {
 		const focusBar = createEl("div");
 		focusBar.addClass(
@@ -126,18 +122,16 @@ export function renderTaskTree(
 			"task-text-sm",
 			"task-text-accent",
 		);
-
 		const typeIcons: Record<string, string> = {
 			file: "📄",
 			heading: "H" + (displayRoot.headingLevel || displayRoot.depth),
 			list: "●",
 		};
-		const icon = typeIcons[displayRoot.type] || "📂";
 		let displayText = displayRoot.text;
-		if (displayRoot.type === "heading") {
+		if (displayRoot.type === "heading")
 			displayText = removeHeadingNumber(displayText);
-		}
-		focusBar.textContent = icon + " " + displayText;
+		focusBar.textContent =
+			(typeIcons[displayRoot.type] || "📂") + " " + displayText;
 		focusBar.title = "点击返回全树，双击跳转到文件";
 		focusBar.addEventListener("click", () => options.onRestore?.());
 		tree.appendChild(focusBar);
@@ -150,26 +144,20 @@ export function renderTaskTree(
 			"task-px-1",
 			"task-py-0",
 		);
-
 		const rootTitle = createEl("span");
 		rootTitle.addClass("task-text-sm", "task-text-muted");
 		rootTitle.textContent = "🗂️ 任务管理";
 		rootRow.appendChild(rootTitle);
-
-		const childTotal = options.root.children.reduce((sum, child) => {
-			const childStats = countNodeStatuses(child);
-			return sum + childStats.total;
-		}, 0);
-
+		const childTotal = options.root.children.reduce(
+			(sum, child) => sum + countNodeStatuses(child).total,
+			0,
+		);
 		if (childTotal > 0) {
 			const mergedCounts: Record<string, number> = {};
 			for (const child of options.root.children) {
-				const childStats = countNodeStatuses(child);
-				for (const [status, count] of Object.entries(
-					childStats.counts,
-				)) {
+				const cs = countNodeStatuses(child);
+				for (const [status, count] of Object.entries(cs.counts))
 					mergedCounts[status] = (mergedCounts[status] || 0) + count;
-				}
 			}
 			const pb = createProgressBar({
 				counts: mergedCounts,
@@ -179,7 +167,6 @@ export function renderTaskTree(
 			});
 			pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 			rootRow.appendChild(pb);
-
 			const badge = createEl("span");
 			badge.addClass(
 				"task-text-smaller",
@@ -189,19 +176,12 @@ export function renderTaskTree(
 			badge.textContent = "(" + childTotal + ")";
 			rootRow.appendChild(badge);
 		}
-
 		tree.appendChild(rootRow);
 	}
-
-	const sortedChildren =
-		options.sort && options.sort.type
-			? sortFileNodes(displayRoot.children, options.sort)
-			: displayRoot.children;
-
-	for (const child of sortedChildren) {
-		renderNode(child, tree, options);
-	}
-
+	const sortedChildren = options.sort?.type
+		? sortFileNodes(displayRoot.children, options.sort)
+		: displayRoot.children;
+	for (const child of sortedChildren) renderNode(child, tree, options);
 	container.appendChild(tree);
 }
 
@@ -213,16 +193,13 @@ function renderNode(
 ) {
 	if (!node.display) return;
 	if (!node.match && node.children.length === 0) return;
-
 	const hasChildren = node.children.length > 0;
 	const childContainer = createEl("div");
 	const nodeStats = countNodeStatuses(node);
-
 	const displayDepth = Math.max(0, node.depth - depthOffset);
 	const rowWrapper = createRowWrapper(displayDepth);
 	if (hasChildren) rowWrapper.appendChild(createToggleBtn(childContainer));
 	else rowWrapper.appendChild(createSpacer());
-
 	const contentContainer = createEl("div");
 	contentContainer.addClass(
 		"task-flex",
@@ -231,7 +208,6 @@ function renderNode(
 		"task-flex-shrink-0",
 		"task-max-w-full",
 	);
-
 	const card = createTaskCard(node, {
 		showTooltip: true,
 		compact: true,
@@ -239,28 +215,20 @@ function renderNode(
 		onSingleClick: options?.onClick,
 	});
 	const descEl = card.querySelector(".task-desc") as HTMLElement | null;
-	if (descEl) {
-		descEl.addClass("task-text-sm");
-	}
+	if (descEl) descEl.addClass("task-text-sm");
 	contentContainer.appendChild(card);
 	if (nodeStats.total > 0 && hasChildren)
 		addProgressBadge(contentContainer, nodeStats.counts, nodeStats.total);
-
 	rowWrapper.appendChild(contentContainer);
 	const rightSpacer = createEl("div");
 	rightSpacer.addClass("task-flex-1");
 	rowWrapper.appendChild(rightSpacer);
 	parentEl.appendChild(rowWrapper);
-
 	options?.onRowRender?.(rowWrapper, node);
-
-	const sortedChildren =
-		options?.sort && options.sort.type
-			? sortFileNodes(node.children, options.sort)
-			: node.children;
-
-	for (const child of sortedChildren) {
+	const sortedChildren = options?.sort?.type
+		? sortFileNodes(node.children, options.sort)
+		: node.children;
+	for (const child of sortedChildren)
 		renderNode(child, childContainer, options, depthOffset);
-	}
 	parentEl.appendChild(childContainer);
 }

@@ -2,6 +2,7 @@
 
 import { getRepeatColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { createEl } from "../../../util/dom-utils";
 import { createGroupCard } from "../card/group-card";
 
 export function renderRecurring(
@@ -18,7 +19,6 @@ export function renderRecurring(
 		container.createDiv({ text: "🔁 暂无循环任务" });
 		return;
 	}
-
 	const repeatColors = getRepeatColors();
 	const groups: Record<string, TaskTreeNode[]> = {};
 	recurringNodes.forEach((node) => {
@@ -26,9 +26,7 @@ export function renderRecurring(
 		if (!groups[cycle]) groups[cycle] = [];
 		groups[cycle].push(node);
 	});
-
 	const cycleOrder = ["every day", "every week", "every month", "every year"];
-
 	const grid = createEl("div");
 	grid.className = "recurring-grid";
 	grid.addClass(
@@ -37,7 +35,6 @@ export function renderRecurring(
 		"task-grid-rows-auto",
 		"task-gap-3",
 	);
-
 	cycleOrder.forEach((cycle, index) => {
 		const tasksInGroup = groups[cycle] || [];
 		const card = createGroupCard({
@@ -50,6 +47,5 @@ export function renderRecurring(
 		});
 		grid.appendChild(card);
 	});
-
 	container.appendChild(grid);
 }

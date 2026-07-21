@@ -1,5 +1,4 @@
 // src/ui/main/chart/mark-chart.ts
-// 标记统计图 — 独立饼图
 
 import {
 	DATE_MARK_ORDER,
@@ -25,17 +24,13 @@ import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
 
 const PRIORITY_ZH_NAMES: Record<string, string> = {};
-TASK_ELEMENTS.priority.children.forEach((c) => {
-	PRIORITY_ZH_NAMES[c.icon] = c.zhName;
+TASK_ELEMENTS.priority.children?.forEach((c) => {
+	if (c.icon) PRIORITY_ZH_NAMES[c.icon] = c.zhName;
 });
-
 const DATE_MARK_ZH_NAMES: Record<string, string> = {};
 DATE_MARK_ORDER.forEach((k) => {
-	DATE_MARK_ZH_NAMES[k] = (
-		TASK_ELEMENTS as Record<string, { zhName: string }>
-	)[k].zhName;
+	DATE_MARK_ZH_NAMES[k] = TASK_ELEMENTS[k]?.zhName || k;
 });
-
 const MISSING_COLOR = "rgba(128,128,128,0.5)";
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
@@ -52,14 +47,11 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	const idColor = getThemeColor(ID_COLOR_DEF);
 	const dependsColor = getThemeColor(DEPENDS_COLOR_DEF);
 	const tagColor = getThemeColor(TAG_COLOR_DEF);
-
 	const totalCount = nodes.length;
-
 	const grid = createEl("div");
 	grid.className = "chart-grid";
 	grid.addClass("task-grid", "task-grid-cols-3", "task-gap-4", "task-w-full");
 	container.appendChild(grid);
-
 	const theme = getComputedStyle(document.body);
 	const textColor = theme.getPropertyValue("--text-normal") || "#333";
 
@@ -76,7 +68,6 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		const item = createEl("div");
 		item.className = "chart-item";
 		item.addClass("task-min-w-0");
-
 		const header = createEl("div");
 		header.className = "chart-header";
 		header.addClass(
@@ -87,15 +78,12 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		);
 		header.textContent = title;
 		item.appendChild(header);
-
 		const chartHeight = getChartHeight(data.length);
 		const chartDiv = createEl("div");
 		chartDiv.className = "chart-body task-chart-dynamic-height task-w-full";
 		chartDiv.setCssProps({ "--task-chart-height": chartHeight });
 		item.appendChild(chartDiv);
-
 		grid.appendChild(item);
-
 		try {
 			const chart = echarts.init(chartDiv);
 			chart.setOption({
@@ -161,19 +149,19 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	}
 
 	function makeHasNonePie(title: string, hasCount: number, hasColor: string) {
-		const noneCount = totalCount - hasCount;
 		makePieChart(title, [
-			{ name: "无", value: noneCount, color: MISSING_COLOR },
+			{ name: "无", value: totalCount - hasCount, color: MISSING_COLOR },
 			{ name: "有", value: hasCount, color: hasColor },
 		]);
 	}
 
 	const statusCounts: Record<string, number> = {};
-	STATUS_SORT_ORDER.forEach((s) => (statusCounts[s] = 0));
+	STATUS_SORT_ORDER.forEach((s) => {
+		statusCounts[s] = 0;
+	});
 	nodes.forEach((n) => {
 		if (statusCounts[n.status] !== undefined) statusCounts[n.status]++;
 	});
-
 	makePieChart(
 		"📊 状态",
 		STATUS_SORT_ORDER.map((s) => ({
@@ -182,17 +170,17 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			color: statusColors[s],
 		})).filter((d) => d.value > 0),
 	);
-
 	const prioCounts: Record<string, number> = {};
-	PRIORITY_ORDER.forEach((p) => (prioCounts[p] = 0));
+	PRIORITY_ORDER.forEach((p) => {
+		prioCounts[p] = 0;
+	});
 	prioCounts["none"] = 0;
 	nodes.forEach((n) => {
-		const prioIcons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-		const icon = prioIcons[n.priority] || "";
+		const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
+		const icon = icons[n.priority] || "";
 		if (icon && prioCounts[icon] !== undefined) prioCounts[icon]++;
 		else prioCounts["none"]++;
 	});
-
 	makePieChart(
 		"🎯 优先级",
 		[
@@ -208,9 +196,10 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			})),
 		].filter((d) => d.value > 0),
 	);
-
 	const repeatCounts: Record<string, number> = {};
-	REPEAT_ORDER.forEach((r) => (repeatCounts[r] = 0));
+	REPEAT_ORDER.forEach((r) => {
+		repeatCounts[r] = 0;
+	});
 	repeatCounts["none"] = 0;
 	nodes.forEach((n) => {
 		if (n.repeat) {
@@ -222,11 +211,8 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 				}
 			});
 			if (!matched) repeatCounts["none"]++;
-		} else {
-			repeatCounts["none"]++;
-		}
+		} else repeatCounts["none"]++;
 	});
-
 	makePieChart(
 		"🔄 循环周期",
 		[
@@ -242,7 +228,6 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			})),
 		].filter((d) => d.value > 0),
 	);
-
 	const dateMarks = [
 		"created",
 		"scheduled",
@@ -259,7 +244,6 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		done: "✅",
 		cancelled: "❌",
 	};
-
 	dateMarks.forEach((mk) => {
 		const count = nodes.filter((n) => {
 			const marks = getTaskMarks(n);
@@ -271,13 +255,12 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			dateMarkColors[mk],
 		);
 	});
-
-	const idCount = nodes.filter((n) => !!n.id).length;
-	makeHasNonePie("🆔 唯一ID", idCount, idColor);
-
-	const forbidCount = nodes.filter((n) => !!n.forbid).length;
-	makeHasNonePie("⛔ 引用ID", forbidCount, dependsColor);
-
+	makeHasNonePie("🆔 唯一ID", nodes.filter((n) => !!n.id).length, idColor);
+	makeHasNonePie(
+		"⛔ 引用ID",
+		nodes.filter((n) => !!n.forbid).length,
+		dependsColor,
+	);
 	let tagCount = 0;
 	nodes.forEach((n) => {
 		if (n.tag) tagCount++;

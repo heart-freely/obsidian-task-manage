@@ -13,16 +13,13 @@ export function renderCards(
 	},
 ) {
 	container.empty();
-
 	if (nodes.length === 0) {
 		container.createDiv({ text: "暂无任务" });
 		return;
 	}
-
 	const grid = createEl("div");
 	grid.className = "task-cards-grid";
 	grid.addClass("task-grid", "task-grid-cols-auto-fill", "task-gap-3");
-
 	nodes.forEach((node) => {
 		const card = createTaskCard(node, {
 			onClick: options?.onClick,
@@ -31,6 +28,5 @@ export function renderCards(
 		card.addClass("task-card-border-left");
 		grid.appendChild(card);
 	});
-
 	container.appendChild(grid);
 }

@@ -1,5 +1,4 @@
 // src/ui/main/chart/detail-chart.ts
-// 详细统计图 — 堆叠柱状图
 
 import {
 	ALLOWED_STATUSES,
@@ -27,13 +26,9 @@ export function renderDetail(
 ) {
 	echarts.dispose(container);
 	container.empty();
-
 	const statusColors = getStatusColors();
 	const dateRange = options?.dateRange;
-
-	let minDate: Date;
-	let maxDate: Date;
-
+	let minDate: Date, maxDate: Date;
 	if (
 		dateRange &&
 		!dateRange.isAll &&
@@ -47,7 +42,6 @@ export function renderDetail(
 		minDate = DateUtils.setStart(new Date(today.getFullYear() - 10, 0, 1));
 		maxDate = DateUtils.setEnd(new Date(today.getFullYear() + 10, 11, 31));
 	}
-
 	const dates: string[] = [];
 	let cur = DateUtils.setStart(minDate);
 	const endTime = DateUtils.setEnd(maxDate).getTime();
@@ -55,30 +49,26 @@ export function renderDetail(
 		dates.push(DateUtils.formatDate(cur));
 		cur.setDate(cur.getDate() + 1);
 	}
-
 	const seriesData: Record<string, number[]> = {};
 	ALLOWED_STATUSES.forEach((st) => {
 		seriesData[st] = new Array(dates.length).fill(0);
 	});
 	nodes.forEach((n) => {
-		const dateStr = n.scheduled
+		const ds = n.scheduled
 			? DateUtils.formatDate(new Date(n.scheduled))
 			: "";
-		const idx = dates.indexOf(dateStr);
+		const idx = dates.indexOf(ds);
 		if (idx >= 0) {
 			const arr = seriesData[n.status];
 			if (arr && idx < arr.length) arr[idx]++;
 		}
 	});
-
 	const wrapper = createEl("div");
 	wrapper.className = "detail-chart-wrapper";
 	wrapper.addClass("task-w-full", "task-min-h-100", "task-relative");
-
 	const chartDiv = createEl("div");
 	chartDiv.addClass("task-w-full", "task-h-125");
 	wrapper.appendChild(chartDiv);
-
 	const zoomBtn = createEl("button");
 	zoomBtn.className = "zoom-btn";
 	zoomBtn.textContent = "🔍";
@@ -93,7 +83,6 @@ export function renderDetail(
 	);
 	wrapper.appendChild(zoomBtn);
 	container.appendChild(wrapper);
-
 	let chart: unknown;
 	try {
 		chart = echarts.init(chartDiv);
@@ -108,10 +97,8 @@ export function renderDetail(
 		);
 		return;
 	}
-
 	const theme = getComputedStyle(document.body);
 	const textColor = theme.getPropertyValue("--text-normal") || "#333";
-
 	const option = {
 		tooltip: getEChartsTooltipConfig("axis"),
 		xAxis: {
@@ -128,14 +115,10 @@ export function renderDetail(
 			itemStyle: { color: statusColors[st] || undefined },
 		})),
 		grid: { left: "8%", right: "5%", top: "15%", bottom: "25%" },
-		legend: {
-			bottom: 0,
-			textStyle: { fontSize: 10, color: textColor },
-		},
+		legend: { bottom: 0, textStyle: { fontSize: 10, color: textColor } },
 		textStyle: { color: textColor },
 	};
 	(chart as { setOption: (o: unknown) => void }).setOption(option);
-
 	zoomBtn.addEventListener("click", () => {
 		const modal = createEl("div");
 		modal.addClass(
@@ -147,7 +130,6 @@ export function renderDetail(
 			"task-items-center",
 			"task-justify-center",
 		);
-
 		const closeBtn = createEl("button");
 		closeBtn.textContent = "✖";
 		closeBtn.addClass(
@@ -160,13 +142,11 @@ export function renderDetail(
 			"task-text-white",
 			"task-clickable",
 		);
-
 		const bigChartDiv = createEl("div");
 		bigChartDiv.addClass("task-w-90", "task-h-90");
 		modal.appendChild(bigChartDiv);
 		modal.appendChild(closeBtn);
 		document.body.appendChild(modal);
-
 		let bigChart: unknown;
 		try {
 			bigChart = echarts.init(bigChartDiv);
@@ -181,7 +161,6 @@ export function renderDetail(
 				"task-text-white",
 			);
 		}
-
 		const closeModal = () => {
 			if (bigChart) (bigChart as { dispose: () => void }).dispose();
 			modal.remove();

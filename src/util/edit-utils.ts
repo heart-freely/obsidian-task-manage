@@ -1,12 +1,9 @@
 // src/util/edit-utils.ts
-// 编辑卡片通用工具函数
 
 import { parseTaskLine } from "../core/parser/tasks-parser";
 import { TaskTreeNode } from "../core/task/task-tree";
 import { getEditContext } from "../ui/main/card/card";
 import { createEl } from "./dom-utils";
-
-// ========== 编辑按钮组定义 ==========
 
 export interface EditButtonGroup {
 	key: string;
@@ -150,10 +147,8 @@ export function getNodeMarkValue(
 }
 
 export function formatDate(d: Date): string {
-	const pad = (n: number) => (n < 10 ? "0" + n : n);
-	return (
-		d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
-	);
+	const p = (n: number) => (n < 10 ? "0" + n : n);
+	return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
 }
 export function getTodayStr(): string {
 	return formatDate(new Date());
@@ -218,11 +213,10 @@ function hasMarkBeenEdited(
 	key: string,
 	options: EditBarOptions,
 ): boolean {
-	const previewText = options.previewText;
-	if (!previewText || previewText === node.rawLine) return false;
+	const pt = options.previewText;
+	if (!pt || pt === node.rawLine) return false;
 	return (
-		extractMarkFromText(node.rawLine, key) !==
-		extractMarkFromText(previewText, key)
+		extractMarkFromText(node.rawLine, key) !== extractMarkFromText(pt, key)
 	);
 }
 
@@ -374,9 +368,7 @@ function getMarkDisplayText(node: TaskTreeNode, key: string): string {
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
 			const names = ["最高", "高", "中", "低", "最低"];
-			const i = icons[node.priority] || "";
-			const n = names[node.priority] || "";
-			return `${i} ${n}`;
+			return `${icons[node.priority] || ""} ${names[node.priority] || ""}`;
 		}
 		case "repeat":
 			return node.repeat ? `🔁 ${node.repeat}` : "";
@@ -453,15 +445,12 @@ function getMarkDisplayTextFromLine(line: string, key: string): string {
 	}
 }
 
-// ========== 编辑栏构建 ==========
-
 export function createEditBar(
 	node: TaskTreeNode,
 	options: EditBarOptions,
 ): HTMLElement {
 	const bar = createEl("div");
 	bar.className = "task-edit-bar";
-
 	const editCtx = getEditContext();
 	if (
 		options.isEditing &&
@@ -471,21 +460,17 @@ export function createEditBar(
 		bar.addClass("task-hidden");
 		return bar;
 	}
-
 	let hoveredButtonKey: string | null = null;
 	bar.addEventListener("mouseleave", () => {
 		hoveredButtonKey = null;
 		updateAllButtonStyles();
 	});
-
 	const buttons: Array<{ btn: HTMLElement; group: EditButtonGroup }> = [];
-
 	EDIT_BUTTONS.forEach((group) => {
 		const btn = createEl("button");
 		btn.className = "edit-btn";
 		const hasValue = hasMarkValue(node, group.key);
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
-
 		btn.textContent =
 			isEdited && options.previewText
 				? getMarkDisplayTextFromLine(options.previewText, group.key) ||
@@ -493,10 +478,8 @@ export function createEditBar(
 				: hasValue
 					? getMarkDisplayText(node, group.key)
 					: `${group.icon} ${group.label}`;
-
 		btn.title = group.label;
 		btn.setAttribute("data-mark-key", group.key);
-
 		btn.addEventListener("mouseenter", () => {
 			if (!options.expandedButton) {
 				hoveredButtonKey = group.key;
@@ -515,15 +498,12 @@ export function createEditBar(
 			e.stopPropagation();
 			options.onEdit(node, group.key + "_toggle", null);
 		});
-
 		bar.appendChild(btn);
 		buttons.push({ btn, group });
 	});
-
 	function updateAllButtonStyles() {
 		buttons.forEach(({ btn, group }) => updateButtonStyle(btn, group));
 	}
-
 	function updateButtonStyle(btn: HTMLElement, group: EditButtonGroup) {
 		const isExpanded = options.expandedButton === group.key;
 		const isHovered = hoveredButtonKey === group.key;
@@ -541,36 +521,26 @@ export function createEditBar(
 			btn.addClass("edit-btn-default");
 		else btn.addClass("edit-btn-hidden");
 	}
-
 	updateAllButtonStyles();
-
 	const fileName = node.path.split("/").pop()?.replace(".md", "") || "";
 	if (fileName) {
-		const fileNameSpan = createEl("span");
-		fileNameSpan.textContent = `📄 ${fileName}`;
-		fileNameSpan.className = "edit-file-name";
-		bar.appendChild(fileNameSpan);
+		const fs = createEl("span");
+		fs.textContent = `📄 ${fileName}`;
+		fs.className = "edit-file-name";
+		bar.appendChild(fs);
 	}
-
 	if (options.expandedButton) {
-		const group = EDIT_BUTTONS.find(
-			(g) => g.key === options.expandedButton,
-		);
-		if (group) {
-			const subRow = createSubRow(node, group, options);
-			bar.appendChild(subRow);
-		}
+		const g = EDIT_BUTTONS.find((x) => x.key === options.expandedButton);
+		if (g) bar.appendChild(createSubRow(node, g, options));
 	}
-
-	if (!options.isEditing && !options.expandedButton) {
-		if (!EDIT_BUTTONS.some((g) => hasMarkValue(node, g.key)))
-			bar.addClass("task-hidden");
-	}
-
+	if (
+		!options.isEditing &&
+		!options.expandedButton &&
+		!EDIT_BUTTONS.some((g) => hasMarkValue(node, g.key))
+	)
+		bar.addClass("task-hidden");
 	return bar;
 }
-
-// ========== 子行上下文 ==========
 
 interface SubRowContext {
 	getMainBtn: () => HTMLElement | null;
@@ -588,32 +558,35 @@ function createSubRowContext(
 	options: EditBarOptions,
 	subRow: HTMLElement,
 ): SubRowContext {
-	const getMainBtn = (): HTMLElement | null => {
-		const editBar = subRow.closest(".task-edit-bar") as HTMLElement | null;
-		return editBar?.querySelector(
-			`[data-mark-key="${group.key}"]`,
-		) as HTMLElement | null;
-	};
-	const updateMainBtnText = (displayText: string) => {
-		const mb = getMainBtn();
-		if (mb && displayText) mb.textContent = displayText;
-	};
-	const originalValue = extractOriginalMarkValue(node.rawLine, group.key);
-	const hasOriginalMark = originalValue !== null && originalValue !== "";
-	let previewValue: string | null = null;
-	if (options.previewText)
-		previewValue = extractMarkFromText(options.previewText, group.key);
 	return {
-		getMainBtn,
-		updateMainBtnText,
-		originalValue,
-		hasOriginalMark,
-		previewValue,
-		hasChanged: originalValue !== previewValue,
+		getMainBtn: () =>
+			(
+				subRow.closest(".task-edit-bar") as HTMLElement | null
+			)?.querySelector(
+				`[data-mark-key="${group.key}"]`,
+			) as HTMLElement | null,
+		updateMainBtnText: (t) => {
+			const mb = (
+				subRow.closest(".task-edit-bar") as HTMLElement | null
+			)?.querySelector(
+				`[data-mark-key="${group.key}"]`,
+			) as HTMLElement | null;
+			if (mb && t) mb.textContent = t;
+		},
+		originalValue: extractOriginalMarkValue(node.rawLine, group.key),
+		hasOriginalMark:
+			extractOriginalMarkValue(node.rawLine, group.key) !== null &&
+			extractOriginalMarkValue(node.rawLine, group.key) !== "",
+		previewValue: options.previewText
+			? extractMarkFromText(options.previewText, group.key)
+			: null,
+		hasChanged:
+			extractOriginalMarkValue(node.rawLine, group.key) !==
+			(options.previewText
+				? extractMarkFromText(options.previewText, group.key)
+				: null),
 	};
 }
-
-// ========== 选项子行 ==========
 
 function createOptionsSubRow(
 	node: TaskTreeNode,
@@ -673,16 +646,12 @@ function createOptionsSubRow(
 					"⏬": "最低",
 				};
 				ctx.updateMainBtnText(`${opt} ${names[opt] || ""}`);
-			} else {
-				ctx.updateMainBtnText(opt);
-			}
+			} else ctx.updateMainBtnText(opt);
 			options.onEdit(node, group.key, value);
 		});
 		subRow.appendChild(btn);
 	});
 }
-
-// ========== 日期子行 ==========
 
 function createDateSubRow(
 	node: TaskTreeNode,
@@ -691,40 +660,29 @@ function createDateSubRow(
 	ctx: SubRowContext,
 ): void {
 	const subRow = ctx._subRow!;
-	let currentValue: string | null = null;
+	let cv: string | null = null;
 	if (options.previewText) {
-		const extracted = extractMarkFromText(options.previewText, group.key);
-		if (extracted) currentValue = extracted;
+		const ex = extractMarkFromText(options.previewText, group.key);
+		if (ex) cv = ex;
 	}
-	if (!currentValue) currentValue = getNodeMarkValue(node, group.key);
-	const dateInput = createEl("input");
-	dateInput.type = "date";
-	dateInput.value = currentValue || "";
-	dateInput.className = "edit-date-input";
-	dateInput.addClass(
-		currentValue ? "edit-date-input-has-value" : "edit-date-input-empty",
-	);
-	dateInput.addEventListener("change", () => {
-		const val = dateInput.value;
-		dateInput.removeClass(
-			"edit-date-input-has-value",
-			"edit-date-input-empty",
-		);
-		dateInput.addClass(
-			val ? "edit-date-input-has-value" : "edit-date-input-empty",
-		);
+	if (!cv) cv = getNodeMarkValue(node, group.key);
+	const di = createEl("input");
+	di.type = "date";
+	di.value = cv || "";
+	di.className = "edit-date-input";
+	di.addClass(cv ? "edit-date-input-has-value" : "edit-date-input-empty");
+	di.addEventListener("change", () => {
+		const v = di.value;
+		di.removeClass("edit-date-input-has-value", "edit-date-input-empty");
+		di.addClass(v ? "edit-date-input-has-value" : "edit-date-input-empty");
 		ctx.updateMainBtnText(
-			val ? `${group.icon} ${val}` : `${group.icon} ${group.label}`,
+			v ? `${group.icon} ${v}` : `${group.icon} ${group.label}`,
 		);
-		options.onEdit(node, group.key, val || null);
+		options.onEdit(node, group.key, v || null);
 	});
-	dateInput.addEventListener("click", (e) => {
-		e.stopPropagation();
-	});
-	subRow.appendChild(dateInput);
+	di.addEventListener("click", (e) => e.stopPropagation());
+	subRow.appendChild(di);
 }
-
-// ========== 自定义子行 ==========
 
 function createCustomSubRow(
 	node: TaskTreeNode,
@@ -784,23 +742,23 @@ function createCustomSubRow(
 		sb.className = "edit-sub-btn";
 		sb.addEventListener("click", (e) => {
 			e.stopPropagation();
-			const editCtx = getEditContext();
-			if (!editCtx?.getIdOptions) return;
-			const idOpts = editCtx.getIdOptions();
-			if (idOpts.length === 0) return;
-			const existing = document.querySelector(".id-select-dropdown");
-			if (existing) {
-				existing.remove();
+			const ec = getEditContext();
+			if (!ec?.getIdOptions) return;
+			const io = ec.getIdOptions();
+			if (io.length === 0) return;
+			const ex = document.querySelector(".id-select-dropdown");
+			if (ex) {
+				ex.remove();
 				return;
 			}
-			const dropdown = createEl("div");
-			dropdown.className = "id-select-dropdown task-id-select-dropdown";
-			const btnRect = sb.getBoundingClientRect();
-			dropdown.setCssProps({
-				"--task-dropdown-left": btnRect.left + "px",
-				"--task-dropdown-top": btnRect.bottom + 4 + "px",
+			const dd = createEl("div");
+			dd.className = "id-select-dropdown task-id-select-dropdown";
+			const br = sb.getBoundingClientRect();
+			dd.setCssProps({
+				"--task-dropdown-left": br.left + "px",
+				"--task-dropdown-top": br.bottom + 4 + "px",
 			});
-			idOpts.forEach((opt) => {
+			io.forEach((opt) => {
 				const item = createEl("div");
 				item.textContent = `${opt.id}: ${opt.desc}`;
 				item.title = `${opt.id}: ${opt.desc}`;
@@ -816,19 +774,19 @@ function createCustomSubRow(
 					ev.stopPropagation();
 					ctx.updateMainBtnText(`⛔ ${opt.id}`);
 					onEdit(node, group.key, opt.id);
-					dropdown.remove();
+					dd.remove();
 				});
-				dropdown.appendChild(item);
+				dd.appendChild(item);
 			});
-			document.body.appendChild(dropdown);
-			const closeDropdown = (ev: MouseEvent) => {
-				if (!dropdown.contains(ev.target as Node)) {
-					dropdown.remove();
-					document.removeEventListener("mousedown", closeDropdown);
+			document.body.appendChild(dd);
+			const cd = (ev: MouseEvent) => {
+				if (!dd.contains(ev.target as Node)) {
+					dd.remove();
+					document.removeEventListener("mousedown", cd);
 				}
 			};
 			window.setTimeout(
-				() => document.addEventListener("mousedown", closeDropdown),
+				() => document.addEventListener("mousedown", cd),
 				0,
 			);
 		});
@@ -860,17 +818,16 @@ function appendDeleteButton(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const delBtn = createEl("button");
-	delBtn.textContent = "删除";
-	delBtn.className = "edit-del-btn";
-	if (!ctx.hasOriginalMark) delBtn.addClass("task-hidden");
-	delBtn.addEventListener("click", (e) => {
+	const db = createEl("button");
+	db.textContent = "删除";
+	db.className = "edit-del-btn";
+	if (!ctx.hasOriginalMark) db.addClass("task-hidden");
+	db.addEventListener("click", (e) => {
 		e.stopPropagation();
 		options.onEdit(node, group.key, null);
 	});
-	subRow.appendChild(delBtn);
+	subRow.appendChild(db);
 }
-
 function appendRestoreButton(
 	node: TaskTreeNode,
 	subRow: HTMLElement,
@@ -878,18 +835,18 @@ function appendRestoreButton(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const restoreBtn = createEl("button");
-	restoreBtn.textContent = "原文";
-	restoreBtn.className = "edit-restore-btn";
-	restoreBtn.title = "恢复为原始值";
-	if (!ctx.hasChanged) restoreBtn.addClass("task-hidden");
-	restoreBtn.addEventListener("click", (e) => {
+	const rb = createEl("button");
+	rb.textContent = "原文";
+	rb.className = "edit-restore-btn";
+	rb.title = "恢复为原始值";
+	if (!ctx.hasChanged) rb.addClass("task-hidden");
+	rb.addEventListener("click", (e) => {
 		e.stopPropagation();
 		if (ctx.originalValue !== null)
 			options.onEdit(node, group.key, ctx.originalValue);
 		else options.onEdit(node, group.key, null);
 	});
-	subRow.appendChild(restoreBtn);
+	subRow.appendChild(rb);
 }
 
 type SubRowBuilder = (
@@ -909,15 +866,15 @@ export function createSubRow(
 	group: EditButtonGroup,
 	options: EditBarOptions,
 ): HTMLElement {
-	const subRow = createEl("div");
-	subRow.className = "edit-sub-row";
-	const ctx = createSubRowContext(node, group, options, subRow);
-	ctx._subRow = subRow;
-	const builder = subRowBuilders[group.subType || "custom"];
-	if (builder) builder(node, group, options, ctx);
-	appendDeleteButton(node, subRow, group, options, ctx);
-	appendRestoreButton(node, subRow, group, options, ctx);
-	return subRow;
+	const sr = createEl("div");
+	sr.className = "edit-sub-row";
+	const ctx = createSubRowContext(node, group, options, sr);
+	ctx._subRow = sr;
+	const b = subRowBuilders[group.subType || "custom"];
+	if (b) b(node, group, options, ctx);
+	appendDeleteButton(node, sr, group, options, ctx);
+	appendRestoreButton(node, sr, group, options, ctx);
+	return sr;
 }
 
 export function createPreviewRow(
@@ -933,11 +890,11 @@ export function createPreviewRow(
 	row.addClass(
 		saved ? "task-edit-preview-saved" : "task-edit-preview-unsaved",
 	);
-	const textSpan = createEl("span");
-	textSpan.className = "edit-preview-text";
+	const ts = createEl("span");
+	ts.className = "edit-preview-text";
 	if (saved) {
-		textSpan.textContent = `📝 已保存: ${previewText}`;
-		row.appendChild(textSpan);
+		ts.textContent = `📝 已保存: ${previewText}`;
+		row.appendChild(ts);
 		if (onRevert) {
 			const rb = createEl("button");
 			rb.textContent = "撤回";
@@ -949,8 +906,8 @@ export function createPreviewRow(
 			row.appendChild(rb);
 		}
 	} else {
-		textSpan.textContent = `📝 预览: ${previewText}`;
-		row.appendChild(textSpan);
+		ts.textContent = `📝 预览: ${previewText}`;
+		row.appendChild(ts);
 		if (onSave) {
 			const sb = createEl("button");
 			sb.textContent = "保存";

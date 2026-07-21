@@ -6,21 +6,20 @@ class TooltipManager {
 
 	ensureDiv() {
 		if (!this.div) {
-			this.div = createEl("div");
+			this.div = document.createElement("div");
 			this.div.className = "dataview-tooltip";
 			document.body.appendChild(this.div);
-
 			document.addEventListener("mousemove", (e) => {
-				const target = e.target as HTMLElement;
+				const t = e.target as HTMLElement;
 				if (
-					!target.closest(".task-item") &&
-					!target.closest(".gantt-bar") &&
-					!target.closest(".cal-task-item") &&
-					!target.closest(".cal-span-line") &&
-					!target.closest(".task-progress-bar") &&
-					!target.closest(".cal-more-indicator") &&
-					!target.closest(".timeline-bar") &&
-					!target.closest(".year-view-day")
+					!t.closest(".task-item") &&
+					!t.closest(".gantt-bar") &&
+					!t.closest(".cal-task-item") &&
+					!t.closest(".cal-span-line") &&
+					!t.closest(".task-progress-bar") &&
+					!t.closest(".cal-more-indicator") &&
+					!t.closest(".timeline-bar") &&
+					!t.closest(".year-view-day")
 				) {
 					if (this.hideTimer) window.clearTimeout(this.hideTimer);
 					this.hideTimer = window.setTimeout(() => this.hide(), 100);
@@ -34,51 +33,37 @@ class TooltipManager {
 		if (this.hideTimer) window.clearTimeout(this.hideTimer);
 		const div = this.ensureDiv();
 		while (div.firstChild) div.removeChild(div.firstChild);
-		const parts = html.split("<br>");
-		parts.forEach((part, i) => {
-			if (i > 0) div.appendChild(createEl("br"));
+		html.split("<br>").forEach((part, i) => {
+			if (i > 0) div.appendChild(document.createElement("br"));
 			div.appendChild(document.createTextNode(part));
 		});
 		div.classList.remove("dataview-tooltip-hidden");
 		div.classList.add("dataview-tooltip-visible");
-
 		const padding = 15;
-		let left = x + padding;
-		let top = y + padding;
-
+		let left = x + padding,
+			top = y + padding;
 		div.style.setProperty("left", left + "px");
 		div.style.setProperty("top", top + "px");
 		const rect = div.getBoundingClientRect();
-
-		if (rect.right > window.innerWidth) {
-			left = x - rect.width - padding;
-		}
-		if (rect.bottom > window.innerHeight) {
-			top = y - rect.height - padding;
-		}
+		if (rect.right > window.innerWidth) left = x - rect.width - padding;
+		if (rect.bottom > window.innerHeight) top = y - rect.height - padding;
 		if (left < 0) left = padding;
 		if (top < 0) top = padding;
-
 		div.style.setProperty("left", left + "px");
 		div.style.setProperty("top", top + "px");
 	}
 
 	move(x: number, y: number) {
-		if (
-			this.div &&
-			this.div.classList.contains("dataview-tooltip-visible")
-		) {
+		if (this.div?.classList.contains("dataview-tooltip-visible")) {
 			const padding = 15;
-			let left = x + padding;
-			let top = y + padding;
-
+			let left = x + padding,
+				top = y + padding;
 			const rect = this.div.getBoundingClientRect();
 			if (rect.right > window.innerWidth) left = x - rect.width - padding;
 			if (rect.bottom > window.innerHeight)
 				top = y - rect.height - padding;
 			if (left < 0) left = padding;
 			if (top < 0) top = padding;
-
 			this.div.style.setProperty("left", left + "px");
 			this.div.style.setProperty("top", top + "px");
 		}
@@ -90,7 +75,6 @@ class TooltipManager {
 			this.div.classList.add("dataview-tooltip-hidden");
 		}
 	}
-
 	remove() {
 		if (this.div) {
 			this.div.remove();
@@ -100,16 +84,12 @@ class TooltipManager {
 }
 
 export const tooltip = new TooltipManager();
-
 export function getEChartsTooltipConfig(trigger: "item" | "axis" = "item") {
 	return {
 		trigger,
 		backgroundColor: "rgba(0, 0, 0, 0.85)",
 		borderColor: "transparent",
-		textStyle: {
-			color: "#fff",
-			fontSize: 11,
-		},
+		textStyle: { color: "#fff", fontSize: 11 },
 		extraCssText:
 			"border-radius:6px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);",
 	};

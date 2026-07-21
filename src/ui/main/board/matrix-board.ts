@@ -2,14 +2,13 @@
 
 import { getPriorityColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { createEl } from "../../../util/dom-utils";
 import { createGroupCard } from "../card/group-card";
 
 export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.empty();
-
 	const priorityColors = getPriorityColors();
 	const filteredNodes = nodes.filter((n) => n.priority !== 5);
-
 	const quadrants: TaskTreeNode[][] = [[], [], [], []];
 	filteredNodes.forEach((node) => {
 		const p = node.priority;
@@ -18,7 +17,6 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 		else if (p === 2) quadrants[2].push(node);
 		else quadrants[3].push(node);
 	});
-
 	const labels = [
 		"🔺 紧急与重要",
 		"⏫ 不紧急但重要",
@@ -31,7 +29,6 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 		priorityColors[2],
 		priorityColors[3],
 	];
-
 	const grid = createEl("div");
 	grid.className = "matrix-grid";
 	grid.addClass(
@@ -40,7 +37,6 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 		"task-grid-rows-2",
 		"task-gap-3",
 	);
-
 	labels.forEach((label, idx) => {
 		const card = createGroupCard({
 			title: label,
@@ -50,6 +46,5 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 		});
 		grid.appendChild(card);
 	});
-
 	container.appendChild(grid);
 }

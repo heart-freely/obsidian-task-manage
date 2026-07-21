@@ -1,5 +1,5 @@
 // src/ui/panel/hide-panel.ts
-// 视图隐藏面板 — 引用 filter-panel.ts 中的共用按钮组构建函数
+// 视图隐藏面板
 
 import { getDefaultHideConfig } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
@@ -35,16 +35,12 @@ export class HidePanel {
 	private container: HTMLElement;
 	private store: Store;
 	private unsub: (() => void) | null = null;
-
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.unsub = store.subscribe(() => {
-			this.render();
-		});
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
 	}
-
 	destroy() {
 		if (this.unsub) {
 			this.unsub();
@@ -63,20 +59,19 @@ export class HidePanel {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
-			const newHideConfig: HideConfig = {
+			const nh: HideConfig = {
 				...(pr.hideConfig ?? getDefaultHideConfig()),
 				...changes,
 			};
 			this.store.update({
 				presets: st.presets.map((p) =>
-					p.id === pr.id ? { ...p, hideConfig: newHideConfig } : p,
+					p.id === pr.id ? { ...p, hideConfig: nh } : p,
 				),
 			});
 		};
 
 		HIDE_GROUPS.forEach((group) => {
 			const row = this.container.createDiv({ cls: "panel-row" });
-
 			if (group.type === "statuses") {
 				buildToggleGroup({
 					row,
@@ -86,26 +81,18 @@ export class HidePanel {
 					onChange: (ns: string[]) =>
 						updateHideConfig({ hideStatuses: ns }),
 				});
-				return;
-			}
-
-			if (group.type === "searchText") {
+			} else if (group.type === "searchText") {
 				buildToggleGroup({
 					row,
 					label: group.label,
 					type: group.type,
 					selected: [],
 					currentSearchText: hideConfig.hideSearchText || "",
-					onChange: () => {
-						/* no-op for search */
-					},
+					onChange: () => {},
 					onSearchChange: (text: string) =>
 						updateHideConfig({ hideSearchText: text }),
 				});
-				return;
-			}
-
-			if (group.type === "priorityValues") {
+			} else if (group.type === "priorityValues") {
 				buildToggleGroup({
 					row,
 					label: group.label,
@@ -114,10 +101,7 @@ export class HidePanel {
 					onChange: (ns: string[]) =>
 						updateHideConfig({ hidePriorityValues: ns }),
 				});
-				return;
-			}
-
-			if (group.type === "repeatCycles") {
+			} else if (group.type === "repeatCycles") {
 				buildToggleGroup({
 					row,
 					label: group.label,
@@ -126,10 +110,7 @@ export class HidePanel {
 					onChange: (ns: string[]) =>
 						updateHideConfig({ hideRepeatCycles: ns }),
 				});
-				return;
-			}
-
-			if (group.type === "marks" && group.keys) {
+			} else if (group.type === "marks" && group.keys) {
 				buildToggleGroup({
 					row,
 					label: group.label,
@@ -139,7 +120,6 @@ export class HidePanel {
 					onChange: (ns: string[]) =>
 						updateHideConfig({ hideMarks: ns }),
 				});
-				return;
 			}
 		});
 	}

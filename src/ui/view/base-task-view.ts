@@ -1,5 +1,4 @@
 // src/ui/view/base-task-view.ts
-// 业务视图基类 — 筛选 → 时间 → 隐藏 → 排序 → 渲染
 
 import { STATUS_NAMES } from "../../core/config/config";
 import { DataManager } from "../../core/data/data-manager";
@@ -17,10 +16,10 @@ import {
 	filterTreeByDateRange,
 	flattenTree,
 	TaskTreeNode,
-	TreeFilterOptions,
 } from "../../core/task/task-tree";
 import { GlobalFilter } from "../../type/type";
 import { DateUtils } from "../../util/date-utils";
+import { createEl } from "../../util/dom-utils";
 import { TaskNavigator } from "../../util/navigator-utils";
 import { renderKanban } from "../main/board/kanban-board";
 import { renderMatrix } from "../main/board/matrix-board";
@@ -45,7 +44,6 @@ import { renderUniqueId } from "../main/list/uniqueId-list";
 import { renderTaskTable } from "../main/table/table";
 import { Panels } from "../panel/panel";
 
-/** 甘特图实例接口 */
 interface GanttInstance {
 	taskMap: Map<string, TaskTreeNode>;
 	redraw: () => Promise<void>;
@@ -57,30 +55,23 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	protected store: Store;
 	protected app: unknown;
 	protected unsub?: () => void;
-	protected calendarSubView: string = "day";
-	protected calendarSelectedDate: Date = new Date();
+	protected calendarSubView = "day";
+	protected calendarSelectedDate = new Date();
 	protected dataManager: DataManager;
-
 	protected taskTreeNavContainer: HTMLElement | null = null;
 	protected rightContentContainer: HTMLElement | null = null;
 	protected resizeHandle: HTMLElement | null = null;
-	private isResizing: boolean = false;
+	private isResizing = false;
 	private onResizeBound: ((e: MouseEvent) => void) | null = null;
 	private stopResizeBound: (() => void) | null = null;
-
 	protected selectedTreeNode: TaskTreeNode | null = null;
 	protected focusedTreeNode: TaskTreeNode | null = null;
 	private focusHistory: TaskTreeNode[] = [];
-
 	private renderDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 	private static readonly DEBOUNCE_DELAY = 50;
-
 	private ganttInstance: GanttInstance | null = null;
-
 	protected editStore: EditStore;
-
-	protected scrollPositions: Map<string, number> = new Map();
-
+	protected scrollPositions = new Map<string, number>();
 	private _lastActivePresetId: string | null = null;
 	private _lastSidebarCollapsed: boolean | null = null;
 	private _lastFilterStr: string | null = null;
@@ -92,14 +83,13 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.store = store;
 		this.app = app;
 		this.dataManager = DataManager.getInstance();
-
 		this.editStore = new EditStore(
 			this.app as {
 				vault: {
-					getAbstractFileByPath(path: string): unknown;
+					getAbstractFileByPath(p: string): unknown;
 					process(
-						file: { path: string },
-						fn: (data: string) => string,
+						f: { path: string },
+						fn: (d: string) => string,
 					): Promise<void>;
 				};
 			},
@@ -114,64 +104,45 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.store.setTaskView(
 			this as unknown as Parameters<typeof this.store.setTaskView>[0],
 		);
-
-		const panels = Panels.getInstance();
-		panels.initPanelSubscriptions();
-
+		Panels.getInstance().initPanelSubscriptions();
 		const state = store.getState();
 		this._lastActivePresetId = state.activePresetId;
 		this._lastSidebarCollapsed = state.sidebarCollapsed;
-		const currentPreset = state.presets.find(
-			(p) => p.id === state.activePresetId,
-		);
-		this._lastFilterStr = JSON.stringify(currentPreset?.filter);
-		this._lastIntervalMode = currentPreset?.intervalMode ?? null;
-
+		const cp = state.presets.find((p) => p.id === state.activePresetId);
+		this._lastFilterStr = JSON.stringify(cp?.filter);
+		this._lastIntervalMode = cp?.intervalMode ?? null;
 		this.unsub = store.subscribe(() => {
-			const currentState = store.getState();
-			const presetChanged =
-				this._lastActivePresetId !== currentState.activePresetId;
-			const sidebarChanged =
-				this._lastSidebarCollapsed !== currentState.sidebarCollapsed;
-			const activePreset = currentState.presets.find(
-				(p) => p.id === currentState.activePresetId,
-			);
-			const filterStr = JSON.stringify(activePreset?.filter);
-			const filterChanged = this._lastFilterStr !== filterStr;
-			const currentIntervalMode = activePreset?.intervalMode;
-			const intervalModeChanged =
-				this._lastIntervalMode !== currentIntervalMode;
-
-			this._lastActivePresetId = currentState.activePresetId;
-			this._lastSidebarCollapsed = currentState.sidebarCollapsed;
-			this._lastFilterStr = filterStr;
-			this._lastIntervalMode = currentIntervalMode ?? null;
-
+			const cs = store.getState();
 			if (
-				presetChanged ||
-				sidebarChanged ||
-				filterChanged ||
-				intervalModeChanged
+				this._lastActivePresetId !== cs.activePresetId ||
+				this._lastSidebarCollapsed !== cs.sidebarCollapsed ||
+				this._lastFilterStr !==
+					JSON.stringify(
+						cs.presets.find((p) => p.id === cs.activePresetId)
+							?.filter,
+					) ||
+				this._lastIntervalMode !==
+					(cs.presets.find((p) => p.id === cs.activePresetId)
+						?.intervalMode ?? null)
 			) {
+				this._lastActivePresetId = cs.activePresetId;
+				this._lastSidebarCollapsed = cs.sidebarCollapsed;
+				const ap = cs.presets.find((p) => p.id === cs.activePresetId);
+				this._lastFilterStr = JSON.stringify(ap?.filter);
+				this._lastIntervalMode = ap?.intervalMode ?? null;
 				void this.render();
 			}
 		});
-
-		this.onResizeBound = (e: MouseEvent) => this.onResize(e);
+		this.onResizeBound = (e) => this.onResize(e);
 		this.stopResizeBound = () => this.stopResize();
-
 		this.store.setOnEditCardsChanged(() => {
 			this._needsEditRefresh = true;
-			window.requestAnimationFrame(() => {
-				this.onEditStateChange();
-			});
+			window.requestAnimationFrame(() => this.onEditStateChange());
 		});
-
 		this.store.setOnApplyEditContext(() => {
 			this.applyEditContext();
 			this.previouslyEditedUids.clear();
 		});
-
 		this.store.setOnFullRender(() => {
 			this.dataManager.invalidateFilterCache();
 			void this.render();
@@ -194,65 +165,41 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 
 	private async doRender(): Promise<void> {
-		const scrollKey = this.prepareRender();
-
-		const result = await this.loadData();
-		if (!result) {
-			this.finishRender(scrollKey);
+		const sk = this.prepareRender();
+		const r = await this.loadData();
+		if (!r) {
+			this.finishRender(sk);
 			return;
 		}
-
-		const { fullTree } = result;
-		const allNodes = flattenTree(fullTree).filter(
-			(n) => n.display && n.uid !== "__task_root__" && n.match,
-		);
-
-		if (allNodes.length === 0) {
+		const f = this.applyFilters(r.fullTree);
+		if (!f) {
+			this.finishRender(sk);
+			return;
+		}
+		if (f.flatNodes.length === 0) {
 			this.renderEmpty();
-			this.finishRender(scrollKey);
+			this.finishRender(sk);
 			return;
 		}
-
-		const filtered = this.applyFilters(fullTree);
-		if (!filtered) {
-			this.finishRender(scrollKey);
-			return;
-		}
-
-		const { dateFilteredTree, flatNodes } = filtered;
-		if (flatNodes.length === 0) {
-			this.renderEmpty();
-			this.finishRender(scrollKey);
-			return;
-		}
-
-		const sorted = this.applySorting(flatNodes);
+		const s = this.applySorting(f.flatNodes);
 		this.applyEditContext();
-		this.renderContent(dateFilteredTree, sorted);
-		this.finishRender(scrollKey);
+		this.renderContent(f.dateFilteredTree, s);
+		this.finishRender(sk);
 	}
 
 	private prepareRender(): string | null {
-		const scrollContainer = this.getScrollContainer();
-		const scrollKey = this.getScrollKey();
-		if (scrollContainer && scrollKey) {
-			this.scrollPositions.set(scrollKey, scrollContainer.scrollTop);
-		}
-
-		const rootEl = this.getRootElement();
-		if (rootEl) {
-			rootEl.removeEventListener("click", this.onGlobalClick);
-		} else {
-			this.container.removeEventListener("click", this.onGlobalClick);
-		}
-
+		const sc = this.getScrollContainer();
+		const sk = this.getScrollKey();
+		if (sc && sk) this.scrollPositions.set(sk, sc.scrollTop);
+		const re = this.getRootElement();
+		if (re) re.removeEventListener("click", this.onGlobalClick);
+		else this.container.removeEventListener("click", this.onGlobalClick);
 		this.cleanupSplitLayout();
 		if (this.ganttInstance) {
 			this.ganttInstance.destroy();
 			this.ganttInstance = null;
 		}
-
-		return scrollKey;
+		return sk;
 	}
 
 	private async loadData(): Promise<{ fullTree: TaskTreeNode } | null> {
@@ -260,72 +207,53 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			await this.dataManager.loadData(
 				this.app as Parameters<typeof this.dataManager.loadData>[0],
 			);
-			const fullTree = this.dataManager.getFullTree();
-			return { fullTree };
+			return { fullTree: this.dataManager.getFullTree() };
 		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			logger.warn("[TaskManage] 加载数据失败:", message);
+			const m = e instanceof Error ? e.message : String(e);
+			logger.warn("[TaskManage] 加载数据失败:", m);
 			this.container.replaceChildren();
-			this.container.createDiv({
-				text: "加载失败：" + message,
-			});
+			this.container.createDiv({ text: "加载失败：" + m });
 			return null;
 		}
 	}
 
-	private applyFilters(fullTree: TaskTreeNode): {
-		dateFilteredTree: TaskTreeNode;
-		flatNodes: TaskTreeNode[];
-	} | null {
+	private applyFilters(
+		fullTree: TaskTreeNode,
+	): { dateFilteredTree: TaskTreeNode; flatNodes: TaskTreeNode[] } | null {
 		const preset = this.store.getActivePreset();
-		const activeFilter: GlobalFilter =
-			preset?.filter ?? this.getDefaultFilter();
-		const intervalMode = preset?.intervalMode ?? "scheduled-due";
-
-		const panelOptions: TreeFilterOptions = {
-			statuses: activeFilter.statuses,
-			searchText: activeFilter.searchText,
-			priorityValues: activeFilter.priorityValues,
-			repeatCycles: activeFilter.repeatCycles,
-			includeMarks: activeFilter.includeMarks,
-		};
-		const panelFilteredTree = filterTree(fullTree, panelOptions);
-		const dateFilteredTree = filterTreeByDateRange(
-			panelFilteredTree,
-			activeFilter.dateRange,
-			intervalMode,
-		);
-		const hideConfig = preset?.hideConfig ?? getDefaultHideConfig();
-		applyHideConfig(dateFilteredTree, hideConfig);
-
+		const af: GlobalFilter = preset?.filter ?? this.getDefaultFilter();
+		const im = preset?.intervalMode ?? "scheduled-due";
+		const pt = filterTree(fullTree, {
+			statuses: af.statuses,
+			searchText: af.searchText,
+			priorityValues: af.priorityValues,
+			repeatCycles: af.repeatCycles,
+			includeMarks: af.includeMarks,
+		});
+		const dt = filterTreeByDateRange(pt, af.dateRange, im);
+		applyHideConfig(dt, preset?.hideConfig ?? getDefaultHideConfig());
 		if (this.selectedTreeNode) {
-			const newFocus = this.findNodeByUidInTree(
-				dateFilteredTree,
-				this.selectedTreeNode.uid,
-			);
-			if (newFocus) {
-				this.selectedTreeNode = newFocus;
-				this.focusedTreeNode = newFocus;
+			const nf = this.findNodeByUidInTree(dt, this.selectedTreeNode.uid);
+			if (nf) {
+				this.selectedTreeNode = nf;
+				this.focusedTreeNode = nf;
 			}
 		}
-
-		let flatNodes: TaskTreeNode[];
-		if (this.selectedTreeNode) {
-			flatNodes = this.collectNodeTasksDeep(this.selectedTreeNode);
-		} else {
-			flatNodes = flattenTree(dateFilteredTree);
-		}
-		flatNodes = flatNodes.filter(
+		let fn: TaskTreeNode[] = this.selectedTreeNode
+			? this.collectNodeTasksDeep(this.selectedTreeNode)
+			: flattenTree(dt);
+		fn = fn.filter(
 			(n) => n.display && n.uid !== "__task_root__" && n.match,
 		);
-
-		return { dateFilteredTree, flatNodes };
+		return { dateFilteredTree: dt, flatNodes: fn };
 	}
 
 	private applySorting(nodes: TaskTreeNode[]): TaskTreeNode[] {
-		const preset = this.store.getActivePreset();
-		const sort = preset?.sort ?? { type: "", order: "asc" as const };
-		return this.applySort(nodes, sort);
+		const s = this.store.getActivePreset()?.sort ?? {
+			type: "",
+			order: "asc" as const,
+		};
+		return this.applySort(nodes, s);
 	}
 
 	private renderContent(
@@ -333,120 +261,90 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		sortedNodes: TaskTreeNode[],
 	) {
 		const preset = this.store.getActivePreset();
-		const activeFilter: GlobalFilter =
-			preset?.filter ?? this.getDefaultFilter();
-		const currentStyle = preset?.viewStyle ?? "table";
-		const intervalMode = preset?.intervalMode ?? "scheduled-due";
+		const af = preset?.filter ?? this.getDefaultFilter();
+		const style = preset?.viewStyle ?? "table";
+		const im = preset?.intervalMode ?? "scheduled-due";
 		const sort = preset?.sort ?? { type: "", order: "asc" as const };
-
 		this.container.textContent = "";
-
-		if (currentStyle === "tree") {
-			const viewContainer = this.container.createDiv({
+		if (style === "tree") {
+			const vc = this.container.createDiv({
 				cls: "view-content task-view-padding-reset",
 			});
-			renderTaskTree(viewContainer, {
+			renderTaskTree(vc, {
 				root: dateFilteredTree,
 				focusRoot: this.focusedTreeNode || undefined,
-				hideFolders: activeFilter.hideFolders ?? true,
-				onClick: (n: TaskTreeNode) => this.onTaskTreeNavClick(n),
-				onDoubleClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
+				hideFolders: af.hideFolders ?? true,
+				onClick: (n) => this.onTaskTreeNavClick(n),
+				onDoubleClick: (n) => this.openTaskAtLine(n),
 				onRestore: () => this.restoreFocus(),
 				sort,
 			});
-		} else if (currentStyle === "gantt") {
-			const viewContainer = this.container.createDiv({
+		} else if (style === "gantt") {
+			const vc = this.container.createDiv({
 				cls: "view-content task-view-full",
 			});
-			this.ganttInstance = renderGanttWithTree(
-				viewContainer,
-				dateFilteredTree,
-				{
-					onTaskClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
-					onRestore: () => this.restoreFocus(),
-					onNodeClick: (n: TaskTreeNode) =>
-						this.onTaskTreeNavClick(n),
-					intervalMode,
-					sort,
-					dateRange: activeFilter.dateRange,
-					focusRoot: this.focusedTreeNode || undefined,
-				},
-			) as unknown as GanttInstance;
+			this.ganttInstance = renderGanttWithTree(vc, dateFilteredTree, {
+				onTaskClick: (n) => this.openTaskAtLine(n),
+				onRestore: () => this.restoreFocus(),
+				onNodeClick: (n) => this.onTaskTreeNavClick(n),
+				intervalMode: im,
+				sort,
+				dateRange: af.dateRange,
+				focusRoot: this.focusedTreeNode || undefined,
+			}) as unknown as GanttInstance;
 		} else {
 			this.renderSplitLayout(
 				dateFilteredTree,
-				currentStyle,
-				activeFilter,
-				intervalMode,
+				style,
+				af,
+				im,
 				sort,
 				sortedNodes,
 			);
 		}
-
-		if (this.editStore.getState().editMode) {
+		if (this.editStore.getState().editMode)
 			this.previouslyEditedUids = new Set(
 				this.editStore.getState().selectedTasks,
 			);
-		}
 	}
 
 	private finishRender(scrollKey: string | null) {
 		this.restoreScrollPosition(scrollKey);
 		this.bindClickEvent();
 	}
-
 	private bindClickEvent() {
 		window.setTimeout(() => {
-			const rootEl = this.getRootElement();
-			if (rootEl) {
-				rootEl.addEventListener("click", this.onGlobalClick);
-			} else {
-				this.container.addEventListener("click", this.onGlobalClick);
-			}
+			const re = this.getRootElement();
+			if (re) re.addEventListener("click", this.onGlobalClick);
+			else this.container.addEventListener("click", this.onGlobalClick);
 		}, 100);
 	}
-
 	private restoreScrollPosition(scrollKey: string | null) {
 		if (!scrollKey) return;
-		const savedScrollTop = this.scrollPositions.get(scrollKey);
-		if (savedScrollTop === undefined) return;
+		const st = this.scrollPositions.get(scrollKey);
+		if (st === undefined) return;
 		window.requestAnimationFrame(() => {
-			const newScrollContainer = this.getScrollContainer();
-			if (newScrollContainer) {
-				newScrollContainer.scrollTop = savedScrollTop;
-			}
+			const sc = this.getScrollContainer();
+			if (sc) sc.scrollTop = st;
 		});
 	}
-
 	private getScrollContainer(): HTMLElement | null {
-		if (this.rightContentContainer) {
-			return this.rightContentContainer;
-		}
-		const viewContent = this.container.querySelector(
+		if (this.rightContentContainer) return this.rightContentContainer;
+		const vc = this.container.querySelector(
 			".view-content",
 		) as HTMLElement | null;
-		if (
-			viewContent &&
-			viewContent.scrollHeight > viewContent.clientHeight
-		) {
-			return viewContent;
-		}
-		if (this.container.scrollHeight > this.container.clientHeight) {
+		if (vc && vc.scrollHeight > vc.clientHeight) return vc;
+		if (this.container.scrollHeight > this.container.clientHeight)
 			return this.container;
-		}
 		return null;
 	}
-
 	private getScrollKey(): string {
-		const preset = this.store.getActivePreset();
-		if (!preset) return "default";
-		return `${preset.id}-${preset.viewStyle}-${preset.businessView}`;
+		const p = this.store.getActivePreset();
+		return p ? `${p.id}-${p.viewStyle}-${p.businessView}` : "default";
 	}
-
 	private getRootElement(): HTMLElement | null {
 		return this.container.closest(".manage-root") as HTMLElement | null;
 	}
-
 	private restoreFocus() {
 		this.focusHistory.pop();
 		if (this.focusHistory.length > 0) {
@@ -459,19 +357,17 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		}
 		void this.render();
 	}
-
 	private collectNodeTasksDeep(node: TaskTreeNode): TaskTreeNode[] {
-		const tasks: TaskTreeNode[] = [];
+		const t: TaskTreeNode[] = [];
 		const seen = new Set<string>();
-		function walk(n: TaskTreeNode) {
+		(function walk(n: TaskTreeNode) {
 			if (!seen.has(n.uid)) {
 				seen.add(n.uid);
-				tasks.push(n);
+				t.push(n);
 			}
-			for (const child of n.children) walk(child);
-		}
-		walk(node);
-		return tasks;
+			for (const c of n.children) walk(c);
+		})(node);
+		return t;
 	}
 
 	private renderSplitLayout(
@@ -483,45 +379,36 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		sortedNodes: TaskTreeNode[],
 	) {
 		const preset = this.store.getActivePreset();
-		const panelCollapsed = preset?.taskTreeNavCollapsed ?? false;
-		const panelWidth = preset?.taskTreeNavWidth ?? 280;
-
-		const layoutContainer = this.container.createDiv({
+		const pc = preset?.taskTreeNavCollapsed ?? false;
+		const pw = preset?.taskTreeNavWidth ?? 280;
+		const lc = this.container.createDiv({
 			cls: "split-layout task-split-layout",
 		});
-
-		this.taskTreeNavContainer = layoutContainer.createDiv({
-			cls: "task-tree-nav",
-		});
+		this.taskTreeNavContainer = lc.createDiv({ cls: "task-tree-nav" });
 		this.taskTreeNavContainer.addClass("task-tree-nav-dynamic");
 		this.taskTreeNavContainer.setCssProps({
-			"--tree-nav-width": panelCollapsed ? "0px" : panelWidth + "px",
-			"--tree-nav-min-width": panelCollapsed ? "0px" : "200px",
-			"--tree-nav-border-right": panelCollapsed
+			"--tree-nav-width": pc ? "0px" : pw + "px",
+			"--tree-nav-min-width": pc ? "0px" : "200px",
+			"--tree-nav-border-right": pc
 				? "none"
 				: "1px solid var(--background-modifier-border)",
 		});
-
-		if (!panelCollapsed) {
-			const treeContent = this.taskTreeNavContainer.createDiv({
+		if (!pc) {
+			const tc = this.taskTreeNavContainer.createDiv({
 				cls: "task-tree-nav-content task-tree-nav-content-inner",
 			});
-
-			renderTaskTree(treeContent, {
+			renderTaskTree(tc, {
 				root: displayTree,
 				focusRoot: this.focusedTreeNode || undefined,
 				hideFolders: filter.hideFolders ?? true,
-				onClick: (node: TaskTreeNode) => this.onTaskTreeNavClick(node),
-				onDoubleClick: (node: TaskTreeNode) =>
-					this.openTaskAtLine(node),
+				onClick: (n) => this.onTaskTreeNavClick(n),
+				onDoubleClick: (n) => this.openTaskAtLine(n),
 				onRestore: () => this.restoreFocus(),
 				sort,
 			});
-
-			this.resizeHandle = layoutContainer.createDiv({
+			this.resizeHandle = lc.createDiv({
 				cls: "task-tree-nav-resize task-tree-nav-resize-visible",
 			});
-
 			const arrow = createEl("span");
 			arrow.addClass("task-tree-nav-arrow");
 			arrow.textContent = "◀";
@@ -535,7 +422,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				this.toggleTaskTreeNav(true);
 			});
 			this.resizeHandle.appendChild(arrow);
-
 			this.resizeHandle.addEventListener("mouseenter", () => {
 				if (!this.isResizing && this.resizeHandle)
 					this.resizeHandle.setCssProps({ "--resize-opacity": "1" });
@@ -549,34 +435,30 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				this.startResize(e);
 			});
 		} else {
-			const collapsedHandle = layoutContainer.createDiv({
+			this.resizeHandle = lc.createDiv({
 				cls: "task-tree-nav-resize task-tree-nav-resize-hidden",
 			});
-
-			const collapsedArrow = createEl("span");
-			collapsedArrow.addClass("task-tree-nav-arrow");
-			collapsedArrow.textContent = "▶";
-			collapsedArrow.title = "展开任务树";
-			collapsedArrow.addEventListener("mousedown", (e) => {
+			const arrow = createEl("span");
+			arrow.addClass("task-tree-nav-arrow");
+			arrow.textContent = "▶";
+			arrow.title = "展开任务树";
+			arrow.addEventListener("mousedown", (e) => {
 				e.stopPropagation();
 				e.preventDefault();
 			});
-			collapsedArrow.addEventListener("click", (e) => {
+			arrow.addEventListener("click", (e) => {
 				e.stopPropagation();
 				this.toggleTaskTreeNav(false);
 			});
-			collapsedHandle.appendChild(collapsedArrow);
-
-			collapsedHandle.addEventListener("mouseenter", () => {
-				collapsedHandle.setCssProps({ "--resize-opacity": "1" });
+			this.resizeHandle.appendChild(arrow);
+			this.resizeHandle.addEventListener("mouseenter", () => {
+				this.resizeHandle!.setCssProps({ "--resize-opacity": "1" });
 			});
-			collapsedHandle.addEventListener("mouseleave", () => {
-				collapsedHandle.setCssProps({ "--resize-opacity": "0" });
+			this.resizeHandle.addEventListener("mouseleave", () => {
+				this.resizeHandle!.setCssProps({ "--resize-opacity": "0" });
 			});
-			this.resizeHandle = collapsedHandle;
 		}
-
-		this.rightContentContainer = layoutContainer.createDiv({
+		this.rightContentContainer = lc.createDiv({
 			cls: "right-content task-right-content",
 		});
 		this.renderByStyle(
@@ -588,49 +470,43 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			displayTree,
 			sort,
 		);
-
 		document.addEventListener("mousemove", this.onResizeBound!);
 		document.addEventListener("mouseup", this.stopResizeBound!);
 	}
 
 	refreshSingleCard(node: TaskTreeNode) {
-		const searchRoot = this.rightContentContainer || this.container;
-		const card = searchRoot.querySelector(
+		const sr = this.rightContentContainer || this.container;
+		const card = sr.querySelector(
 			`[data-uid="${node.uid}"]`,
 		) as HTMLElement | null;
 		if (!card?.parentNode) return;
-
-		const newCard = createViewCard(node, {
-			compact: false,
-			onClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
-			onEnterEdit: (n: TaskTreeNode) => this.handleEnterEdit(n),
-		});
-		card.parentNode.replaceChild(newCard, card);
+		card.parentNode.replaceChild(
+			createViewCard(node, {
+				compact: false,
+				onClick: (n) => this.openTaskAtLine(n),
+				onEnterEdit: (n) => this.handleEnterEdit(n),
+			}),
+			card,
+		);
 	}
-
 	updateFocusAfterSave() {
 		if (this.selectedTreeNode) {
-			const newTree = this.dataManager.getFullTree();
-			const newFocus = this.findNodeByUidInTree(
-				newTree,
-				this.selectedTreeNode.uid,
-			);
-			if (newFocus) {
-				this.selectedTreeNode = newFocus;
-				this.focusedTreeNode = newFocus;
+			const nt = this.dataManager.getFullTree();
+			const nf = this.findNodeByUidInTree(nt, this.selectedTreeNode.uid);
+			if (nf) {
+				this.selectedTreeNode = nf;
+				this.focusedTreeNode = nf;
 			}
 		}
 	}
-
 	findNodeByUidInTree(root: TaskTreeNode, uid: string): TaskTreeNode | null {
 		if (root.uid === uid) return root;
-		for (const child of root.children) {
-			const found = this.findNodeByUidInTree(child, uid);
-			if (found) return found;
+		for (const c of root.children) {
+			const f = this.findNodeByUidInTree(c, uid);
+			if (f) return f;
 		}
 		return null;
 	}
-
 	private onTaskTreeNavClick(node: TaskTreeNode) {
 		if (this.focusedTreeNode === node) {
 			this.restoreFocus();
@@ -641,15 +517,12 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.selectedTreeNode = node;
 		void this.render();
 	}
-
 	protected openTaskAtLine(node: TaskTreeNode) {
 		TaskNavigator.openTaskAtLine(this.app, node);
 	}
-
 	private toggleTaskTreeNav(collapsed: boolean) {
 		const p = this.store.getActivePreset();
 		if (!p) return;
-
 		this.store.updateSilent({
 			presets: this.store
 				.getState()
@@ -660,17 +533,13 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				),
 		});
 		this.store.saveSilent();
-
 		void this.render();
 	}
-
 	private startResize(e: MouseEvent) {
 		e.preventDefault();
 		this.isResizing = true;
-		document.body.addClass("task-cursor-col-resize");
-		document.body.addClass("task-select-none");
+		document.body.addClass("task-cursor-col-resize", "task-select-none");
 	}
-
 	private onResize(e: MouseEvent) {
 		if (!this.isResizing || !this.taskTreeNavContainer) return;
 		const r =
@@ -681,12 +550,10 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				Math.min(500, Math.max(200, e.clientX - r.left)) + "px",
 		});
 	}
-
 	private stopResize() {
 		if (!this.isResizing) return;
 		this.isResizing = false;
-		document.body.removeClass("task-cursor-col-resize");
-		document.body.removeClass("task-select-none");
+		document.body.removeClass("task-cursor-col-resize", "task-select-none");
 		if (this.taskTreeNavContainer) {
 			const w =
 				parseInt(
@@ -707,7 +574,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			}
 		}
 	}
-
 	private cleanupSplitLayout() {
 		if (this.onResizeBound)
 			document.removeEventListener("mousemove", this.onResizeBound);
@@ -718,7 +584,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.resizeHandle = null;
 		this.isResizing = false;
 	}
-
 	protected renderEmpty() {
 		this.container.createDiv({ text: "没有符合条件的任务" });
 	}
@@ -729,8 +594,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		style: string,
 		filter: GlobalFilter,
 		intervalMode: string,
-		panelFilteredTree?: TaskTreeNode,
-		sort?: { type: string; order: string },
+		_panelFilteredTree?: TaskTreeNode,
+		_sort?: { type: string; order: string },
 	) {
 		const h = (n: TaskTreeNode) => this.openTaskAtLine(n);
 		const edit = (n: TaskTreeNode) => this.handleEnterEdit(n);
@@ -788,15 +653,10 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				});
 				break;
 			case "timeline":
-				renderTimeline(container, nodes, {
-					onEnterEdit: edit,
-				});
+				renderTimeline(container, nodes, { onEnterEdit: edit });
 				break;
 			case "tag":
-				renderTag(container, nodes, {
-					onClick: h,
-					onEnterEdit: edit,
-				});
+				renderTag(container, nodes, { onClick: h, onEnterEdit: edit });
 				break;
 			case "uniqueId":
 				renderUniqueId(container, nodes, {
@@ -814,65 +674,32 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				const cc = container.createDiv({
 					cls: "calendar-content task-p-0",
 				});
-
-				const currentPreset = this.store.getActivePreset();
-				const calSubView = currentPreset?.calendarSubView || "day";
-				const calSelectedDate = this.calendarSelectedDate || new Date();
-				const effectiveRange = DateUtils.getEffectiveDateRange(
-					filter.dateRange,
-				);
-
-				const updatePreset = (
-					changes: Partial<Record<string, unknown>>,
-				) => {
-					const st = this.store.getState();
-					const pr = st.presets.find(
-						(p) => p.id === st.activePresetId,
-					);
-					if (pr) {
-						this.store.updateSilent({
-							presets: st.presets.map((p) =>
-								p.id === pr.id ? { ...p, ...changes } : p,
-							),
-						});
-						this.store.saveSilent();
-					}
-				};
-
-				const titleParts: string[] = [];
+				const cp = this.store.getActivePreset();
+				const calsv = cp?.calendarSubView || "day";
+				const er = DateUtils.getEffectiveDateRange(filter.dateRange);
+				const tp: string[] = [];
 				if (
 					intervalMode !== "none" &&
 					filter.dateRange &&
 					!filter.dateRange.isAll &&
 					filter.dateRange.start &&
 					filter.dateRange.end
-				) {
-					titleParts.push(
+				)
+					tp.push(
 						`${formatDate(new Date(filter.dateRange.start))} ~ ${formatDate(new Date(filter.dateRange.end))}`,
 					);
-				} else if (intervalMode === "none") {
-					titleParts.push("任意时间");
-				}
-				if (filter.statuses && filter.statuses.length > 0) {
-					titleParts.push(
+				if (filter.statuses?.length)
+					tp.push(
 						filter.statuses
 							.map((s: string) => STATUS_NAMES[s] || s)
 							.join("、"),
 					);
-				}
-				if (intervalMode === "any-date") {
-					titleParts.push("任意时间");
-				} else if (intervalMode === "scheduled-due") {
-					titleParts.push("计划~截止");
-				} else if (intervalMode === "starts-done") {
-					titleParts.push("开始~取消/完成");
-				}
-				const listCount = nodes.length;
-				const filterTitle =
-					titleParts.join(" · ") + ` · ${listCount}个任务`;
-
+				if (intervalMode === "any-date") tp.push("任意时间");
+				else if (intervalMode === "scheduled-due") tp.push("计划~截止");
+				else if (intervalMode === "starts-done")
+					tp.push("开始~取消/完成");
 				renderCalendarView(cc, nodes, {
-					subView: calSubView as
+					subView: calsv as
 						| "day"
 						| "week"
 						| "month"
@@ -880,16 +707,42 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 						| "year",
 					intervalMode,
 					onClick: h,
-					onSubViewChange: (v: string) => {
-						updatePreset({ calendarSubView: v });
+					onSubViewChange: (v) => {
+						const st = this.store.getState();
+						const pr = st.presets.find(
+							(p) => p.id === st.activePresetId,
+						);
+						if (pr) {
+							this.store.updateSilent({
+								presets: st.presets.map((p) =>
+									p.id === pr.id
+										? { ...p, calendarSubView: v }
+										: p,
+								),
+							});
+							this.store.saveSilent();
+						}
 						void this.render();
 					},
-					selectedDate: calSelectedDate,
-					dateRange: effectiveRange,
-					filterTitle,
-					onDayClick: (date: Date) => {
+					selectedDate: this.calendarSelectedDate,
+					dateRange: er,
+					filterTitle: tp.join(" · ") + ` · ${nodes.length}个任务`,
+					onDayClick: (date) => {
 						this.calendarSelectedDate = date;
-						updatePreset({ calendarSubView: "day" });
+						const st = this.store.getState();
+						const pr = st.presets.find(
+							(p) => p.id === st.activePresetId,
+						);
+						if (pr) {
+							this.store.updateSilent({
+								presets: st.presets.map((p) =>
+									p.id === pr.id
+										? { ...p, calendarSubView: "day" }
+										: p,
+								),
+							});
+							this.store.saveSilent();
+						}
 						void this.render();
 					},
 				});
@@ -906,7 +759,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					dateRange: DateUtils.getEffectiveDateRange(
 						filter.dateRange,
 					),
-					intervalMode: intervalMode,
+					intervalMode,
 				});
 				break;
 			default:
@@ -921,8 +774,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		const s = [...nodes];
 		const o = sort.order === "asc" ? 1 : -1;
 		s.sort((a, b) => {
-			const va = this.getSortValue(a, sort.type);
-			const vb = this.getSortValue(b, sort.type);
+			const va = this.getSortValue(a, sort.type),
+				vb = this.getSortValue(b, sort.type);
 			if (va === vb) return 0;
 			if (va === null) return 1;
 			if (vb === null) return -1;
@@ -932,7 +785,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		});
 		return s;
 	}
-
 	private getSortValue(
 		node: TaskTreeNode,
 		type: string,
@@ -979,20 +831,14 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		if (this.unsub) this.unsub();
 		if (this.renderDebounceTimer)
 			window.clearTimeout(this.renderDebounceTimer);
-
-		const rootEl = this.getRootElement();
-		if (rootEl) {
-			rootEl.removeEventListener("click", this.onGlobalClick);
-		} else {
-			this.container.removeEventListener("click", this.onGlobalClick);
-		}
-
+		const re = this.getRootElement();
+		if (re) re.removeEventListener("click", this.onGlobalClick);
+		else this.container.removeEventListener("click", this.onGlobalClick);
 		if (this.ganttInstance) {
 			this.ganttInstance.destroy();
 			this.ganttInstance = null;
 		}
 		this.cleanupSplitLayout();
-
 		this.scrollPositions.clear();
 		this.selectedTreeNode = null;
 		this.focusedTreeNode = null;
@@ -1005,7 +851,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this._lastIntervalMode = null;
 		this._needsEditRefresh = false;
 		this.previouslyEditedUids.clear();
-
 		this.container.textContent = "";
 	}
 }
