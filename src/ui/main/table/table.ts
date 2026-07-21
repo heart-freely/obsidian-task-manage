@@ -12,6 +12,7 @@ import {
 } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { formatDisplayDate } from "../../../util/date-utils";
+import { createEl } from "../../../util/dom-utils";
 
 interface TaskTableOptions {
 	onClick?: (node: TaskTreeNode) => void;
@@ -121,12 +122,12 @@ export function renderTaskTable(
 		return nodes.some((n) => col.getValue(n) !== "");
 	});
 
-	const table = document.createElement("table");
+	const table = createEl("table");
 	table.className = "task-table";
 	table.addClass("task-w-full", "task-border-collapse");
 
-	const thead = document.createElement("thead");
-	const headerRow = document.createElement("tr");
+	const thead = createEl("thead");
+	const headerRow = createEl("tr");
 	visibleColumns.forEach((col) => {
 		const mode = col.key === "content" ? "wrap" : "nowrap";
 		headerRow.appendChild(createTh(col.label, mode));
@@ -134,9 +135,9 @@ export function renderTaskTable(
 	thead.appendChild(headerRow);
 	table.appendChild(thead);
 
-	const tbody = document.createElement("tbody");
+	const tbody = createEl("tbody");
 	nodes.forEach((node) => {
-		const row = document.createElement("tr");
+		const row = createEl("tr");
 		row.className = "task-row";
 		row.addClass("task-clickable");
 		row.addEventListener("dblclick", () => options.onClick?.(node));
@@ -153,7 +154,7 @@ export function renderTaskTable(
 }
 
 function createTh(text: string, mode: "nowrap" | "wrap"): HTMLTableCellElement {
-	const th = document.createElement("th");
+	const th = createEl("th") as HTMLTableCellElement;
 	th.textContent = text;
 	th.addClass(
 		"task-px-2",
@@ -174,7 +175,7 @@ function createTh(text: string, mode: "nowrap" | "wrap"): HTMLTableCellElement {
 }
 
 function createTd(text: string, wrap: boolean): HTMLTableCellElement {
-	const td = document.createElement("td");
+	const td = createEl("td") as HTMLTableCellElement;
 	td.textContent = text;
 	td.addClass(
 		"task-px-2",

@@ -1,6 +1,7 @@
 // src/ui/main/card/group-card.ts
 
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { createEl } from "../../../util/dom-utils";
 import { createTaskCard } from "./card";
 
 export interface GroupCardOptions {
@@ -15,7 +16,7 @@ export interface GroupCardOptions {
 export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	const { title, count, tasks, onClick, onEnterEdit, color } = options;
 
-	const colDiv = document.createElement("div");
+	const colDiv = createEl("div");
 	colDiv.className = "group-card";
 	colDiv.addClass(
 		"task-group-card",
@@ -31,7 +32,7 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 		colDiv.style.borderLeft = `4px solid ${color}`;
 	}
 
-	const header = document.createElement("div");
+	const header = createEl("div");
 	header.className = "group-card-header";
 	header.addClass(
 		"task-flex",
@@ -43,10 +44,10 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 		"task-border-bottom",
 	);
 
-	const titleSpan = document.createElement("span");
+	const titleSpan = createEl("span");
 	titleSpan.textContent = title;
 
-	const countSpan = document.createElement("span");
+	const countSpan = createEl("span");
 	countSpan.className = "group-card-count";
 	countSpan.addClass("task-text-muted", "task-text-nowrap");
 	countSpan.textContent = String(count);
@@ -54,11 +55,11 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	header.appendChild(titleSpan);
 	header.appendChild(countSpan);
 
-	const body = document.createElement("div");
+	const body = createEl("div");
 	body.className = "group-card-body";
 	body.addClass("task-py-1");
 
-	const list = document.createElement("ul");
+	const list = createEl("ul");
 	list.className = "task-list";
 	list.addClass("task-pl-0", "task-list-none");
 	tasks.forEach((node) => {

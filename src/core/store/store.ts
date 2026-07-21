@@ -4,8 +4,6 @@ import { AppState, EditPanelState, Preset } from "../../type/type";
 
 type Listener = (state: AppState) => void;
 
-// ========== 类型安全的回调接口 ==========
-
 interface EditStoreRef {
 	getState(): {
 		batchMode: boolean;

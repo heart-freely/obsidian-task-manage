@@ -22,8 +22,8 @@ class TooltipManager {
 					!target.closest(".timeline-bar") &&
 					!target.closest(".year-view-day")
 				) {
-					if (this.hideTimer) clearTimeout(this.hideTimer);
-					this.hideTimer = setTimeout(() => this.hide(), 100);
+					if (this.hideTimer) window.clearTimeout(this.hideTimer);
+					this.hideTimer = window.setTimeout(() => this.hide(), 100);
 				}
 			});
 		}
@@ -31,7 +31,7 @@ class TooltipManager {
 	}
 
 	show(html: string, x: number, y: number) {
-		if (this.hideTimer) clearTimeout(this.hideTimer);
+		if (this.hideTimer) window.clearTimeout(this.hideTimer);
 		const div = this.ensureDiv();
 		while (div.firstChild) div.removeChild(div.firstChild);
 		const parts = html.split("<br>");
@@ -100,6 +100,7 @@ class TooltipManager {
 }
 
 export const tooltip = new TooltipManager();
+
 export function getEChartsTooltipConfig(trigger: "item" | "axis" = "item") {
 	return {
 		trigger,

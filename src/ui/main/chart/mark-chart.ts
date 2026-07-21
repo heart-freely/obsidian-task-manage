@@ -8,7 +8,6 @@ import {
 	getPriorityColors,
 	getRepeatColors,
 	getStatusColors,
-	getTagPalette,
 	ID_COLOR_DEF,
 	PRIORITY_ORDER,
 	REPEAT_ORDER,
@@ -21,6 +20,7 @@ import {
 import { getTaskMarks } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { getThemeColor } from "../../../util/color-utils";
+import { createEl } from "../../../util/dom-utils";
 import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
 
@@ -31,7 +31,9 @@ TASK_ELEMENTS.priority.children.forEach((c) => {
 
 const DATE_MARK_ZH_NAMES: Record<string, string> = {};
 DATE_MARK_ORDER.forEach((k) => {
-	DATE_MARK_ZH_NAMES[k] = (TASK_ELEMENTS as any)[k].zhName;
+	DATE_MARK_ZH_NAMES[k] = (
+		TASK_ELEMENTS as Record<string, { zhName: string }>
+	)[k].zhName;
 });
 
 const MISSING_COLOR = "rgba(128,128,128,0.5)";
@@ -50,11 +52,10 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	const idColor = getThemeColor(ID_COLOR_DEF);
 	const dependsColor = getThemeColor(DEPENDS_COLOR_DEF);
 	const tagColor = getThemeColor(TAG_COLOR_DEF);
-	const tagPalette = getTagPalette();
 
 	const totalCount = nodes.length;
 
-	const grid = document.createElement("div");
+	const grid = createEl("div");
 	grid.className = "chart-grid";
 	grid.addClass("task-grid", "task-grid-cols-3", "task-gap-4", "task-w-full");
 	container.appendChild(grid);
@@ -72,11 +73,11 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		title: string,
 		data: { name: string; value: number; color?: string }[],
 	) {
-		const item = document.createElement("div");
+		const item = createEl("div");
 		item.className = "chart-item";
 		item.addClass("task-min-w-0");
 
-		const header = document.createElement("div");
+		const header = createEl("div");
 		header.className = "chart-header";
 		header.addClass(
 			"task-text-center",
@@ -88,7 +89,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		item.appendChild(header);
 
 		const chartHeight = getChartHeight(data.length);
-		const chartDiv = document.createElement("div");
+		const chartDiv = createEl("div");
 		chartDiv.className = "chart-body task-chart-dynamic-height task-w-full";
 		chartDiv.setCssProps({ "--task-chart-height": chartHeight });
 		item.appendChild(chartDiv);
@@ -147,7 +148,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 					},
 				],
 			});
-		} catch (e) {
+		} catch (e: unknown) {
 			console.error("[TaskManage] 图表初始化失败:", e);
 			chartDiv.textContent = "图表加载失败";
 			chartDiv.addClass(
@@ -158,6 +159,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			);
 		}
 	}
+
 	function makeHasNonePie(title: string, hasCount: number, hasColor: string) {
 		const noneCount = totalCount - hasCount;
 		makePieChart(title, [
@@ -165,8 +167,6 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			{ name: "有", value: hasCount, color: hasColor },
 		]);
 	}
-
-	// ========== 第 1 行：状态、优先级、循环周期 ==========
 
 	const statusCounts: Record<string, number> = {};
 	STATUS_SORT_ORDER.forEach((s) => (statusCounts[s] = 0));
@@ -242,7 +242,6 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			})),
 		].filter((d) => d.value > 0),
 	);
-	// ========== 第 2-3 行：6 个日期标记 ==========
 
 	const dateMarks = [
 		"created",
@@ -272,8 +271,6 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 			dateMarkColors[mk],
 		);
 	});
-
-	// ========== 第 4 行：唯一ID、引用ID、标签 ==========
 
 	const idCount = nodes.filter((n) => !!n.id).length;
 	makeHasNonePie("🆔 唯一ID", idCount, idColor);

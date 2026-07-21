@@ -1,7 +1,5 @@
 // src/core/config/dataview-config.ts
 // Dataview 插件独有格式定义
-//
-// 参考: https://blacksmithgu.github.io/obsidian-dataview/
 
 // ========== Inline 字段 ==========
 
@@ -18,7 +16,8 @@ export const DATAVIEW_INLINE_REGEX = /\[([^:]+)::\s*([^\]]+)\]/g;
  *
  * 与 Tasks 的区别: Tasks 的 emoji 后有空格 (📅 2026-01-15)
  */
-export const DATAVIEW_EMOJI_DATE_REGEX = /([🗓️📅✅➕🛫⏳])(\d{4}-\d{2}-\d{2})/g;
+export const DATAVIEW_EMOJI_DATE_REGEX =
+	/([🗓️📅✅➕🛫⏳])(\d{4}-\d{2}-\d{2})/gu;
 
 /** emoji → 字段名 */
 export const DATAVIEW_EMOJI_FIELD_MAP: Record<string, string> = {
@@ -34,12 +33,6 @@ export const DATAVIEW_EMOJI_FIELD_MAP: Record<string, string> = {
 
 /**
  * Dataview 原生支持的 5 个日期字段
- *
- * inline 字段格式: [key:: YYYY-MM-DD]
- *
- * 实例:
- * - [x] 完成任务 [completion:: 2021-08-15]
- * - [ ] 截止日期 [due:: 2021-08-29]
  */
 export const DATAVIEW_DATE_FIELDS: Record<string, string> = {
 	completion: "done",

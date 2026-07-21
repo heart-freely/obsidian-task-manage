@@ -3,13 +3,64 @@
 
 import { TaskTreeNode } from "../core/task/task-tree";
 
+/** Obsidian 相关类型的最小接口 */
+interface LeafLike {
+	setViewState(state: { type: string; active?: boolean }): Promise<void>;
+	openFile(
+		file: { path: string },
+		options?: { active?: boolean },
+	): Promise<void>;
+	setEphemeralState(state: Record<string, unknown>): void;
+	view: ViewLike;
+}
+
+interface ViewLike {
+	getState(): { mode?: string };
+	editor?: EditorLike;
+	previewMode?: { applyScroll(line: number): void };
+}
+
+interface EditorLike {
+	lineCount(): number;
+	getLine(line: number): string;
+	setCursor(pos: { line: number; ch: number }): void;
+	setSelection(
+		from: { line: number; ch: number },
+		to: { line: number; ch: number },
+	): void;
+	scrollIntoView(
+		range: {
+			from: { line: number; ch: number };
+			to: { line: number; ch: number };
+		},
+		center?: boolean,
+	): void;
+	cm?: {
+		scrollIntoView(
+			pos: { line: number; ch: number },
+			margin?: number,
+		): void;
+		getScrollInfo(): { clientHeight: number };
+		scrollDOM: { clientHeight: number };
+	};
+}
+
+interface AppLike {
+	vault: {
+		getAbstractFileByPath(path: string): { path: string } | null;
+	};
+	workspace: {
+		getLeaf(split?: boolean | "tab" | "split"): LeafLike;
+		getLeavesOfType(type: string): LeafLike[];
+		setActiveLeaf(leaf: LeafLike, options?: { focus?: boolean }): void;
+	};
+}
+
 export class TaskNavigator {
-	/**
-	 * 打开任务所在文件并跳转到对应行
-	 * @param app Obsidian App 实例
-	 * @param node 任务节点
-	 */
-	static async openTaskAtLine(app: any, node: TaskTreeNode): Promise<void> {
+	static async openTaskAtLine(
+		app: AppLike,
+		node: TaskTreeNode,
+	): Promise<void> {
 		if (!node?.path) return;
 
 		const file = app.vault.getAbstractFileByPath(node.path);
@@ -25,32 +76,26 @@ export class TaskNavigator {
 			startLoc: { line: targetLine, ch: 0, offset: 0 },
 		});
 
-		// 延迟执行滚动，等待编辑器完全加载
-		setTimeout(() => {
+		window.setTimeout(() => {
 			TaskNavigator.scrollToLine(leaf, targetLine);
 		}, 300);
 	}
 
-	/**
-	 * 滚动编辑器到指定行
-	 */
-	private static scrollToLine(leaf: any, targetLine: number): void {
-		const view = leaf.view as any;
-		const state = view?.getState?.();
-		const mode = state?.mode || "source";
+	private static scrollToLine(leaf: LeafLike, targetLine: number): void {
+		const view = leaf.view;
+		const state = view.getState();
+		const mode = state.mode || "source";
 
-		// 预览模式特殊处理
 		if (mode === "preview") {
-			view?.previewMode?.applyScroll?.(targetLine);
+			view.previewMode?.applyScroll(targetLine);
 			return;
 		}
 
-		const editor = view?.editor;
+		const editor = view.editor;
 		if (!editor) return;
 
 		const clampedLine = Math.min(targetLine, editor.lineCount() - 1);
 
-		// 设置光标和选中
 		editor.setCursor({ line: clampedLine, ch: 0 });
 		editor.setSelection(
 			{ line: clampedLine, ch: 0 },
@@ -60,7 +105,6 @@ export class TaskNavigator {
 			},
 		);
 
-		// 使用新版 API 滚动
 		try {
 			editor.scrollIntoView(
 				{
@@ -70,14 +114,13 @@ export class TaskNavigator {
 				true,
 			);
 		} catch {
-			// 降级方案：使用 cm 的旧 API
 			const cm = editor.cm;
 			if (cm) {
 				const halfHeight = Math.floor(
 					(cm.getScrollInfo?.() || cm.scrollDOM)?.clientHeight / 2 ||
 						200,
 				);
-				cm.scrollIntoView?.({ line: clampedLine, ch: 0 }, halfHeight);
+				cm.scrollIntoView({ line: clampedLine, ch: 0 }, halfHeight);
 			}
 		}
 	}

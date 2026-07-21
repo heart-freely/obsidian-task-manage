@@ -3,6 +3,7 @@
 
 import { getEditContext, setEditContext } from "../../ui/main/card/card";
 import { Panels } from "../../ui/panel/panel";
+import { createEl } from "../../util/dom-utils";
 import {
 	createEditBar,
 	createPreviewRow,
@@ -133,7 +134,7 @@ export class BaseTaskEdit {
 				const checked = this.editStore
 					.getState()
 					.selectedTasks.has(uid);
-				const cb = document.createElement("input");
+				const cb = createEl("input");
 				cb.type = "checkbox";
 				cb.checked = checked;
 				cb.className = "edit-checkbox";
@@ -627,7 +628,7 @@ export class BaseTaskEdit {
 			}
 		} else {
 			if (!previewRow) {
-				previewRow = document.createElement("div");
+				previewRow = createEl("div");
 				previewRow.className = "task-preview-row task-hidden";
 				card.appendChild(previewRow);
 			} else {

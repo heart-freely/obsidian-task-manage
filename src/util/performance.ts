@@ -2,13 +2,13 @@
 // 性能工具
 
 export function throttleByFrame(
-	fn: (...args: any[]) => void,
-): (...args: any[]) => void {
+	fn: (...args: unknown[]) => void,
+): (...args: unknown[]) => void {
 	let scheduled = false;
-	return function (this: any, ...args: any[]) {
+	return function (this: unknown, ...args: unknown[]) {
 		if (!scheduled) {
 			scheduled = true;
-			requestAnimationFrame(() => {
+			window.requestAnimationFrame(() => {
 				fn.apply(this, args);
 				scheduled = false;
 			});

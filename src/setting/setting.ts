@@ -66,7 +66,6 @@ const CONFIG_SCHEMA: Record<string, string> = {
 	taskItemFilters: "array",
 };
 
-/** 插件引用接口 */
 interface PluginRef {
 	settings: TaskManageSettings;
 	saveAllSettings(): Promise<void>;
@@ -84,7 +83,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 	hide() {
 		if (this.saveDebounceTimer) {
-			clearTimeout(this.saveDebounceTimer);
+			window.clearTimeout(this.saveDebounceTimer);
 			this.saveDebounceTimer = null;
 		}
 		updateTaskFileConfig({
@@ -113,8 +112,8 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			taskItemFilters: this.plugin.settings.taskItemFilters,
 		});
 
-		if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
-		this.saveDebounceTimer = setTimeout(() => {
+		if (this.saveDebounceTimer) window.clearTimeout(this.saveDebounceTimer);
+		this.saveDebounceTimer = window.setTimeout(() => {
 			void this.plugin.saveAllSettings();
 			this.saveDebounceTimer = null;
 		}, 300);
@@ -185,14 +184,14 @@ export class TaskManageSettingTab extends PluginSettingTab {
 				let hasUserInteracted = false;
 
 				const showDropdown = (keyword: string) => {
-					if (dropdownTimer) clearTimeout(dropdownTimer);
+					if (dropdownTimer) window.clearTimeout(dropdownTimer);
 					if (
 						!dropdown.hasClass("task-hidden") &&
 						dropdown.dataset["keyword"] === keyword
 					)
 						return;
 					dropdown.dataset["keyword"] = keyword;
-					dropdownTimer = setTimeout(() => {
+					dropdownTimer = window.setTimeout(() => {
 						try {
 							this.renderFolderDropdown(
 								dropdown,
@@ -227,7 +226,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 						paths[index] = value;
 						void saveAllPaths();
 					}
-					setTimeout(() => {
+					window.setTimeout(() => {
 						dropdown.addClass("task-hidden");
 					}, 150);
 				});

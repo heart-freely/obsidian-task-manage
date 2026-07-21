@@ -6,6 +6,7 @@ import {
 	sortFileNodes,
 } from "../../../core/process/tree-view-process";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { createEl } from "../../../util/dom-utils";
 import { createProgressBar } from "../../component/progress/progress";
 import { createTaskCard } from "../card/card";
 
@@ -23,7 +24,7 @@ export interface TreeListOptions {
 }
 
 function createRowWrapper(depth: number): HTMLElement {
-	const w = document.createElement("div");
+	const w = createEl("div");
 	w.addClass(
 		"task-flex",
 		"task-items-center",
@@ -35,7 +36,7 @@ function createRowWrapper(depth: number): HTMLElement {
 }
 
 function createToggleBtn(childContainer: HTMLElement): HTMLElement {
-	const b = document.createElement("span");
+	const b = createEl("span");
 	b.className = "tree-toggle-btn";
 	b.addClass(
 		"task-inline-flex",
@@ -73,7 +74,7 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 }
 
 function createSpacer(): HTMLElement {
-	const s = document.createElement("span");
+	const s = createEl("span");
 	s.addClass("task-inline-flex", "task-w-4", "task-flex-shrink-0");
 	return s;
 }
@@ -83,7 +84,7 @@ function addProgressBadge(
 	counts: Record<string, number>,
 	total: number,
 ) {
-	const w = document.createElement("div");
+	const w = createEl("div");
 	w.addClass(
 		"task-flex",
 		"task-items-center",
@@ -99,7 +100,7 @@ function addProgressBadge(
 	});
 	pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 	w.appendChild(pb);
-	const b = document.createElement("span");
+	const b = createEl("span");
 	b.textContent = "(" + total + ")";
 	b.addClass("task-text-smaller", "task-text-muted", "task-flex-shrink-0");
 	w.appendChild(b);
@@ -113,11 +114,11 @@ export function renderTaskTree(
 	container.empty();
 	const displayRoot = options.focusRoot || options.root;
 
-	const tree = document.createElement("div");
+	const tree = createEl("div");
 	tree.className = "task-tree";
 
 	if (options.focusRoot) {
-		const focusBar = document.createElement("div");
+		const focusBar = createEl("div");
 		focusBar.addClass(
 			"task-px-1",
 			"task-py-0",
@@ -141,7 +142,7 @@ export function renderTaskTree(
 		focusBar.addEventListener("click", () => options.onRestore?.());
 		tree.appendChild(focusBar);
 	} else {
-		const rootRow = document.createElement("div");
+		const rootRow = createEl("div");
 		rootRow.addClass(
 			"task-flex",
 			"task-items-center",
@@ -150,7 +151,7 @@ export function renderTaskTree(
 			"task-py-0",
 		);
 
-		const rootTitle = document.createElement("span");
+		const rootTitle = createEl("span");
 		rootTitle.addClass("task-text-sm", "task-text-muted");
 		rootTitle.textContent = "🗂️ 任务管理";
 		rootRow.appendChild(rootTitle);
@@ -179,7 +180,7 @@ export function renderTaskTree(
 			pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 			rootRow.appendChild(pb);
 
-			const badge = document.createElement("span");
+			const badge = createEl("span");
 			badge.addClass(
 				"task-text-smaller",
 				"task-text-muted",
@@ -214,7 +215,7 @@ function renderNode(
 	if (!node.match && node.children.length === 0) return;
 
 	const hasChildren = node.children.length > 0;
-	const childContainer = document.createElement("div");
+	const childContainer = createEl("div");
 	const nodeStats = countNodeStatuses(node);
 
 	const displayDepth = Math.max(0, node.depth - depthOffset);
@@ -222,7 +223,7 @@ function renderNode(
 	if (hasChildren) rowWrapper.appendChild(createToggleBtn(childContainer));
 	else rowWrapper.appendChild(createSpacer());
 
-	const contentContainer = document.createElement("div");
+	const contentContainer = createEl("div");
 	contentContainer.addClass(
 		"task-flex",
 		"task-items-center",
@@ -246,7 +247,7 @@ function renderNode(
 		addProgressBadge(contentContainer, nodeStats.counts, nodeStats.total);
 
 	rowWrapper.appendChild(contentContainer);
-	const rightSpacer = document.createElement("div");
+	const rightSpacer = createEl("div");
 	rightSpacer.addClass("task-flex-1");
 	rowWrapper.appendChild(rightSpacer);
 	parentEl.appendChild(rowWrapper);

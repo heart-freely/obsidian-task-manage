@@ -71,7 +71,6 @@ export class EditPanel {
 						).getSnapshots()
 					: [];
 		} catch {
-			// 获取快照失败时使用空数组
 			snapshots = [];
 		}
 		const hasSnapshots = snapshots.length > 0;
@@ -80,7 +79,6 @@ export class EditPanel {
 
 		this.container.empty();
 
-		// ========== 行1：批量编辑 ==========
 		const row1 = this.container.createDiv({ cls: "panel-row" });
 		row1.addClass("task-flex-wrap", "task-gap-1", "task-mb-1");
 		row1.createSpan({ text: "批量编辑", cls: "panel-label" });
@@ -245,7 +243,6 @@ export class EditPanel {
 			window.setTimeout(() => saveBtn.removeClass("active"), 300);
 		});
 
-		// ========== 行2：批量撤回 ==========
 		const row2 = this.container.createDiv({ cls: "panel-row" });
 		row2.addClass("task-flex-wrap", "task-gap-1");
 		row2.createSpan({ text: "批量撤回", cls: "panel-label" });

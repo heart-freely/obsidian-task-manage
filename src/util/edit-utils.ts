@@ -4,6 +4,7 @@
 import { parseTaskLine } from "../core/parser/tasks-parser";
 import { TaskTreeNode } from "../core/task/task-tree";
 import { getEditContext } from "../ui/main/card/card";
+import { createEl } from "./dom-utils";
 
 // ========== 编辑按钮组定义 ==========
 
@@ -461,7 +462,7 @@ export function createEditBar(
 	node: TaskTreeNode,
 	options: EditBarOptions,
 ): HTMLElement {
-	const bar = document.createElement("div");
+	const bar = createEl("div");
 	bar.className = "task-edit-bar";
 
 	const editCtx = getEditContext();
@@ -483,7 +484,7 @@ export function createEditBar(
 	const buttons: Array<{ btn: HTMLElement; group: EditButtonGroup }> = [];
 
 	EDIT_BUTTONS.forEach((group) => {
-		const btn = document.createElement("button");
+		const btn = createEl("button");
 		btn.className = "edit-btn";
 		const hasValue = hasMarkValue(node, group.key);
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
@@ -506,7 +507,7 @@ export function createEditBar(
 			}
 		});
 		btn.addEventListener("mouseleave", () => {
-			setTimeout(() => {
+			window.setTimeout(() => {
 				if (hoveredButtonKey === group.key) {
 					hoveredButtonKey = null;
 					updateAllButtonStyles();
@@ -554,7 +555,7 @@ export function createEditBar(
 
 	const fileName = node.path.split("/").pop()?.replace(".md", "") || "";
 	if (fileName) {
-		const fileNameSpan = document.createElement("span");
+		const fileNameSpan = createEl("span");
 		fileNameSpan.textContent = `📄 ${fileName}`;
 		fileNameSpan.className = "edit-file-name";
 		bar.appendChild(fileNameSpan);
@@ -589,6 +590,7 @@ interface SubRowContext {
 	hasOriginalMark: boolean;
 	previewValue: string | null;
 	hasChanged: boolean;
+	_subRow?: HTMLElement;
 }
 
 function createSubRowContext(
@@ -633,10 +635,10 @@ function createOptionsSubRow(
 	ctx: SubRowContext,
 ): void {
 	if (!group.subOptions) return;
-	const subRow = (ctx as any)._subRow as HTMLElement;
+	const subRow = ctx._subRow as HTMLElement;
 	const onEdit = options.onEdit;
 	group.subOptions.forEach((opt) => {
-		const btn = document.createElement("button");
+		const btn = createEl("button");
 		btn.textContent = opt;
 		btn.className = "edit-sub-btn";
 		let isActive = false;
@@ -703,7 +705,7 @@ function createDateSubRow(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const subRow = (ctx as any)._subRow as HTMLElement;
+	const subRow = ctx._subRow as HTMLElement;
 	const onEdit = options.onEdit;
 	let currentValue: string | null = null;
 	if (options.previewText) {
@@ -711,7 +713,7 @@ function createDateSubRow(
 		if (extracted) currentValue = extracted;
 	}
 	if (!currentValue) currentValue = getNodeMarkValue(node, group.key);
-	const dateInput = document.createElement("input");
+	const dateInput = createEl("input");
 	dateInput.type = "date";
 	dateInput.value = currentValue || "";
 	dateInput.className = "edit-date-input";
@@ -750,10 +752,10 @@ function createCustomSubRow(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const subRow = (ctx as any)._subRow as HTMLElement;
+	const subRow = ctx._subRow as HTMLElement;
 	const onEdit = options.onEdit;
 	if (group.key === "id") {
-		const ci = document.createElement("input");
+		const ci = createEl("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
 		ci.className = "edit-sub-btn edit-sub-btn-input";
@@ -769,7 +771,7 @@ function createCustomSubRow(
 			}
 		});
 		subRow.appendChild(ci);
-		const gb = document.createElement("button");
+		const gb = createEl("button");
 		gb.textContent = "生成";
 		gb.className = "edit-sub-btn";
 		gb.addEventListener("click", (e) => {
@@ -780,7 +782,7 @@ function createCustomSubRow(
 		});
 		subRow.appendChild(gb);
 	} else if (group.key === "forbid") {
-		const ci = document.createElement("input");
+		const ci = createEl("input");
 		ci.type = "text";
 		ci.placeholder = "输入引用ID";
 		ci.className = "edit-sub-btn edit-sub-btn-input";
@@ -797,7 +799,7 @@ function createCustomSubRow(
 			}
 		});
 		subRow.appendChild(ci);
-		const sb = document.createElement("button");
+		const sb = createEl("button");
 		sb.textContent = "选择";
 		sb.className = "edit-sub-btn";
 		sb.addEventListener("click", (e) => {
@@ -811,7 +813,7 @@ function createCustomSubRow(
 				existing.remove();
 				return;
 			}
-			const dropdown = document.createElement("div");
+			const dropdown = createEl("div");
 			dropdown.className = "id-select-dropdown task-id-select-dropdown";
 			const btnRect = sb.getBoundingClientRect();
 			dropdown.setCssProps({
@@ -819,7 +821,7 @@ function createCustomSubRow(
 				"--task-dropdown-top": btnRect.bottom + 4 + "px",
 			});
 			idOpts.forEach((opt) => {
-				const item = document.createElement("div");
+				const item = createEl("div");
 				item.textContent = `${opt.id}: ${opt.desc}`;
 				item.title = `${opt.id}: ${opt.desc}`;
 				item.className = "task-id-select-item";
@@ -845,14 +847,14 @@ function createCustomSubRow(
 					document.removeEventListener("mousedown", closeDropdown);
 				}
 			};
-			setTimeout(
+			window.setTimeout(
 				() => document.addEventListener("mousedown", closeDropdown),
 				0,
 			);
 		});
 		subRow.appendChild(sb);
 	} else {
-		const ci = document.createElement("input");
+		const ci = createEl("input");
 		ci.type = "text";
 		ci.placeholder = "自定义";
 		ci.className = "edit-sub-btn edit-sub-btn-input";
@@ -878,7 +880,7 @@ function appendDeleteButton(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const delBtn = document.createElement("button");
+	const delBtn = createEl("button");
 	delBtn.textContent = "删除";
 	delBtn.className = "edit-del-btn";
 	if (!ctx.hasOriginalMark) delBtn.addClass("task-hidden");
@@ -895,7 +897,7 @@ function appendRestoreButton(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const restoreBtn = document.createElement("button");
+	const restoreBtn = createEl("button");
 	restoreBtn.textContent = "原文";
 	restoreBtn.className = "edit-restore-btn";
 	restoreBtn.title = "恢复为原始值";
@@ -926,10 +928,10 @@ export function createSubRow(
 	group: EditButtonGroup,
 	options: EditBarOptions,
 ): HTMLElement {
-	const subRow = document.createElement("div");
+	const subRow = createEl("div");
 	subRow.className = "edit-sub-row";
 	const ctx = createSubRowContext(node, group, options, subRow);
-	(ctx as any)._subRow = subRow;
+	ctx._subRow = subRow;
 	const builder = subRowBuilders[group.subType || "custom"];
 	if (builder) builder(node, group, options, ctx);
 	appendDeleteButton(node, subRow, group, options, ctx);
@@ -945,7 +947,7 @@ export function createPreviewRow(
 	hasEdits?: boolean,
 	onRestore?: (() => void) | null,
 ): HTMLElement {
-	const row = document.createElement("div");
+	const row = createEl("div");
 	row.className = "task-preview-row";
 	if (saved) {
 		row.addClass("task-edit-preview-saved");
@@ -953,13 +955,13 @@ export function createPreviewRow(
 		row.addClass("task-edit-preview-unsaved");
 	}
 
-	const textSpan = document.createElement("span");
+	const textSpan = createEl("span");
 	textSpan.className = "edit-preview-text";
 	if (saved) {
 		textSpan.textContent = `📝 已保存: ${previewText}`;
 		row.appendChild(textSpan);
 		if (onRevert) {
-			const rb = document.createElement("button");
+			const rb = createEl("button");
 			rb.textContent = "撤回";
 			rb.className = "edit-preview-btn";
 			rb.addEventListener("click", (e) => {
@@ -972,7 +974,7 @@ export function createPreviewRow(
 		textSpan.textContent = `📝 预览: ${previewText}`;
 		row.appendChild(textSpan);
 		if (onSave) {
-			const sb = document.createElement("button");
+			const sb = createEl("button");
 			sb.textContent = "保存";
 			sb.className = "edit-preview-btn";
 			if (hasEdits) {
@@ -985,7 +987,7 @@ export function createPreviewRow(
 			row.appendChild(sb);
 		}
 		if (onRestore) {
-			const rb = document.createElement("button");
+			const rb = createEl("button");
 			rb.textContent = "原文";
 			rb.className = "edit-preview-btn";
 			rb.addEventListener("click", (e) => {
@@ -1002,7 +1004,7 @@ export function createCheckbox(
 	checked: boolean,
 	onChange: (checked: boolean) => void,
 ): HTMLElement {
-	const cb = document.createElement("input");
+	const cb = createEl("input");
 	cb.type = "checkbox";
 	cb.checked = checked;
 	cb.className = "edit-checkbox";

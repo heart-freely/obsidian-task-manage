@@ -7,6 +7,7 @@ import {
 	STATUS_NAMES,
 } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { createEl } from "../../../util/dom-utils";
 import { tooltip } from "../tooltip/tooltip";
 
 export interface ProgressBarOptions {
@@ -21,7 +22,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 	const barHeight = height || "6px";
 	const safeTotal = total || 1;
 
-	const container = document.createElement("div");
+	const container = createEl("div");
 	container.className = "task-progress-bar";
 	container.addClass(
 		"task-flex",
@@ -30,7 +31,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		"task-min-w-15",
 	);
 
-	const barWrapper = document.createElement("div");
+	const barWrapper = createEl("div");
 	barWrapper.addClass(
 		"task-flex-1",
 		"task-rounded-sm",
@@ -55,7 +56,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		if (count > 0) {
 			const pct = Math.min((count / safeTotal) * 100, 100 - accumulated);
 			accumulated += pct;
-			const segment = document.createElement("div");
+			const segment = createEl("div");
 			segment.addClass("task-h-full", "task-flex-shrink-0");
 			segment.style.width = pct + "%";
 			segment.style.background =
@@ -71,7 +72,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		const cancelled = counts["cancelled"] || 0;
 		const done = completed + cancelled;
 		const pct = Math.min(Math.round((done / safeTotal) * 100), 100);
-		const label = document.createElement("span");
+		const label = createEl("span");
 		label.addClass(
 			"task-text-smaller",
 			"task-text-muted",

@@ -36,7 +36,6 @@ export default class TaskManagePlugin extends Plugin {
 			savedData = {};
 		}
 
-		// ========== 初始化内存缓存存储 ==========
 		const snapshots: Array<{
 			time: string;
 			snapshot: Record<string, string>;
@@ -271,7 +270,7 @@ export default class TaskManagePlugin extends Plugin {
 		);
 
 		this.addRibbonIcon("list-checks", "任务管理", () => {
-			this.activateView("manage-view");
+			void this.activateView("manage-view");
 		});
 
 		const wasViewOpen: boolean = savedData["wasViewOpen"] === true;

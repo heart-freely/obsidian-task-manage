@@ -9,6 +9,7 @@ import {
 } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
+import { createEl } from "../../../util/dom-utils";
 import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
 
@@ -70,15 +71,15 @@ export function renderDetail(
 		}
 	});
 
-	const wrapper = document.createElement("div");
+	const wrapper = createEl("div");
 	wrapper.className = "detail-chart-wrapper";
 	wrapper.addClass("task-w-full", "task-min-h-100", "task-relative");
 
-	const chartDiv = document.createElement("div");
+	const chartDiv = createEl("div");
 	chartDiv.addClass("task-w-full", "task-h-125");
 	wrapper.appendChild(chartDiv);
 
-	const zoomBtn = document.createElement("button");
+	const zoomBtn = createEl("button");
 	zoomBtn.className = "zoom-btn";
 	zoomBtn.textContent = "🔍";
 	zoomBtn.addClass(
@@ -93,10 +94,10 @@ export function renderDetail(
 	wrapper.appendChild(zoomBtn);
 	container.appendChild(wrapper);
 
-	let chart: any;
+	let chart: unknown;
 	try {
 		chart = echarts.init(chartDiv);
-	} catch (e) {
+	} catch (e: unknown) {
 		console.error("[TaskManage] 详细统计图初始化失败:", e);
 		chartDiv.textContent = "图表加载失败";
 		chartDiv.addClass(
@@ -133,10 +134,10 @@ export function renderDetail(
 		},
 		textStyle: { color: textColor },
 	};
-	chart.setOption(option);
+	(chart as { setOption: (o: unknown) => void }).setOption(option);
 
-	zoomBtn.onclick = () => {
-		const modal = document.createElement("div");
+	zoomBtn.addEventListener("click", () => {
+		const modal = createEl("div");
 		modal.addClass(
 			"task-fixed",
 			"task-inset-0",
@@ -147,7 +148,7 @@ export function renderDetail(
 			"task-justify-center",
 		);
 
-		const closeBtn = document.createElement("button");
+		const closeBtn = createEl("button");
 		closeBtn.textContent = "✖";
 		closeBtn.addClass(
 			"task-absolute",
@@ -160,17 +161,17 @@ export function renderDetail(
 			"task-clickable",
 		);
 
-		const bigChartDiv = document.createElement("div");
+		const bigChartDiv = createEl("div");
 		bigChartDiv.addClass("task-w-90", "task-h-90");
 		modal.appendChild(bigChartDiv);
 		modal.appendChild(closeBtn);
 		document.body.appendChild(modal);
 
-		let bigChart: any;
+		let bigChart: unknown;
 		try {
 			bigChart = echarts.init(bigChartDiv);
-			bigChart.setOption(option);
-		} catch (e) {
+			(bigChart as { setOption: (o: unknown) => void }).setOption(option);
+		} catch (e: unknown) {
 			console.error("[TaskManage] 放大图表初始化失败:", e);
 			bigChartDiv.textContent = "图表加载失败";
 			bigChartDiv.addClass(
@@ -182,12 +183,12 @@ export function renderDetail(
 		}
 
 		const closeModal = () => {
-			if (bigChart) bigChart.dispose();
+			if (bigChart) (bigChart as { dispose: () => void }).dispose();
 			modal.remove();
 		};
-		closeBtn.onclick = closeModal;
+		closeBtn.addEventListener("click", closeModal);
 		modal.addEventListener("click", (e) => {
 			if (e.target === modal) closeModal();
 		});
-	};
+	});
 }

@@ -183,9 +183,10 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 
 	async render(): Promise<void> {
-		if (this.renderDebounceTimer) clearTimeout(this.renderDebounceTimer);
+		if (this.renderDebounceTimer)
+			window.clearTimeout(this.renderDebounceTimer);
 		return new Promise<void>((resolve) => {
-			this.renderDebounceTimer = setTimeout(() => {
+			this.renderDebounceTimer = window.setTimeout(() => {
 				this.renderDebounceTimer = null;
 				this.doRender().then(resolve).catch(resolve);
 			}, BaseTaskView.DEBOUNCE_DELAY);
@@ -976,7 +977,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 	destroy() {
 		if (this.unsub) this.unsub();
-		if (this.renderDebounceTimer) clearTimeout(this.renderDebounceTimer);
+		if (this.renderDebounceTimer)
+			window.clearTimeout(this.renderDebounceTimer);
 
 		const rootEl = this.getRootElement();
 		if (rootEl) {

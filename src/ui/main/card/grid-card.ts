@@ -1,6 +1,7 @@
 // src/ui/main/card/grid-card.ts
 
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { createEl } from "../../../util/dom-utils";
 import { createTaskCard } from "./card";
 
 export function renderCards(
@@ -18,7 +19,7 @@ export function renderCards(
 		return;
 	}
 
-	const grid = document.createElement("div");
+	const grid = createEl("div");
 	grid.className = "task-cards-grid";
 	grid.addClass("task-grid", "task-grid-cols-auto-fill", "task-gap-3");
 
@@ -27,8 +28,6 @@ export function renderCards(
 			onClick: options?.onClick,
 			onEnterEdit: options?.onEnterEdit,
 		});
-		// 原代码：card.style.borderLeft = "3px solid rgba(180,180,180,0.2)";
-		// 替换为 CSS 类
 		card.addClass("task-card-border-left");
 		grid.appendChild(card);
 	});

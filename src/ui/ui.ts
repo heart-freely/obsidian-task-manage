@@ -48,7 +48,6 @@ export class ManageView extends ItemView {
 	}
 }
 
-/** 业务视图加载器类型 */
 type ViewLoader = () => Promise<{
 	new (c: HTMLElement, s: Store, a: unknown): BaseTaskView;
 }>;

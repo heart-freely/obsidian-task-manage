@@ -10,9 +10,9 @@ export function removeHeadingNumber(text: string): string {
 		.replace(/^[\d]+\.[\d.]*\s+/, "")
 		.replace(/^[A-Z]+\.\s+/, "")
 		.replace(/^[IVXLCDM]+\.\s+/, "")
-		.replace(/^[\d]+\.[\d.]*[:)\-\—]\s*/, "")
-		.replace(/^[A-Z]+\.[\d.]*[:)\-\—]\s*/, "")
-		.replace(/^[IVXLCDM]+\.[\d.]*[:)\-\—]\s*/, "")
+		.replace(/^[\d]+\.[\d.]*[:)-—]\s*/, "")
+		.replace(/^[A-Z]+\.[\d.]*[:)-—]\s*/, "")
+		.replace(/^[IVXLCDM]+\.[\d.]*[:)-—]\s*/, "")
 		.replace(/^\d+\s+/, "")
 		.replace(/^_[.\s]*/, "")
 		.trim();
@@ -55,10 +55,6 @@ export function countContentNodeStatuses(node: ContentNode): {
 	return countTaskStatuses(tasks as Array<{ status: string }>);
 }
 
-/**
- * 获取节点排序权重
- * 排序顺序：列表任务(0) → 标题任务(1) → 文件任务(2)
- */
 export function getNodeGroupOrder(node: TaskTreeNode): number {
 	if (node.type === "list") return 0;
 	if (node.type === "heading") return 1;

@@ -169,7 +169,7 @@ export function createViewCard(
 
 		if (isBatchMode && editCtx && node.type === "list") {
 			row1.appendChild(
-				createCheckbox(checked, (newChecked) => {
+				createCheckbox(checked, (newChecked: boolean) => {
 					editCtx!.onCheckChange(node, newChecked);
 				}),
 			);
@@ -257,13 +257,13 @@ export function createViewCard(
 
 		li.addEventListener("click", (e) => {
 			if (pending) {
-				clearTimeout(pending);
+				window.clearTimeout(pending);
 				pending = null;
 				return;
 			}
 			e.stopPropagation();
 			e.preventDefault();
-			pending = setTimeout(() => {
+			pending = window.setTimeout(() => {
 				pending = null;
 				options.onEnterEdit!(node);
 			}, 300);
