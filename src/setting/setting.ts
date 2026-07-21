@@ -80,7 +80,9 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
-
+	getSettingDefinitions() {
+		return [];
+	}
 	hide() {
 		if (this.saveDebounceTimer) {
 			window.clearTimeout(this.saveDebounceTimer);

@@ -10,6 +10,27 @@ import {
 import { parseTaskFromYaml } from "./task-parser";
 import { parseTaskLine, TASK_REGEX } from "./tasks-parser";
 
+// ========== 类型安全的 Record 辅助函数 ==========
+
+function setRecord(
+	record: Record<string, unknown>,
+	key: string,
+	value: unknown,
+): void {
+	record[key] = value;
+}
+
+function getRecordString(record: Record<string, unknown>, key: string): string {
+	const val: unknown = record[key];
+	return typeof val === "string" ? val : "";
+}
+
+function getRecordValue(record: Record<string, unknown>, key: string): unknown {
+	return record[key];
+}
+
+// ========== 数据结构 ==========
+
 export interface ContentNode {
 	type: "heading" | "task";
 	text: string;
@@ -119,7 +140,7 @@ function parseFrontmatter(content: string): Record<string, unknown> {
 				value = value.slice(1, -1);
 			}
 		}
-		if (key) result[key] = value;
+		if (key) setRecord(result, key, value);
 	}
 	return result;
 }
@@ -189,7 +210,6 @@ function parseFileContent(
 	lineOffset: number = 0,
 ): ContentNode[] {
 	if (!content) return [];
-
 	const lines = content.split("\n");
 	const roots: ContentNode[] = [];
 	const headingStack: ContentNode[] = [];
@@ -293,7 +313,6 @@ function parseFileContent(
 
 		const taskMatch = trimmed.match(TASK_REGEX);
 		if (!taskMatch) continue;
-
 		const taskData = parseTaskLine(trimmed, filePath || "", i + lineOffset);
 		if (!taskData) continue;
 
@@ -362,8 +381,8 @@ function parseHeadingYamlBlock(
 	yamlStartLine: number;
 	yamlEndLine: number;
 } {
-	let yamlStartLine = -1;
-	let yamlEndLine = -1;
+	let yamlStartLine = -1,
+		yamlEndLine = -1;
 	for (let i = headingLine + 1; i < lines.length; i++) {
 		const trimmed = lines[i].trim();
 		const hm = trimmed.match(/^(#{1,6})\s+/);
@@ -396,7 +415,7 @@ function parseHeadingYamlBlock(
 				value = value.slice(1, -1);
 			}
 		}
-		if (key && value !== "") yamlData[key] = value;
+		if (key && value !== "") setRecord(yamlData, key, value);
 	}
 	return {
 		yamlData: Object.keys(yamlData).length > 0 ? yamlData : null,
@@ -430,7 +449,6 @@ interface VaultFile {
 	path: string;
 	name: string;
 }
-
 interface AppLike {
 	vault: {
 		getMarkdownFiles(): VaultFile[];
@@ -442,11 +460,9 @@ export async function loadAllTaskFiles(
 	app: AppLike,
 ): Promise<ParsedFileData[]> {
 	if (TASK_ROOT_PATHS.length === 0) return [];
-
 	const files = app.vault
 		.getMarkdownFiles()
 		.filter((f) => matchTaskFilePath(f.path) && f.name.endsWith(".md"));
-
 	const results: ParsedFileData[] = [];
 	for (const file of files) {
 		try {

@@ -1,5 +1,4 @@
 // src/ui/panel/sidebar-panel.ts
-// 视图配置面板
 
 import { getDefaultPresets } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
@@ -17,7 +16,6 @@ export class SidebarPanel {
 		this.unsub = store.subscribe(() => this.render());
 		this.render();
 	}
-
 	destroy() {
 		if (this.unsub) {
 			this.unsub();
@@ -27,7 +25,6 @@ export class SidebarPanel {
 
 	render() {
 		this.container.empty();
-
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
@@ -43,10 +40,8 @@ export class SidebarPanel {
 			});
 		};
 
-		// 行1：视图名称
 		const rowName = this.container.createDiv({ cls: "panel-row" });
 		rowName.createSpan({ text: "视图名称", cls: "panel-label" });
-
 		const nameInput = rowName.createEl("input", {
 			type: "text",
 			attr: { placeholder: "输入视图名称" },
@@ -57,10 +52,8 @@ export class SidebarPanel {
 			updatePreset({ name: nameInput.value.trim() || "未命名" }),
 		);
 
-		// 行2：视图图标
 		const row2 = this.container.createDiv({ cls: "panel-row" });
 		row2.createSpan({ text: "视图图标", cls: "panel-label" });
-
 		const iconInput = row2.createEl("input", {
 			type: "text",
 			cls: "panel-input panel-input-sm",
@@ -71,7 +64,6 @@ export class SidebarPanel {
 			updatePreset({ icon: iconInput.value.trim() || undefined }),
 		);
 
-		// 行3：视图配置（按钮）
 		const row4 = this.container.createDiv({ cls: "panel-row" });
 		row4.createSpan({ text: "视图配置", cls: "panel-label" });
 
@@ -80,23 +72,27 @@ export class SidebarPanel {
 			cls: "panel-btn",
 		});
 		importBtn.addEventListener("click", () => {
-			const input = createEl("input");
+			const input = document.createElement("input");
 			input.type = "file";
 			input.accept = ".json";
 			input.addEventListener("change", () => {
 				if (!input.files?.length) return;
-				const file = input.files[0];
-				file.text()
-					.then((text) => {
+				input.files[0]
+					.text()
+					.then((text: string) => {
 						try {
-							const data = JSON.parse(text);
+							const data: unknown = JSON.parse(text);
 							if (!data || typeof data !== "object") return;
 							const st = this.store.getState();
 							const pr = st.presets.find(
 								(p) => p.id === st.activePresetId,
 							);
 							if (!pr) return;
-							const merged = { ...pr, ...data, id: pr.id };
+							const merged: Preset = {
+								...pr,
+								...(data as Partial<Preset>),
+								id: pr.id,
+							};
 							this.store.update({
 								presets: st.presets.map((p) =>
 									p.id === pr.id ? merged : p,
@@ -105,11 +101,11 @@ export class SidebarPanel {
 							Panels.getInstance().refreshTimePanel();
 							this.render();
 						} catch {
-							// JSON 解析失败时忽略
+							/* JSON 解析失败 */
 						}
 					})
 					.catch(() => {
-						// 文件读取失败时忽略
+						/* 读取失败 */
 					});
 			});
 			input.click();
@@ -123,9 +119,10 @@ export class SidebarPanel {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
-			const exportData = JSON.stringify(pr, null, 2);
-			const blob = new Blob([exportData], { type: "application/json" });
-			const a = createEl("a");
+			const blob = new Blob([JSON.stringify(pr, null, 2)], {
+				type: "application/json",
+			});
+			const a = document.createElement("a");
 			a.href = URL.createObjectURL(blob);
 			a.download = `task-view-${pr.name}.json`;
 			a.click();
@@ -139,8 +136,7 @@ export class SidebarPanel {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
-			const defaultPresets = getDefaultPresets();
-			const def = defaultPresets.find((dp) => dp.id === pr.id);
+			const def = getDefaultPresets().find((dp) => dp.id === pr.id);
 			if (!def) return;
 			updatePreset({ ...def, id: pr.id, name: pr.name });
 			Panels.getInstance().refreshTimePanel();
@@ -156,8 +152,10 @@ export class SidebarPanel {
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
 			const np = st.presets.filter((p) => p.id !== pr.id);
-			const na = np.length > 0 ? np[0].id : null;
-			this.store.update({ presets: np, activePresetId: na });
+			this.store.update({
+				presets: np,
+				activePresetId: np.length > 0 ? np[0].id : null,
+			});
 		});
 	}
 }

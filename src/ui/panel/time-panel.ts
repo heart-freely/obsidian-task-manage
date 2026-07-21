@@ -227,37 +227,38 @@ export class TimePanel {
 		}
 	}
 
-	private onStaticChange(lv: string, sv: number, ev: number) {
+	private onStaticChange(this: void, lv: string, sv: number, ev: number) {
+		const self = this as unknown as TimePanel;
 		const minV = Math.min(sv, ev);
 		const maxV = Math.max(sv, ev);
 		if (lv === "year") {
-			this.currentMinYear = minV;
-			this.currentMaxYear = maxV;
-			this.childSlidersDrivenByYear = true;
+			self.currentMinYear = minV;
+			self.currentMaxYear = maxV;
+			self.childSlidersDrivenByYear = true;
 			const { startDate, endDate } = datesFromLevel("year", minV, maxV);
-			this.staticStart = DateUtils.setStart(startDate);
-			this.staticEnd = DateUtils.setEnd(endDate);
+			self.staticStart = DateUtils.setStart(startDate);
+			self.staticEnd = DateUtils.setEnd(endDate);
 		} else {
 			const { startDate, endDate } = datesFromLevel(
 				lv,
 				minV,
 				maxV,
 				undefined,
-				this.currentMinYear,
+				self.currentMinYear,
 			);
-			this.staticStart = DateUtils.setStart(
+			self.staticStart = DateUtils.setStart(
 				startDate <= endDate ? startDate : endDate,
 			);
-			this.staticEnd = DateUtils.setEnd(
+			self.staticEnd = DateUtils.setEnd(
 				startDate <= endDate ? endDate : startDate,
 			);
-			if (this.childSlidersDrivenByYear)
-				this.childSlidersDrivenByYear = false;
+			if (self.childSlidersDrivenByYear)
+				self.childSlidersDrivenByYear = false;
 		}
-		this.rebuildStaticSliders();
+		self.rebuildStaticSliders();
 
-		if (this.intervalMode !== "none") {
-			this.updatePreset({ dateRange: true });
+		if (self.intervalMode !== "none") {
+			self.updatePreset({ dateRange: true });
 		}
 	}
 
@@ -476,6 +477,7 @@ export class TimePanel {
 	}
 
 	private createSlider(
+		this: void,
 		key: string,
 		min: number,
 		max: number,
@@ -484,22 +486,23 @@ export class TimePanel {
 		format: (v: number) => string,
 		todayVal: number,
 	) {
-		if (!this.staticSection) return;
+		const self = this as unknown as TimePanel;
+		if (!self.staticSection) return;
 		const result = createEnhancedSlider({
-			container: this.staticSection,
+			container: self.staticSection,
 			min,
 			max,
 			start: clamp(Math.min(start, end), min, max),
 			end: clamp(Math.max(start, end), min, max),
 			format,
 			onChange: (s: number, ev: number) =>
-				this.onStaticChange(key, s, ev),
+				self.onStaticChange(key, s, ev),
 			todayValue: todayVal,
 			midValue: todayVal,
 		});
 		result.refs.row.addClass("task-pl-4");
-		this.enhancedSliders.set(key, result.refs);
-		this.updateMidLines.set(key, result.updateMidLine);
+		self.enhancedSliders.set(key, result.refs);
+		self.updateMidLines.set(key, result.updateMidLine);
 	}
 
 	private refreshDynamicUI() {
@@ -617,7 +620,7 @@ export class TimePanel {
 	private async initRange(): Promise<void> {
 		try {
 			if (!this.app) return;
-			await this.dataManager.loadData(
+			void this.dataManager.loadData(
 				this.app as Parameters<typeof this.dataManager.loadData>[0],
 			);
 			const r = this.dataManager.getTaskTimeRange();

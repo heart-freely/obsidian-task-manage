@@ -305,7 +305,7 @@ export default class TaskManagePlugin extends Plugin {
 			.forEach((el) => el.remove());
 	}
 
-	async activateView(viewType: string) {
+	async activateView(viewType: string): Promise<void> {
 		const { workspace } = this.app;
 		let leaf = workspace.getLeavesOfType(viewType)[0];
 		if (!leaf) {

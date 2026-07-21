@@ -1,24 +1,23 @@
 // src/ui/sidebar/sidebar.ts
-// 侧边栏面板
 
+import type { App } from "obsidian";
 import { Store } from "../../core/store/store";
 import { Preset } from "../../type/type";
 
 export class SidebarPanel {
-	private app: any;
+	private app: App;
 	private store: Store;
 	private container: HTMLElement;
 	private lastSidebarWidth: number | null = null;
 	private unsub: (() => void) | null = null;
 
-	constructor(container: HTMLElement, store: Store, app: any) {
+	constructor(container: HTMLElement, store: Store, app: App) {
 		this.container = container;
 		this.store = store;
 		this.app = app;
 		this.unsub = store.subscribe(() => this.render());
 		this.render();
 	}
-
 	destroy() {
 		if (this.unsub) {
 			this.unsub();
@@ -27,8 +26,7 @@ export class SidebarPanel {
 	}
 
 	private render() {
-		const allBtns = this.container.querySelectorAll(".preset-btn");
-		allBtns.forEach((btn) => {
+		this.container.querySelectorAll(".preset-btn").forEach((btn) => {
 			const el = btn as HTMLElement;
 			el.setCssProps({ "--task-sidebar-btn-width": "" });
 			el.removeClass("task-sidebar-btn-auto", "task-sidebar-btn-fixed");
@@ -36,8 +34,11 @@ export class SidebarPanel {
 		this.container.empty();
 		const state = this.store.getState();
 		const collapsed = state.sidebarCollapsed;
-		this.container.addClass("task-overflow-hidden", "task-relative");
-		this.container.addClass("task-z-1");
+		this.container.addClass(
+			"task-overflow-hidden",
+			"task-relative",
+			"task-z-1",
+		);
 
 		const topRow = this.container.createDiv({
 			cls:
@@ -52,14 +53,14 @@ export class SidebarPanel {
 			title: collapsed ? "展开侧边栏" : "折叠侧边栏",
 		});
 		if (collapsed) toggleBtn.className = "preset-btn side-icon-btn";
-		toggleBtn.onclick = () => {
+		toggleBtn.addEventListener("click", () => {
 			const st = this.store.getState();
 			const nc = !st.sidebarCollapsed;
 			this.store.update({
 				sidebarCollapsed: nc,
 				sidebarWidth: nc ? 40 : st.sidebarWidth || 100,
 			});
-		};
+		});
 
 		const contentDiv = this.container.createDiv({ cls: "side-content" });
 		contentDiv.addClass(
@@ -74,7 +75,6 @@ export class SidebarPanel {
 				"--task-sidebar-min-width": "40px",
 			});
 			this.container.addClass("task-sidebar-dynamic-width");
-
 			const iconBar = contentDiv.createDiv({ cls: "preset-list" });
 			state.presets.forEach((preset) => {
 				const btn = iconBar.createEl("button", {
@@ -83,21 +83,22 @@ export class SidebarPanel {
 					title: preset.name,
 				});
 				if (state.activePresetId === preset.id) btn.addClass("active");
-				btn.onclick = () =>
-					this.store.update({ activePresetId: preset.id });
+				btn.addEventListener("click", () =>
+					this.store.update({ activePresetId: preset.id }),
+				);
 			});
-			const newViewBtn = contentDiv.createEl("button", {
-				text: "➕",
-				cls: "preset-btn side-icon-btn",
-				title: "新建视图",
-			});
-			newViewBtn.onclick = () => this.createNewPreset();
+			contentDiv
+				.createEl("button", {
+					text: "➕",
+					cls: "preset-btn side-icon-btn",
+					title: "新建视图",
+				})
+				.addEventListener("click", () => this.createNewPreset());
 			return;
 		}
 
 		this.container.setCssProps({ "--task-sidebar-min-width": "48px" });
 		this.container.addClass("task-sidebar-dynamic-min-width");
-
 		const listDiv = contentDiv.createDiv({ cls: "preset-list" });
 		state.presets.forEach((preset) => {
 			const row = listDiv.createDiv({ cls: "preset-row" });
@@ -106,31 +107,32 @@ export class SidebarPanel {
 				cls: "preset-btn",
 			});
 			if (state.activePresetId === preset.id) btn.addClass("active");
-			btn.onclick = () =>
-				this.store.update({ activePresetId: preset.id });
+			btn.addEventListener("click", () =>
+				this.store.update({ activePresetId: preset.id }),
+			);
 		});
-		const newViewBtn = contentDiv.createEl("button", {
-			text: "➕ 新建视图",
-			cls: "preset-btn",
-			attr: { style: "margin-top: auto;" },
-		});
-		newViewBtn.onclick = () => this.createNewPreset();
-		requestAnimationFrame(() => this.adjustSidebarWidth());
+		contentDiv
+			.createEl("button", {
+				text: "➕ 新建视图",
+				cls: "preset-btn",
+				attr: { style: "margin-top: auto;" },
+			})
+			.addEventListener("click", () => this.createNewPreset());
+		window.requestAnimationFrame(() => this.adjustSidebarWidth());
 	}
 
 	private createNewPreset() {
 		const state = this.store.getState();
 		const template = state.presets.find((p) => p.id === "all-tasks");
-		const now = Date.now().toString();
-		const newPreset: Preset = {
+		const np: Preset = {
 			...(template || {}),
-			id: now,
+			id: Date.now().toString(),
 			name: "新视图",
 			icon: "📋",
 		} as Preset;
 		this.store.update({
-			presets: [...state.presets, newPreset],
-			activePresetId: newPreset.id,
+			presets: [...state.presets, np],
+			activePresetId: np.id,
 		});
 	}
 
@@ -145,7 +147,7 @@ export class SidebarPanel {
 			btn.addClass("task-sidebar-btn-auto");
 		});
 		this.container.setCssProps({ "--task-sidebar-width": "auto" });
-		buttons[0].offsetHeight;
+		const _height = buttons[0]?.offsetHeight;
 		let maxWidth = 0;
 		buttons.forEach((btn) => {
 			const w = btn.offsetWidth;

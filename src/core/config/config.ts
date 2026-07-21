@@ -8,8 +8,6 @@ import {
 	ThemeColor,
 } from "../../util/color-utils";
 
-// ========== 任务元素统一定义（通用）==========
-
 export const TASK_ELEMENT_ORDER = [
 	"status",
 	"priority",
@@ -24,8 +22,6 @@ export const TASK_ELEMENT_ORDER = [
 	"forbid",
 	"tag",
 ] as const;
-
-// ========== 颜色定义（深浅双值）==========
 
 const C = {
 	statusNone: {
@@ -58,8 +54,6 @@ const C = {
 	both: { dark: "rgba(150, 125, 180, 0.70)", light: "#8a72a8" },
 };
 
-// ========== 子元素类型定义 ==========
-
 interface BaseChildDef {
 	key: string;
 	zhName: string;
@@ -68,9 +62,6 @@ interface BaseChildDef {
 	icon?: string;
 	enName?: string;
 }
-
-// ========== 通用元素接口 ==========
-
 interface TaskElementBase {
 	key: string;
 	zhName: string;
@@ -82,8 +73,6 @@ interface TaskElementBase {
 	lightColor: string;
 	children?: BaseChildDef[];
 }
-
-// ========== TASK_ELEMENTS 定义 ==========
 
 export const TASK_ELEMENTS: Record<string, TaskElementBase> = {
 	status: {
@@ -324,27 +313,20 @@ export const TASK_ELEMENTS: Record<string, TaskElementBase> = {
 	},
 };
 
-// ========== 类型安全的状态子元素访问 ==========
-
 const statusChildren = TASK_ELEMENTS.status.children ?? [];
 const priorityChildren = TASK_ELEMENTS.priority.children ?? [];
 const repeatChildren = TASK_ELEMENTS.repeat.children ?? [];
-
-// ========== 颜色定义 ==========
 
 const STATUS_COLOR_DEFS: Record<string, ThemeColor> = {};
 statusChildren.forEach((c) => {
 	STATUS_COLOR_DEFS[c.key] = makeColor(c.darkColor, c.lightColor);
 });
-
 const PRIORITY_COLOR_DEFS: ThemeColor[] = priorityChildren.map((c) =>
 	makeColor(c.darkColor, c.lightColor),
 );
-
 const REPEAT_COLOR_DEFS: ThemeColor[] = repeatChildren.map((c) =>
 	makeColor(c.darkColor, c.lightColor),
 );
-
 const DATE_MARK_ORDER_INTERNAL = [
 	"created",
 	"scheduled",
@@ -353,15 +335,12 @@ const DATE_MARK_ORDER_INTERNAL = [
 	"done",
 	"due",
 ] as const;
-
 const DATE_MARK_COLOR_DEFS: Record<string, ThemeColor> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
 	const el = TASK_ELEMENTS[k];
-	if (el.darkColor && el.lightColor) {
+	if (el.darkColor && el.lightColor)
 		DATE_MARK_COLOR_DEFS[k] = makeColor(el.darkColor, el.lightColor);
-	}
 });
-
 const TAG_PALETTE_DEFS: ThemeColor[] = [
 	makeColor("rgba(165, 140, 210, 0.75)", "#8a76b8"),
 	makeColor("rgba(200, 115, 115, 0.75)", "#c46a6a"),
@@ -375,8 +354,6 @@ const TAG_PALETTE_DEFS: ThemeColor[] = [
 	makeColor("rgba(180, 175, 85, 0.70)", "#a8a040"),
 ];
 
-// ========== 状态符号映射 ==========
-
 export const STATUS_ALL_SYMBOLS: Record<string, string[]> = {
 	todo: [" "],
 	"in-progress": [">", "/", "\\"],
@@ -384,15 +361,12 @@ export const STATUS_ALL_SYMBOLS: Record<string, string[]> = {
 	cancelled: ["-"],
 	scheduled: ["?"],
 };
-
 export const SYMBOL_TO_STATUS: Record<string, string> = {};
-for (const [statusKey, symbols] of Object.entries(STATUS_ALL_SYMBOLS)) {
-	for (const s of symbols) {
-		SYMBOL_TO_STATUS[s] = statusKey;
+for (const [sk, ss] of Object.entries(STATUS_ALL_SYMBOLS)) {
+	for (const s of ss) {
+		SYMBOL_TO_STATUS[s] = sk;
 	}
 }
-
-// ========== 状态相关 ==========
 
 export const ALLOWED_STATUSES = statusChildren.map((c) => c.key);
 export const STATUS_NAMES: Record<string, string> = {};
@@ -412,17 +386,14 @@ export const STATUS_SORT_ORDER: string[] = [
 	"completed",
 ];
 export const STATUS_SYMBOL_MAP: Record<string, string> = {};
-for (const [statusKey, symbols] of Object.entries(STATUS_ALL_SYMBOLS)) {
-	for (const s of symbols) {
-		STATUS_SYMBOL_MAP[s] = statusKey;
+for (const [sk, ss] of Object.entries(STATUS_ALL_SYMBOLS)) {
+	for (const s of ss) {
+		STATUS_SYMBOL_MAP[s] = sk;
 	}
 }
-
 export function getStatusColors(): Record<string, string> {
 	return getThemeColorMap(STATUS_COLOR_DEFS);
 }
-
-// ========== 优先级相关 ==========
 
 export const PRIORITY_ORDER = priorityChildren.map((c) => c.icon ?? "");
 export const PRIORITY_ICONS: Record<string, string> = {};
@@ -434,12 +405,9 @@ priorityChildren.forEach((c) => {
 	PRIORITY_LABELS[c.key] = `${c.enName ?? ""}|${c.zhName}`;
 });
 PRIORITY_LABELS["none"] = "None|无";
-
 export function getPriorityColors(): string[] {
 	return getThemeColorArray(PRIORITY_COLOR_DEFS);
 }
-
-// ========== 循环相关 ==========
 
 export const REPEAT_ORDER = repeatChildren.map((c) => c.key);
 export const REPEAT_ICON = TASK_ELEMENTS.repeat.icon;
@@ -447,70 +415,52 @@ export const REPEAT_LABELS: Record<string, string> = {};
 repeatChildren.forEach((c) => {
 	REPEAT_LABELS[c.key] = c.zhName;
 });
-
 export function getRepeatColors(): string[] {
 	return getThemeColorArray(REPEAT_COLOR_DEFS);
 }
 
-// ========== 日期标记相关 ==========
-
 export const DATE_MARK_ORDER = [...DATE_MARK_ORDER_INTERNAL] as string[];
 export const DATE_MARK_ICONS: Record<string, string> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
-	const el = TASK_ELEMENTS[k];
-	if (el.icon) DATE_MARK_ICONS[k] = el.icon;
+	if (TASK_ELEMENTS[k].icon) DATE_MARK_ICONS[k] = TASK_ELEMENTS[k].icon;
 });
 export const DATE_MARK_NAMES: Record<string, string> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
 	const el = TASK_ELEMENTS[k];
 	if (el.icon && el.zhName) DATE_MARK_NAMES[k] = el.icon + " " + el.zhName;
 });
-export const DATE_FIELD_SORT_ORDER = [...DATE_MARK_ORDER_INTERNAL];
-
 export function getDateMarkColors(): Record<string, string> {
 	return getThemeColorMap(DATE_MARK_COLOR_DEFS);
 }
 
-// ========== 图标与颜色常量 ==========
-
 export const ID_ICON = TASK_ELEMENTS.id.icon;
 export const DEPENDS_ICON = TASK_ELEMENTS.forbid.icon;
 export const TAG_ICON = TASK_ELEMENTS.tag.icon;
-
-export const ID_COLOR_DEF: ThemeColor = makeColor(C.id.dark, C.id.light);
-export const DEPENDS_COLOR_DEF: ThemeColor = makeColor(
-	C.forbid.dark,
-	C.forbid.light,
-);
-export const TAG_COLOR_DEF: ThemeColor = makeColor(C.tag.dark, C.tag.light);
-export const BOTH_COLOR_DEF: ThemeColor = makeColor(C.both.dark, C.both.light);
-
+export const ID_COLOR_DEF = makeColor(C.id.dark, C.id.light);
+export const DEPENDS_COLOR_DEF = makeColor(C.forbid.dark, C.forbid.light);
+export const TAG_COLOR_DEF = makeColor(C.tag.dark, C.tag.light);
+export const BOTH_COLOR_DEF = makeColor(C.both.dark, C.both.light);
 export function getTagPalette(): string[] {
 	return getThemeColorArray(TAG_PALETTE_DEFS);
 }
-
-// ========== 标记相关 ==========
 
 export const TASK_MARK_SEQUENCE = TASK_ELEMENT_ORDER.filter(
 	(k) => TASK_ELEMENTS[k].inMarkSequence,
 );
 export const MARK_NAMES: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const el = TASK_ELEMENTS[k];
-	if (el.inMarkSequence) MARK_NAMES[k] = el.zhName;
+	if (TASK_ELEMENTS[k].inMarkSequence)
+		MARK_NAMES[k] = TASK_ELEMENTS[k].zhName;
 });
 export const ALL_MARKS = Object.keys(MARK_NAMES);
-
-// ========== 表格列 ==========
 
 export const TABLE_COLUMNS = TASK_ELEMENT_ORDER.map((k) => ({
 	key: k,
 	label: k === "status" ? "状态" : TASK_ELEMENTS[k].zhName,
 }));
 const descIdx = TABLE_COLUMNS.findIndex((c) => c.key === "status");
-if (descIdx >= 0) {
+if (descIdx >= 0)
 	TABLE_COLUMNS.splice(descIdx + 1, 0, { key: "content", label: "描述" });
-}
 export const DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
 	status: true,
 	content: true,
@@ -527,32 +477,27 @@ export const DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
 	forbid: false,
 };
 
-// ========== YAML 映射 ==========
-
 export const YAML_NAME_TO_KEY: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const el = TASK_ELEMENTS[k];
-	if (el.yaName) YAML_NAME_TO_KEY[el.yaName] = k;
+	if (TASK_ELEMENTS[k].yaName) YAML_NAME_TO_KEY[TASK_ELEMENTS[k].yaName] = k;
 });
 export const YAML_NAME_TO_ICON: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const el = TASK_ELEMENTS[k];
-	if (el.yaName && el.icon) YAML_NAME_TO_ICON[el.yaName] = el.icon;
+	if (TASK_ELEMENTS[k].yaName && TASK_ELEMENTS[k].icon)
+		YAML_NAME_TO_ICON[TASK_ELEMENTS[k].yaName] = TASK_ELEMENTS[k].icon;
 });
 export const YAML_NAME_TO_ZHNAME: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const el = TASK_ELEMENTS[k];
-	if (el.yaName) YAML_NAME_TO_ZHNAME[el.yaName] = el.zhName;
+	if (TASK_ELEMENTS[k].yaName)
+		YAML_NAME_TO_ZHNAME[TASK_ELEMENTS[k].yaName] = TASK_ELEMENTS[k].zhName;
 });
-export const YAML_DATE_FIELDS: string[] = TASK_ELEMENT_ORDER.filter((k) => {
-	const el = TASK_ELEMENTS[k];
-	return (
-		!!el.yaName &&
+export const YAML_DATE_FIELDS: string[] = TASK_ELEMENT_ORDER.filter(
+	(k) =>
+		!!TASK_ELEMENTS[k].yaName &&
 		["created", "scheduled", "starts", "due", "done", "cancelled"].includes(
 			k,
-		)
-	);
-})
+		),
+)
 	.map((k) => TASK_ELEMENTS[k].yaName ?? "")
 	.filter(Boolean);
 export const YAML_DISPLAY_ORDER: string[] = TASK_ELEMENT_ORDER.filter(
@@ -561,23 +506,15 @@ export const YAML_DISPLAY_ORDER: string[] = TASK_ELEMENT_ORDER.filter(
 	.map((k) => TASK_ELEMENTS[k].yaName ?? "")
 	.filter(Boolean);
 
-// ========== 优先级标签函数 ==========
-
 export function getPriorityLabel(icon: string): string {
 	const idx = PRIORITY_ORDER.indexOf(icon);
-	if (idx >= 0 && idx < priorityChildren.length)
-		return priorityChildren[idx].zhName;
-	return "无";
+	return idx >= 0 && idx < priorityChildren.length
+		? priorityChildren[idx].zhName
+		: "无";
 }
 
-// ========== 任务文件识别配置 ==========
-
-export const DEFAULT_TASK_ROOT_PATH = "";
-export const DEFAULT_TASK_FILE_PATTERN = "";
-export const DEFAULT_HEADING_TASK_PATTERN = "";
-
 export let TASK_ROOT_PATHS: string[] = [];
-export let HEADING_TASK_PATTERN: RegExp = new RegExp("");
+export let HEADING_TASK_PATTERN = new RegExp("");
 export let TASK_FOLDER_FILTERS: PathFilterConfig[] = [];
 export let TASK_FILE_FILTERS: PathFilterConfig[] = [];
 export let TASK_HEADING_FILTERS: PathFilterConfig[] = [];
@@ -585,25 +522,19 @@ export let TASK_ITEM_FILTERS: TaskItemFilterConfig[] = [];
 
 function matchFilter(value: string, filter: PathFilterConfig): boolean {
 	if (!filter.pattern) return true;
-	let pattern = filter.pattern;
-	if (filter.wholeWord) pattern = `\\b${pattern}\\b`;
+	let p = filter.pattern;
+	if (filter.wholeWord) p = `\\b${p}\\b`;
 	const flags = filter.caseSensitive ? "" : "i";
-	let regex: RegExp;
-	if (filter.useRegex) {
-		try {
-			regex = new RegExp(pattern, flags);
-		} catch {
-			return false;
-		}
-	} else {
-		regex = new RegExp(
-			pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-			flags,
-		);
+	let r: RegExp;
+	try {
+		r = filter.useRegex
+			? new RegExp(p, flags)
+			: new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags);
+	} catch {
+		return false;
 	}
-	return filter.exclude ? !regex.test(value) : regex.test(value);
+	return filter.exclude ? !r.test(value) : r.test(value);
 }
-
 export function matchTaskFilePath(filePath: string): boolean {
 	if (
 		TASK_ROOT_PATHS.length > 0 &&
@@ -612,60 +543,47 @@ export function matchTaskFilePath(filePath: string): boolean {
 		return false;
 	if (TASK_FOLDER_FILTERS.length === 0) return true;
 	const folders = filePath.split("/").slice(0, -1);
-	const includeFilters = TASK_FOLDER_FILTERS.filter((f) => !f.exclude);
-	const excludeFilters = TASK_FOLDER_FILTERS.filter((f) => f.exclude);
-	if (
-		excludeFilters.some((f) =>
-			folders.some((folder) => matchFilter(folder, f)),
-		)
-	)
-		return false;
-	if (includeFilters.length === 0) return true;
-	return includeFilters.some((f) =>
-		folders.some((folder) => matchFilter(folder, f)),
+	const inc = TASK_FOLDER_FILTERS.filter((f) => !f.exclude),
+		exc = TASK_FOLDER_FILTERS.filter((f) => f.exclude);
+	if (exc.some((f) => folders.some((fd) => matchFilter(fd, f)))) return false;
+	return (
+		inc.length === 0 ||
+		inc.some((f) => folders.some((fd) => matchFilter(fd, f)))
 	);
 }
-
 export function matchTaskFileName(fileName: string): boolean {
 	if (TASK_FILE_FILTERS.length === 0) return false;
-	const includeFilters = TASK_FILE_FILTERS.filter((f) => !f.exclude);
-	const excludeFilters = TASK_FILE_FILTERS.filter((f) => f.exclude);
-	if (excludeFilters.some((f) => matchFilter(fileName, f))) return false;
-	if (includeFilters.length === 0) return true;
-	return includeFilters.some((f) => matchFilter(fileName, f));
+	const inc = TASK_FILE_FILTERS.filter((f) => !f.exclude),
+		exc = TASK_FILE_FILTERS.filter((f) => f.exclude);
+	if (exc.some((f) => matchFilter(fileName, f))) return false;
+	return inc.length === 0 || inc.some((f) => matchFilter(fileName, f));
 }
-
 export function matchTaskHeading(heading: string): boolean {
 	if (TASK_HEADING_FILTERS.length === 0) return false;
-	const includeFilters = TASK_HEADING_FILTERS.filter((f) => !f.exclude);
-	const excludeFilters = TASK_HEADING_FILTERS.filter((f) => f.exclude);
-	if (excludeFilters.some((f) => matchFilter(heading, f))) return false;
-	if (includeFilters.length === 0) return true;
-	return includeFilters.some((f) => matchFilter(heading, f));
+	const inc = TASK_HEADING_FILTERS.filter((f) => !f.exclude),
+		exc = TASK_HEADING_FILTERS.filter((f) => f.exclude);
+	if (exc.some((f) => matchFilter(heading, f))) return false;
+	return inc.length === 0 || inc.some((f) => matchFilter(heading, f));
 }
-
 export function matchTaskItem(symbol: string): boolean {
 	if (TASK_ITEM_FILTERS.length === 0) return true;
-	const includeFilters = TASK_ITEM_FILTERS.filter((f) => !f.exclude);
-	const excludeFilters = TASK_ITEM_FILTERS.filter((f) => f.exclude);
-	if (excludeFilters.some((f) => f.pattern && f.pattern.includes(symbol)))
-		return false;
-	if (includeFilters.length === 0) return true;
-	return includeFilters.some((f) => !f.pattern || f.pattern.includes(symbol));
-}
-
-interface ParsedFileDataForConfig {
-	contentRoots: unknown[];
-	fileTask: unknown;
+	const inc = TASK_ITEM_FILTERS.filter((f) => !f.exclude),
+		exc = TASK_ITEM_FILTERS.filter((f) => f.exclude);
+	if (exc.some((f) => f.pattern && f.pattern.includes(symbol))) return false;
+	return (
+		inc.length === 0 ||
+		inc.some((f) => !f.pattern || f.pattern.includes(symbol))
+	);
 }
 export function isTaskFile(
 	fileName: string,
-	parsed: ParsedFileDataForConfig,
+	parsed: { contentRoots: unknown[]; fileTask: unknown },
 ): boolean {
-	if (matchTaskFileName(fileName)) return true;
-	if (parsed.contentRoots.length > 0) return true;
-	if (parsed.fileTask) return true;
-	return false;
+	return (
+		matchTaskFileName(fileName) ||
+		parsed.contentRoots.length > 0 ||
+		!!parsed.fileTask
+	);
 }
 export function isWhitelisted(filePath: string): boolean {
 	return matchTaskFilePath(filePath);
@@ -673,7 +591,6 @@ export function isWhitelisted(filePath: string): boolean {
 export function isBlacklisted(_filePath: string): boolean {
 	return false;
 }
-
 export function updateTaskFileConfig(config: {
 	rootPath?: string;
 	folderFilters?: PathFilterConfig[];
@@ -681,18 +598,15 @@ export function updateTaskFileConfig(config: {
 	headingFilters?: PathFilterConfig[];
 	taskItemFilters?: TaskItemFilterConfig[];
 }) {
-	if (config.rootPath !== undefined && config.rootPath.trim()) {
+	if (config.rootPath?.trim())
 		TASK_ROOT_PATHS = config.rootPath
 			.split(",")
 			.map((p) => p.trim())
 			.filter(Boolean);
-	}
-	if (config.folderFilters?.some((f) => f.pattern)) {
+	if (config.folderFilters?.some((f) => f.pattern))
 		TASK_FOLDER_FILTERS = config.folderFilters.filter((f) => f.pattern);
-	}
-	if (config.fileFilters?.some((f) => f.pattern)) {
+	if (config.fileFilters?.some((f) => f.pattern))
 		TASK_FILE_FILTERS = config.fileFilters.filter((f) => f.pattern);
-	}
 	if (config.headingFilters?.some((f) => f.pattern)) {
 		TASK_HEADING_FILTERS = config.headingFilters.filter((f) => f.pattern);
 		const first = config.headingFilters.find(
@@ -702,16 +616,13 @@ export function updateTaskFileConfig(config: {
 			try {
 				HEADING_TASK_PATTERN = new RegExp(first.pattern);
 			} catch {
-				/* 正则无效时忽略 */
+				/* 忽略 */
 			}
 		}
 	}
-	if (config.taskItemFilters?.some((f) => f.pattern)) {
+	if (config.taskItemFilters?.some((f) => f.pattern))
 		TASK_ITEM_FILTERS = config.taskItemFilters.filter((f) => f.pattern);
-	}
 }
-
-// ========== 派生类型 ==========
 
 export type TaskStatus = (typeof statusChildren)[number]["key"];
 export type PriorityIcon = string;
