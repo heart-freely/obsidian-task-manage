@@ -17,7 +17,6 @@ import {
 
 const BATCH_CHUNK_SIZE = 50;
 
-/** Obsidian Vault 的最小接口 */
 interface VaultLike {
 	getAbstractFileByPath(path: string): { path: string } | null;
 	process(
@@ -26,12 +25,10 @@ interface VaultLike {
 	): Promise<void>;
 }
 
-/** Obsidian App 的最小接口 */
 interface AppLike {
 	vault: VaultLike;
 }
 
-/** getNode 回调类型 */
 type GetNodeFn = (uid: string) => TaskTreeNode | undefined;
 
 export class EditStore {
@@ -83,8 +80,6 @@ export class EditStore {
 	getState(): EditState {
 		return this.state;
 	}
-
-	// ========== 模式切换 ==========
 
 	enterSingleEditMode(node: TaskTreeNode) {
 		this.state.editMode = true;
@@ -196,8 +191,6 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	// ========== 选择操作 ==========
-
 	toggleSelection(node: TaskTreeNode) {
 		if (!this.state.batchMode) return;
 		if (this.state.selectedTasks.has(node.uid)) {
@@ -260,8 +253,6 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	// ========== 标记同步 ==========
-
 	toggleSyncMode() {
 		this.state.syncMode = !this.state.syncMode;
 		if (this.state.syncMode) {
@@ -284,8 +275,6 @@ export class EditStore {
 		this.state.primaryTaskUid = uid;
 		this.syncToStore();
 	}
-
-	// ========== 编辑操作 ==========
 
 	applyEdit(markKey: string, value: string | null, sourceUid: string) {
 		if (this.state.selectedTasks.size === 0) return;
@@ -545,8 +534,6 @@ export class EditStore {
 		this.store?.triggerEditCardsChanged?.();
 	}
 
-	// ========== 保存与撤回 ==========
-
 	async saveCurrent() {
 		if (this.state.batchMode) {
 			await this.saveAll();
@@ -647,8 +634,6 @@ export class EditStore {
 		this.syncToStore();
 	}
 
-	// ========== 私有辅助方法 ==========
-
 	private getNodesAndPreviews(): {
 		nodeMap: Map<string, TaskTreeNode>;
 		previewMap: Map<string, string>;
@@ -695,8 +680,6 @@ export class EditStore {
 		}
 	}
 }
-
-// ========== 辅助函数 ==========
 
 function createEditState(): EditState {
 	return {

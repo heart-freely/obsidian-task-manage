@@ -243,7 +243,7 @@ function createDependencySVG(
 				});
 		});
 	}
-	(svg as any).__redraw = redraw;
+	(svg as unknown as Record<string, unknown>).__redraw = redraw;
 	return svg;
 }
 
@@ -263,7 +263,11 @@ export async function renderGanttWithTree(
 		};
 		focusRoot?: TaskTreeNode;
 	},
-) {
+): Promise<{
+	taskMap: Map<string, TaskTreeNode>;
+	redraw: () => Promise<void>;
+	destroy: () => void;
+}> {
 	container.empty();
 	const statusColors = getStatusColors();
 	const im =
@@ -277,7 +281,7 @@ export async function renderGanttWithTree(
 		Math.ceil((timeRange.maxTime - timeRange.minTime) / 86400000),
 		1,
 	);
-	const savedZoom = await loadZoomState();
+	const savedZoom = loadZoomState();
 	const initialDayWidth =
 		savedZoom?.dayWidth || GANTT_CONFIG.DEFAULT_DAY_WIDTH;
 	const zoomState = {
@@ -289,9 +293,9 @@ export async function renderGanttWithTree(
 		totalDays,
 	};
 	const taskMap = new Map<string, TaskTreeNode>();
-	let isDragging = false,
-		lastDragX = 0,
-		dragStartScrollLeft = 0;
+	let isDragging = false;
+	let lastDragX = 0;
+	let dragStartScrollLeft = 0;
 	let currentSvg: SVGSVGElement | null = null;
 	let gridOverlay: HTMLElement | null = null;
 	let todayLine: HTMLElement | null = null;
@@ -386,12 +390,12 @@ export async function renderGanttWithTree(
 				e.clientX - rect.left < rect.width - edgePadding
 			) {
 				if (clickTimer) {
-					clearTimeout(clickTimer);
+					window.clearTimeout(clickTimer);
 					clickTimer = null;
 					if (node?.path) options?.onTaskClick?.(node);
 					return;
 				}
-				clickTimer = setTimeout(() => {
+				clickTimer = window.setTimeout(() => {
 					clickTimer = null;
 					const row = scrollArea.querySelector(
 						`[data-task-id="${node.uid}"]`,
@@ -470,7 +474,9 @@ export async function renderGanttWithTree(
 				barPositionCache.delete(uid);
 			}
 		}
-		(currentSvg as any)?.__redraw?.(barPositions);
+		(currentSvg as unknown as Record<string, unknown>)?.__redraw?.(
+			barPositions,
+		);
 	}
 
 	function updateGridLevel(dayWidth: number) {
@@ -537,8 +543,8 @@ export async function renderGanttWithTree(
 	}
 
 	function deferredUpdate() {
-		if (deferredUpdateTimer) clearTimeout(deferredUpdateTimer);
-		deferredUpdateTimer = setTimeout(() => {
+		if (deferredUpdateTimer) window.clearTimeout(deferredUpdateTimer);
+		deferredUpdateTimer = window.setTimeout(() => {
 			const tw = zoomState.totalWidth;
 			const oldHeader = scrollArea.querySelector(
 				".gantt-header",
@@ -594,7 +600,9 @@ export async function renderGanttWithTree(
 				});
 				if (node.id) barPositions.set(node.id, barPositions.get(uid)!);
 			});
-			(currentSvg as any)?.__redraw?.(barPositions);
+			(currentSvg as unknown as Record<string, unknown>)?.__redraw?.(
+				barPositions,
+			);
 		}, 150);
 	}
 
@@ -625,8 +633,8 @@ export async function renderGanttWithTree(
 	scrollArea.addEventListener("mouseout", () => tooltip.hide());
 
 	async function rebuild() {
-		const sl = scrollArea.scrollLeft,
-			st = scrollArea.scrollTop;
+		const sl = scrollArea.scrollLeft;
+		const st = scrollArea.scrollTop;
 		scrollArea.innerHTML = "";
 		taskMap.clear();
 		gridOverlay = null;
@@ -637,7 +645,7 @@ export async function renderGanttWithTree(
 		barPositionCache.clear();
 		if (syncHeaderScroll)
 			scrollArea.removeEventListener("scroll", syncHeaderScroll);
-		if (deferredUpdateTimer) clearTimeout(deferredUpdateTimer);
+		if (deferredUpdateTimer) window.clearTimeout(deferredUpdateTimer);
 
 		const treeContainer = document.createElement("div");
 		treeContainer.className =
@@ -673,7 +681,7 @@ export async function renderGanttWithTree(
 									0,
 									actualTreeWidth + te.left - 20,
 								);
-								requestAnimationFrame(() => {
+								window.requestAnimationFrame(() => {
 									scrollArea.scrollLeft = targetLeft;
 								});
 							}
@@ -687,7 +695,7 @@ export async function renderGanttWithTree(
 			},
 		});
 
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			actualTreeWidth = treeContainer.offsetWidth || initTreeWidth;
 			const tw2 = zoomState.totalWidth;
 			const totalW = actualTreeWidth + tw2;
@@ -775,7 +783,7 @@ export async function renderGanttWithTree(
 			let treeToggleRafId: number | null = null;
 			onTreeToggle = () => {
 				if (treeToggleRafId !== null) return;
-				treeToggleRafId = requestAnimationFrame(() => {
+				treeToggleRafId = window.requestAnimationFrame(() => {
 					treeToggleRafId = null;
 					actualTreeWidth =
 						treeContainer.offsetWidth || initTreeWidth;
@@ -812,7 +820,7 @@ export async function renderGanttWithTree(
 		saveZoomState(zoomState.dayWidth);
 
 		if (wheelRafId) return;
-		wheelRafId = requestAnimationFrame(() => {
+		wheelRafId = window.requestAnimationFrame(() => {
 			wheelRafId = null;
 			fastUpdateBars();
 			updateLayoutWidths();
@@ -866,7 +874,7 @@ export async function renderGanttWithTree(
 			window.removeEventListener("mouseup", onMouseUp);
 			if (syncHeaderScroll)
 				scrollArea.removeEventListener("scroll", syncHeaderScroll);
-			if (deferredUpdateTimer) clearTimeout(deferredUpdateTimer);
+			if (deferredUpdateTimer) window.clearTimeout(deferredUpdateTimer);
 			if (onTreeToggle) {
 				const tc = scrollArea.querySelector(
 					".gantt-tree-container",

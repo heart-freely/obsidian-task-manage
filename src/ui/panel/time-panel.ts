@@ -32,7 +32,7 @@ export class TimePanel {
 	private container: HTMLElement;
 	private store: Store;
 	private dataManager: DataManager;
-	private app: any;
+	private app: unknown;
 
 	private dynamicStart = new Date();
 	private dynamicEnd = new Date();
@@ -63,7 +63,7 @@ export class TimePanel {
 	private dynamicSection: HTMLElement | null = null;
 	private staticSection: HTMLElement | null = null;
 
-	constructor(container: HTMLElement, store: Store, app?: any) {
+	constructor(container: HTMLElement, store: Store, app?: unknown) {
 		this.container = container;
 		this.store = store;
 		this.app = app;
@@ -86,7 +86,7 @@ export class TimePanel {
 
 	destroy() {
 		if (this.dateCheckInterval !== null) {
-			clearInterval(this.dateCheckInterval);
+			window.clearInterval(this.dateCheckInterval);
 			this.dateCheckInterval = null;
 		}
 		if (this.pendingDateCheck !== null) {
@@ -142,16 +142,22 @@ export class TimePanel {
 
 	private registerWorkspaceEvent() {
 		if (!this.app) return;
-		this.app.workspace.on("active-leaf-change", () =>
-			this.checkDateChange(),
-		);
-		this.app.workspace.on("layout-change", () => this.checkDateChange());
+		(
+			this.app as {
+				workspace: { on: (e: string, cb: () => void) => void };
+			}
+		).workspace.on("active-leaf-change", () => this.checkDateChange());
+		(
+			this.app as {
+				workspace: { on: (e: string, cb: () => void) => void };
+			}
+		).workspace.on("layout-change", () => this.checkDateChange());
 	}
 
 	private checkDateChange() {
 		if (this.pendingDateCheck !== null)
 			cancelAnimationFrame(this.pendingDateCheck);
-		this.pendingDateCheck = requestAnimationFrame(() => {
+		this.pendingDateCheck = window.requestAnimationFrame(() => {
 			this.pendingDateCheck = null;
 			this.doCheckDateChange();
 		});
@@ -167,11 +173,13 @@ export class TimePanel {
 		}
 	}
 
-	private updatePreset(changes: { dateRange?: boolean } & Partial<any>) {
+	private updatePreset(
+		changes: Record<string, unknown> & { dateRange?: boolean },
+	) {
 		const state = this.store.getState();
 		const pre = state.presets.find((p) => p.id === state.activePresetId);
 		if (!pre) return;
-		const updates: any = {};
+		const updates: Record<string, unknown> = {};
 		for (const key of Object.keys(changes)) {
 			if (key !== "dateRange") updates[key] = changes[key];
 		}
@@ -220,8 +228,8 @@ export class TimePanel {
 	}
 
 	private onStaticChange(lv: string, sv: number, ev: number) {
-		const minV = Math.min(sv, ev),
-			maxV = Math.max(sv, ev);
+		const minV = Math.min(sv, ev);
+		const maxV = Math.max(sv, ev);
 		if (lv === "year") {
 			this.currentMinYear = minV;
 			this.currentMaxYear = maxV;
@@ -363,20 +371,19 @@ export class TimePanel {
 			-dmx,
 			dmx,
 		);
-		const minV = Math.min(dsVal, deVal),
-			maxV = Math.max(dsVal, deVal);
+		const minV = Math.min(dsVal, deVal);
+		const maxV = Math.max(dsVal, deVal);
 		const result = createEnhancedSlider({
 			container: this.dynamicSection,
 			min: -dmx,
 			max: dmx,
 			start: minV,
 			end: maxV,
-			format: (v) => formatDynamicValue(v, this.dynamicUnit),
-			onChange: (s, e) => this.onDynamicChange(s, e),
+			format: (v: number) => formatDynamicValue(v, this.dynamicUnit),
+			onChange: (s: number, e: number) => this.onDynamicChange(s, e),
 			todayValue: 0,
 			midValue: 0,
 		});
-		// 原代码：result.refs.row.style.paddingLeft = "calc(4em + 6px)";
 		result.refs.row.addClass("task-pl-4");
 		result.refs.labelSpan.textContent =
 			minV === maxV
@@ -397,7 +404,9 @@ export class TimePanel {
 		const isSingle =
 			this.currentMinYear === this.currentMaxYear &&
 			this.childSlidersDrivenByYear;
-		let ranges: any;
+		let ranges:
+			| ReturnType<typeof singleYearRanges>
+			| ReturnType<typeof staticSliderRanges>;
 		if (isSingle) {
 			ranges = singleYearRanges(this.currentMinYear, yearMin, yearMax);
 		} else {
@@ -447,17 +456,17 @@ export class TimePanel {
 
 		const fmtFns: Record<string, (x: number) => string> = {
 			year: formatYearValue,
-			quarter: (x) => formatQuarterValue(x, this.currentMinYear),
-			month: (x) => formatMonthValue(x, this.currentMinYear),
-			week: (x) => formatWeekValue(x, this.currentMinYear),
-			day: (x) => formatDayValue(x, this.currentMinYear),
+			quarter: (x: number) => formatQuarterValue(x, this.currentMinYear),
+			month: (x: number) => formatMonthValue(x, this.currentMinYear),
+			week: (x: number) => formatWeekValue(x, this.currentMinYear),
+			day: (x: number) => formatDayValue(x, this.currentMinYear),
 		};
 
 		["year", "quarter", "month", "week", "day"].forEach((key) => {
 			this.createSlider(
 				key,
-				(ranges as any)[key + "Min"],
-				(ranges as any)[key + "Max"],
+				ranges[(key + "Min") as keyof typeof ranges] as number,
+				ranges[(key + "Max") as keyof typeof ranges] as number,
 				sv(key),
 				ev(key),
 				fmtFns[key],
@@ -483,11 +492,11 @@ export class TimePanel {
 			start: clamp(Math.min(start, end), min, max),
 			end: clamp(Math.max(start, end), min, max),
 			format,
-			onChange: (s, ev) => this.onStaticChange(key, s, ev),
+			onChange: (s: number, ev: number) =>
+				this.onStaticChange(key, s, ev),
 			todayValue: todayVal,
 			midValue: todayVal,
 		});
-		// 原代码：result.refs.row.style.paddingLeft = "calc(4em + 6px)";
 		result.refs.row.addClass("task-pl-4");
 		this.enhancedSliders.set(key, result.refs);
 		this.updateMidLines.set(key, result.updateMidLine);
@@ -497,8 +506,8 @@ export class TimePanel {
 		const ref = this.enhancedSliders.get("dynamic");
 		const updateMid = this.updateMidLines.get("dynamic");
 		if (!ref || !updateMid) return;
-		const mx = maxDynamicRange(this.dynamicUnit),
-			mn = -mx;
+		const mx = maxDynamicRange(this.dynamicUnit);
+		const mn = -mx;
 		const ds = calcDynamicOffset(this.dynamicStart, this.dynamicUnit);
 		const de = calcDynamicOffset(this.dynamicEnd, this.dynamicUnit);
 		const minV = clamp(Math.min(ds, de), mn, mx);
@@ -529,8 +538,8 @@ export class TimePanel {
 			mx: number,
 			midV: number,
 		) => {
-			const ref = this.enhancedSliders.get(key),
-				um = this.updateMidLines.get(key);
+			const ref = this.enhancedSliders.get(key);
+			const um = this.updateMidLines.get(key);
 			if (!ref) return;
 			ref.update(
 				clamp(Math.min(s, e), mn, mx),
@@ -557,7 +566,7 @@ export class TimePanel {
 			this.taskMinYear,
 			this.taskMaxYear,
 		);
-		this.currentMinYear = (ranges as any).minYear;
+		this.currentMinYear = ranges.minYear;
 		const vals = getLevelValues(
 			this.staticStart,
 			this.staticEnd,
@@ -605,14 +614,16 @@ export class TimePanel {
 		);
 	}
 
-	private async initRange() {
+	private async initRange(): Promise<void> {
 		try {
 			if (!this.app) return;
-			await this.dataManager.loadData(this.app);
+			await this.dataManager.loadData(
+				this.app as Parameters<typeof this.dataManager.loadData>[0],
+			);
 			const r = this.dataManager.getTaskTimeRange();
 			if (r.minTime) this.taskMinYear = new Date(r.minTime).getFullYear();
 			if (r.maxTime) this.taskMaxYear = new Date(r.maxTime).getFullYear();
-		} catch (e) {
+		} catch (e: unknown) {
 			console.warn("[TimePanel] 初始化时间范围失败:", e);
 		}
 	}
@@ -667,7 +678,7 @@ export class TimePanel {
 		});
 		if (this.intervalMode !== "none") mainBtn.addClass("active");
 
-		mainBtn.onclick = () => {
+		mainBtn.addEventListener("click", () => {
 			const newMode = this.intervalMode !== "none" ? "none" : "any-date";
 			this.intervalMode = newMode;
 			this.updateModeButtons();
@@ -678,10 +689,9 @@ export class TimePanel {
 					intervalMode: this.intervalMode,
 				});
 			}
-		};
+		});
 
 		const subPanel = mr.createDiv({ cls: "panel-sub" });
-		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
 		subPanel.addClass(
 			"task-flex",
 			"task-flex-wrap",
@@ -700,7 +710,7 @@ export class TimePanel {
 				cls: "panel-btn sub-btn",
 			});
 			if (this.intervalMode === key) btn.addClass("active");
-			btn.onclick = () => this.onSelectMode(key);
+			btn.addEventListener("click", () => this.onSelectMode(key));
 			this.modeBtns.set(key, btn);
 		});
 
@@ -723,14 +733,16 @@ export class TimePanel {
 			const b = uRow.createEl("button", { text: u, cls: "panel-btn" });
 			if (this.dynamicUnit === k) b.addClass("active");
 			this.unitBtns.set(k, b);
-			b.onclick = () => this.onSwitchUnit(k);
+			b.addEventListener("click", () => this.onSwitchUnit(k));
 		});
 		this.useDynamicBtn = uRow.createEl("button", {
 			text: "使用动态",
 			cls: "panel-btn",
 		});
 		if (this.useDynamic) this.useDynamicBtn.addClass("active");
-		this.useDynamicBtn.onclick = () => this.onToggleDynamic();
+		this.useDynamicBtn.addEventListener("click", () =>
+			this.onToggleDynamic(),
+		);
 		this.rebuildDynamicSlider();
 
 		this.staticSection = this.container.createDiv({ cls: "panel-section" });
