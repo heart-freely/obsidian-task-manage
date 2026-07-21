@@ -1,4 +1,6 @@
 // src/util/logger.ts
+// 简易日志工具
+
 const isProduction = (() => {
 	try {
 		if (
@@ -9,7 +11,7 @@ const isProduction = (() => {
 			return true;
 		}
 	} catch {
-		// process 不可用时视为非生产环境，忽略错误
+		// process 不可用时视为非生产环境
 	}
 	return false;
 })();

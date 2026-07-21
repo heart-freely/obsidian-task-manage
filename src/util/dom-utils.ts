@@ -10,7 +10,7 @@ export function createEl(
 	if (typeof textOrOpts === "string") {
 		el.textContent = textOrOpts;
 	} else if (textOrOpts && typeof textOrOpts === "object") {
-		Object.assign(el, textOrOpts as Record<string, unknown>);
+		Object.assign(el, textOrOpts);
 	}
 	if (opts && typeof opts === "object") {
 		if (opts.cls) el.className = opts.cls;

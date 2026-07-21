@@ -885,7 +885,9 @@ function appendRestoreButton(
 	if (!ctx.hasChanged) restoreBtn.addClass("task-hidden");
 	restoreBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		options.onEdit(node, group.key, ctx.originalValue);
+		if (ctx.originalValue !== null)
+			options.onEdit(node, group.key, ctx.originalValue);
+		else options.onEdit(node, group.key, null);
 	});
 	subRow.appendChild(restoreBtn);
 }

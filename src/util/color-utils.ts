@@ -1,12 +1,6 @@
 // src/util/color-utils.ts
 // 颜色工具 — 主题检测、颜色获取
 
-// ========== 主题检测 ==========
-
-/**
- * 检测当前是否为深色主题
- * 通过读取 CSS 变量 --background-primary 的亮度判断
- */
 export function isDarkTheme(): boolean {
 	const bg = getComputedStyle(document.body)
 		.getPropertyValue("--background-primary")
@@ -21,35 +15,19 @@ export function isDarkTheme(): boolean {
 	return true;
 }
 
-// ========== 颜色定义类型 ==========
-
-/**
- * 颜色定义：{ dark: 深色主题颜色, light: 浅色主题颜色 }
- */
 export interface ThemeColor {
 	dark: string;
 	light: string;
 }
 
-// ========== 颜色获取工具函数 ==========
-
-/**
- * 创建颜色定义对象
- */
 export function makeColor(darkColor: string, lightColor: string): ThemeColor {
 	return { dark: darkColor, light: lightColor };
 }
 
-/**
- * 根据当前主题获取颜色
- */
 export function getThemeColor(color: ThemeColor): string {
 	return isDarkTheme() ? color.dark : color.light;
 }
 
-/**
- * 根据当前主题获取颜色映射
- */
 export function getThemeColorMap(
 	defs: Record<string, ThemeColor>,
 ): Record<string, string> {
@@ -61,22 +39,11 @@ export function getThemeColorMap(
 	return result;
 }
 
-/**
- * 根据当前主题获取颜色数组
- */
 export function getThemeColorArray(defs: ThemeColor[]): string[] {
 	const dark = isDarkTheme();
 	return defs.map((c) => (dark ? c.dark : c.light));
 }
 
-// ========== Canvas 颜色转换 ==========
-
-/**
- * 将 rgba 颜色叠加在深色背景上，返回等效的不透明 hex 颜色
- * 用于 Canvas/ECharts 等不支持 CSS 背景叠加的渲染环境
- * 深色背景取 #1e1e1e (RGB: 30, 30, 30)
- * 叠加后再将 RGB 各通道乘以衰减系数，使颜色更接近 DOM 元素的实际视觉效果
- */
 export function rgbaToSolidOnDark(rgbaStr: string): string {
 	const match: RegExpMatchArray | null = rgbaStr.match(
 		/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/,
