@@ -29,11 +29,12 @@ export class ManageView extends ItemView {
 	}
 
 	async onOpen() {
-		const container = this.containerEl.children[1];
+		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
-		const viewHeader = this.containerEl.querySelector(".view-header");
-		if (viewHeader)
-			(viewHeader as HTMLElement).addClass("task-hidden-important");
+		const viewHeader = this.containerEl.querySelector(
+			".view-header",
+		) as HTMLElement | null;
+		if (viewHeader) viewHeader.addClass("task-hidden-important");
 		this.cleanup = createManageLayout(container, this.store, this.app);
 	}
 
@@ -47,10 +48,12 @@ export class ManageView extends ItemView {
 	}
 }
 
-const VIEW_LOADERS: Record<
-	string,
-	() => Promise<{ new (c: HTMLElement, s: Store, a: any): BaseTaskView }>
-> = {
+/** 业务视图加载器类型 */
+type ViewLoader = () => Promise<{
+	new (c: HTMLElement, s: Store, a: unknown): BaseTaskView;
+}>;
+
+const VIEW_LOADERS: Record<string, ViewLoader> = {
 	allTasks: () => import("./view/all-task-view").then((m) => m.AllTasksView),
 	inbox: () => import("./view/inbox-task-view").then((m) => m.InboxView),
 	important: () =>
@@ -62,18 +65,20 @@ const VIEW_LOADERS: Record<
 export class ViewContainer {
 	protected container: HTMLElement;
 	protected store: Store;
-	protected app: any;
+	protected app: unknown;
 	protected currentView: BaseTaskView | null = null;
 
-	constructor(container: HTMLElement, store: Store, app: any) {
+	constructor(container: HTMLElement, store: Store, app: unknown) {
 		this.container = container;
 		this.store = store;
 		this.app = app;
-		store.subscribe(() => this.refresh());
-		this.refresh();
+		store.subscribe(() => {
+			void this.refresh();
+		});
+		void this.refresh();
 	}
 
-	async refresh() {
+	async refresh(): Promise<void> {
 		const preset = this.store.getActivePreset();
 		if (!preset) {
 			this.container.empty();
@@ -100,11 +105,12 @@ export class ViewContainer {
 				this.app,
 			);
 			await this.currentView.render();
-		} catch (e) {
-			console.warn("[TaskManage] 视图加载失败:", e);
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			logger.warn("[TaskManage] 视图加载失败:", message);
 			this.container.empty();
 			this.container.createDiv({
-				text: `视图加载失败: ${(e as Error).message}`,
+				text: `视图加载失败: ${message}`,
 			});
 		}
 	}
@@ -113,8 +119,8 @@ export class ViewContainer {
 export function createManageLayout(
 	container: HTMLElement,
 	store: Store,
-	app: any,
-) {
+	app: unknown,
+): () => void {
 	container.addClass("manage-root");
 	container.addClass("task-flex", "task-h-full");
 

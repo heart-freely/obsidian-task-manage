@@ -11,17 +11,16 @@ import { SortPanel } from "./sort-panel";
 import { TimePanel } from "./time-panel";
 import { ViewPanel } from "./view-panel";
 
-const logger = {
-	warn: (...args: any[]) => console.warn("[TaskManage]", ...args),
-	error: (...args: any[]) => console.error("[TaskManage]", ...args),
-	info: (...args: any[]) => console.log("[TaskManage]", ...args),
-};
-
 type PanelComponentClass = new (
 	container: HTMLElement,
 	store: Store,
-	app?: any,
-) => any;
+	app?: unknown,
+) => PanelComponent;
+
+interface PanelComponent {
+	render(): void;
+	destroy(): void;
+}
 
 const PANEL_COMPONENTS: Record<string, PanelComponentClass> = {
 	config: SidebarPanel,
@@ -38,7 +37,7 @@ export class Panels {
 	private store!: Store;
 	private viewEl!: HTMLElement;
 	private panelHost!: HTMLElement;
-	private app!: any;
+	private app!: unknown;
 
 	private buttonBarEl: HTMLElement | null = null;
 	private panelsContainer: HTMLElement | null = null;
@@ -46,7 +45,7 @@ export class Panels {
 	private resizeHandle: HTMLElement | null = null;
 	private headPanel: HeadPanel | null = null;
 	private panelEls: Map<string, HTMLElement> = new Map();
-	private panelInstances: Map<string, any> = new Map();
+	private panelInstances: Map<string, PanelComponent> = new Map();
 	private styleEl: HTMLStyleElement | null = null;
 
 	private isPanelsCollapsed: boolean = false;
@@ -61,7 +60,12 @@ export class Panels {
 		return Panels.instance;
 	}
 
-	init(store: Store, viewEl: HTMLElement, container: HTMLElement, app: any) {
+	init(
+		store: Store,
+		viewEl: HTMLElement,
+		container: HTMLElement,
+		app: unknown,
+	) {
 		this.store = store;
 		this.viewEl = viewEl;
 		this.app = app;
@@ -114,9 +118,9 @@ export class Panels {
 				this.resizeHandle.setCssProps({ "--resize-opacity": "0" });
 		});
 
-		let startY = 0,
-			startHeight = 0,
-			dragging = false;
+		let startY = 0;
+		let startHeight = 0;
+		let dragging = false;
 		this.resizeHandle.addEventListener("mousedown", (e) => {
 			if (e.button !== 0 || e.target === arrow) return;
 			e.preventDefault();
@@ -148,8 +152,12 @@ export class Panels {
 			document.addEventListener("mouseup", onMouseUp);
 		});
 
-		this.store.subscribe(() => this.syncState());
-		requestAnimationFrame(() => this.syncState());
+		this.store.subscribe(() => {
+			this.syncState();
+		});
+		window.requestAnimationFrame(() => {
+			this.syncState();
+		});
 	}
 
 	public syncState() {
@@ -159,27 +167,44 @@ export class Panels {
 				(p) => p.id === state.activePresetId,
 			);
 			if (!preset) return;
-			const prevPresetId = (this as any)._prevPresetId;
+			const prevPresetId = (this as unknown as { _prevPresetId?: string })
+				._prevPresetId;
 			if (prevPresetId && prevPresetId !== state.activePresetId) {
 				const instance = this.panelInstances.get("time");
-				if (instance && typeof instance.onPresetChanged === "function")
-					instance.onPresetChanged();
+				if (
+					instance &&
+					typeof (
+						instance as unknown as { onPresetChanged?: () => void }
+					).onPresetChanged === "function"
+				)
+					(
+						instance as unknown as { onPresetChanged: () => void }
+					).onPresetChanged();
 			}
-			(this as any)._prevPresetId = state.activePresetId;
+			(this as unknown as { _prevPresetId?: string })._prevPresetId =
+				state.activePresetId;
 			this.isPanelsCollapsed = preset.toolbarPanelsCollapsed ?? false;
 			this.panelHeight = preset.toolbarPanelsHeight ?? 300;
 			this.applyVisibility();
 			this.refreshContent();
-			requestAnimationFrame(() => this.updateViewPadding());
-		} catch (e) {
+			window.requestAnimationFrame(() => {
+				this.updateViewPadding();
+			});
+		} catch (e: unknown) {
 			console.warn("[TaskManage] 面板状态同步失败:", e);
 		}
 	}
 
 	public refreshTimePanel() {
 		const instance = this.panelInstances.get("time");
-		if (instance && typeof instance.onPresetChanged === "function")
-			instance.onPresetChanged();
+		if (
+			instance &&
+			typeof (instance as unknown as { onPresetChanged?: () => void })
+				.onPresetChanged === "function"
+		)
+			(
+				instance as unknown as { onPresetChanged: () => void }
+			).onPresetChanged();
 	}
 
 	public applyVisibility() {
@@ -223,12 +248,12 @@ export class Panels {
 			(key) => barVisibility[key] !== false,
 		);
 
-		const activeEl = document.activeElement;
+		const activeEl = document.activeElement as HTMLElement | null;
 		const isInputFocused =
 			activeEl &&
 			(activeEl.tagName === "INPUT" ||
 				activeEl.tagName === "TEXTAREA" ||
-				(activeEl as HTMLElement).isContentEditable);
+				activeEl.isContentEditable);
 
 		if (isInputFocused) return;
 
@@ -265,7 +290,7 @@ export class Panels {
 		const currentChildren = Array.from(this.panelContentInner.children);
 		const expectedOrder = visibleKeys
 			.map((key) => this.panelEls.get(key))
-			.filter(Boolean);
+			.filter((el): el is HTMLElement => el !== undefined);
 
 		let needReorder = false;
 		for (let i = 0; i < expectedOrder.length; i++) {
@@ -318,7 +343,7 @@ export class Panels {
 		this.refreshContent();
 	}
 
-	private updatePreset(changes: Partial<any>) {
+	private updatePreset(changes: Record<string, unknown>) {
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
@@ -329,9 +354,16 @@ export class Panels {
 	}
 
 	public initPanelSubscriptions() {
-		for (const [key, instance] of this.panelInstances) {
-			if (instance && typeof instance.initSubscription === "function") {
-				instance.initSubscription();
+		for (const [, instance] of this.panelInstances) {
+			if (
+				instance &&
+				typeof (
+					instance as unknown as { initSubscription?: () => void }
+				).initSubscription === "function"
+			) {
+				(
+					instance as unknown as { initSubscription: () => void }
+				).initSubscription();
 			}
 		}
 	}

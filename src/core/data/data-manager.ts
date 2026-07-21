@@ -30,6 +30,14 @@ function filterFingerprint(filter: GlobalFilter): string {
 	});
 }
 
+/** Obsidian App 的最小接口，避免直接依赖 obsidian 包类型 */
+interface AppLike {
+	vault: {
+		getMarkdownFiles(): Array<{ path: string; name: string }>;
+		cachedRead(file: { path: string; name: string }): Promise<string>;
+	};
+}
+
 export class DataManager {
 	private static instance: DataManager;
 	private cache: DataCache = {
@@ -47,7 +55,7 @@ export class DataManager {
 		return DataManager.instance;
 	}
 
-	async loadData(app: any): Promise<{
+	async loadData(app: AppLike): Promise<{
 		files: ParsedFileData[];
 		nodes: TaskTreeNode[];
 		taskIdMap: Map<string, TaskTreeNode>;
@@ -82,8 +90,9 @@ export class DataManager {
 			}
 
 			return { files, nodes: allNodes, taskIdMap };
-		} catch (e) {
-			logger.warn("[TaskManage] 加载任务数据失败:", e);
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			logger.warn("[TaskManage] 加载任务数据失败:", message);
 			return { files: [], nodes: [], taskIdMap: new Map() };
 		}
 	}
@@ -101,6 +110,7 @@ export class DataManager {
 				children: [],
 				text: "",
 				display: true,
+				match: true,
 				status: "todo",
 				content: "",
 				priority: 5,
@@ -114,6 +124,10 @@ export class DataManager {
 				id: "",
 				forbid: "",
 				tag: "",
+				yamlStartLine: -1,
+				yamlEndLine: -1,
+				isFrontmatter: false,
+				hasYaml: false,
 			}
 		);
 	}

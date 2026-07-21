@@ -41,7 +41,6 @@ export class SortPanel {
 
 	render() {
 		this.container.empty();
-		const state = this.store.getState();
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
 		const currentSort = preset?.sort ?? { type: "", order: "asc" };

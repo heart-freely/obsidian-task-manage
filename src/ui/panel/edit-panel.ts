@@ -7,8 +7,8 @@ export class EditPanel {
 	private container: HTMLElement;
 	private store: Store;
 	private savedDaysValue: string = "0";
-	private editStore: any;
-	private taskView: any;
+	private editStore: unknown;
+	private taskView: unknown;
 
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
@@ -17,8 +17,12 @@ export class EditPanel {
 		this.taskView = store.getTaskView();
 		this.render();
 
-		if (this.editStore) {
-			this.editStore.subscribePanel(() => this.render());
+		const es = store.getEditStore();
+		if (
+			es &&
+			typeof (es as Record<string, unknown>).subscribePanel === "function"
+		) {
+			(es as Record<string, unknown>).subscribePanel(() => this.render());
 		}
 	}
 
@@ -31,17 +35,45 @@ export class EditPanel {
 
 	render() {
 		this.refreshRefs();
-		const es = this.editStore;
-		const isBatchMode = es ? es.getState().batchMode : false;
-		const selectedCount = es ? es.getState().selectedTasks.size : 0;
+		const es = this.editStore as Record<string, unknown> | null;
+		const tv = this.taskView as Record<string, unknown> | null;
+		const isBatchMode = es
+			? ((es.getState as () => Record<string, unknown>)()
+					.batchMode as boolean)
+			: false;
+		const selectedCount = es
+			? (
+					(es.getState as () => Record<string, unknown>)()
+						.selectedTasks as Set<string>
+				).size
+			: 0;
 		const hasSelected = selectedCount > 0;
 		const allSelected = hasSelected;
-		const isSyncMode = es ? es.getState().syncMode : false;
+		const isSyncMode = es
+			? ((es.getState as () => Record<string, unknown>)()
+					.syncMode as boolean)
+			: false;
 
-		let snapshots: any[] = [];
+		let snapshots: Array<{
+			time: string;
+			snapshot: Record<string, string>;
+		}> = [];
 		try {
-			snapshots = es ? es.getSnapshots() : [];
-		} catch (e) {}
+			snapshots =
+				es && typeof es.getSnapshots === "function"
+					? (
+							es as {
+								getSnapshots: () => Array<{
+									time: string;
+									snapshot: Record<string, string>;
+								}>;
+							}
+						).getSnapshots()
+					: [];
+		} catch {
+			// 获取快照失败时使用空数组
+			snapshots = [];
+		}
 		const hasSnapshots = snapshots.length > 0;
 
 		const disabledStyle = "opacity: 0.5; cursor: not-allowed;";
@@ -60,7 +92,9 @@ export class EditPanel {
 		if (isBatchMode) batchBtn.addClass("active");
 		batchBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			this.taskView?.toggleBatchMode();
+			if (tv && typeof tv.toggleBatchMode === "function") {
+				tv.toggleBatchMode();
+			}
 		});
 
 		const subPanel1 = row1.createDiv({ cls: "panel-sub" });
@@ -81,9 +115,13 @@ export class EditPanel {
 		if (isSyncMode) syncBtn.addClass("active");
 		syncBtn.addEventListener("click", () => {
 			if (!isBatchMode) return;
-			es?.toggleSyncMode();
-			syncBtn.toggleClass("active", es?.getState().syncMode ?? false);
-			this.taskView?.refreshEditCards?.();
+			if (es && typeof es.toggleSyncMode === "function") {
+				es.toggleSyncMode();
+			}
+			syncBtn.toggleClass("active", isSyncMode);
+			if (tv && typeof tv.refreshEditCards === "function") {
+				tv.refreshEditCards();
+			}
 		});
 
 		const selectAllBtn = subPanel1.createEl("button", {
@@ -93,7 +131,9 @@ export class EditPanel {
 		if (!isBatchMode) selectAllBtn.style.cssText += disabledStyle;
 		selectAllBtn.addEventListener("click", () => {
 			if (!isBatchMode) return;
-			this.taskView?.toggleSelectAll([]);
+			if (tv && typeof tv.toggleSelectAll === "function") {
+				tv.toggleSelectAll([]);
+			}
 		});
 
 		const sortBtn = subPanel1.createEl("button", {
@@ -104,9 +144,11 @@ export class EditPanel {
 			sortBtn.style.cssText += disabledStyle;
 		sortBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			es?.applySortTags();
+			if (es && typeof es.applySortTags === "function") {
+				es.applySortTags();
+			}
 			sortBtn.addClass("active");
-			setTimeout(() => sortBtn.removeClass("active"), 300);
+			window.setTimeout(() => sortBtn.removeClass("active"), 300);
 		});
 
 		const autoCompleteRow = subPanel1.createDiv();
@@ -126,9 +168,11 @@ export class EditPanel {
 			const rawValue = daysInput.value.trim();
 			const days =
 				rawValue === "" ? undefined : parseInt(rawValue, 10) || 0;
-			es?.applyAutoComplete(days);
+			if (es && typeof es.applyAutoComplete === "function") {
+				es.applyAutoComplete(days);
+			}
 			autoCompleteBtn.addClass("active");
-			setTimeout(() => autoCompleteBtn.removeClass("active"), 300);
+			window.setTimeout(() => autoCompleteBtn.removeClass("active"), 300);
 		});
 		autoCompleteRow.appendChild(autoCompleteBtn);
 
@@ -179,9 +223,11 @@ export class EditPanel {
 			clearBtn.style.cssText += disabledStyle;
 		clearBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			es?.clearPreviews();
+			if (es && typeof es.clearPreviews === "function") {
+				es.clearPreviews();
+			}
 			clearBtn.addClass("active");
-			setTimeout(() => clearBtn.removeClass("active"), 300);
+			window.setTimeout(() => clearBtn.removeClass("active"), 300);
 		});
 
 		const saveBtn = subPanel1.createEl("button", {
@@ -192,9 +238,11 @@ export class EditPanel {
 			saveBtn.style.cssText += disabledStyle;
 		saveBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			es?.saveCurrent();
+			if (es && typeof es.saveCurrent === "function") {
+				es.saveCurrent();
+			}
 			saveBtn.addClass("active");
-			setTimeout(() => saveBtn.removeClass("active"), 300);
+			window.setTimeout(() => saveBtn.removeClass("active"), 300);
 		});
 
 		// ========== 行2：批量撤回 ==========
@@ -234,9 +282,11 @@ export class EditPanel {
 			if (!hasSnapshots) return;
 			const idx = parseInt(snapshotSelect.value, 10);
 			if (!isNaN(idx)) {
-				es?.revertSnapshot(idx);
+				if (es && typeof es.revertSnapshot === "function") {
+					es.revertSnapshot(idx);
+				}
 				revertBtn.addClass("active");
-				setTimeout(() => revertBtn.removeClass("active"), 300);
+				window.setTimeout(() => revertBtn.removeClass("active"), 300);
 			}
 		});
 
@@ -247,9 +297,14 @@ export class EditPanel {
 		if (!hasSnapshots) clearSnapshotBtn.style.cssText += disabledStyle;
 		clearSnapshotBtn.addEventListener("click", () => {
 			if (!hasSnapshots) return;
-			es?.clearAllSnapshots();
+			if (es && typeof es.clearAllSnapshots === "function") {
+				es.clearAllSnapshots();
+			}
 			clearSnapshotBtn.addClass("active");
-			setTimeout(() => clearSnapshotBtn.removeClass("active"), 300);
+			window.setTimeout(
+				() => clearSnapshotBtn.removeClass("active"),
+				300,
+			);
 			this.render();
 		});
 	}

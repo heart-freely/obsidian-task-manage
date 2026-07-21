@@ -21,7 +21,9 @@ export class HeadPanel {
 	constructor(buttonBar: HTMLElement, store: Store) {
 		this.buttonBar = buttonBar;
 		this.store = store;
-		this.unsub = store.subscribe(() => this.renderContent());
+		this.unsub = store.subscribe(() => {
+			this.renderContent();
+		});
 		this.renderContent();
 	}
 
@@ -47,7 +49,6 @@ export class HeadPanel {
 			"config",
 		];
 
-		// 原代码：Object.assign(this.buttonBar.style, { ... })
 		this.buttonBar.addClass(
 			"task-head-bar",
 			"task-flex",
@@ -66,7 +67,6 @@ export class HeadPanel {
 			btnDiv.className = "panel-header-btn";
 			btnDiv.setAttribute("data-key", barKey);
 			btnDiv.draggable = true;
-			// 原代码：if (index < arr.length - 1) btnDiv.style.marginRight = "6px";
 			if (index < arr.length - 1) btnDiv.addClass("task-mr-1");
 
 			const label = document.createElement("span");
@@ -77,12 +77,11 @@ export class HeadPanel {
 			const eyeBtn = document.createElement("span");
 			eyeBtn.className = "panel-eye";
 			eyeBtn.textContent = "👁";
-			const isVisible = barVisibility[barKey];
-			// 原代码：eyeBtn.style.opacity = isVisible ? "1" : "0.4";
+			const isVisible = barVisibility[barKey] !== false;
 			eyeBtn.addClass(isVisible ? "task-opacity-100" : "task-opacity-40");
 			if (isVisible) btnDiv.classList.add("active");
 			eyeBtn.title = isVisible ? "隐藏面板" : "显示面板";
-			eyeBtn.onclick = (e: Event) => {
+			eyeBtn.addEventListener("click", (e: Event) => {
 				e.stopPropagation();
 				document.dispatchEvent(new CustomEvent("panel-expand"));
 				const st = this.store.getState();
@@ -99,12 +98,12 @@ export class HeadPanel {
 							: p,
 					),
 				});
-			};
+			});
 			btnDiv.appendChild(eyeBtn);
 
-			btnDiv.addEventListener("dragstart", (e) => {
+			btnDiv.addEventListener("dragstart", (e: DragEvent) => {
 				draggedKey = barKey;
-				e.dataTransfer!.effectAllowed = "move";
+				if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
 				btnDiv.classList.add("dragging");
 			});
 			btnDiv.addEventListener("dragend", () => {
@@ -114,15 +113,15 @@ export class HeadPanel {
 					?.querySelectorAll(".drag-over")
 					.forEach((el) => el.classList.remove("drag-over"));
 			});
-			btnDiv.addEventListener("dragover", (e) => {
+			btnDiv.addEventListener("dragover", (e: DragEvent) => {
 				e.preventDefault();
-				e.dataTransfer!.dropEffect = "move";
+				if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
 				btnDiv.classList.add("drag-over");
 			});
 			btnDiv.addEventListener("dragleave", () =>
 				btnDiv.classList.remove("drag-over"),
 			);
-			btnDiv.addEventListener("drop", (e) => {
+			btnDiv.addEventListener("drop", (e: DragEvent) => {
 				e.preventDefault();
 				btnDiv.classList.remove("drag-over");
 				if (draggedKey && draggedKey !== barKey) {

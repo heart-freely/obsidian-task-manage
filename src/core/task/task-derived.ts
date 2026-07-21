@@ -1,10 +1,9 @@
 // src/core/task/task-derived.ts
 
-import { IntervalMode, TaskMarks } from "../../type/type";
+import { IntervalMode, TaskMarks, TaskTreeNodeLike } from "../../type/type";
 import { STATUS_ICONS, STATUS_NAMES } from "../config/config";
-import { TaskTreeNode } from "./task-tree";
 
-export function getTaskMarks(node: TaskTreeNode): TaskMarks {
+export function getTaskMarks(node: TaskTreeNodeLike): TaskMarks {
 	return {
 		priority: node.priority !== 5,
 		repeat: node.repeat !== "",
@@ -21,7 +20,7 @@ export function getTaskMarks(node: TaskTreeNode): TaskMarks {
 }
 
 export function getTaskTimeRange(
-	node: TaskTreeNode,
+	node: TaskTreeNodeLike,
 	mode: IntervalMode = "scheduled-due",
 ): { start: number; end: number } | null {
 	if (mode === "none") return null;
@@ -52,24 +51,24 @@ export function getTaskTimeRange(
 	return { start: Math.min(start, end), end: Math.max(start, end) };
 }
 
-export function getFileName(node: TaskTreeNode): string {
+export function getFileName(node: TaskTreeNodeLike): string {
 	return node.path.split("/").pop()?.replace(/\.md$/, "") ?? "";
 }
 
-export function getStatusIcon(node: TaskTreeNode): string {
+export function getStatusIcon(node: TaskTreeNodeLike): string {
 	return STATUS_ICONS[node.status] ?? "🔲";
 }
 
-export function getStatusName(node: TaskTreeNode): string {
+export function getStatusName(node: TaskTreeNodeLike): string {
 	return STATUS_NAMES[node.status] ?? node.status;
 }
 
-export function getPriorityIcon(node: TaskTreeNode): string {
+export function getPriorityIcon(node: TaskTreeNodeLike): string {
 	const icons = ["🔺", "⏫", "🔼", "🔽", "⏬", ""];
 	return icons[node.priority] ?? "";
 }
 
-export function getPriorityName(node: TaskTreeNode): string {
+export function getPriorityName(node: TaskTreeNodeLike): string {
 	const names = ["最高", "高", "中", "低", "最低", "无"];
 	return names[node.priority] ?? "无";
 }

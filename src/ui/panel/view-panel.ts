@@ -54,7 +54,7 @@ export class ViewPanel {
 
 	render() {
 		this.container.empty();
-		const state = this.store.getState();
+
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
 		const currentStyle = preset?.viewStyle ?? "list";

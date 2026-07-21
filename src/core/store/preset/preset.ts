@@ -1,4 +1,5 @@
-// src/store/preset-manager.ts
+// src/core/store/preset/preset.ts
+
 import { Preset } from "../../../type/type";
 import { Store } from "../store";
 
@@ -51,5 +52,5 @@ export function activatePreset(store: Store, presetId: string) {
 
 // 辅助：生成唯一 ID
 function generateId(): string {
-	return Math.random().toString(36).substr(2, 9);
+	return Math.random().toString(36).substring(2, 11);
 }

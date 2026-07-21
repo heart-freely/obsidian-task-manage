@@ -2,34 +2,47 @@
 // 编辑状态管理器
 
 import { Notice } from "obsidian";
-import { EditState } from "../../type/type";
+import { EditState, Snapshot } from "../../type/type";
 import { parseTaskLine } from "../parser/tasks-parser";
 import { Store } from "../store/store";
 import { TaskTreeNode } from "../task/task-tree";
 import {
 	loadSnapshots,
 	Op,
-	revertSingleTask,
 	saveAllChanges,
 	saveSingleTask,
 	saveSnapshots,
 	writeToFiles,
 } from "./task-editor";
+
 const BATCH_CHUNK_SIZE = 50;
+
+/** Obsidian Vault 的最小接口 */
+interface VaultLike {
+	getAbstractFileByPath(path: string): { path: string } | null;
+	process(
+		file: { path: string },
+		fn: (data: string) => string,
+	): Promise<void>;
+}
+
+/** Obsidian App 的最小接口 */
+interface AppLike {
+	vault: VaultLike;
+}
+
+/** getNode 回调类型 */
+type GetNodeFn = (uid: string) => TaskTreeNode | undefined;
 
 export class EditStore {
 	private state: EditState;
-	private app: any;
-	private getNode: (uid: string) => TaskTreeNode | undefined;
+	private app: AppLike;
+	private getNode: GetNodeFn;
 	private store: Store | null = null;
 	private panelListeners: Array<() => void> = [];
 	private _pendingNotify: boolean = false;
 
-	constructor(
-		app: any,
-		getNode: (uid: string) => TaskTreeNode | undefined,
-		store?: Store,
-	) {
+	constructor(app: AppLike, getNode: GetNodeFn, store?: Store) {
 		this.state = createEditState();
 		this.app = app;
 		this.getNode = getNode;
@@ -60,7 +73,7 @@ export class EditStore {
 		}
 		if (!this._pendingNotify) {
 			this._pendingNotify = true;
-			requestAnimationFrame(() => {
+			window.requestAnimationFrame(() => {
 				this._pendingNotify = false;
 				this.notifyPanel();
 			});
@@ -389,14 +402,14 @@ export class EditStore {
 			index = chunkEnd;
 
 			if (index < total) {
-				requestAnimationFrame(processChunk);
+				window.requestAnimationFrame(processChunk);
 			} else {
 				this.syncToStore();
 				this.store?.triggerEditCardsChanged?.();
 			}
 		};
 
-		requestAnimationFrame(processChunk);
+		window.requestAnimationFrame(processChunk);
 	}
 
 	private applyYamlEdit(
@@ -570,17 +583,20 @@ export class EditStore {
 	}
 
 	async revertSingle(node: TaskTreeNode) {
-		this.state = await revertSingleTask(
-			this.state,
-			this.app,
-			this.getNode,
-			node,
-		);
+		this.state = await writeToFiles(this.app, this.getNode, [node.uid], {
+			[node.uid]: node.rawLine,
+		}).then(() => {
+			this.state.savedTasks.delete(node.uid);
+			this.state.previews.delete(node.uid);
+			this.state.selectedTasks.add(node.uid);
+			this.state.previews.set(node.uid, node.rawLine);
+			return this.state;
+		});
 		this.syncToStore();
 	}
 
 	async revertSnapshot(snapshotIndex: number) {
-		const snapshots = loadSnapshots();
+		const snapshots: Snapshot[] = loadSnapshots();
 		if (snapshotIndex < 0 || snapshotIndex >= snapshots.length) return;
 
 		const snap = snapshots[snapshotIndex];
@@ -622,7 +638,7 @@ export class EditStore {
 		this.store?.triggerFullRender?.();
 	}
 
-	getSnapshots() {
+	getSnapshots(): Snapshot[] {
 		return loadSnapshots();
 	}
 
@@ -674,7 +690,7 @@ export class EditStore {
 	private refreshCardsAfterSave(nodeMap: Map<string, TaskTreeNode>) {
 		if (nodeMap.size > 50) return;
 		const taskView = this.store?.getTaskView?.();
-		for (const [uid, node] of nodeMap) {
+		for (const [, node] of nodeMap) {
 			taskView?.refreshSingleCard?.(node);
 		}
 	}

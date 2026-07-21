@@ -25,13 +25,10 @@ let cachedDateTaskMap: Map<string, TaskTreeNode[]> | null = null;
 
 const YEAR_HEAT_RGB = "64, 120, 209";
 const TIMELINE_ROW_HEIGHT = 20;
-const TIMELINE_BAR_HEIGHT = 16;
 
 function padTwo(n: number): string {
 	return n < 10 ? "0" + n : String(n);
 }
-
-let currentStyleEl: HTMLStyleElement | null = null;
 
 function renderTimeline(
 	container: HTMLElement,

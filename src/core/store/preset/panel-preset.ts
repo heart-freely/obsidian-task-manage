@@ -66,13 +66,22 @@ export function getDefaultPresets(): Preset[] {
 	const defaultFilter = getDefaultFilter();
 	const defaultHideConfig = getDefaultHideConfig();
 
-	const basePreset = {
+	const basePreset: Omit<
+		Preset,
+		| "id"
+		| "name"
+		| "businessView"
+		| "viewStyle"
+		| "icon"
+		| "filter"
+		| "sort"
+	> = {
 		groupId: "basic",
 		toolbarPanelsCollapsed: false,
 		toolbarPanelsHeight: 300,
 		toolbarOrder: [...DEFAULT_TOOLBAR_ORDER],
 		barVisibility: { ...DEFAULT_BAR_VISIBILITY },
-		intervalMode: "none" as string,
+		intervalMode: "none" as const,
 		taskTreeNavCollapsed: true,
 		taskTreeNavWidth: 280,
 		hideConfig: { ...defaultHideConfig },

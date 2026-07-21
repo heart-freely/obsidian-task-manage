@@ -14,7 +14,9 @@ export class SidebarPanel {
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.unsub = store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => {
+			this.render();
+		});
 		this.render();
 	}
 
@@ -51,8 +53,6 @@ export class SidebarPanel {
 			type: "text",
 			attr: { placeholder: "输入视图名称" },
 		});
-		// 原代码：nameInput.style.maxWidth = "150px";
-		// 替换为 CSS 类
 		nameInput.addClass("task-max-w-150");
 		nameInput.value = preset.name || "";
 		nameInput.addEventListener("change", () =>
@@ -77,33 +77,94 @@ export class SidebarPanel {
 		const row4 = this.container.createDiv({ cls: "panel-row" });
 		row4.createSpan({ text: "视图配置", cls: "panel-label" });
 
+		const importBtn = row4.createEl("button", {
+			text: "📥 导入配置",
+			cls: "panel-btn",
+		});
+		importBtn.addEventListener("click", () => {
+			const input = document.createElement("input");
+			input.type = "file";
+			input.accept = ".json";
+			input.addEventListener("change", () => {
+				if (!input.files?.length) return;
+				const file = input.files[0];
+				file.text()
+					.then((text: string) => {
+						try {
+							const data: unknown = JSON.parse(text);
+							if (!data || typeof data !== "object") return;
+							const st = this.store.getState();
+							const pr = st.presets.find(
+								(p) => p.id === st.activePresetId,
+							);
+							if (!pr) return;
+							const merged: Preset = {
+								...pr,
+								...(data as Partial<Preset>),
+								id: pr.id,
+							};
+							this.store.update({
+								presets: st.presets.map((p) =>
+									p.id === pr.id ? merged : p,
+								),
+							});
+							Panels.getInstance().refreshTimePanel();
+							this.render();
+						} catch {
+							// JSON 解析失败时忽略
+						}
+					})
+					.catch(() => {
+						// 文件读取失败时忽略
+					});
+			});
+			input.click();
+		});
+
+		const exportBtn = row4.createEl("button", {
+			text: "📤 导出配置",
+			cls: "panel-btn",
+		});
+		exportBtn.addEventListener("click", () => {
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const exportData = JSON.stringify(pr, null, 2);
+			const blob = new Blob([exportData], { type: "application/json" });
+			const a = document.createElement("a");
+			a.href = URL.createObjectURL(blob);
+			a.download = `task-view-${pr.name}.json`;
+			a.click();
+		});
+
 		const resetBtn = row4.createEl("button", {
 			text: "🔄 恢复默认",
 			cls: "panel-btn",
 		});
-		resetBtn.onclick = () => {
+		resetBtn.addEventListener("click", () => {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
 			const defaultPresets = getDefaultPresets();
 			const def = defaultPresets.find((dp) => dp.id === pr.id);
 			if (!def) return;
-			updatePreset({ ...def, id: pr.id, name: pr.name } as any);
+			const restored: Preset = { ...def, id: pr.id, name: pr.name };
+			updatePreset(restored);
 			Panels.getInstance().refreshTimePanel();
 			this.render();
-		};
+		});
 
 		const delBtn = row4.createEl("button", {
 			text: "🗑️ 删除视图",
 			cls: "panel-btn",
 		});
-		delBtn.onclick = () => {
+		delBtn.addEventListener("click", () => {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
 			const np = st.presets.filter((p) => p.id !== pr.id);
 			const na = np.length > 0 ? np[0].id : null;
 			this.store.update({ presets: np, activePresetId: na });
-		};
+		});
 	}
 }

@@ -45,10 +45,17 @@ import { renderUniqueId } from "../main/list/uniqueId-list";
 import { renderTaskTable } from "../main/table/table";
 import { Panels } from "../panel/panel";
 
+/** 甘特图实例接口 */
+interface GanttInstance {
+	taskMap: Map<string, TaskTreeNode>;
+	redraw: () => Promise<void>;
+	destroy: () => void;
+}
+
 export abstract class BaseTaskView extends BaseTaskEdit {
 	protected container: HTMLElement;
 	protected store: Store;
-	protected app: any;
+	protected app: unknown;
 	protected unsub?: () => void;
 	protected calendarSubView: string = "day";
 	protected calendarSelectedDate: Date = new Date();
@@ -66,9 +73,9 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	private focusHistory: TaskTreeNode[] = [];
 
 	private renderDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-	private static DEBOUNCE_DELAY = 50;
+	private static readonly DEBOUNCE_DELAY = 50;
 
-	private ganttInstance: any = null;
+	private ganttInstance: GanttInstance | null = null;
 
 	protected editStore: EditStore;
 
@@ -78,10 +85,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	private _lastSidebarCollapsed: boolean | null = null;
 	private _lastFilterStr: string | null = null;
 	private _lastIntervalMode: string | null = null;
-	private _needsEditRefresh: boolean = false;
-	private previouslyEditedUids: Set<string> = new Set();
 
-	constructor(container: HTMLElement, store: Store, app: any) {
+	constructor(container: HTMLElement, store: Store, app: unknown) {
 		super();
 		this.container = container;
 		this.store = store;
@@ -89,12 +94,26 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.dataManager = DataManager.getInstance();
 
 		this.editStore = new EditStore(
-			this.app,
-			(uid) => this.dataManager.getNodeByUid(uid),
+			this.app as {
+				vault: {
+					getAbstractFileByPath(path: string): unknown;
+					process(
+						file: { path: string },
+						fn: (data: string) => string,
+					): Promise<void>;
+				};
+			},
+			(uid: string) => this.dataManager.getNodeByUid(uid),
 			this.store,
 		);
-		this.store.setEditStore(this.editStore);
-		this.store.setTaskView(this);
+		this.store.setEditStore(
+			this.editStore as unknown as Parameters<
+				typeof this.store.setEditStore
+			>[0],
+		);
+		this.store.setTaskView(
+			this as unknown as Parameters<typeof this.store.setTaskView>[0],
+		);
 
 		const panels = Panels.getInstance();
 		panels.initPanelSubscriptions();
@@ -109,24 +128,24 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this._lastIntervalMode = currentPreset?.intervalMode ?? null;
 
 		this.unsub = store.subscribe(() => {
-			const state = store.getState();
+			const currentState = store.getState();
 			const presetChanged =
-				this._lastActivePresetId !== state.activePresetId;
+				this._lastActivePresetId !== currentState.activePresetId;
 			const sidebarChanged =
-				this._lastSidebarCollapsed !== state.sidebarCollapsed;
-			const currentPreset = state.presets.find(
-				(p) => p.id === state.activePresetId,
+				this._lastSidebarCollapsed !== currentState.sidebarCollapsed;
+			const activePreset = currentState.presets.find(
+				(p) => p.id === currentState.activePresetId,
 			);
-			const filterStr = JSON.stringify(currentPreset?.filter);
+			const filterStr = JSON.stringify(activePreset?.filter);
 			const filterChanged = this._lastFilterStr !== filterStr;
-			const currentIntervalMode = currentPreset?.intervalMode;
+			const currentIntervalMode = activePreset?.intervalMode;
 			const intervalModeChanged =
 				this._lastIntervalMode !== currentIntervalMode;
 
-			this._lastActivePresetId = state.activePresetId;
-			this._lastSidebarCollapsed = state.sidebarCollapsed;
+			this._lastActivePresetId = currentState.activePresetId;
+			this._lastSidebarCollapsed = currentState.sidebarCollapsed;
 			this._lastFilterStr = filterStr;
-			this._lastIntervalMode = currentIntervalMode;
+			this._lastIntervalMode = currentIntervalMode ?? null;
 
 			if (
 				presetChanged ||
@@ -134,7 +153,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				filterChanged ||
 				intervalModeChanged
 			) {
-				this.render();
+				void this.render();
 			}
 		});
 
@@ -143,7 +162,9 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 		this.store.setOnEditCardsChanged(() => {
 			this._needsEditRefresh = true;
-			requestAnimationFrame(() => this.onEditStateChange());
+			window.requestAnimationFrame(() => {
+				this.onEditStateChange();
+			});
 		});
 
 		this.store.setOnApplyEditContext(() => {
@@ -153,7 +174,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 		this.store.setOnFullRender(() => {
 			this.dataManager.invalidateFilterCache();
-			this.render();
+			void this.render();
 		});
 	}
 
@@ -164,15 +185,14 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	async render(): Promise<void> {
 		if (this.renderDebounceTimer) clearTimeout(this.renderDebounceTimer);
 		return new Promise<void>((resolve) => {
-			this.renderDebounceTimer = setTimeout(async () => {
+			this.renderDebounceTimer = setTimeout(() => {
 				this.renderDebounceTimer = null;
-				await this.doRender();
-				resolve();
+				this.doRender().then(resolve).catch(resolve);
 			}, BaseTaskView.DEBOUNCE_DELAY);
 		});
 	}
 
-	private async doRender() {
+	private async doRender(): Promise<void> {
 		const scrollKey = this.prepareRender();
 
 		const result = await this.loadData();
@@ -181,8 +201,12 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			return;
 		}
 
-		const { nodes, fullTree } = result;
-		if (nodes.length === 0) {
+		const { fullTree } = result;
+		const allNodes = flattenTree(fullTree).filter(
+			(n) => n.display && n.uid !== "__task_root__" && n.match,
+		);
+
+		if (allNodes.length === 0) {
 			this.renderEmpty();
 			this.finishRender(scrollKey);
 			return;
@@ -223,27 +247,26 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 		this.cleanupSplitLayout();
 		if (this.ganttInstance) {
-			this.ganttInstance.destroy?.();
+			this.ganttInstance.destroy();
 			this.ganttInstance = null;
 		}
 
 		return scrollKey;
 	}
 
-	private async loadData(): Promise<{
-		nodes: TaskTreeNode[];
-		fullTree: TaskTreeNode;
-	} | null> {
+	private async loadData(): Promise<{ fullTree: TaskTreeNode } | null> {
 		try {
-			const { nodes } = await this.dataManager.loadData(this.app);
+			await this.dataManager.loadData(
+				this.app as Parameters<typeof this.dataManager.loadData>[0],
+			);
 			const fullTree = this.dataManager.getFullTree();
-			return { nodes, fullTree };
-		} catch (e) {
-			logger.warn("[TaskManage] 加载数据失败:", e);
+			return { fullTree };
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			logger.warn("[TaskManage] 加载数据失败:", message);
 			this.container.replaceChildren();
 			this.container.createDiv({
-				text:
-					"加载失败：" + (e instanceof Error ? e.message : String(e)),
+				text: "加载失败：" + message,
 			});
 			return null;
 		}
@@ -300,7 +323,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 	private applySorting(nodes: TaskTreeNode[]): TaskTreeNode[] {
 		const preset = this.store.getActivePreset();
-		const sort = preset?.sort ?? { type: "", order: "asc" };
+		const sort = preset?.sort ?? { type: "", order: "asc" as const };
 		return this.applySort(nodes, sort);
 	}
 
@@ -313,7 +336,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			preset?.filter ?? this.getDefaultFilter();
 		const currentStyle = preset?.viewStyle ?? "table";
 		const intervalMode = preset?.intervalMode ?? "scheduled-due";
-		const sort = preset?.sort ?? { type: "", order: "asc" };
+		const sort = preset?.sort ?? { type: "", order: "asc" as const };
 
 		this.container.textContent = "";
 
@@ -343,11 +366,11 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					onNodeClick: (n: TaskTreeNode) =>
 						this.onTaskTreeNavClick(n),
 					intervalMode,
-					sort: sort as { type: string; order: "asc" | "desc" },
+					sort,
 					dateRange: activeFilter.dateRange,
 					focusRoot: this.focusedTreeNode || undefined,
 				},
-			);
+			) as unknown as GanttInstance;
 		} else {
 			this.renderSplitLayout(
 				dateFilteredTree,
@@ -372,7 +395,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 
 	private bindClickEvent() {
-		setTimeout(() => {
+		window.setTimeout(() => {
 			const rootEl = this.getRootElement();
 			if (rootEl) {
 				rootEl.addEventListener("click", this.onGlobalClick);
@@ -386,7 +409,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		if (!scrollKey) return;
 		const savedScrollTop = this.scrollPositions.get(scrollKey);
 		if (savedScrollTop === undefined) return;
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			const newScrollContainer = this.getScrollContainer();
 			if (newScrollContainer) {
 				newScrollContainer.scrollTop = savedScrollTop;
@@ -400,7 +423,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		}
 		const viewContent = this.container.querySelector(
 			".view-content",
-		) as HTMLElement;
+		) as HTMLElement | null;
 		if (
 			viewContent &&
 			viewContent.scrollHeight > viewContent.clientHeight
@@ -420,7 +443,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 
 	private getRootElement(): HTMLElement | null {
-		return this.container.closest(".manage-root") as HTMLElement;
+		return this.container.closest(".manage-root") as HTMLElement | null;
 	}
 
 	private restoreFocus() {
@@ -433,7 +456,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			this.focusedTreeNode = null;
 			this.selectedTreeNode = null;
 		}
-		this.render();
+		void this.render();
 	}
 
 	private collectNodeTasksDeep(node: TaskTreeNode): TaskTreeNode[] {
@@ -525,31 +548,31 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				this.startResize(e);
 			});
 		} else {
-			const resizeHandle = layoutContainer.createDiv({
+			const collapsedHandle = layoutContainer.createDiv({
 				cls: "task-tree-nav-resize task-tree-nav-resize-hidden",
 			});
 
-			const arrow = document.createElement("span");
-			arrow.addClass("task-tree-nav-arrow");
-			arrow.textContent = "▶";
-			arrow.title = "展开任务树";
-			arrow.addEventListener("mousedown", (e) => {
+			const collapsedArrow = document.createElement("span");
+			collapsedArrow.addClass("task-tree-nav-arrow");
+			collapsedArrow.textContent = "▶";
+			collapsedArrow.title = "展开任务树";
+			collapsedArrow.addEventListener("mousedown", (e) => {
 				e.stopPropagation();
 				e.preventDefault();
 			});
-			arrow.addEventListener("click", (e) => {
+			collapsedArrow.addEventListener("click", (e) => {
 				e.stopPropagation();
 				this.toggleTaskTreeNav(false);
 			});
-			resizeHandle.appendChild(arrow);
+			collapsedHandle.appendChild(collapsedArrow);
 
-			resizeHandle.addEventListener("mouseenter", () => {
-				resizeHandle.setCssProps({ "--resize-opacity": "1" });
+			collapsedHandle.addEventListener("mouseenter", () => {
+				collapsedHandle.setCssProps({ "--resize-opacity": "1" });
 			});
-			resizeHandle.addEventListener("mouseleave", () => {
-				resizeHandle.setCssProps({ "--resize-opacity": "0" });
+			collapsedHandle.addEventListener("mouseleave", () => {
+				collapsedHandle.setCssProps({ "--resize-opacity": "0" });
 			});
-			this.resizeHandle = resizeHandle;
+			this.resizeHandle = collapsedHandle;
 		}
 
 		this.rightContentContainer = layoutContainer.createDiv({
@@ -573,13 +596,13 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		const searchRoot = this.rightContentContainer || this.container;
 		const card = searchRoot.querySelector(
 			`[data-uid="${node.uid}"]`,
-		) as HTMLElement;
+		) as HTMLElement | null;
 		if (!card?.parentNode) return;
 
 		const newCard = createViewCard(node, {
 			compact: false,
-			onClick: (n) => this.openTaskAtLine(n),
-			onEnterEdit: (n) => this.handleEnterEdit(n),
+			onClick: (n: TaskTreeNode) => this.openTaskAtLine(n),
+			onEnterEdit: (n: TaskTreeNode) => this.handleEnterEdit(n),
 		});
 		card.parentNode.replaceChild(newCard, card);
 	}
@@ -598,10 +621,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		}
 	}
 
-	private findNodeByUidInTree(
-		root: TaskTreeNode,
-		uid: string,
-	): TaskTreeNode | null {
+	findNodeByUidInTree(root: TaskTreeNode, uid: string): TaskTreeNode | null {
 		if (root.uid === uid) return root;
 		for (const child of root.children) {
 			const found = this.findNodeByUidInTree(child, uid);
@@ -618,7 +638,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.focusHistory.push(node);
 		this.focusedTreeNode = node;
 		this.selectedTreeNode = node;
-		this.render();
+		void this.render();
 	}
 
 	protected openTaskAtLine(node: TaskTreeNode) {
@@ -634,13 +654,13 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				.getState()
 				.presets.map((x) =>
 					x.id === p.id
-						? ({ ...x, taskTreeNavCollapsed: collapsed } as any)
+						? { ...x, taskTreeNavCollapsed: collapsed }
 						: x,
 				),
 		});
 		this.store.saveSilent();
 
-		this.render();
+		void this.render();
 	}
 
 	private startResize(e: MouseEvent) {
@@ -679,9 +699,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					presets: this.store
 						.getState()
 						.presets.map((x) =>
-							x.id === p.id
-								? ({ ...x, taskTreeNavWidth: w } as any)
-								: x,
+							x.id === p.id ? { ...x, taskTreeNavWidth: w } : x,
 						),
 				});
 				this.store.saveSilent();
@@ -791,20 +809,21 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					onEnterEdit: edit,
 				});
 				break;
-
 			case "calendar": {
 				const cc = container.createDiv({
 					cls: "calendar-content task-p-0",
 				});
 
-				const preset = this.store.getActivePreset();
-				const calSubView = preset?.calendarSubView || "day";
+				const currentPreset = this.store.getActivePreset();
+				const calSubView = currentPreset?.calendarSubView || "day";
 				const calSelectedDate = this.calendarSelectedDate || new Date();
 				const effectiveRange = DateUtils.getEffectiveDateRange(
 					filter.dateRange,
 				);
 
-				const updatePreset = (changes: Partial<any>) => {
+				const updatePreset = (
+					changes: Partial<Record<string, unknown>>,
+				) => {
 					const st = this.store.getState();
 					const pr = st.presets.find(
 						(p) => p.id === st.activePresetId,
@@ -817,12 +836,6 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 						});
 						this.store.saveSilent();
 					}
-				};
-
-				const handleDayClick = (date: Date) => {
-					this.calendarSelectedDate = date;
-					updatePreset({ calendarSubView: "day" });
-					this.render();
 				};
 
 				const titleParts: string[] = [];
@@ -866,14 +879,18 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 						| "year",
 					intervalMode,
 					onClick: h,
-					onSubViewChange: (v) => {
+					onSubViewChange: (v: string) => {
 						updatePreset({ calendarSubView: v });
-						this.render();
+						void this.render();
 					},
 					selectedDate: calSelectedDate,
 					dateRange: effectiveRange,
 					filterTitle,
-					onDayClick: handleDayClick,
+					onDayClick: (date: Date) => {
+						this.calendarSelectedDate = date;
+						updatePreset({ calendarSubView: "day" });
+						void this.render();
+					},
 				});
 				break;
 			}
@@ -903,13 +920,13 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		const s = [...nodes];
 		const o = sort.order === "asc" ? 1 : -1;
 		s.sort((a, b) => {
-			const va = this.getSortValue(a, sort.type),
-				vb = this.getSortValue(b, sort.type);
+			const va = this.getSortValue(a, sort.type);
+			const vb = this.getSortValue(b, sort.type);
 			if (va === vb) return 0;
 			if (va === null) return 1;
 			if (vb === null) return -1;
 			return typeof va === "string"
-				? va.localeCompare(vb) * o
+				? va.localeCompare(vb as string) * o
 				: ((va as number) - (vb as number)) * o;
 		});
 		return s;
@@ -948,7 +965,12 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			case "cancelled":
 				return node.cancelled;
 			default:
-				return (node as any)[type] ?? null;
+				return (
+					((node as Record<string, unknown>)[type] as
+						| string
+						| number
+						| null) ?? null
+				);
 		}
 	}
 
@@ -964,7 +986,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		}
 
 		if (this.ganttInstance) {
-			this.ganttInstance.destroy?.();
+			this.ganttInstance.destroy();
 			this.ganttInstance = null;
 		}
 		this.cleanupSplitLayout();

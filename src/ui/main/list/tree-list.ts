@@ -112,7 +112,6 @@ export function renderTaskTree(
 ) {
 	container.empty();
 	const displayRoot = options.focusRoot || options.root;
-	const depthOffset = options.focusRoot?.depth ?? 0;
 
 	const tree = document.createElement("div");
 	tree.className = "task-tree";
@@ -142,8 +141,6 @@ export function renderTaskTree(
 		focusBar.addEventListener("click", () => options.onRestore?.());
 		tree.appendChild(focusBar);
 	} else {
-		const { counts, total } = countNodeStatuses(options.root);
-
 		const rootRow = document.createElement("div");
 		rootRow.addClass(
 			"task-flex",
@@ -201,7 +198,7 @@ export function renderTaskTree(
 			: displayRoot.children;
 
 	for (const child of sortedChildren) {
-		renderNode(child, tree, options, depthOffset);
+		renderNode(child, tree, options);
 	}
 
 	container.appendChild(tree);
@@ -218,7 +215,7 @@ function renderNode(
 
 	const hasChildren = node.children.length > 0;
 	const childContainer = document.createElement("div");
-	const { counts, total } = countNodeStatuses(node);
+	const nodeStats = countNodeStatuses(node);
 
 	const displayDepth = Math.max(0, node.depth - depthOffset);
 	const rowWrapper = createRowWrapper(displayDepth);
@@ -240,13 +237,13 @@ function renderNode(
 		onClick: options?.onDoubleClick,
 		onSingleClick: options?.onClick,
 	});
-	const descEl = card.querySelector(".task-desc") as HTMLElement;
+	const descEl = card.querySelector(".task-desc") as HTMLElement | null;
 	if (descEl) {
 		descEl.addClass("task-text-sm");
 	}
 	contentContainer.appendChild(card);
-	if (total > 0 && hasChildren)
-		addProgressBadge(contentContainer, counts, total);
+	if (nodeStats.total > 0 && hasChildren)
+		addProgressBadge(contentContainer, nodeStats.counts, nodeStats.total);
 
 	rowWrapper.appendChild(contentContainer);
 	const rightSpacer = document.createElement("div");

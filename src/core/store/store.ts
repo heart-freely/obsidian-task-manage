@@ -4,18 +4,60 @@ import { AppState, EditPanelState, Preset } from "../../type/type";
 
 type Listener = (state: AppState) => void;
 
+// ========== 类型安全的回调接口 ==========
+
+interface EditStoreRef {
+	getState(): {
+		batchMode: boolean;
+		selectedTasks: Set<string>;
+		syncMode: boolean;
+	};
+	subscribePanel(listener: () => void): () => void;
+	applyEdit(markKey: string, value: string | null, sourceUid: string): void;
+	applyAutoComplete(days?: number): void;
+	applySortTags(): void;
+	clearPreviews(): void;
+	saveCurrent(): Promise<void>;
+	revertSnapshot(index: number): Promise<void>;
+	getSnapshots(): Array<{ time: string; snapshot: Record<string, string> }>;
+	clearAllSnapshots(): void;
+	toggleSyncMode(): void;
+	toggleBatchMode(): void;
+	toggleSelection(node: { uid: string }): void;
+	toggleSelectAll(nodes: Array<{ uid: string }>): void;
+	enterSingleEditMode(node: { uid: string }): void;
+	enterBatchMode(): void;
+	enterBatchModeFromSingle(node: { uid: string }): void;
+	exitBatchToReading(): void;
+	exitEditMode(save?: boolean, keepSelection?: boolean): void;
+	setPrimaryTask(uid: string): void;
+	syncToStore(): void;
+}
+
+interface TaskViewRef {
+	toggleBatchMode(): void;
+	toggleSelectAll(nodes: Array<{ uid: string }>): void;
+	refreshEditCards(): void;
+	refreshSingleCard(node: { uid: string }): void;
+	updateFocusAfterSave(): void;
+	render(): Promise<void>;
+}
+
 export class Store {
 	protected state: AppState;
 	protected listeners: Listener[] = [];
-	protected saveFn?: (data: any) => Promise<void>;
-	protected editStore: EditStoreInterface | null = null;
-	private taskView: TaskViewInterface | null = null;
+	protected saveFn?: (data: Record<string, unknown>) => Promise<void>;
+	protected editStore: EditStoreRef | null = null;
+	private taskView: TaskViewRef | null = null;
 	private _onEditCardsChanged: (() => void) | null = null;
 	private _onFullRender: (() => void) | null = null;
 	private _onApplyEditContext: (() => void) | null = null;
 	private _onFullInvalidate: (() => void) | null = null;
 
-	constructor(initial: AppState, saveFn?: (data: any) => Promise<void>) {
+	constructor(
+		initial: AppState,
+		saveFn?: (data: Record<string, unknown>) => Promise<void>,
+	) {
 		this.state = initial;
 		this.saveFn = saveFn;
 	}
@@ -27,7 +69,7 @@ export class Store {
 	update(partial: Partial<AppState>) {
 		this.state = { ...this.state, ...partial };
 		this.notify();
-		this.save();
+		void this.save();
 	}
 
 	updateSilent(partial: Partial<AppState>) {
@@ -35,7 +77,7 @@ export class Store {
 	}
 
 	saveSilent() {
-		this.save();
+		void this.save();
 	}
 
 	subscribe(listener: Listener): () => void {
@@ -49,16 +91,16 @@ export class Store {
 		this.listeners.forEach((l) => l(this.state));
 	}
 
-	protected async save() {
+	protected async save(): Promise<void> {
 		if (!this.saveFn) return;
 		try {
-			await this.saveFn(this.state);
-		} catch (e) {
+			await this.saveFn(this.state as unknown as Record<string, unknown>);
+		} catch (e: unknown) {
 			logger.error("Store 持久化失败", e);
 		}
 	}
 
-	setSaveFn(fn: (data: any) => Promise<void>) {
+	setSaveFn(fn: (data: Record<string, unknown>) => Promise<void>) {
 		this.saveFn = fn;
 	}
 
@@ -72,19 +114,19 @@ export class Store {
 		this.state = { ...this.state, editPanelState: panelState };
 	}
 
-	setEditStore(es: EditStoreInterface) {
+	setEditStore(es: EditStoreRef) {
 		this.editStore = es;
 	}
 
-	getEditStore(): EditStoreInterface | null {
+	getEditStore(): EditStoreRef | null {
 		return this.editStore;
 	}
 
-	setTaskView(view: TaskViewInterface) {
+	setTaskView(view: TaskViewRef) {
 		this.taskView = view;
 	}
 
-	getTaskView(): TaskViewInterface | null {
+	getTaskView(): TaskViewRef | null {
 		return this.taskView;
 	}
 

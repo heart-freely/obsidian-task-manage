@@ -71,20 +71,6 @@ interface HideGroupDef {
 	keys?: string[];
 }
 
-const HIDE_GROUPS: HideGroupDef[] = [
-	{ label: "隐藏状态", type: "statuses" },
-	{ label: "隐藏描述", type: "searchText" },
-	{ label: "隐藏优先", type: "priorityValues" },
-	{ label: "隐藏循环", type: "repeatCycles" },
-	{
-		label: "隐藏时间",
-		type: "marks",
-		keys: ["created", "scheduled", "starts", "cancelled", "done", "due"],
-	},
-	{ label: "隐藏依赖", type: "marks", keys: ["id", "forbid"] },
-	{ label: "隐藏标签", type: "marks", keys: ["tag"] },
-];
-
 // ========== 共用按钮组构建函数 ==========
 
 export interface ToggleGroupOptions {

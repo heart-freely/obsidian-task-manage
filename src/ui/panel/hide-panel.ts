@@ -1,23 +1,34 @@
 // src/ui/panel/hide-panel.ts
-// 视图隐藏面板 — 引用 mark-panel.ts 中的共用按钮组构建函数
+// 视图隐藏面板 — 引用 filter-panel.ts 中的共用按钮组构建函数
 
 import { getDefaultHideConfig } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
 import { HideConfig } from "../../type/type";
 import { buildToggleGroup } from "./filter-panel";
 
-const HIDE_GROUPS = [
-	{ label: "隐藏状态", type: "statuses" as const },
-	{ label: "隐藏描述", type: "searchText" as const },
-	{ label: "隐藏优先", type: "priorityValues" as const },
-	{ label: "隐藏循环", type: "repeatCycles" as const },
+interface HideGroupDef {
+	label: string;
+	type:
+		| "statuses"
+		| "searchText"
+		| "priorityValues"
+		| "repeatCycles"
+		| "marks";
+	keys?: string[];
+}
+
+const HIDE_GROUPS: HideGroupDef[] = [
+	{ label: "隐藏状态", type: "statuses" },
+	{ label: "隐藏描述", type: "searchText" },
+	{ label: "隐藏优先", type: "priorityValues" },
+	{ label: "隐藏循环", type: "repeatCycles" },
 	{
 		label: "隐藏时间",
-		type: "marks" as const,
+		type: "marks",
 		keys: ["created", "scheduled", "starts", "cancelled", "done", "due"],
 	},
-	{ label: "隐藏依赖", type: "marks" as const, keys: ["id", "forbid"] },
-	{ label: "隐藏标签", type: "marks" as const, keys: ["tag"] },
+	{ label: "隐藏依赖", type: "marks", keys: ["id", "forbid"] },
+	{ label: "隐藏标签", type: "marks", keys: ["tag"] },
 ];
 
 export class HidePanel {
@@ -28,7 +39,9 @@ export class HidePanel {
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.unsub = store.subscribe(() => this.render());
+		this.unsub = store.subscribe(() => {
+			this.render();
+		});
 		this.render();
 	}
 
@@ -50,7 +63,7 @@ export class HidePanel {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
 			if (!pr) return;
-			const newHideConfig = {
+			const newHideConfig: HideConfig = {
 				...(pr.hideConfig ?? getDefaultHideConfig()),
 				...changes,
 			};
@@ -70,7 +83,8 @@ export class HidePanel {
 					label: group.label,
 					type: group.type,
 					selected: hideConfig.hideStatuses || [],
-					onChange: (ns) => updateHideConfig({ hideStatuses: ns }),
+					onChange: (ns: string[]) =>
+						updateHideConfig({ hideStatuses: ns }),
 				});
 				return;
 			}
@@ -82,8 +96,10 @@ export class HidePanel {
 					type: group.type,
 					selected: [],
 					currentSearchText: hideConfig.hideSearchText || "",
-					onChange: () => {},
-					onSearchChange: (text) =>
+					onChange: () => {
+						/* no-op for search */
+					},
+					onSearchChange: (text: string) =>
 						updateHideConfig({ hideSearchText: text }),
 				});
 				return;
@@ -95,7 +111,7 @@ export class HidePanel {
 					label: group.label,
 					type: group.type,
 					selected: hideConfig.hidePriorityValues || [],
-					onChange: (ns) =>
+					onChange: (ns: string[]) =>
 						updateHideConfig({ hidePriorityValues: ns }),
 				});
 				return;
@@ -107,7 +123,7 @@ export class HidePanel {
 					label: group.label,
 					type: group.type,
 					selected: hideConfig.hideRepeatCycles || [],
-					onChange: (ns) =>
+					onChange: (ns: string[]) =>
 						updateHideConfig({ hideRepeatCycles: ns }),
 				});
 				return;
@@ -120,7 +136,8 @@ export class HidePanel {
 					type: group.type,
 					keys: group.keys,
 					selected: hideConfig.hideMarks || [],
-					onChange: (ns) => updateHideConfig({ hideMarks: ns }),
+					onChange: (ns: string[]) =>
+						updateHideConfig({ hideMarks: ns }),
 				});
 				return;
 			}

@@ -11,11 +11,30 @@ import {
 import { flattenTree, TaskTreeNode } from "../task/task-tree";
 import { EditStore } from "./task-edit-store";
 
+/** DataManager 的最小接口 */
+interface DataManagerLike {
+	getNodeByUid(uid: string): TaskTreeNode | undefined;
+	getFullTree(): TaskTreeNode;
+	invalidate(): void;
+	loadData(
+		app: unknown,
+	): Promise<{ nodes: TaskTreeNode[]; fullTree: TaskTreeNode }>;
+}
+
+/** Obsidian App 的最小接口 */
+interface AppLike {
+	vault: {
+		getAbstractFileByPath(path: string): { path: string } | null;
+		cachedRead(file: { path: string }): Promise<string>;
+	};
+}
+
 export class BaseTaskEdit {
 	protected editStore!: EditStore;
-	protected dataManager!: any;
+	protected dataManager!: DataManagerLike;
 	protected container!: HTMLElement;
 	protected rightContentContainer: HTMLElement | null = null;
+	protected app!: AppLike;
 
 	public previouslyEditedUids: Set<string> = new Set();
 	public _needsEditRefresh: boolean = false;
@@ -49,30 +68,6 @@ export class BaseTaskEdit {
 		this.applyEditContext();
 		this.setCardEditMode(node.uid);
 		this.previouslyEditedUids = new Set([node.uid]);
-	}
-
-	private async loadYamlContent(node: TaskTreeNode): Promise<string | null> {
-		if (!node.hasYaml) {
-			return "";
-		}
-		if (node.yamlStartLine < 0 || node.yamlEndLine < 0) {
-			return "";
-		}
-		try {
-			const app = (this as any).app;
-			if (!app) return null;
-			const file = app.vault.getAbstractFileByPath(node.path);
-			if (!file) return null;
-			const content = await app.vault.cachedRead(file);
-			const lines = content.split("\n");
-			const yamlLines = lines.slice(
-				node.yamlStartLine + 1,
-				node.yamlEndLine,
-			);
-			return yamlLines.join("\n");
-		} catch {
-			return null;
-		}
 	}
 
 	public toggleBatchMode() {
@@ -260,7 +255,15 @@ export class BaseTaskEdit {
 					this.previouslyEditedUids.clear();
 					this.dataManager.invalidate();
 					await this.dataManager.loadData(this.app);
-					const self = this as any;
+					const self = this as unknown as {
+						selectedTreeNode?: TaskTreeNode;
+						focusedTreeNode?: TaskTreeNode;
+						findNodeByUidInTree?: (
+							root: TaskTreeNode,
+							uid: string,
+						) => TaskTreeNode | null;
+						render(): Promise<void>;
+					};
 					if (self.selectedTreeNode) {
 						const newTree = this.dataManager.getFullTree();
 						const newFocus = self.findNodeByUidInTree?.(
@@ -272,7 +275,7 @@ export class BaseTaskEdit {
 							self.focusedTreeNode = newFocus;
 						}
 					}
-					this.render();
+					await self.render();
 				},
 				onRevert: async (node) => {
 					await this.editStore.revertSingle(node);
@@ -297,12 +300,12 @@ export class BaseTaskEdit {
 					const fullTree = this.dataManager.getFullTree();
 					const allNodes = flattenTree(fullTree);
 					const seen = new Set<string>();
-					for (const node of allNodes) {
-						if (node.id && !seen.has(node.id)) {
-							seen.add(node.id);
+					for (const taskNode of allNodes) {
+						if (taskNode.id && !seen.has(taskNode.id)) {
+							seen.add(taskNode.id);
 							result.push({
-								id: node.id,
-								desc: node.content || node.text || "",
+								id: taskNode.id,
+								desc: taskNode.content || taskNode.text || "",
 							});
 						}
 					}
@@ -475,7 +478,9 @@ export class BaseTaskEdit {
 				});
 				try {
 					editBar.parentNode.replaceChild(newEditBar, editBar);
-				} catch (e) {}
+				} catch {
+					// 编辑栏替换失败时忽略，DOM 可能已被移除
+				}
 			}
 		}
 
@@ -503,6 +508,7 @@ export class BaseTaskEdit {
 		const previewText = editCtx.previews.get(uid);
 		const hasContentEdit =
 			previewText !== null &&
+			previewText !== undefined &&
 			hasContentBeenEdited(node.rawLine, previewText);
 		const saved = editCtx.savedTasks.has(node.uid);
 
@@ -586,7 +592,9 @@ export class BaseTaskEdit {
 		if (editBar) {
 			try {
 				editBar.parentNode!.replaceChild(newEditBar, editBar);
-			} catch (e) {}
+			} catch {
+				// 编辑栏替换失败时忽略，DOM 可能已被移除
+			}
 		} else {
 			card.appendChild(newEditBar);
 		}
@@ -611,7 +619,9 @@ export class BaseTaskEdit {
 						newPreviewRow,
 						previewRow,
 					);
-				} catch (e) {}
+				} catch {
+					// 预览行替换失败时忽略，DOM 可能已被移除
+				}
 			} else {
 				card.appendChild(newPreviewRow);
 			}

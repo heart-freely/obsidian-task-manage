@@ -4,34 +4,41 @@
 import { EditState } from "../../type/type";
 import { TASKS_RX } from "../config/tasks-config";
 import { TaskTreeNode } from "../task/task-tree";
+
 const AUTOCOMPLETE_DAYS = 0;
 const MAX_SNAPSHOTS = 5;
 
 // ========== 持久化存储（内存缓存 + 异步持久化）==========
 
-let _snapshotCache: any[] = [];
-let _snapshotSaveFn: ((snapshots: any[]) => Promise<void>) | null = null;
+interface SnapshotEntry {
+	time: string;
+	snapshot: Record<string, string>;
+}
+
+let _snapshotCache: SnapshotEntry[] = [];
+let _snapshotSaveFn: ((snapshots: SnapshotEntry[]) => Promise<void>) | null =
+	null;
 
 export function initStorage(
-	initialSnapshots: any[],
-	saveFn: (snapshots: any[]) => Promise<void>,
+	initialSnapshots: SnapshotEntry[],
+	saveFn: (snapshots: SnapshotEntry[]) => Promise<void>,
 ) {
 	_snapshotCache = initialSnapshots || [];
 	_snapshotSaveFn = saveFn;
 }
 
-export function getSnapshotCache(): any[] {
+export function getSnapshotCache(): SnapshotEntry[] {
 	return _snapshotCache;
 }
 
-export function loadSnapshots(): any[] {
+export function loadSnapshots(): SnapshotEntry[] {
 	return _snapshotCache;
 }
 
-export function saveSnapshots(snapshots: any[]) {
+export function saveSnapshots(snapshots: SnapshotEntry[]) {
 	_snapshotCache = [...snapshots];
 	if (_snapshotSaveFn) {
-		_snapshotSaveFn([...snapshots]).catch((e) => {
+		_snapshotSaveFn([...snapshots]).catch((e: unknown) => {
 			console.warn("快照持久化失败:", e);
 		});
 	}
@@ -139,24 +146,6 @@ const KEY_TO_YAML_NAME: Record<string, string> = {
 	tag: "任务标签",
 	id: "任务唯一ID",
 	forbid: "任务引用ID",
-};
-
-const STATUS_TO_YAML_VALUE: Record<string, string> = {
-	none: "无状态",
-	todo: "待办中",
-	scheduled: "计划中",
-	"in-progress": "进行中",
-	cancelled: "已取消",
-	completed: "已完成",
-};
-
-const PRIORITY_TO_YAML_VALUE: Record<number, string> = {
-	0: "最高",
-	1: "高",
-	2: "中",
-	3: "低",
-	4: "最低",
-	5: "无",
 };
 
 // ========== 编辑操作 ==========
@@ -439,8 +428,20 @@ export const Op = {
 
 // ========== 文件写入 ==========
 
+interface VaultLike {
+	getAbstractFileByPath(path: string): { path: string } | null;
+	process(
+		file: { path: string },
+		fn: (data: string) => string,
+	): Promise<void>;
+}
+
+interface AppLike {
+	vault: VaultLike;
+}
+
 export async function writeToFiles(
-	app: any,
+	app: AppLike,
 	getNode: (uid: string) => TaskTreeNode | undefined,
 	taskIds: string[],
 	linesMap: Record<string, string>,
@@ -523,7 +524,7 @@ export async function writeToFiles(
 				return dataLines.join("\n");
 			});
 			count += items.length;
-		} catch (e) {
+		} catch (e: unknown) {
 			logger.error("[TaskManage] 写入文件失败:", path, e);
 		}
 	}
@@ -579,7 +580,7 @@ export async function writeToFiles(
 				return dataLines.join("\n");
 			});
 			count += items.length;
-		} catch (e) {
+		} catch (e: unknown) {
 			logger.error("[TaskManage] 写入YAML文件失败:", path, e);
 		}
 	}
@@ -591,7 +592,7 @@ export async function writeToFiles(
 
 export async function saveSingleTask(
 	state: EditState,
-	app: any,
+	app: AppLike,
 	getNode: (uid: string) => TaskTreeNode | undefined,
 	node: TaskTreeNode,
 ): Promise<EditState> {
@@ -610,7 +611,7 @@ export async function saveSingleTask(
 
 export async function saveAllChanges(
 	state: EditState,
-	app: any,
+	app: AppLike,
 	getNode: (uid: string) => TaskTreeNode | undefined,
 ): Promise<{ state: EditState; previews: Record<string, string> }> {
 	const toSave: string[] = [];
@@ -658,7 +659,7 @@ export async function saveAllChanges(
 
 export async function revertSingleTask(
 	state: EditState,
-	app: any,
+	app: AppLike,
 	getNode: (uid: string) => TaskTreeNode | undefined,
 	node: TaskTreeNode,
 ): Promise<EditState> {
@@ -688,7 +689,7 @@ export async function revertSingleTask(
 
 export async function revertFromSnapshot(
 	state: EditState,
-	app: any,
+	app: AppLike,
 	getNode: (uid: string) => TaskTreeNode | undefined,
 	snapshotIndex: number,
 ): Promise<EditState> {

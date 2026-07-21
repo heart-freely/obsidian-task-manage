@@ -66,12 +66,18 @@ const CONFIG_SCHEMA: Record<string, string> = {
 	taskItemFilters: "array",
 };
 
+/** 插件引用接口 */
+interface PluginRef {
+	settings: TaskManageSettings;
+	saveAllSettings(): Promise<void>;
+}
+
 export class TaskManageSettingTab extends PluginSettingTab {
-	plugin: any;
+	plugin: PluginRef;
 	private folderCache: string[] | null = null;
 	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-	constructor(app: App, plugin: any) {
+	constructor(app: App, plugin: PluginRef) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -88,17 +94,17 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			headingFilters: this.plugin.settings.headingFilters,
 			taskItemFilters: this.plugin.settings.taskItemFilters,
 		});
-		this.plugin.saveAllSettings();
+		void this.plugin.saveAllSettings();
 		DataManager.getInstance().invalidate();
 
 		const leaves = this.app.workspace.getLeavesOfType("manage-view");
 		if (leaves.length > 0) {
-			const view = leaves[0].view as any;
+			const view = leaves[0].view as { refreshView?: () => void };
 			view.refreshView?.();
 		}
 	}
 
-	private async saveSettings() {
+	private async saveSettings(): Promise<void> {
 		updateTaskFileConfig({
 			rootPath: this.plugin.settings.taskRootPath || "",
 			folderFilters: this.plugin.settings.folderFilters,
@@ -108,8 +114,8 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 
 		if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
-		this.saveDebounceTimer = setTimeout(async () => {
-			await this.plugin.saveAllSettings();
+		this.saveDebounceTimer = setTimeout(() => {
+			void this.plugin.saveAllSettings();
 			this.saveDebounceTimer = null;
 		}, 300);
 	}
@@ -191,15 +197,15 @@ export class TaskManageSettingTab extends PluginSettingTab {
 							this.renderFolderDropdown(
 								dropdown,
 								keyword,
-								(selectedPath) => {
+								(selectedPath: string) => {
 									pathInput.value = selectedPath;
 									dropdown.addClass("task-hidden");
 									paths[index] = selectedPath;
-									saveAllPaths();
+									void saveAllPaths();
 								},
 							);
 							dropdown.removeClass("task-hidden");
-						} catch (e) {
+						} catch (e: unknown) {
 							console.warn("[TaskManage] 下拉渲染失败:", e);
 						}
 					}, 200);
@@ -219,7 +225,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 					const value = pathInput.value.trim();
 					if (value !== paths[index]) {
 						paths[index] = value;
-						saveAllPaths();
+						void saveAllPaths();
 					}
 					setTimeout(() => {
 						dropdown.addClass("task-hidden");
@@ -231,7 +237,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 						const value = pathInput.value.trim();
 						if (value && value !== paths[index]) {
 							paths[index] = value;
-							saveAllPaths();
+							void saveAllPaths();
 						}
 						dropdown.addClass("task-hidden");
 					}
@@ -249,10 +255,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 					"task-flex-shrink-0",
 					"task-mt-1",
 				);
-				delBtn.addEventListener("click", async () => {
+				delBtn.addEventListener("click", () => {
 					paths.splice(index, 1);
 					if (paths.length === 0) paths.push("");
-					saveAllPaths();
+					void saveAllPaths();
 					renderPaths();
 				});
 			});
@@ -265,9 +271,9 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			cls: "filter-add-btn",
 		});
 		addPathBtn.addClass("task-mt-1", "task-mb-2", "task-px-3", "task-py-1");
-		addPathBtn.addEventListener("click", async () => {
+		addPathBtn.addEventListener("click", () => {
 			paths.push("");
-			saveAllPaths();
+			void saveAllPaths();
 			renderPaths();
 		});
 
@@ -318,20 +324,31 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			const input = document.createElement("input");
 			input.type = "file";
 			input.accept = ".json";
-			input.onchange = async () => {
+			input.onchange = () => {
 				if (!input.files?.length) return;
-				try {
-					const data = JSON.parse(await input.files[0].text());
-					if (!data || typeof data !== "object") {
-						new Notice("导入失败：文件格式不正确");
-						return;
-					}
-					safeMergeConfig(this.plugin.settings, data, CONFIG_SCHEMA);
-					await this.saveSettings();
-					this.display();
-				} catch {
-					new Notice("导入失败：文件格式不正确");
-				}
+				const file = input.files[0];
+				file.text()
+					.then((text: string) => {
+						try {
+							const data: unknown = JSON.parse(text);
+							if (!data || typeof data !== "object") {
+								new Notice("导入失败：文件格式不正确");
+								return;
+							}
+							safeMergeConfig(
+								this.plugin.settings,
+								data as Record<string, unknown>,
+								CONFIG_SCHEMA,
+							);
+							void this.saveSettings();
+							this.display();
+						} catch {
+							new Notice("导入失败：文件格式不正确");
+						}
+					})
+					.catch(() => {
+						new Notice("导入失败：无法读取文件");
+					});
 			};
 			input.click();
 		});
@@ -361,17 +378,21 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	private getFolders(): string[] {
 		if (this.folderCache) return this.folderCache;
 		try {
-			const files = this.app.vault.getAllLoadedFiles();
+			const files: Array<{ path?: string; children?: unknown[] }> =
+				this.app.vault.getAllLoadedFiles() as Array<{
+					path?: string;
+					children?: unknown[];
+				}>;
 			const folders = new Set<string>();
 			for (const file of files) {
-				if (file && (file as any).children) {
-					const p = (file as any).path || "";
+				if (file && file.children) {
+					const p = file.path || "";
 					if (p) folders.add(p);
 				}
 			}
 			this.folderCache = [...folders].sort();
 			return this.folderCache;
-		} catch (e) {
+		} catch (e: unknown) {
 			console.warn("[TaskManage] 获取文件夹列表失败:", e);
 			return [];
 		}
@@ -385,7 +406,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		container.empty();
 		const folders = this.getFolders();
 		const filtered = keyword
-			? folders.filter((p) =>
+			? folders.filter((p: string) =>
 					p.toLowerCase().includes(keyword.toLowerCase()),
 				)
 			: folders;
@@ -401,7 +422,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		const limit = 50;
 		const displayItems = filtered.slice(0, limit);
-		displayItems.forEach((path) => {
+		displayItems.forEach((path: string) => {
 			const item = container.createDiv({ cls: "dropdown-item" });
 			item.addClass(
 				"task-px-2",
@@ -438,13 +459,13 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 	private renderFilterList(
 		containerEl: HTMLElement,
-		key: string,
+		key: "folderFilters" | "fileFilters" | "headingFilters",
 		label: string,
 	) {
 		const filters: PathFilterConfig[] = this.plugin.settings[key] || [];
 		const listContainer = containerEl.createDiv({ cls: "filter-list" });
 
-		filters.forEach((filter, index) => {
+		filters.forEach((filter: PathFilterConfig, index: number) => {
 			this.renderFilterRow(listContainer, filter, key, index, label);
 		});
 
@@ -453,7 +474,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			cls: "filter-add-btn",
 		});
 		addBtn.addClass("task-mt-1", "task-px-3", "task-py-1");
-		addBtn.addEventListener("click", async () => {
+		addBtn.addEventListener("click", () => {
 			filters.push({
 				pattern: "",
 				caseSensitive: false,
@@ -462,7 +483,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 				exclude: false,
 			});
 			this.plugin.settings[key] = filters;
-			await this.saveSettings();
+			void this.saveSettings();
 			this.renderFilterRow(
 				listContainer,
 				filters[filters.length - 1],
@@ -476,7 +497,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	private renderFilterRow(
 		containerEl: HTMLElement,
 		filter: PathFilterConfig,
-		key: string,
+		key: "folderFilters" | "fileFilters" | "headingFilters",
 		index: number,
 		label: string,
 	) {
@@ -495,9 +516,9 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 		input.value = filter.pattern || "";
 		input.addClass("task-flex-1", "task-min-w-25");
-		input.addEventListener("input", async () => {
+		input.addEventListener("input", () => {
 			filter.pattern = input.value;
-			await this.saveSettings();
+			void this.saveSettings();
 		});
 
 		const caseBtn = row.createEl("button", {
@@ -506,10 +527,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 		this.applyToggleStyle(caseBtn, filter.caseSensitive);
 		caseBtn.title = "区分大小写";
-		caseBtn.addEventListener("click", async () => {
+		caseBtn.addEventListener("click", () => {
 			filter.caseSensitive = !filter.caseSensitive;
 			this.applyToggleStyle(caseBtn, filter.caseSensitive);
-			await this.saveSettings();
+			void this.saveSettings();
 		});
 
 		const wordBtn = row.createEl("button", {
@@ -518,10 +539,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 		this.applyToggleStyle(wordBtn, filter.wholeWord);
 		wordBtn.title = "全字匹配";
-		wordBtn.addEventListener("click", async () => {
+		wordBtn.addEventListener("click", () => {
 			filter.wholeWord = !filter.wholeWord;
 			this.applyToggleStyle(wordBtn, filter.wholeWord);
-			await this.saveSettings();
+			void this.saveSettings();
 		});
 
 		const regexBtn = row.createEl("button", {
@@ -530,10 +551,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 		this.applyToggleStyle(regexBtn, filter.useRegex);
 		regexBtn.title = "使用正则表达式匹配";
-		regexBtn.addEventListener("click", async () => {
+		regexBtn.addEventListener("click", () => {
 			filter.useRegex = !filter.useRegex;
 			this.applyToggleStyle(regexBtn, filter.useRegex);
-			await this.saveSettings();
+			void this.saveSettings();
 		});
 
 		const excludeBtn = row.createEl("button", {
@@ -542,10 +563,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 		this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
 		excludeBtn.title = "排除匹配项";
-		excludeBtn.addEventListener("click", async () => {
+		excludeBtn.addEventListener("click", () => {
 			filter.exclude = !filter.exclude;
 			this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
-			await this.saveSettings();
+			void this.saveSettings();
 		});
 
 		const delBtn = row.createEl("button", {
@@ -558,11 +579,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			"task-clickable",
 			"task-text-muted",
 		);
-		delBtn.addEventListener("click", async () => {
+		delBtn.addEventListener("click", () => {
 			const filters: PathFilterConfig[] = this.plugin.settings[key] || [];
 			filters.splice(index, 1);
 			this.plugin.settings[key] = filters;
-			await this.saveSettings();
+			void this.saveSettings();
 			row.remove();
 		});
 	}
@@ -572,7 +593,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			this.plugin.settings.taskItemFilters || [];
 		const listContainer = containerEl.createDiv({ cls: "filter-list" });
 
-		filters.forEach((filter, index) => {
+		filters.forEach((filter: TaskItemFilterConfig, index: number) => {
 			this.renderTaskItemRow(listContainer, filter, index);
 		});
 
@@ -581,10 +602,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			cls: "filter-add-btn",
 		});
 		addBtn.addClass("task-mt-3", "task-px-3", "task-py-1");
-		addBtn.addEventListener("click", async () => {
+		addBtn.addEventListener("click", () => {
 			filters.push({ pattern: "", exclude: false });
 			this.plugin.settings.taskItemFilters = filters;
-			await this.saveSettings();
+			void this.saveSettings();
 			this.renderTaskItemRow(
 				listContainer,
 				filters[filters.length - 1],
@@ -612,9 +633,9 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 		input.value = filter.pattern || "";
 		input.addClass("task-flex-1", "task-min-w-25", "task-max-w-50");
-		input.addEventListener("input", async () => {
+		input.addEventListener("input", () => {
 			filter.pattern = input.value;
-			await this.saveSettings();
+			void this.saveSettings();
 		});
 
 		const excludeBtn = row.createEl("button", {
@@ -623,10 +644,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 		this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
 		excludeBtn.title = "排除匹配项";
-		excludeBtn.addEventListener("click", async () => {
+		excludeBtn.addEventListener("click", () => {
 			filter.exclude = !filter.exclude;
 			this.applyToggleStyle(excludeBtn, filter.exclude, "#c3393e");
-			await this.saveSettings();
+			void this.saveSettings();
 		});
 
 		const delBtn = row.createEl("button", {
@@ -639,12 +660,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			"task-clickable",
 			"task-text-muted",
 		);
-		delBtn.addEventListener("click", async () => {
+		delBtn.addEventListener("click", () => {
 			const list: TaskItemFilterConfig[] =
 				this.plugin.settings.taskItemFilters || [];
 			list.splice(index, 1);
 			this.plugin.settings.taskItemFilters = list;
-			await this.saveSettings();
+			void this.saveSettings();
 			row.remove();
 		});
 	}

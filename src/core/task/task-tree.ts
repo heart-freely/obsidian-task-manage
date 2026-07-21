@@ -1,9 +1,7 @@
 // src/core/task/task-tree.ts
-// core/task/task-tree.ts
 // 统一任务树数据结构 + 构建 + 筛选 + 扁平化
 
 import { HideConfig, TaskStatus } from "../../type/type";
-import { TASK_ROOT_PATHS } from "../config/config";
 import { ContentNode, ParsedFileData } from "../parser/md-parser";
 import { getTaskMarks } from "./task-derived";
 
@@ -47,13 +45,9 @@ export interface TaskTreeNode {
 	fileRelations?: FileRelations;
 
 	// YAML 编辑支持
-	/** YAML 起始行号（-1 表示不存在） */
 	yamlStartLine: number;
-	/** YAML 结束行号（-1 表示不存在） */
 	yamlEndLine: number;
-	/** 是否为 frontmatter YAML（文件任务）而非代码块 YAML（标题任务） */
 	isFrontmatter: boolean;
-	/** 是否存在 YAML 内容 */
 	hasYaml: boolean;
 }
 
@@ -111,7 +105,7 @@ export function extractAllLinks(content: string): string[] {
 	return [...new Set(links)];
 }
 
-export function parseParentField(raw: any): string | null {
+export function parseParentField(raw: unknown): string | null {
 	if (!raw) return null;
 	const str = String(raw).trim();
 	const m = /\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]/g.exec(str);
@@ -121,12 +115,7 @@ export function parseParentField(raw: any): string | null {
 
 // ========== 构建统一任务树 ==========
 
-export function buildTaskTree(
-	files: ParsedFileData[],
-	prefix?: string,
-): TaskTreeNode {
-	const effectivePrefix =
-		prefix || (TASK_ROOT_PATHS.length > 0 ? TASK_ROOT_PATHS[0] + "/" : "");
+export function buildTaskTree(files: ParsedFileData[]): TaskTreeNode {
 	const nodeMap = new Map<string, TaskTreeNode>();
 
 	// 1. 为每个文件创建文件级节点
@@ -181,7 +170,6 @@ export function buildTaskTree(
 			id: taskData.id,
 			forbid: taskData.forbid,
 			tag: taskData.tag,
-			// YAML 编辑支持
 			yamlStartLine: hasFrontmatter ? 0 : -1,
 			yamlEndLine: hasFrontmatter ? (file.yamlEndLine ?? -1) : -1,
 			isFrontmatter: true,
@@ -457,7 +445,6 @@ function convertContentNodes(
 			tag: cn.task?.tag ?? "",
 			headingLevel: cn.type === "heading" ? cn.depth : undefined,
 			headingText: cn.type === "heading" ? cn.text : undefined,
-			// YAML 编辑支持
 			yamlStartLine: hasYaml ? cn.yamlStartLine! : cn.line,
 			yamlEndLine: hasYaml ? cn.yamlEndLine! : -1,
 			isFrontmatter: false,
@@ -616,7 +603,11 @@ export function filterTreeByDateRange(
 		return root;
 	const fc: TaskTreeNode[] = [];
 	for (const c of root.children) {
-		const filtered = filterNodeByDate(c, dateRange, intervalMode);
+		const filtered = filterNodeByDate(
+			c,
+			dateRange as { start: number; end: number },
+			intervalMode,
+		);
 		if (filtered) fc.push(filtered);
 	}
 	return { ...root, children: fc };

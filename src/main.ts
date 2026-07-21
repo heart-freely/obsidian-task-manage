@@ -27,31 +27,47 @@ export default class TaskManagePlugin extends Plugin {
 	saveAllSettings!: () => Promise<void>;
 
 	async onload() {
-		let savedData: any = {};
+		let savedData: Record<string, unknown> = {};
 
 		try {
 			savedData = (await this.loadData()) || {};
-		} catch (e) {
+		} catch (e: unknown) {
 			logger.warn("[TaskManage] 加载设置失败:", e);
 			savedData = {};
 		}
 
-		// ========== 初始化内存缓存存储（最先执行，确保后续组件读取时缓存已就绪）==========
-		initStorage(savedData?.organizeSnapshots || [], async (snapshots) => {
-			const data = (await this.loadData()) || {};
-			data.organizeSnapshots = snapshots;
+		// ========== 初始化内存缓存存储 ==========
+		const snapshots: Array<{
+			time: string;
+			snapshot: Record<string, string>;
+		}> = Array.isArray(savedData["organizeSnapshots"])
+			? (savedData["organizeSnapshots"] as Array<{
+					time: string;
+					snapshot: Record<string, string>;
+				}>)
+			: [];
+		initStorage(snapshots, async (newSnapshots) => {
+			const data: Record<string, unknown> = (await this.loadData()) || {};
+			data["organizeSnapshots"] = newSnapshots;
 			await this.saveData(data);
 		});
-		initGanttStorage(
-			savedData?.ganttZoomState || null,
-			async (zoomState) => {
-				const data = (await this.loadData()) || {};
-				data.ganttZoomState = zoomState;
-				await this.saveData(data);
-			},
-		);
 
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+		const ganttZoom =
+			savedData["ganttZoomState"] &&
+			typeof savedData["ganttZoomState"] === "object"
+				? (savedData["ganttZoomState"] as { dayWidth: number })
+				: null;
+		initGanttStorage(ganttZoom, async (zoomState) => {
+			const data: Record<string, unknown> = (await this.loadData()) || {};
+			data["ganttZoomState"] = zoomState;
+			await this.saveData(data);
+		});
+
+		this.settings = Object.assign(
+			{},
+			DEFAULT_SETTINGS,
+			savedData as Partial<TaskManageSettings>,
+		);
 		this.settings.taskRootPath = this.settings.taskRootPath || "";
 		this.settings.folderFilters =
 			this.settings.folderFilters || DEFAULT_SETTINGS.folderFilters;
@@ -65,7 +81,7 @@ export default class TaskManagePlugin extends Plugin {
 		const persistData = async () => {
 			try {
 				const state = this.store?.getState();
-				const dataToSave: any = {
+				const dataToSave: Record<string, unknown> = {
 					taskRootPath: this.settings.taskRootPath,
 					folderFilters: this.settings.folderFilters,
 					fileFilters: this.settings.fileFilters,
@@ -75,11 +91,10 @@ export default class TaskManagePlugin extends Plugin {
 				if (state) {
 					Object.assign(dataToSave, state);
 				}
-				// 从内存缓存读取快照和缩放状态（而非从文件读取）
-				dataToSave.organizeSnapshots = getSnapshotCache();
-				dataToSave.ganttZoomState = getZoomCache();
+				dataToSave["organizeSnapshots"] = getSnapshotCache();
+				dataToSave["ganttZoomState"] = getZoomCache();
 				await this.saveData(dataToSave);
-			} catch (e) {
+			} catch (e: unknown) {
 				logger.error("[TaskManage] 持久化失败:", e);
 			}
 		};
@@ -98,7 +113,9 @@ export default class TaskManagePlugin extends Plugin {
 		let mergedPresets: Preset[] = [];
 
 		try {
-			const savedPresets: Preset[] = savedData.presets || [];
+			const savedPresets: Preset[] = Array.isArray(savedData["presets"])
+				? (savedData["presets"] as Preset[])
+				: [];
 
 			const defaultVisibility: Record<string, boolean> = {
 				filter: true,
@@ -198,17 +215,30 @@ export default class TaskManagePlugin extends Plugin {
 					mergedPresets.push(sp);
 				}
 			}
-		} catch (e) {
+		} catch (e: unknown) {
 			logger.warn("[TaskManage] 预设合并失败，回退为默认预设:", e);
 			mergedPresets = [...defaultPresets];
 		}
 
+		const activePresetId: string =
+			typeof savedData["activePresetId"] === "string"
+				? savedData["activePresetId"]
+				: "all-tasks";
+		const sidebarCollapsed: boolean =
+			typeof savedData["sidebarCollapsed"] === "boolean"
+				? savedData["sidebarCollapsed"]
+				: false;
+		const sidebarWidth: number =
+			typeof savedData["sidebarWidth"] === "number"
+				? savedData["sidebarWidth"]
+				: 100;
+
 		const initialState: AppState = {
-			activePresetId: savedData.activePresetId || "all-tasks",
+			activePresetId,
 			presets: mergedPresets,
 			presetGroups: [{ id: "basic", name: "任务视图", order: 0 }],
-			sidebarCollapsed: savedData.sidebarCollapsed ?? false,
-			sidebarWidth: savedData.sidebarWidth || 100,
+			sidebarCollapsed,
+			sidebarWidth,
 		};
 
 		this.store = new Store(initialState);
@@ -244,13 +274,13 @@ export default class TaskManagePlugin extends Plugin {
 			this.activateView("manage-view");
 		});
 
-		const wasViewOpen = savedData.wasViewOpen === true;
+		const wasViewOpen: boolean = savedData["wasViewOpen"] === true;
 		this.app.workspace.onLayoutReady(() => {
 			if (wasViewOpen) {
-				this.activateView("manage-view");
+				void this.activateView("manage-view");
 			}
-			setTimeout(() => {
-				persistData().catch((e) =>
+			window.setTimeout(() => {
+				persistData().catch((e: unknown) =>
 					logger.error("[TaskManage] 初始持久化失败:", e),
 				);
 			}, 1000);
@@ -261,7 +291,7 @@ export default class TaskManagePlugin extends Plugin {
 		if (this.saveAllSettings) {
 			try {
 				await this.saveAllSettings();
-			} catch (e) {
+			} catch (e: unknown) {
 				logger.error("[TaskManage] 卸载持久化失败:", e);
 			}
 		}
