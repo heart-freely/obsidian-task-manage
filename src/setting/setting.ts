@@ -100,7 +100,14 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		const leaves = this.app.workspace.getLeavesOfType("manage-view");
 		if (leaves.length > 0) {
-			const view = leaves[0].view as { refreshView?: () => void };
+			const view = leaves[0].view;
+			if (
+				view &&
+				typeof (view as Record<string, unknown>).refreshView ===
+					"function"
+			) {
+				(view as Record<string, unknown>).refreshView();
+			}
 			view.refreshView?.();
 		}
 	}

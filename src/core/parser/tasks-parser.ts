@@ -22,20 +22,15 @@ const ALL_STATUS_SYMBOLS = [
 const ALL_STATUS_SYMBOLS_STR = ALL_STATUS_SYMBOLS.map((s) =>
 	s === "-" || s === "]" || s === "^" || s === "\\" ? "\\" + s : s,
 ).join("");
-
 export const TASK_REGEX = new RegExp(
 	`^\\s*-\\s*\\[([${ALL_STATUS_SYMBOLS_STR}])\\]\\s+(.+)$`,
 );
 
 function parseDate(dateStr: string): number | null {
 	if (!dateStr) return null;
-	const parts = dateStr.split("-");
-	if (parts.length !== 3) return null;
-	const d = new Date(
-		parseInt(parts[0]),
-		parseInt(parts[1]) - 1,
-		parseInt(parts[2]),
-	);
+	const p = dateStr.split("-");
+	if (p.length !== 3) return null;
+	const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
 	d.setHours(0, 0, 0, 0);
 	const ts = d.getTime();
 	return isNaN(ts) ? null : ts;
@@ -46,25 +41,20 @@ export function parseTaskLine(
 	_filePath: string,
 	_line: number,
 ): TaskData | null {
-	const statusMatch = fullLine.match(/^\s*- \[(.)\]\s*/);
-	if (statusMatch) {
-		if (!matchTaskItem(statusMatch[1])) return null;
-	}
-	const status: TaskStatus = statusMatch
-		? ((SYMBOL_TO_STATUS[statusMatch[1]] || "todo") as TaskStatus)
+	const sm = fullLine.match(/^\s*- \[(.)\]\s*/);
+	if (sm && !matchTaskItem(sm[1])) return null;
+	const status: TaskStatus = sm
+		? ((SYMBOL_TO_STATUS[sm[1]] || "todo") as TaskStatus)
 		: "todo";
 	const text = fullLine.replace(/^\s*- \[.\]\s*/, "");
-
 	function m(rx: RegExp, idx?: number): string | null {
-		const match = text.match(rx);
-		return match ? match[idx !== undefined ? idx : 1] || null : null;
+		const mt = text.match(rx);
+		return mt ? mt[idx !== undefined ? idx : 1] || null : null;
 	}
-
-	const priorityMatch = text.match(TASKS_RX.priority);
-	const priorityIcon = priorityMatch ? priorityMatch[0] : "";
-	const priority = TASKS_PRIORITY_ICON_TO_NUM[priorityIcon] ?? 5;
-
-	const cleanText = text
+	const pm = text.match(TASKS_RX.priority);
+	const pi = pm ? pm[0] : "";
+	const priority = TASKS_PRIORITY_ICON_TO_NUM[pi] ?? 5;
+	const ct = text
 		.replace(/⏬|🔽|🔼|⏫|🔺/g, "")
 		.replace(/🔁\s*every\s+(day|week|month|year)/gi, "")
 		.replace(/➕\s*\d{4}-\d{2}-\d{2}/g, "")
@@ -79,11 +69,10 @@ export function parseTaskLine(
 		.replace(/<[^>]+>/g, "")
 		.replace(/\s{2,}/g, " ")
 		.trim();
-
 	return {
 		rawLine: fullLine,
 		status,
-		content: cleanText,
+		content: ct,
 		priority,
 		repeat: (m(TASKS_RX.repeat) || "").replace(/^🔁\s*/, ""),
 		created: parseDate(m(TASKS_RX.created) || ""),

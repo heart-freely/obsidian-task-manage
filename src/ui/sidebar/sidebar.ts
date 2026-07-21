@@ -39,7 +39,6 @@ export class SidebarPanel {
 			"task-relative",
 			"task-z-1",
 		);
-
 		const topRow = this.container.createDiv({
 			cls:
 				"side-top-row" +
@@ -61,14 +60,12 @@ export class SidebarPanel {
 				sidebarWidth: nc ? 40 : st.sidebarWidth || 100,
 			});
 		});
-
 		const contentDiv = this.container.createDiv({ cls: "side-content" });
 		contentDiv.addClass(
 			"task-overflow-y-auto",
 			"task-flex-1",
 			"task-overflow-x-hidden",
 		);
-
 		if (collapsed) {
 			this.container.setCssProps({
 				"--task-sidebar-width": "40px",
@@ -96,7 +93,6 @@ export class SidebarPanel {
 				.addEventListener("click", () => this.createNewPreset());
 			return;
 		}
-
 		this.container.setCssProps({ "--task-sidebar-min-width": "48px" });
 		this.container.addClass("task-sidebar-dynamic-min-width");
 		const listDiv = contentDiv.createDiv({ cls: "preset-list" });
@@ -125,11 +121,21 @@ export class SidebarPanel {
 		const state = this.store.getState();
 		const template = state.presets.find((p) => p.id === "all-tasks");
 		const np: Preset = {
-			...(template || {}),
 			id: Date.now().toString(),
 			name: "新视图",
 			icon: "📋",
-		} as Preset;
+			groupId: template?.groupId || "basic",
+			businessView: template?.businessView || "allTasks",
+			viewStyle: template?.viewStyle || "table",
+			filter: template?.filter || {
+				dateRange: { start: null, end: null, isAll: true },
+				statuses: [],
+				includeMarks: [],
+				excludeMarks: [],
+				rootPath: null,
+			},
+			sort: template?.sort || { type: "", order: "asc" },
+		};
 		this.store.update({
 			presets: [...state.presets, np],
 			activePresetId: np.id,

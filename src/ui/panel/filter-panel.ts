@@ -1,6 +1,5 @@
 // src/ui/panel/filter-panel.ts
 // 筛选面板 — 状态筛选 + 描述搜索 + 标记筛选
-// 同时导出共用的按钮组构建工具函数，供 hide-panel.ts 引用
 
 import {
 	MARK_NAMES,
@@ -11,10 +10,7 @@ import {
 import { Store } from "../../core/store/store";
 import { GlobalFilter } from "../../type/type";
 
-// ========== 常量 ==========
-
 const PRIORITY_ICONS = [...PRIORITY_ORDER].reverse();
-
 const BASIC_STATUSES = [
 	"todo",
 	"scheduled",
@@ -22,7 +18,6 @@ const BASIC_STATUSES = [
 	"cancelled",
 	"completed",
 ];
-
 const PANEL_STATUS_LABELS: Record<string, string> = {
 	todo: "待办中",
 	scheduled: "计划中",
@@ -30,8 +25,6 @@ const PANEL_STATUS_LABELS: Record<string, string> = {
 	completed: "已完成",
 	cancelled: "已取消",
 };
-
-// ========== 筛选组定义 ==========
 
 interface FilterGroupDef {
 	label: string;
@@ -57,21 +50,6 @@ const FILTER_GROUPS: FilterGroupDef[] = [
 	{ label: "筛选依赖", type: "marks", keys: ["id", "forbid"] },
 	{ label: "筛选标签", type: "marks", keys: ["tag"] },
 ];
-
-// ========== 隐藏组定义 ==========
-
-interface HideGroupDef {
-	label: string;
-	type:
-		| "statuses"
-		| "searchText"
-		| "priorityValues"
-		| "repeatCycles"
-		| "marks";
-	keys?: string[];
-}
-
-// ========== 共用按钮组构建函数 ==========
 
 export interface ToggleGroupOptions {
 	row: HTMLElement;
@@ -105,234 +83,181 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		statusLabels,
 		mainBtnTextOverrides,
 	} = options;
-
 	row.createSpan({ text: label, cls: "panel-label" });
 
-	// ========== 状态 ==========
 	if (type === "statuses") {
-		const noneSelected = selected.length === 0;
+		const ns = selected.length === 0;
 		const labels = statusLabels || STATUS_NAMES;
-
-		const mainBtn = row.createEl("button", {
+		const mb = row.createEl("button", {
 			text: mainBtnTextOverrides?.statuses || "状态",
 			cls: "panel-btn",
 		});
-		if (!noneSelected) mainBtn.addClass("active");
-		mainBtn.onclick = () => {
-			onChange(noneSelected ? [...BASIC_STATUSES] : []);
+		if (!ns) mb.addClass("active");
+		mb.onclick = () => {
+			onChange(ns ? [...BASIC_STATUSES] : []);
 		};
-
-		const subPanel = row.createDiv({ cls: "panel-sub" });
-		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
-		subPanel.addClass(
-			"task-flex",
-			"task-flex-wrap",
-			"task-gap-1",
-			"task-ml-2",
-		);
-
+		const sp = row.createDiv({ cls: "panel-sub" });
+		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
 		BASIC_STATUSES.forEach((st) => {
-			const btn = subPanel.createEl("button", {
+			const btn = sp.createEl("button", {
 				text: labels[st] || st,
 				cls: "panel-btn sub-btn",
 			});
 			if (selected.includes(st)) btn.addClass("active");
 			btn.onclick = () => {
-				const ns = selected.includes(st)
+				const n = selected.includes(st)
 					? selected.filter((s) => s !== st)
 					: [...selected, st];
-				onChange(ns);
+				onChange(n);
 			};
 		});
 		return;
 	}
 
-	// ========== 搜索文本 ==========
 	if (type === "searchText") {
 		const input = row.createEl("input", {
 			type: "text",
 			cls: "panel-input",
-			attr: {
-				placeholder: "输入关键词，多个关键词用空格分隔，回车搜索",
-			},
+			attr: { placeholder: "输入关键词，多个关键词用空格分隔，回车搜索" },
 		});
-		// 原代码：input.style.width = "380px";
 		input.addClass("task-w-380");
 		input.value = options.currentSearchText || "";
-
-		const applySearch = () => {
-			const val = input.value.trim();
-			onSearchChange?.(val);
+		const apply = () => {
+			const v = input.value.trim();
+			onSearchChange?.(v);
 		};
-
 		input.addEventListener("keydown", (e: KeyboardEvent) => {
 			if (e.key === "Enter") {
 				e.preventDefault();
 				if (currentValueRef) currentValueRef.value = input.value;
-				applySearch();
+				apply();
 			}
 		});
-
 		input.addEventListener("blur", () => {
 			if (currentValueRef && currentValueRef.value !== input.value) {
 				currentValueRef.value = input.value;
-				applySearch();
+				apply();
 			}
 		});
 		return;
 	}
 
-	// ========== 优先级 ==========
 	if (type === "priorityValues") {
-		const noneSelected = selected.length === 0;
-
-		const mainBtn = row.createEl("button", {
+		const ns = selected.length === 0;
+		const mb = row.createEl("button", {
 			text: mainBtnTextOverrides?.priorityValues || "优先级",
 			cls: "panel-btn",
 		});
-		if (!noneSelected) mainBtn.addClass("active");
-		mainBtn.onclick = () => {
-			onChange(noneSelected ? [...PRIORITY_ICONS] : []);
+		if (!ns) mb.addClass("active");
+		mb.onclick = () => {
+			onChange(ns ? [...PRIORITY_ICONS] : []);
 		};
-
-		const subPanel = row.createDiv({ cls: "panel-sub" });
-		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
-		subPanel.addClass(
-			"task-flex",
-			"task-flex-wrap",
-			"task-gap-1",
-			"task-ml-2",
-		);
-
+		const sp = row.createDiv({ cls: "panel-sub" });
+		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
 		PRIORITY_ICONS.forEach((icon) => {
-			const btn = subPanel.createEl("button", {
+			const btn = sp.createEl("button", {
 				text: icon,
 				cls: "panel-btn sub-btn",
 			});
 			if (selected.includes(icon)) btn.addClass("active");
 			btn.onclick = () => {
-				const ni = selected.includes(icon)
+				const n = selected.includes(icon)
 					? selected.filter((i) => i !== icon)
 					: [...selected, icon];
-				onChange(ni);
+				onChange(n);
 			};
 		});
 		return;
 	}
 
-	// ========== 循环 ==========
 	if (type === "repeatCycles") {
-		const noneSelected = selected.length === 0;
-
-		const mainBtn = row.createEl("button", {
+		const ns = selected.length === 0;
+		const mb = row.createEl("button", {
 			text: mainBtnTextOverrides?.repeatCycles || "循环",
 			cls: "panel-btn",
 		});
-		if (!noneSelected) mainBtn.addClass("active");
-		mainBtn.onclick = () => {
-			onChange(noneSelected ? [...REPEAT_ORDER] : []);
+		if (!ns) mb.addClass("active");
+		mb.onclick = () => {
+			onChange(ns ? [...REPEAT_ORDER] : []);
 		};
-
-		const subPanel = row.createDiv({ cls: "panel-sub" });
-		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
-		subPanel.addClass(
-			"task-flex",
-			"task-flex-wrap",
-			"task-gap-1",
-			"task-ml-2",
-		);
-
+		const sp = row.createDiv({ cls: "panel-sub" });
+		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
 		REPEAT_ORDER.forEach((cycle) => {
-			const btn = subPanel.createEl("button", {
+			const btn = sp.createEl("button", {
 				text: `🔁 ${cycle}`,
 				cls: "panel-btn sub-btn",
 			});
 			if (selected.includes(cycle)) btn.addClass("active");
 			btn.onclick = () => {
-				const nc = selected.includes(cycle)
+				const n = selected.includes(cycle)
 					? selected.filter((c) => c !== cycle)
 					: [...selected, cycle];
-				onChange(nc);
+				onChange(n);
 			};
 		});
 		return;
 	}
 
-	// ========== 多标记（时间/依赖）==========
 	if (type === "marks" && keys && keys.length > 1) {
-		const noneSelected = keys.every((k) => !selected.includes(k));
-
-		const mainBtn = row.createEl("button", {
+		const ns = keys.every((k) => !selected.includes(k));
+		const mb = row.createEl("button", {
 			text:
 				mainBtnTextOverrides?.marks ||
 				label.replace(/^(筛选|隐藏)/, ""),
 			cls: "panel-btn",
 		});
-		if (!noneSelected) mainBtn.addClass("active");
-		mainBtn.onclick = () => {
+		if (!ns) mb.addClass("active");
+		mb.onclick = () => {
 			const others = selected.filter((m) => !keys!.includes(m));
-			onChange(noneSelected ? [...others, ...keys!] : others);
+			onChange(ns ? [...others, ...keys!] : others);
 		};
-
-		const subPanel = row.createDiv({ cls: "panel-sub" });
-		// 原代码：subPanel.style.cssText = "display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;";
-		subPanel.addClass(
-			"task-flex",
-			"task-flex-wrap",
-			"task-gap-1",
-			"task-ml-2",
-		);
-
-		keys.forEach((markKey) => {
-			const btn = subPanel.createEl("button", {
-				text: MARK_NAMES[markKey] || markKey,
+		const sp = row.createDiv({ cls: "panel-sub" });
+		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
+		keys.forEach((mk) => {
+			const btn = sp.createEl("button", {
+				text: MARK_NAMES[mk] || mk,
 				cls: "panel-btn sub-btn",
 			});
-			if (selected.includes(markKey)) btn.addClass("active");
+			if (selected.includes(mk)) btn.addClass("active");
 			btn.onclick = () => {
-				const ni = selected.includes(markKey)
-					? selected.filter((m) => m !== markKey)
-					: [...selected, markKey];
-				onChange(ni);
+				const n = selected.includes(mk)
+					? selected.filter((m) => m !== mk)
+					: [...selected, mk];
+				onChange(n);
 			};
 		});
 		return;
 	}
 
-	// ========== 单标记（标签）==========
 	if (type === "marks" && keys && keys.length === 1) {
-		const markKey = keys[0];
-		const isSelected = selected.includes(markKey);
+		const mk = keys[0];
+		const isSel = selected.includes(mk);
 		const btn = row.createEl("button", {
-			text: mainBtnTextOverrides?.marks || MARK_NAMES[markKey] || markKey,
+			text: mainBtnTextOverrides?.marks || MARK_NAMES[mk] || mk,
 			cls: "panel-btn",
 		});
-		if (isSelected) btn.addClass("active");
+		if (isSel) btn.addClass("active");
 		btn.onclick = () => {
-			const ni = isSelected
-				? selected.filter((m) => m !== markKey)
-				: [...selected, markKey];
-			onChange(ni);
+			const n = isSel
+				? selected.filter((m) => m !== mk)
+				: [...selected, mk];
+			onChange(n);
 		};
 		return;
 	}
 }
-
-// ========== FilterPanel 类 ==========
 
 export class FilterPanel {
 	private container: HTMLElement;
 	private store: Store;
 	private currentValue: string = "";
 	private unsub: (() => void) | null = null;
-
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
 		this.unsub = store.subscribe(() => this.render());
 		this.render();
 	}
-
 	destroy() {
 		if (this.unsub) {
 			this.unsub();
@@ -345,8 +270,7 @@ export class FilterPanel {
 		const state = this.store.getState();
 		const preset = state.presets.find((p) => p.id === state.activePresetId);
 		if (!preset) return;
-		const currentFilter = preset.filter;
-
+		const cf = preset.filter;
 		const updateFilter = (changes: Partial<GlobalFilter>) => {
 			const st = this.store.getState();
 			const pr = st.presets.find((p) => p.id === st.activePresetId);
@@ -359,69 +283,54 @@ export class FilterPanel {
 				),
 			});
 		};
-
 		FILTER_GROUPS.forEach((group) => {
 			const row = this.container.createDiv({ cls: "panel-row" });
-
 			if (group.type === "statuses") {
 				buildToggleGroup({
 					row,
 					label: group.label,
 					type: group.type,
-					selected: currentFilter.statuses || [],
+					selected: cf.statuses || [],
 					onChange: (ns) => updateFilter({ statuses: ns }),
 					statusLabels: PANEL_STATUS_LABELS,
 				});
-				return;
-			}
-
-			if (group.type === "searchText") {
+			} else if (group.type === "searchText") {
 				buildToggleGroup({
 					row,
 					label: group.label,
 					type: group.type,
 					selected: [],
-					currentSearchText: currentFilter.searchText || "",
+					currentSearchText: cf.searchText || "",
 					currentValueRef: { value: this.currentValue },
 					onChange: () => {},
 					onSearchChange: (text) =>
 						updateFilter({ searchText: text || undefined }),
 				});
-				return;
-			}
-
-			if (group.type === "priorityValues") {
+			} else if (group.type === "priorityValues") {
 				buildToggleGroup({
 					row,
 					label: group.label,
 					type: group.type,
-					selected: currentFilter.priorityValues || [],
+					selected: cf.priorityValues || [],
 					onChange: (ns) => updateFilter({ priorityValues: ns }),
 				});
-				return;
-			}
-
-			if (group.type === "repeatCycles") {
+			} else if (group.type === "repeatCycles") {
 				buildToggleGroup({
 					row,
 					label: group.label,
 					type: group.type,
-					selected: currentFilter.repeatCycles || [],
+					selected: cf.repeatCycles || [],
 					onChange: (ns) => updateFilter({ repeatCycles: ns }),
 				});
-				return;
-			}
-
-			if (group.type === "marks" && group.keys) {
+			} else if (group.type === "marks" && group.keys) {
 				buildToggleGroup({
 					row,
 					label: group.label,
 					type: group.type,
 					keys: group.keys,
-					selected: currentFilter.includeMarks || [],
+					selected: cf.includeMarks || [],
 					onChange: (ns) => updateFilter({ includeMarks: ns }),
 				});
-				return;
 			}
 		});
 	}

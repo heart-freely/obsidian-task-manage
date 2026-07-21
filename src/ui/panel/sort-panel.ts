@@ -1,5 +1,4 @@
 // src/ui/panel/sort-panel.ts
-// 视图排序面板
 
 import { Store } from "../../core/store/store";
 
@@ -24,14 +23,12 @@ export class SortPanel {
 	private container: HTMLElement;
 	private store: Store;
 	private unsub: (() => void) | null = null;
-
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
 		this.unsub = store.subscribe(() => this.render());
 		this.render();
 	}
-
 	destroy() {
 		if (this.unsub) {
 			this.unsub();
@@ -43,17 +40,15 @@ export class SortPanel {
 		this.container.empty();
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
-		const currentSort = preset?.sort ?? { type: "", order: "asc" };
+		const cs = preset?.sort ?? { type: "", order: "asc" };
 		const row = this.container.createDiv({ cls: "panel-row" });
 		row.createSpan({ text: "任务排序", cls: "panel-label" });
-
-		// 原始顺序按钮（默认选中）
-		const defaultBtn = row.createEl("button", {
+		const defBtn = row.createEl("button", {
 			text: "原始",
 			cls: "panel-btn",
 		});
-		if (currentSort.type === "") defaultBtn.addClass("active");
-		defaultBtn.onclick = () => {
+		if (cs.type === "") defBtn.addClass("active");
+		defBtn.onclick = () => {
 			const st = this.store.getState();
 			const pr = this.store.getActivePreset();
 			if (!pr) return;
@@ -65,16 +60,13 @@ export class SortPanel {
 				),
 			});
 		};
-
 		SORT_OPTIONS.forEach((opt) => {
 			const btn = row.createEl("button", {
 				text: opt.label,
 				cls: "panel-btn",
 			});
-			if (currentSort.type === opt.type) {
-				btn.setText(
-					opt.label + (currentSort.order === "asc" ? " ↑" : " ↓"),
-				);
+			if (cs.type === opt.type) {
+				btn.setText(opt.label + (cs.order === "asc" ? " ↑" : " ↓"));
 				btn.addClass("active");
 			}
 			btn.onclick = () => {
@@ -82,12 +74,15 @@ export class SortPanel {
 				const pr = this.store.getActivePreset();
 				if (!pr) return;
 				const no =
-					currentSort.type === opt.type
-						? currentSort.order === "asc"
+					cs.type === opt.type
+						? cs.order === "asc"
 							? "desc"
 							: "asc"
 						: "asc";
-				const ns = { type: opt.type, order: no as "asc" | "desc" };
+				const ns: { type: string; order: "asc" | "desc" } = {
+					type: opt.type,
+					order: no,
+				};
 				this.store.update({
 					presets: st.presets.map((p) =>
 						p.id === pr.id ? { ...p, sort: ns } : p,

@@ -9,10 +9,8 @@ interface ChildDef {
 	icon?: string;
 }
 
-const statusChildren: ChildDef[] = (TASK_ELEMENTS.status.children ??
-	[]) as ChildDef[];
-const priorityChildren: ChildDef[] = (TASK_ELEMENTS.priority.children ??
-	[]) as ChildDef[];
+const statusChildren: ChildDef[] = TASK_ELEMENTS.status.children ?? [];
+const priorityChildren: ChildDef[] = TASK_ELEMENTS.priority.children ?? [];
 
 export function parseTaskFromYaml(
 	yamlData: Record<string, unknown>,
@@ -34,22 +32,20 @@ export function parseTaskFromYaml(
 		typeof yamlData["任务优先级"] === "string"
 			? yamlData["任务优先级"]
 			: "none";
-	const sk = (sm[rawStatus] || "none") as TaskStatus;
+	const sk: TaskStatus = (sm[rawStatus] || "none") as TaskStatus;
 	const pi = rawPriority === "none" ? 5 : (pm[rawPriority] ?? 5);
 
 	const fd = (val: unknown): number | null => {
 		if (!val) return null;
 		const s = String(val);
 		const dm = s.match(/(\d{4}-\d{2}-\d{2})/);
-		const dateStr = dm ? dm[1] : s.substring(0, 10);
-		const ts = new Date(dateStr).getTime();
+		const ds = dm ? dm[1] : s.substring(0, 10);
+		const ts = new Date(ds).getTime();
 		return isNaN(ts) ? null : ts;
 	};
 
 	const dv: Record<string, number | null> = {};
-	for (const yn of YAML_DATE_FIELDS) {
-		dv[yn] = fd(yamlData[yn]);
-	}
+	for (const yn of YAML_DATE_FIELDS) dv[yn] = fd(yamlData[yn]);
 
 	const description =
 		typeof yamlData["任务简介"] === "string"
@@ -57,7 +53,6 @@ export function parseTaskFromYaml(
 			: typeof yamlData["任务名称"] === "string"
 				? yamlData["任务名称"]
 				: "";
-
 	if (!description && Object.values(dv).every((v) => v === null)) return null;
 
 	return {

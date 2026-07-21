@@ -1,5 +1,4 @@
 // src/core/task/task-filter.ts
-// 扁平任务筛选——纯函数
 
 import { GlobalFilter } from "../../type/type";
 import { ALL_MARKS, PRIORITY_ORDER, REPEAT_ORDER } from "../config/config";
@@ -12,93 +11,72 @@ export function filterTasks(
 	intervalMode?: string,
 ): TaskTreeNode[] {
 	let result = nodes;
-
 	if (
 		!filter.dateRange.isAll &&
 		filter.dateRange.start != null &&
 		filter.dateRange.end != null
 	) {
-		const start = filter.dateRange.start;
-		const end = filter.dateRange.end;
-		const mode = intervalMode || "scheduled-due";
-
+		const s = filter.dateRange.start,
+			e = filter.dateRange.end;
+		const m = intervalMode || "scheduled-due";
 		result = result.filter((node) => {
-			let tStart: number | null = null;
-			let tEnd: number | null = null;
-
-			if (mode === "starts-done") {
-				tStart = node.starts;
-				tEnd = node.done ?? node.due;
+			let ts: number | null = null,
+				te: number | null = null;
+			if (m === "starts-done") {
+				ts = node.starts;
+				te = node.done ?? node.due;
 			} else {
-				tStart = node.scheduled;
-				tEnd = node.due ?? node.done;
+				ts = node.scheduled;
+				te = node.due ?? node.done;
 			}
-
-			if (tStart === null || tEnd === null) return false;
-			return tStart <= end && tEnd >= start;
+			return ts !== null && te !== null && ts <= e && te >= s;
 		});
 	}
-
-	if (filter.statuses && filter.statuses.length > 0) {
+	if (filter.statuses?.length)
 		result = result.filter((node) => filter.statuses.includes(node.status));
-	}
-
 	if (
-		filter.includeMarks &&
-		filter.includeMarks.length > 0 &&
+		filter.includeMarks?.length &&
 		filter.includeMarks.length < ALL_MARKS.length
-	) {
+	)
 		result = result.filter((node) => {
 			const marks = getTaskMarks(node);
 			return filter.includeMarks.some(
 				(m) => marks[m as keyof typeof marks],
 			);
 		});
-	}
-
-	if (filter.rootPath) {
+	if (filter.rootPath)
 		result = result.filter((node) =>
-			node.path?.startsWith(filter.rootPath!),
+			node.path?.startsWith(filter.rootPath),
 		);
-	}
-
 	if (filter.searchText) {
 		const kw = filter.searchText
 			.toLowerCase()
 			.split(/\s+/)
 			.filter((k) => k.length > 0);
-		if (kw.length > 0) {
+		if (kw.length)
 			result = result.filter((node) => {
 				const d = (node.content || node.text || "").toLowerCase();
 				return kw.every((k) => d.includes(k));
 			});
-		}
 	}
-
 	if (
-		filter.priorityValues &&
-		filter.priorityValues.length > 0 &&
+		filter.priorityValues?.length &&
 		filter.priorityValues.length < PRIORITY_ORDER.length
-	) {
+	)
 		result = result.filter((node) => {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
 			const icon = icons[node.priority] || "";
-			return icon && filter.priorityValues!.includes(icon);
+			return icon && filter.priorityValues.includes(icon);
 		});
-	}
-
 	if (
-		filter.repeatCycles &&
-		filter.repeatCycles.length > 0 &&
+		filter.repeatCycles?.length &&
 		filter.repeatCycles.length < REPEAT_ORDER.length
-	) {
+	)
 		result = result.filter((node) => {
 			if (!node.repeat) return false;
-			return filter.repeatCycles!.some((c) =>
+			return filter.repeatCycles.some((c) =>
 				node.repeat.toLowerCase().includes(c),
 			);
 		});
-	}
-
 	return result;
 }

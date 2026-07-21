@@ -8,32 +8,28 @@ import {
 } from "../config/dataview-config";
 
 function parseInlineFields(text: string): Record<string, string> {
-	const fields: Record<string, string> = {};
-	let match: RegExpExecArray | null;
-	const regex = new RegExp(
+	const f: Record<string, string> = {};
+	let m: RegExpExecArray | null;
+	const r = new RegExp(
 		DATAVIEW_INLINE_REGEX.source,
 		DATAVIEW_INLINE_REGEX.flags,
 	);
-	while ((match = regex.exec(text)) !== null) {
-		fields[match[1].trim()] = match[2].trim();
-	}
-	return fields;
+	while ((m = r.exec(text)) !== null) f[m[1].trim()] = m[2].trim();
+	return f;
 }
-
 function parseEmojiDates(text: string): Record<string, string> {
-	const dates: Record<string, string> = {};
-	let match: RegExpExecArray | null;
-	const regex = new RegExp(
+	const d: Record<string, string> = {};
+	let m: RegExpExecArray | null;
+	const r = new RegExp(
 		DATAVIEW_EMOJI_DATE_REGEX.source,
 		DATAVIEW_EMOJI_DATE_REGEX.flags,
 	);
-	while ((match = regex.exec(text)) !== null) {
-		const fieldName = DATAVIEW_EMOJI_FIELD_MAP[match[1]];
-		if (fieldName) dates[fieldName] = match[2];
+	while ((m = r.exec(text)) !== null) {
+		const fn = DATAVIEW_EMOJI_FIELD_MAP[m[1]];
+		if (fn) d[fn] = m[2];
 	}
-	return dates;
+	return d;
 }
-
 function parseDate(val: string | undefined): number | null {
 	if (!val) return null;
 	const ts = new Date(val).getTime();
@@ -41,24 +37,23 @@ function parseDate(val: string | undefined): number | null {
 }
 
 export function parseDataviewTask(lineText: string): TaskData {
-	const inlineFields = parseInlineFields(lineText);
-	const emojiDates = parseEmojiDates(lineText);
-	const fields = { ...inlineFields, ...emojiDates };
-
+	const inf = parseInlineFields(lineText);
+	const emj = parseEmojiDates(lineText);
+	const f = { ...inf, ...emj };
 	return {
 		rawLine: lineText,
-		status: (fields["状态"] || "todo") as TaskStatus,
-		content: fields["描述"] || fields["名称"] || "",
-		priority: fields["优先级"] ? parseInt(fields["优先级"]) : 5,
-		repeat: fields["循环"] || "",
-		created: parseDate(fields["created"]),
-		scheduled: parseDate(fields["scheduled"]),
-		starts: parseDate(fields["start"]),
-		due: parseDate(fields["due"]),
-		done: parseDate(fields["completion"]),
-		cancelled: parseDate(fields["cancelled"]),
-		tag: fields["标签"] || "",
-		id: fields["ID"] || "",
-		forbid: fields["依赖"] || "",
+		status: (f["状态"] || "todo") as TaskStatus,
+		content: f["描述"] || f["名称"] || "",
+		priority: f["优先级"] ? parseInt(f["优先级"]) : 5,
+		repeat: f["循环"] || "",
+		created: parseDate(f["created"]),
+		scheduled: parseDate(f["scheduled"]),
+		starts: parseDate(f["start"]),
+		due: parseDate(f["due"]),
+		done: parseDate(f["completion"]),
+		cancelled: parseDate(f["cancelled"]),
+		tag: f["标签"] || "",
+		id: f["ID"] || "",
+		forbid: f["依赖"] || "",
 	};
 }
