@@ -92,15 +92,15 @@ export interface EditState {
 	previews: Map<string, string>;
 	savedTasks: Set<string>;
 	expandedButton: string | null;
-	syncMode: boolean; // 新增
-	primaryTaskUid: string | null; // 新增
+	syncMode: boolean;
+	primaryTaskUid: string | null;
 }
 
 export interface EditPanelState {
 	batchMode: boolean;
 	selectedCount: number;
 	hasSnapshots: boolean;
-	syncMode: boolean; // 新增
+	syncMode: boolean;
 }
 
 export interface AppState {
@@ -112,24 +112,71 @@ export interface AppState {
 	editPanelState?: EditPanelState;
 }
 
-// ========== O7：类型安全接口 ==========
+// ========== 快照类型 ==========
+
+export interface Snapshot {
+	time: string;
+	snapshot: Record<string, string>;
+}
+
+// ========== 类型安全接口 ==========
+
+/** TaskTreeNode 的最小接口，避免循环依赖 */
+export interface TaskTreeNodeLike {
+	uid: string;
+	type: "file" | "heading" | "list";
+	path: string;
+	line: number;
+	rawLine: string;
+	status: TaskStatus;
+	content: string;
+	priority: number;
+	repeat: string;
+	created: number | null;
+	scheduled: number | null;
+	starts: number | null;
+	due: number | null;
+	done: number | null;
+	cancelled: number | null;
+	id: string;
+	forbid: string;
+	tag: string;
+	text: string;
+	display: boolean;
+	[key: string]: unknown;
+}
 
 export interface EditStoreInterface {
 	getState(): EditState;
-	subscribePanel(listener: () => void): void;
-	applyEdit(markKey: string, value: string | null): void;
+	subscribePanel(listener: () => void): () => void;
+	toggleExpandedButton(buttonKey: string): void;
+	applyEdit(markKey: string, value: string | null, sourceUid: string): void;
+	applyContentEdit(node: TaskTreeNodeLike, newContent: string): void;
 	applyAutoComplete(days?: number): void;
 	applySortTags(): void;
 	clearPreviews(): void;
-	saveCurrent(): void;
-	revertSnapshot(index: number): void;
-	getSnapshots(): Array<{ time: string; snapshot: Record<string, string> }>;
+	saveCurrent(): Promise<void>;
+	saveSingle(node: TaskTreeNodeLike): Promise<void>;
+	saveAll(): Promise<void>;
+	revertSingle(node: TaskTreeNodeLike): Promise<void>;
+	revertSnapshot(index: number): Promise<void>;
+	getSnapshots(): Snapshot[];
+	clearAllSnapshots(): void;
 	toggleSyncMode(): void;
+	toggleBatchMode(): void;
+	toggleSelection(node: TaskTreeNodeLike): void;
+	toggleSelectAll(nodes: TaskTreeNodeLike[]): void;
+	enterSingleEditMode(node: TaskTreeNodeLike): void;
+	enterBatchMode(): void;
+	enterBatchModeFromSingle(node: TaskTreeNodeLike): void;
+	exitBatchToReading(): void;
+	exitEditMode(save?: boolean, keepSelection?: boolean): void;
+	setPrimaryTask(uid: string): void;
 	syncToStore(): void;
 }
 
 export interface TaskViewInterface {
 	toggleBatchMode(): void;
-	toggleSelectAll(nodes: any[]): void;
-	refreshEditCards?(): void;
+	toggleSelectAll(nodes: TaskTreeNodeLike[]): void;
+	refreshEditCards(): void;
 }

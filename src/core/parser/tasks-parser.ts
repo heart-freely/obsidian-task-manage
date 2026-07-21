@@ -1,4 +1,4 @@
-// core/parser/tasks-parser.ts
+// src/core/parser/tasks-parser.ts
 // Tasks 格式列表任务行解析器
 
 import { TaskData, TaskStatus } from "../../type/type";
@@ -45,12 +45,11 @@ function parseDate(dateStr: string): number | null {
 
 export function parseTaskLine(
 	fullLine: string,
-	filePath: string,
-	line: number,
+	_filePath: string,
+	_line: number,
 ): TaskData | null {
 	const statusMatch = fullLine.match(/^\s*- \[(.)\]\s*/);
 
-	// 任务项过滤
 	if (statusMatch) {
 		const symbol = statusMatch[1];
 		if (!matchTaskItem(symbol)) return null;
@@ -66,7 +65,6 @@ export function parseTaskLine(
 		return match ? match[idx !== undefined ? idx : 1] || null : null;
 	}
 
-	// 使用 match 获取首个匹配，无 g 标志时返回数组包含完整匹配信息
 	const priorityMatch = text.match(TASKS_RX.priority);
 	const priorityIcon = priorityMatch ? priorityMatch[0] : "";
 	const priority = TASKS_PRIORITY_ICON_TO_NUM[priorityIcon] ?? 5;
@@ -101,6 +99,8 @@ export function parseTaskLine(
 		cancelled: parseDate(m(TASKS_RX.cancelled) || ""),
 		tag: m(TASKS_RX.tag) || "",
 		id: m(TASKS_RX.id) || "",
-		forbid: m(TASKS_RX.forbid) ? m(TASKS_RX.forbid).replace(/\s/g, "") : "",
+		forbid: m(TASKS_RX.forbid)
+			? m(TASKS_RX.forbid)!.replace(/\s/g, "")
+			: "",
 	};
 }

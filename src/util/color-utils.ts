@@ -78,7 +78,9 @@ export function getThemeColorArray(defs: ThemeColor[]): string[] {
  * 叠加后再将 RGB 各通道乘以衰减系数，使颜色更接近 DOM 元素的实际视觉效果
  */
 export function rgbaToSolidOnDark(rgbaStr: string): string {
-	const match = rgbaStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+	const match: RegExpMatchArray | null = rgbaStr.match(
+		/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/,
+	);
 	if (!match) return rgbaStr;
 
 	const r = parseInt(match[1]);
@@ -86,9 +88,9 @@ export function rgbaToSolidOnDark(rgbaStr: string): string {
 	const b = parseInt(match[3]);
 	const a = parseFloat(match[4]);
 
-	const bgR = 30,
-		bgG = 30,
-		bgB = 30;
+	const bgR = 30;
+	const bgG = 30;
+	const bgB = 30;
 
 	const blendedR = r * a + bgR * (1 - a);
 	const blendedG = g * a + bgG * (1 - a);

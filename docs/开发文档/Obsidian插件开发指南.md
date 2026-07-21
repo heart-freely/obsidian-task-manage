@@ -351,13 +351,13 @@ npm test
 
 ### 审核报错修复
 
-| 规则                          | 正确做法                                        |
-| :---------------------------- | :---------------------------------------------- |
-| `no-static-styles-assignment` | 用 CSS 类 + CSS 变量方式（见 CSS 语法规范）     |
-| `no-unsupported-api`          | `minAppVersion` 设为使用的最新 API 版本         |
-| `no-innerhtml`                | 用 `textContent` 或 DOM API                     |
-| `no-dynamic-style-elements`   | 写入 `styles.css`，状态颜色逐个 `setProperty`   |
-| `no-html-headings`            | 用 `new Setting().setName("标题").setHeading()` |
+| 规则                          | 正确做法                                                     |
+| :---------------------------- | :----------------------------------------------------------- |
+| `no-static-styles-assignment` | 用 CSS 类 + CSS 变量方式（见 CSS 语法规范）                  |
+| `no-unsupported-api`          | `minAppVersion` 设为使用的最新 API 版本，或替换为兼容旧版的等效 API（如 `workspace.revealLeaf(leaf)` → `workspace.setActiveLeaf(leaf, { focus: true })`） |
+| `no-innerhtml`                | 用 `textContent` 或 DOM API                                  |
+| `no-dynamic-style-elements`   | 写入 `styles.css`，状态颜色逐个 `setProperty`                |
+| `no-html-headings`            | 用 `new Setting().setName("标题").setHeading()`              |
 
 #### CSS 语法规范
 
@@ -384,20 +384,53 @@ npm test
 el.addClass("task-dynamic-bg");
 el.setCssProps({ "--task-bg": userColor });
 ```
+
 ```css
 .task-dynamic-bg { background-color: var(--task-bg, var(--background-primary)); }
 ```
 
+**高频更新场景注意事项**：甘特图等需要批量更新元素样式的场景，应将同一元素的多个 `setCssProps` 调用合并为一次，避免多次触发浏览器重排导致性能下降。同时 `style.cssText` 改为 CSS 类时需注意 `all: unset` 等全局重置样式可能被覆盖的问题。
+
+**修复流程**：查看审核报错定位文件+行号 → 分析错误类型选择修复方案 → 单文件修改编译测试 → 提交审核确认错误消失 → 重复至所有 Error 清零。
+
 ### 审核警告消除
 
 - 用接口替代 `any`
-- 用 Obsidian 数据 API 替代 `localStorage`
+- 用 Obsidian 数据 API 替代 `localStorage`：在 `onload` 中最先 `await this.loadData()` 获取初始数据初始化内存缓存，导出同步读取函数，写入时更新缓存并异步持久化；`persistData` 须从内存缓存读取最新值，避免被 Store 旧数据覆盖
 - 用 `activeDocument` 替代 `document`
 - `setTimeout`/`requestAnimationFrame` 加 `window.` 前缀
 - 删除未使用的变量和函数
 - `manifest.json` description 末尾加标点
 - README 须含英文
 - `fundingUrl` 确保有效
+- `alert()` → `new Notice()`，`confirm()` → 直接执行操作
+- 空状态视图渲染前先调用 `container.empty()` 清空容器，避免文字累积
+- CSS 中 `opacity: 0` 改为 `opacity: var(--resize-opacity, 0)`，配合 `setCssProps` 控制显隐，避免 CSS 类优先级冲突
+
+### 对源代码的影响
+
+#### 影响范围
+
+| 类别         | 影响           | 说明                                                        |
+| :----------- | :------------- | :---------------------------------------------------------- |
+| **样式写法** | 替换，功能不变 | `el.style.xxx` → CSS 类 + `setCssProps`，视觉效果一致       |
+| **存储方式** | 替换，功能不变 | `localStorage` → `loadData/saveData` + 内存缓存，数据不丢失 |
+| **弹窗方式** | 替换，功能不变 | `alert` → `new Notice`，提示效果一致                        |
+| **API 兼容** | 替换，功能不变 | `revealLeaf` → `setActiveLeaf`，行为一致                    |
+| **业务逻辑** | 零影响         | 所有修改仅改变实现方式，不改变功能                          |
+
+#### 修改原则
+
+```
+if (原代码能用且通过审核) {
+    不修改;
+} else {
+    用最小改动达到审核要求;
+    不改业务逻辑;
+    不引入新依赖;
+    修改后编译 + 功能测试;
+}
+```
 
 ## 版本发布与社区提交
 

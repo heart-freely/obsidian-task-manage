@@ -1,9 +1,10 @@
-// src/core/component/calendar-view-process.ts
+// src/core/process/calendar-view-process.ts
 // 日历视图数据处理 — 纯函数，不涉及 DOM
 
+import { IntervalMode, TaskTreeNodeLike } from "../../type/type";
 import { DateUtils } from "../../util/date-utils";
-import { getTaskTimeRange, IntervalMode } from "../task/task-derived";
-import { TaskTreeNode } from "../task/task-tree";
+import { getTaskTimeRange } from "../task/task-derived";
+
 // ========== 日期工具 ==========
 
 export function formatDate(d: Date): string {
@@ -22,7 +23,7 @@ export function getISOWeekNumber(d: Date): number {
 // ========== 任务时间区间 ==========
 
 export function getTaskInterval(
-	node: TaskTreeNode,
+	node: TaskTreeNodeLike,
 	intervalMode: string,
 ): { start: number; end: number } | null {
 	const range = getTaskTimeRange(node, intervalMode as IntervalMode);
@@ -33,10 +34,10 @@ export function getTaskInterval(
 /** 构建日期→任务列表映射（仅含首尾日期） */
 
 export function buildDateTaskMap(
-	nodes: TaskTreeNode[],
+	nodes: TaskTreeNodeLike[],
 	intervalMode: string,
-): Map<string, TaskTreeNode[]> {
-	const map = new Map<string, TaskTreeNode[]>();
+): Map<string, TaskTreeNodeLike[]> {
+	const map = new Map<string, TaskTreeNodeLike[]>();
 	const added = new Set<string>();
 
 	for (const node of nodes) {
@@ -46,7 +47,6 @@ export function buildDateTaskMap(
 		const start = setStart(new Date(interval.start));
 		const end = setEnd(new Date(interval.end));
 
-		// 只加首尾日期
 		const firstKey = formatDate(start);
 		if (!added.has(node.uid + "|" + firstKey)) {
 			added.add(node.uid + "|" + firstKey);
@@ -67,7 +67,7 @@ export function buildDateTaskMap(
 
 /** 判断任务在某天是否是中间日期（非首尾） */
 export function isMiddleDay(
-	node: TaskTreeNode,
+	node: TaskTreeNodeLike,
 	date: Date,
 	intervalMode: string,
 ): boolean {
@@ -88,7 +88,9 @@ export function isMiddleDay(
 // ========== 任务排序 ==========
 
 /** 全局排序：优先级 > 状态 */
-export function buildGlobalOrder(nodes: TaskTreeNode[]): Map<string, number> {
+export function buildGlobalOrder(
+	nodes: TaskTreeNodeLike[],
+): Map<string, number> {
 	const arr = [...nodes];
 	arr.sort((a, b) => {
 		if (a.priority !== b.priority) return a.priority - b.priority;
@@ -110,11 +112,11 @@ export function buildGlobalOrder(nodes: TaskTreeNode[]): Map<string, number> {
 
 /** 从任务列表中推断日期范围 */
 export function inferDateRange(
-	nodes: TaskTreeNode[],
+	nodes: TaskTreeNodeLike[],
 	intervalMode: string,
 ): { startDate: Date; endDate: Date } {
-	let minTs: number | null = null,
-		maxTs: number | null = null;
+	let minTs: number | null = null;
+	let maxTs: number | null = null;
 	for (const node of nodes) {
 		const interval = getTaskInterval(node, intervalMode);
 		if (interval) {
@@ -192,13 +194,13 @@ export function getYearsInRange(startDate: Date, endDate: Date): number[] {
 
 export interface CalendarCellItem {
 	type: "task" | "line" | "placeholder";
-	node: TaskTreeNode;
+	node: TaskTreeNodeLike;
 }
 
 /** 计算某天日历格子内应显示的项目列表 */
 export function buildCellItems(
 	date: Date,
-	dateTaskMap: Map<string, TaskTreeNode[]>,
+	dateTaskMap: Map<string, TaskTreeNodeLike[]>,
 	intervalMode: string,
 ): CalendarCellItem[] {
 	const dateKey = formatDate(date);

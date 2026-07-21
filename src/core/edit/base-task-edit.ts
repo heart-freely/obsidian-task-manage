@@ -781,35 +781,3 @@ export class BaseTaskEdit {
 		}
 	};
 }
-
-function toYamlValueCtx(key: string, value: string): string {
-	const STATUS_TO_YAML: Record<string, string> = {
-		none: "无状态",
-		todo: "待办中",
-		scheduled: "计划中",
-		"in-progress": "进行中",
-		cancelled: "已取消",
-		completed: "已完成",
-	};
-	const PRIORITY_TO_YAML: Record<number, string> = {
-		0: "最高",
-		1: "高",
-		2: "中",
-		3: "低",
-		4: "最低",
-		5: "无",
-	};
-	switch (key) {
-		case "status":
-			return STATUS_TO_YAML[value] || value;
-		case "priority": {
-			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-			const idx = icons.indexOf(value);
-			return idx >= 0 ? PRIORITY_TO_YAML[idx] : value;
-		}
-		case "repeat":
-			return value.replace(/^🔁\s*/, "");
-		default:
-			return value;
-	}
-}

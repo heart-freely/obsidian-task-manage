@@ -115,8 +115,8 @@ export function formatMonthValue(x: number, baseYear: number): string {
 }
 
 export function formatWeekValue(x: number, baseYear: number): string {
-	let r = x,
-		y = baseYear;
+	let r = x;
+	let y = baseYear;
 	while (r > weeksInYear(y)) {
 		r -= weeksInYear(y);
 		y++;
@@ -125,8 +125,8 @@ export function formatWeekValue(x: number, baseYear: number): string {
 }
 
 export function formatDayValue(x: number, baseYear: number): string {
-	let r = x,
-		y = baseYear;
+	let r = x;
+	let y = baseYear;
 	while (r > daysInYear(y)) {
 		r -= daysInYear(y);
 		y++;
@@ -208,7 +208,18 @@ export function getLevelValues(
 	startDate: Date,
 	endDate: Date,
 	minYear?: number,
-) {
+): {
+	yearStart: number;
+	yearEnd: number;
+	quarterStart: number;
+	quarterEnd: number;
+	monthStart: number;
+	monthEnd: number;
+	weekStart: number;
+	weekEnd: number;
+	dayStart: number;
+	dayEnd: number;
+} {
 	const startYear = startDate.getFullYear();
 	const endYear = endDate.getFullYear();
 	const baseYear = minYear ?? Math.min(startYear, endYear);
@@ -249,10 +260,11 @@ export function datesFromLevel(
 ): { startDate: Date; endDate: Date } {
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
-	let startDate: Date, endDate: Date;
-	const minV = Math.min(sv, ev),
-		maxV = Math.max(sv, ev);
-	const addOffset = (d: Date, o: number, u: string) => {
+	let startDate: Date;
+	let endDate: Date;
+	const minV = Math.min(sv, ev);
+	const maxV = Math.max(sv, ev);
+	const addOffset = (d: Date, o: number, u: string): Date => {
 		const nd = new Date(d);
 		if (u === "week") nd.setDate(nd.getDate() + o * 7);
 		else if (u === "month") nd.setMonth(nd.getMonth() + o);
@@ -460,7 +472,20 @@ export function staticSliderRanges(
 	endDate: Date,
 	taskMinYear: number,
 	taskMaxYear: number,
-) {
+): {
+	yearMin: number;
+	yearMax: number;
+	quarterMin: number;
+	quarterMax: number;
+	monthMin: number;
+	monthMax: number;
+	weekMin: number;
+	weekMax: number;
+	dayMin: number;
+	dayMax: number;
+	minYear: number;
+	maxYear: number;
+} {
 	const cy = new Date().getFullYear();
 	const vals = getLevelValues(startDate, endDate);
 	const sameYear = vals.yearStart === vals.yearEnd;
@@ -483,10 +508,10 @@ export function staticSliderRanges(
 	}
 	const minY = Math.min(vals.yearStart, vals.yearEnd);
 	const maxY = Math.max(vals.yearStart, vals.yearEnd);
-	let totalQuarters = 0,
-		totalMonths = 0,
-		totalWeeks = 0,
-		totalDays = 0;
+	let totalQuarters = 0;
+	let totalMonths = 0;
+	let totalWeeks = 0;
+	let totalDays = 0;
 	for (let y = minY; y <= maxY; y++) {
 		ensureYearCache(y);
 		totalQuarters += 4;
@@ -512,14 +537,18 @@ export function staticSliderRanges(
 
 // ========== 跨年偏移计算 ==========
 
-function calcYearOffset(
-	baseYear: number,
-	targetYear: number,
-): { quarter: number; month: number; week: number; day: number } {
-	let quarter = 0,
-		month = 0,
-		week = 0,
-		day = 0;
+interface YearOffset {
+	quarter: number;
+	month: number;
+	week: number;
+	day: number;
+}
+
+function calcYearOffset(baseYear: number, targetYear: number): YearOffset {
+	let quarter = 0;
+	let month = 0;
+	let week = 0;
+	let day = 0;
 	for (let y = baseYear; y < targetYear; y++) {
 		ensureYearCache(y);
 		quarter += 4;
@@ -530,11 +559,16 @@ function calcYearOffset(
 	return { quarter, month, week, day };
 }
 
+interface YearValue {
+	year: number;
+	valueInYear: number;
+}
+
 function absoluteToYearValue(
 	lv: string,
 	absValue: number,
 	baseYear: number,
-): { year: number; valueInYear: number } {
+): YearValue {
 	let remaining = absValue;
 	let year = baseYear;
 	switch (lv) {

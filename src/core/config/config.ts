@@ -1,5 +1,4 @@
 // src/core/config/config.ts
-// core/config/config.ts
 
 import { PathFilterConfig, TaskItemFilterConfig } from "../../setting/setting";
 import {
@@ -64,149 +63,237 @@ const C = {
 	both: { dark: "rgba(150, 125, 180, 0.70)", light: "#8a72a8" },
 };
 
-export const TASK_ELEMENTS = {
+// ========== 子元素类型（有 children 的元素中的子项）==========
+
+interface StatusChildDef {
+	key: string;
+	zhName: string;
+	icon: string;
+	darkColor: string;
+	lightColor: string;
+}
+
+interface PriorityChildDef {
+	key: string;
+	zhName: string;
+	enName: string;
+	icon: string;
+	darkColor: string;
+	lightColor: string;
+}
+
+interface RepeatChildDef {
+	key: string;
+	zhName: string;
+	enName: string;
+	darkColor: string;
+	lightColor: string;
+}
+
+// ========== TASK_ELEMENTS 定义（移除 as const，使用显式类型）==========
+
+interface StatusElementDef {
+	key: "status";
+	zhName: string;
+	enName: string;
+	icon: string;
+	inMarkSequence: boolean;
+	yaName: string;
+	darkColor: string;
+	lightColor: string;
+	children: StatusChildDef[];
+}
+
+interface PriorityElementDef {
+	key: "priority";
+	zhName: string;
+	enName: string;
+	icon: string;
+	inMarkSequence: boolean;
+	yaName: string;
+	darkColor: string;
+	lightColor: string;
+	children: PriorityChildDef[];
+}
+
+interface RepeatElementDef {
+	key: "repeat";
+	zhName: string;
+	enName: string;
+	icon: string;
+	inMarkSequence: boolean;
+	yaName: string;
+	darkColor: string;
+	lightColor: string;
+	children: RepeatChildDef[];
+}
+
+interface LeafElementDef {
+	key: string;
+	zhName: string;
+	enName: string;
+	icon: string;
+	inMarkSequence: boolean;
+	yaName: string;
+	darkColor: string;
+	lightColor: string;
+}
+
+type TaskElementDef =
+	| StatusElementDef
+	| PriorityElementDef
+	| RepeatElementDef
+	| LeafElementDef;
+
+export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 	status: {
-		key: "status" as const,
+		key: "status",
 		zhName: "执行状态",
 		enName: "Status",
 		icon: "",
 		inMarkSequence: true,
 		yaName: "任务状态",
+		darkColor: "",
+		lightColor: "",
 		children: [
 			{
-				key: "none" as const,
+				key: "none",
 				zhName: "无状态",
 				icon: "",
 				darkColor: C.statusNone.dark,
 				lightColor: C.statusNone.light,
 			},
 			{
-				key: "todo" as const,
+				key: "todo",
 				zhName: "待办中",
 				icon: "🔲",
 				darkColor: C.statusTodo.dark,
 				lightColor: C.statusTodo.light,
 			},
 			{
-				key: "scheduled" as const,
+				key: "scheduled",
 				zhName: "计划中",
 				icon: "❔",
 				darkColor: C.statusScheduled.dark,
 				lightColor: C.statusScheduled.light,
 			},
 			{
-				key: "in-progress" as const,
+				key: "in-progress",
 				zhName: "进行中",
 				icon: "⏩",
 				darkColor: C.statusInProgress.dark,
 				lightColor: C.statusInProgress.light,
 			},
 			{
-				key: "cancelled" as const,
+				key: "cancelled",
 				zhName: "已取消",
 				icon: "❎",
 				darkColor: C.statusCancelled.dark,
 				lightColor: C.statusCancelled.light,
 			},
 			{
-				key: "completed" as const,
+				key: "completed",
 				zhName: "已完成",
 				icon: "✅",
 				darkColor: C.statusCompleted.dark,
 				lightColor: C.statusCompleted.light,
 			},
 		],
-	},
+	} as StatusElementDef,
 	priority: {
-		key: "priority" as const,
+		key: "priority",
 		zhName: "优先级",
 		enName: "Priority",
 		icon: "",
 		inMarkSequence: true,
 		yaName: "任务优先级",
+		darkColor: "",
+		lightColor: "",
 		children: [
 			{
-				key: "0" as const,
+				key: "0",
 				zhName: "最高",
 				enName: "Highest",
-				icon: "🔺" as const,
+				icon: "🔺",
 				darkColor: C.prioHighest.dark,
 				lightColor: C.prioHighest.light,
 			},
 			{
-				key: "1" as const,
+				key: "1",
 				zhName: "高",
 				enName: "High",
-				icon: "⏫" as const,
+				icon: "⏫",
 				darkColor: C.prioHigh.dark,
 				lightColor: C.prioHigh.light,
 			},
 			{
-				key: "2" as const,
+				key: "2",
 				zhName: "中",
 				enName: "Medium",
-				icon: "🔼" as const,
+				icon: "🔼",
 				darkColor: C.prioMedium.dark,
 				lightColor: C.prioMedium.light,
 			},
 			{
-				key: "3" as const,
+				key: "3",
 				zhName: "低",
 				enName: "Low",
-				icon: "🔽" as const,
+				icon: "🔽",
 				darkColor: C.prioLow.dark,
 				lightColor: C.prioLow.light,
 			},
 			{
-				key: "4" as const,
+				key: "4",
 				zhName: "最低",
 				enName: "Lowest",
-				icon: "⏬" as const,
+				icon: "⏬",
 				darkColor: C.prioLowest.dark,
 				lightColor: C.prioLowest.light,
 			},
 		],
-	},
+	} as PriorityElementDef,
 	repeat: {
-		key: "repeat" as const,
+		key: "repeat",
 		zhName: "循环",
 		enName: "Repeat",
 		icon: "🔁",
 		inMarkSequence: true,
 		yaName: "任务周期",
+		darkColor: "",
+		lightColor: "",
 		children: [
 			{
-				key: "every day" as const,
+				key: "every day",
 				zhName: "每天",
 				enName: "Every Day",
 				darkColor: C.repeatDay.dark,
 				lightColor: C.repeatDay.light,
 			},
 			{
-				key: "every week" as const,
+				key: "every week",
 				zhName: "每周",
 				enName: "Every Week",
 				darkColor: C.repeatWeek.dark,
 				lightColor: C.repeatWeek.light,
 			},
 			{
-				key: "every month" as const,
+				key: "every month",
 				zhName: "每月",
 				enName: "Every Month",
 				darkColor: C.repeatMonth.dark,
 				lightColor: C.repeatMonth.light,
 			},
 			{
-				key: "every year" as const,
+				key: "every year",
 				zhName: "每年",
 				enName: "Every Year",
 				darkColor: C.repeatYear.dark,
 				lightColor: C.repeatYear.light,
 			},
 		],
-	},
+	} as RepeatElementDef,
 	created: {
-		key: "created" as const,
+		key: "created",
 		zhName: "创建",
 		enName: "Created",
 		icon: "➕",
@@ -214,9 +301,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务创建",
 		darkColor: C.created.dark,
 		lightColor: C.created.light,
-	},
+	} as LeafElementDef,
 	scheduled: {
-		key: "scheduled" as const,
+		key: "scheduled",
 		zhName: "计划",
 		enName: "Scheduled",
 		icon: "⏳",
@@ -224,9 +311,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务计划",
 		darkColor: C.scheduled.dark,
 		lightColor: C.scheduled.light,
-	},
+	} as LeafElementDef,
 	starts: {
-		key: "starts" as const,
+		key: "starts",
 		zhName: "开始",
 		enName: "Starts",
 		icon: "🛫",
@@ -234,9 +321,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务开始",
 		darkColor: C.starts.dark,
 		lightColor: C.starts.light,
-	},
+	} as LeafElementDef,
 	cancelled: {
-		key: "cancelled" as const,
+		key: "cancelled",
 		zhName: "取消",
 		enName: "Cancel",
 		icon: "❌",
@@ -244,9 +331,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务取消",
 		darkColor: C.cancelled.dark,
 		lightColor: C.cancelled.light,
-	},
+	} as LeafElementDef,
 	done: {
-		key: "done" as const,
+		key: "done",
 		zhName: "完成",
 		enName: "Done",
 		icon: "✅",
@@ -254,9 +341,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务完成",
 		darkColor: C.done.dark,
 		lightColor: C.done.light,
-	},
+	} as LeafElementDef,
 	due: {
-		key: "due" as const,
+		key: "due",
 		zhName: "截止",
 		enName: "Due",
 		icon: "📅",
@@ -264,9 +351,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务截止",
 		darkColor: C.due.dark,
 		lightColor: C.due.light,
-	},
+	} as LeafElementDef,
 	tag: {
-		key: "tag" as const,
+		key: "tag",
 		zhName: "标签",
 		enName: "Tag",
 		icon: "🏁",
@@ -274,9 +361,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务标签",
 		darkColor: C.tag.dark,
 		lightColor: C.tag.light,
-	},
+	} as LeafElementDef,
 	id: {
-		key: "id" as const,
+		key: "id",
 		zhName: "唯一ID",
 		enName: "Unique ID",
 		icon: "🆔",
@@ -284,9 +371,9 @@ export const TASK_ELEMENTS = {
 		yaName: "任务唯一ID",
 		darkColor: C.id.dark,
 		lightColor: C.id.light,
-	},
+	} as LeafElementDef,
 	forbid: {
-		key: "forbid" as const,
+		key: "forbid",
 		zhName: "引用ID",
 		enName: "Depends On",
 		icon: "⛔",
@@ -294,25 +381,34 @@ export const TASK_ELEMENTS = {
 		yaName: "任务引用ID",
 		darkColor: C.forbid.dark,
 		lightColor: C.forbid.light,
-	},
-} as const;
+	} as LeafElementDef,
+};
+
+// ========== 类型安全的状态子元素访问 ==========
+
+const statusChildren: StatusChildDef[] = (
+	TASK_ELEMENTS.status as StatusElementDef
+).children;
+const priorityChildren: PriorityChildDef[] = (
+	TASK_ELEMENTS.priority as PriorityElementDef
+).children;
+const repeatChildren: RepeatChildDef[] = (
+	TASK_ELEMENTS.repeat as RepeatElementDef
+).children;
 
 // ========== 颜色定义 ==========
 
 const STATUS_COLOR_DEFS: Record<string, ThemeColor> = {};
-TASK_ELEMENTS.status.children.forEach((c) => {
-	STATUS_COLOR_DEFS[c.key] = makeColor(
-		(c as any).darkColor,
-		(c as any).lightColor,
-	);
+statusChildren.forEach((c) => {
+	STATUS_COLOR_DEFS[c.key] = makeColor(c.darkColor, c.lightColor);
 });
 
-const PRIORITY_COLOR_DEFS: ThemeColor[] = TASK_ELEMENTS.priority.children.map(
-	(c) => makeColor((c as any).darkColor, (c as any).lightColor),
+const PRIORITY_COLOR_DEFS: ThemeColor[] = priorityChildren.map((c) =>
+	makeColor(c.darkColor, c.lightColor),
 );
 
-const REPEAT_COLOR_DEFS: ThemeColor[] = TASK_ELEMENTS.repeat.children.map((c) =>
-	makeColor((c as any).darkColor, (c as any).lightColor),
+const REPEAT_COLOR_DEFS: ThemeColor[] = repeatChildren.map((c) =>
+	makeColor(c.darkColor, c.lightColor),
 );
 
 const DATE_MARK_ORDER_INTERNAL = [
@@ -326,10 +422,8 @@ const DATE_MARK_ORDER_INTERNAL = [
 
 const DATE_MARK_COLOR_DEFS: Record<string, ThemeColor> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
-	DATE_MARK_COLOR_DEFS[k] = makeColor(
-		(TASK_ELEMENTS as any)[k].darkColor,
-		(TASK_ELEMENTS as any)[k].lightColor,
-	);
+	const el = TASK_ELEMENTS[k] as LeafElementDef;
+	DATE_MARK_COLOR_DEFS[k] = makeColor(el.darkColor, el.lightColor);
 });
 
 const TAG_PALETTE_DEFS: ThemeColor[] = [
@@ -364,13 +458,13 @@ for (const [statusKey, symbols] of Object.entries(STATUS_ALL_SYMBOLS)) {
 
 // ========== 状态相关 ==========
 
-export const ALLOWED_STATUSES = TASK_ELEMENTS.status.children.map((c) => c.key);
+export const ALLOWED_STATUSES = statusChildren.map((c) => c.key);
 export const STATUS_NAMES: Record<string, string> = {};
-TASK_ELEMENTS.status.children.forEach((c) => {
+statusChildren.forEach((c) => {
 	STATUS_NAMES[c.key] = c.zhName;
 });
 export const STATUS_ICONS: Record<string, string> = {};
-TASK_ELEMENTS.status.children.forEach((c) => {
+statusChildren.forEach((c) => {
 	STATUS_ICONS[c.key] = c.icon;
 });
 export const STATUS_SORT_ORDER: string[] = [
@@ -394,15 +488,13 @@ export function getStatusColors(): Record<string, string> {
 
 // ========== 优先级相关 ==========
 
-export const PRIORITY_ORDER = TASK_ELEMENTS.priority.children.map(
-	(c) => c.icon,
-);
+export const PRIORITY_ORDER = priorityChildren.map((c) => c.icon);
 export const PRIORITY_ICONS: Record<string, string> = {};
-TASK_ELEMENTS.priority.children.forEach((c) => {
+priorityChildren.forEach((c) => {
 	PRIORITY_ICONS[c.key] = c.icon;
 });
 export const PRIORITY_LABELS: Record<string, string> = {};
-TASK_ELEMENTS.priority.children.forEach((c) => {
+priorityChildren.forEach((c) => {
 	PRIORITY_LABELS[c.key] = `${c.enName}|${c.zhName}`;
 });
 PRIORITY_LABELS["none"] = "None|无";
@@ -413,10 +505,10 @@ export function getPriorityColors(): string[] {
 
 // ========== 循环相关 ==========
 
-export const REPEAT_ORDER = TASK_ELEMENTS.repeat.children.map((c) => c.key);
-export const REPEAT_ICON = TASK_ELEMENTS.repeat.icon;
+export const REPEAT_ORDER = repeatChildren.map((c) => c.key);
+export const REPEAT_ICON = (TASK_ELEMENTS.repeat as RepeatElementDef).icon;
 export const REPEAT_LABELS: Record<string, string> = {};
-TASK_ELEMENTS.repeat.children.forEach((c) => {
+repeatChildren.forEach((c) => {
 	REPEAT_LABELS[c.key] = c.zhName;
 });
 
@@ -429,12 +521,12 @@ export function getRepeatColors(): string[] {
 export const DATE_MARK_ORDER = DATE_MARK_ORDER_INTERNAL as unknown as string[];
 export const DATE_MARK_ICONS: Record<string, string> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
-	DATE_MARK_ICONS[k] = (TASK_ELEMENTS as any)[k].icon;
+	DATE_MARK_ICONS[k] = (TASK_ELEMENTS[k] as LeafElementDef).icon;
 });
 export const DATE_MARK_NAMES: Record<string, string> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
-	DATE_MARK_NAMES[k] =
-		(TASK_ELEMENTS as any)[k].icon + " " + (TASK_ELEMENTS as any)[k].zhName;
+	const el = TASK_ELEMENTS[k] as LeafElementDef;
+	DATE_MARK_NAMES[k] = el.icon + " " + el.zhName;
 });
 export const DATE_FIELD_SORT_ORDER = [...DATE_MARK_ORDER_INTERNAL];
 
@@ -444,9 +536,9 @@ export function getDateMarkColors(): Record<string, string> {
 
 // ========== 图标与颜色常量 ==========
 
-export const ID_ICON = TASK_ELEMENTS.id.icon;
-export const DEPENDS_ICON = TASK_ELEMENTS.forbid.icon;
-export const TAG_ICON = TASK_ELEMENTS.tag.icon;
+export const ID_ICON = (TASK_ELEMENTS.id as LeafElementDef).icon;
+export const DEPENDS_ICON = (TASK_ELEMENTS.forbid as LeafElementDef).icon;
+export const TAG_ICON = (TASK_ELEMENTS.tag as LeafElementDef).icon;
 
 export const ID_COLOR_DEF: ThemeColor = makeColor(C.id.dark, C.id.light);
 export const DEPENDS_COLOR_DEF: ThemeColor = makeColor(
@@ -462,22 +554,26 @@ export function getTagPalette(): string[] {
 
 // ========== 标记相关 ==========
 
-export const TASK_MARK_SEQUENCE = TASK_ELEMENT_ORDER.filter(
-	(k) => (TASK_ELEMENTS as any)[k].inMarkSequence,
-);
+export const TASK_MARK_SEQUENCE = TASK_ELEMENT_ORDER.filter((k) => {
+	const el = TASK_ELEMENTS[k];
+	return el.inMarkSequence;
+});
 export const MARK_NAMES: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	if ((TASK_ELEMENTS as any)[k].inMarkSequence)
-		MARK_NAMES[k] = (TASK_ELEMENTS as any)[k].zhName;
+	const el = TASK_ELEMENTS[k];
+	if (el.inMarkSequence) MARK_NAMES[k] = el.zhName;
 });
 export const ALL_MARKS = Object.keys(MARK_NAMES);
 
 // ========== 表格列 ==========
 
-export const TABLE_COLUMNS = TASK_ELEMENT_ORDER.map((k) => ({
-	key: k,
-	label: k === "status" ? "状态" : (TASK_ELEMENTS as any)[k].zhName,
-}));
+export const TABLE_COLUMNS = TASK_ELEMENT_ORDER.map((k) => {
+	const el = TASK_ELEMENTS[k];
+	return {
+		key: k,
+		label: k === "status" ? "状态" : el.zhName,
+	};
+});
 const descIdx = TABLE_COLUMNS.findIndex((c) => c.key === "status");
 if (descIdx >= 0) {
 	TABLE_COLUMNS.splice(descIdx + 1, 0, { key: "content", label: "描述" });
@@ -502,37 +598,37 @@ export const DEFAULT_TABLE_COLUMNS: Record<string, boolean> = {
 
 export const YAML_NAME_TO_KEY: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const el = (TASK_ELEMENTS as any)[k];
+	const el = TASK_ELEMENTS[k];
 	if (el.yaName) YAML_NAME_TO_KEY[el.yaName] = k;
 });
 export const YAML_NAME_TO_ICON: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const el = (TASK_ELEMENTS as any)[k];
+	const el = TASK_ELEMENTS[k];
 	if (el.yaName && el.icon) YAML_NAME_TO_ICON[el.yaName] = el.icon;
 });
 export const YAML_NAME_TO_ZHNAME: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const el = (TASK_ELEMENTS as any)[k];
+	const el = TASK_ELEMENTS[k];
 	if (el.yaName) YAML_NAME_TO_ZHNAME[el.yaName] = el.zhName;
 });
 export const YAML_DATE_FIELDS: string[] = TASK_ELEMENT_ORDER.filter((k) => {
-	const el = (TASK_ELEMENTS as any)[k];
+	const el = TASK_ELEMENTS[k];
 	return (
-		el.yaName &&
+		!!el.yaName &&
 		["created", "scheduled", "starts", "due", "done", "cancelled"].includes(
 			k,
 		)
 	);
-}).map((k) => (TASK_ELEMENTS as any)[k].yaName!);
+}).map((k) => TASK_ELEMENTS[k].yaName!);
 export const YAML_DISPLAY_ORDER: string[] = TASK_ELEMENT_ORDER.filter(
-	(k) => (TASK_ELEMENTS as any)[k].yaName,
-).map((k) => (TASK_ELEMENTS as any)[k].yaName!);
+	(k) => !!TASK_ELEMENTS[k].yaName,
+).map((k) => TASK_ELEMENTS[k].yaName!);
 
 // ========== 优先级标签函数 ==========
 
 export function getPriorityLabel(icon: string): string {
 	const idx = PRIORITY_ORDER.indexOf(icon);
-	if (idx >= 0) return TASK_ELEMENTS.priority.children[idx].zhName;
+	if (idx >= 0) return priorityChildren[idx].zhName;
 	return "无";
 }
 
@@ -622,8 +718,8 @@ export function matchTaskItem(symbol: string): boolean {
 }
 
 interface ParsedFileDataForConfig {
-	contentRoots: any[];
-	fileTask: any;
+	contentRoots: unknown[];
+	fileTask: unknown;
 }
 export function isTaskFile(
 	fileName: string,
@@ -637,7 +733,7 @@ export function isTaskFile(
 export function isWhitelisted(filePath: string): boolean {
 	return matchTaskFilePath(filePath);
 }
-export function isBlacklisted(filePath: string): boolean {
+export function isBlacklisted(_filePath: string): boolean {
 	return false;
 }
 
@@ -677,7 +773,9 @@ export function updateTaskFileConfig(config: {
 		if (first) {
 			try {
 				HEADING_TASK_PATTERN = new RegExp(first.pattern);
-			} catch {}
+			} catch {
+				// 正则无效时忽略
+			}
 		}
 	}
 	if (
@@ -690,10 +788,8 @@ export function updateTaskFileConfig(config: {
 
 // ========== 派生类型 ==========
 
-export type TaskStatus = (typeof TASK_ELEMENTS.status.children)[number]["key"];
-export type PriorityIcon =
-	| (typeof TASK_ELEMENTS.priority.children)[number]["icon"]
-	| "";
-export type RepeatCycle = (typeof TASK_ELEMENTS.repeat.children)[number]["key"];
+export type TaskStatus = (typeof statusChildren)[number]["key"];
+export type PriorityIcon = (typeof priorityChildren)[number]["icon"] | "";
+export type RepeatCycle = (typeof repeatChildren)[number]["key"];
 export type DateMarkKey = (typeof DATE_MARK_ORDER_INTERNAL)[number];
 export type MarkKey = (typeof ALL_MARKS)[number];

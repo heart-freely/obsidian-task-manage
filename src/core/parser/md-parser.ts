@@ -1,5 +1,4 @@
 // src/core/parser/md-parser.ts
-// core/parser/md-parser.ts
 // Markdown 文件解析器 — 文件读取、YAML 提取、标题识别、内容结构
 
 import { TaskData, TaskStatus } from "../../type/type";
@@ -30,13 +29,11 @@ export interface ParsedFileData {
 	path: string;
 	name: string;
 	content: string;
-	yaml: Record<string, any>;
+	yaml: Record<string, unknown>;
 	fileTask: TaskData | null;
 	contentRoots: ContentNode[];
 	hasMarkedTasks: boolean;
-	/** frontmatter 结束行号（--- 所在行），-1 表示不存在 */
 	yamlEndLine: number;
-	/** 是否存在 frontmatter */
 	hasFrontmatter: boolean;
 }
 
@@ -79,13 +76,13 @@ function hasListTasks(nodes: ContentNode[]): boolean {
 	return false;
 }
 
-function hasHeadingTaskYaml(yamlData: Record<string, any> | null): boolean {
+function hasHeadingTaskYaml(yamlData: Record<string, unknown> | null): boolean {
 	if (!yamlData) return false;
 	const task = parseTaskFromYaml(yamlData);
 	return task !== null && hasTaskMarks(task);
 }
 
-function hasFileTaskFrontmatter(yamlData: Record<string, any>): boolean {
+function hasFileTaskFrontmatter(yamlData: Record<string, unknown>): boolean {
 	const task = parseTaskFromYaml(yamlData);
 	return task !== null && hasTaskMarks(task);
 }
@@ -93,8 +90,8 @@ function hasFileTaskFrontmatter(yamlData: Record<string, any>): boolean {
 function hasAnyTask(
 	type: "list" | "heading" | "file",
 	contentRoots: ContentNode[],
-	headingYaml?: Record<string, any> | null,
-	fileYaml?: Record<string, any>,
+	headingYaml?: Record<string, unknown> | null,
+	fileYaml?: Record<string, unknown>,
 ): boolean {
 	if (hasMarkedTasksInNodes(contentRoots)) return true;
 	if (type === "heading" || type === "file") {
@@ -108,14 +105,14 @@ function hasAnyTask(
 
 // ========== YAML 提取 ==========
 
-function parseFrontmatter(content: string): Record<string, any> {
+function parseFrontmatter(content: string): Record<string, unknown> {
 	if (!content) return {};
 	const trimmed = content.trimStart();
 	if (!trimmed.startsWith("---")) return {};
 	const endIdx = trimmed.indexOf("---", 3);
 	if (endIdx === -1) return {};
 	const yamlContent = trimmed.substring(3, endIdx).trim();
-	const result: Record<string, any> = {};
+	const result: Record<string, unknown> = {};
 	for (const line of yamlContent.split("\n")) {
 		const ci = line.indexOf(":");
 		if (ci === -1) continue;
@@ -131,27 +128,6 @@ function parseFrontmatter(content: string): Record<string, any> {
 	return result;
 }
 
-function calcFrontmatterLineOffset(content: string): number {
-	if (!content) return 0;
-
-	const leadingLen = content.length - content.trimStart().length;
-	const leadingLines =
-		leadingLen > 0
-			? content.substring(0, leadingLen).split("\n").length - 1
-			: 0;
-
-	const trimmed = content.trimStart();
-	if (!trimmed.startsWith("---")) return 0;
-
-	const endIdx = trimmed.indexOf("---", 3);
-	if (endIdx === -1) return 0;
-
-	const fmPart = trimmed.substring(0, endIdx + 3);
-	const fmLines = fmPart.split("\n").length;
-
-	return leadingLines + fmLines;
-}
-
 function stripFrontmatter(content: string): string {
 	if (!content) return "";
 	const trimmed = content.trimStart();
@@ -160,6 +136,7 @@ function stripFrontmatter(content: string): string {
 	if (endIdx === -1) return trimmed;
 	return trimmed.substring(endIdx + 3);
 }
+
 // ========== 文件解析 ==========
 
 export function parseFile(
@@ -170,7 +147,6 @@ export function parseFile(
 	const yaml = parseFrontmatter(content);
 	const fileTask = parseTaskFromYaml(yaml);
 
-	// 检测并计算 frontmatter 结束行号
 	let hasFrontmatter = false;
 	let yamlEndLine = -1;
 
@@ -191,7 +167,6 @@ export function parseFile(
 
 	const body = stripFrontmatter(content);
 
-	// 通过 body 在 content 中的位置精确计算起始行号
 	const bodyStartIndex = content.indexOf(body);
 	const actualBodyStartLine =
 		bodyStartIndex >= 0
@@ -415,12 +390,12 @@ function parseHeadingYamlBlock(
 	headingLine: number,
 	headingLevel: number,
 ): {
-	yamlData: Record<string, any> | null;
+	yamlData: Record<string, unknown> | null;
 	yamlStartLine: number;
 	yamlEndLine: number;
 } {
-	let yamlStartLine = -1,
-		yamlEndLine = -1;
+	let yamlStartLine = -1;
+	let yamlEndLine = -1;
 	for (let i = headingLine + 1; i < lines.length; i++) {
 		const trimmed = lines[i].trim();
 		const hm = trimmed.match(/^(#{1,6})\s+/);
@@ -438,7 +413,7 @@ function parseHeadingYamlBlock(
 	}
 	if (yamlStartLine === -1 || yamlEndLine === -1)
 		return { yamlData: null, yamlStartLine: -1, yamlEndLine: -1 };
-	const yamlData: Record<string, any> = {};
+	const yamlData: Record<string, unknown> = {};
 	for (const yamlLine of lines.slice(yamlStartLine + 1, yamlEndLine)) {
 		const colonIdx = yamlLine.indexOf(":");
 		if (colonIdx === -1) continue;
@@ -482,14 +457,17 @@ export function isTaskFile(fileName: string, parsed: ParsedFileData): boolean {
 	return false;
 }
 
-export async function loadAllTaskFiles(app: any): Promise<ParsedFileData[]> {
+export async function loadAllTaskFiles(app: {
+	vault: {
+		getMarkdownFiles(): Array<{ path: string; name: string }>;
+		cachedRead(file: { path: string; name: string }): Promise<string>;
+	};
+}): Promise<ParsedFileData[]> {
 	if (TASK_ROOT_PATHS.length === 0) return [];
 
 	const files = app.vault
 		.getMarkdownFiles()
-		.filter(
-			(f: any) => matchTaskFilePath(f.path) && f.name.endsWith(".md"),
-		);
+		.filter((f) => matchTaskFilePath(f.path) && f.name.endsWith(".md"));
 
 	const results: ParsedFileData[] = [];
 	for (const file of files) {

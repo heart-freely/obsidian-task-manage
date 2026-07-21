@@ -1,4 +1,5 @@
-// src/core/component/tree-view-process.ts
+// src/core/process/tree-view-process.ts
+// 任务树视图数据处理
 
 import { countTaskStatuses } from "../../ui/component/progress/progress";
 import { ContentNode } from "../parser/md-parser";
@@ -9,11 +10,11 @@ export function removeHeadingNumber(text: string): string {
 		.replace(/^[\d]+\.[\d.]*\s+/, "")
 		.replace(/^[A-Z]+\.\s+/, "")
 		.replace(/^[IVXLCDM]+\.\s+/, "")
-		.replace(/^[\d]+\.[\d.]*[:\)\-\—]\s*/, "")
-		.replace(/^[A-Z]+\.[\d.]*[:\)\-\—]\s*/, "")
-		.replace(/^[IVXLCDM]+\.[\d.]*[:\)\-\—]\s*/, "")
+		.replace(/^[\d]+\.[\d.]*[:)\-\—]\s*/, "")
+		.replace(/^[A-Z]+\.[\d.]*[:)\-\—]\s*/, "")
+		.replace(/^[IVXLCDM]+\.[\d.]*[:)\-\—]\s*/, "")
 		.replace(/^\d+\s+/, "")
-		.replace(/^_[\.\s]*/, "")
+		.replace(/^_[.\s]*/, "")
 		.trim();
 }
 
@@ -31,10 +32,6 @@ export function collectAllTasksFromNode(node: TaskTreeNode): TaskTreeNode[] {
 	return all;
 }
 
-// src/core/component/tree-view-process.ts
-
-// src/core/component/tree-view-process.ts — countNodeStatuses
-
 export function countNodeStatuses(node: TaskTreeNode): {
 	counts: Record<string, number>;
 	total: number;
@@ -49,13 +46,13 @@ export function countContentNodeStatuses(node: ContentNode): {
 	counts: Record<string, number>;
 	total: number;
 } {
-	const tasks: any[] = [];
+	const tasks: Array<{ status: string }> = [];
 	function walk(cn: ContentNode) {
 		if (cn.task) tasks.push({ status: cn.task.status });
 		for (const child of cn.children) walk(child);
 	}
 	walk(node);
-	return countTaskStatuses(tasks);
+	return countTaskStatuses(tasks as Array<{ status: string }>);
 }
 
 /**
@@ -84,15 +81,15 @@ export function compareTasks(
 			completed: 3,
 			cancelled: 4,
 		};
-		const sa = so[nodeA.status] ?? 5,
-			sb = so[nodeB.status] ?? 5;
+		const sa = so[nodeA.status] ?? 5;
+		const sb = so[nodeB.status] ?? 5;
 		if (sa !== sb) return (sa - sb) * order;
 	} else if (sortType === "priority") {
 		if (nodeA.priority !== nodeB.priority)
 			return (nodeA.priority - nodeB.priority) * order;
 	} else if (sortType === "scheduled") {
-		const da = nodeA.scheduled,
-			db = nodeB.scheduled;
+		const da = nodeA.scheduled;
+		const db = nodeB.scheduled;
 		if (da === null && db === null) return 0;
 		if (da === null) return 1;
 		if (db === null) return -1;
@@ -115,14 +112,12 @@ export function sortContentNodes(
 	const order = sort?.order === "asc" ? 1 : -1;
 
 	sorted.sort((a, b) => {
-		// 按类型分组排序：task 在前，heading 在后
 		const ga = a.type === "task" ? 0 : 1;
 		const gb = b.type === "task" ? 0 : 1;
 		if (ga !== gb) return ga - gb;
 
 		if (!a.task || !b.task) return 0;
 
-		// 组内按 sort.type 排序
 		if (sort?.type === "status") {
 			const so: Record<string, number> = {
 				todo: 0,
@@ -161,7 +156,6 @@ export function sortFileNodes(
 	const order = sort?.order === "asc" ? 1 : -1;
 
 	sorted.sort((a, b) => {
-		// 按类型分组排序：list(0) → heading(1) → file(2)
 		const ga = getNodeGroupOrder(a);
 		const gb = getNodeGroupOrder(b);
 		if (ga !== gb) return ga - gb;

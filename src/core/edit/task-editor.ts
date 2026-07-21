@@ -159,22 +159,6 @@ const PRIORITY_TO_YAML_VALUE: Record<number, string> = {
 	5: "无",
 };
 
-function toYamlValue(key: string, value: string): string {
-	switch (key) {
-		case "status":
-			return STATUS_TO_YAML_VALUE[value] || value;
-		case "priority": {
-			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-			const idx = icons.indexOf(value);
-			return idx >= 0 ? PRIORITY_TO_YAML_VALUE[idx] : value;
-		}
-		case "repeat":
-			return value.replace(/^🔁\s*/, "");
-		default:
-			return value;
-	}
-}
-
 // ========== 编辑操作 ==========
 
 export const Op = {

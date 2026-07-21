@@ -110,6 +110,7 @@ export const DateUtils = {
 		d.setDate(d.getDate() + (wd - (d.getDay() || 7)));
 		return DateUtils.getDayRange(d);
 	},
+
 	getEffectiveDateRange(
 		dateRange: { start: number | null; end: number | null; isAll: boolean },
 		defaultYears: number = 10,
@@ -138,7 +139,7 @@ export const DateUtils = {
 
 export const DATE_FORMAT = "YYYY-MM-DD";
 
-export function formatDisplayDate(d: any): string {
+export function formatDisplayDate(d: Date | string | number): string {
 	if (!d) return "";
 	if (typeof d === "string") return d.substring(0, 10);
 	if (d instanceof Date) return d.toISOString().substring(0, 10);

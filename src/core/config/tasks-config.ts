@@ -1,15 +1,18 @@
 // src/core/config/tasks-config.ts
-// core/config/tasks-config.ts
 // Obsidian Tasks 插件格式定义
 
 import { TASK_ELEMENT_ORDER } from "./config";
 
-// ========== 状态 Markdown 符号（与第一版一致）==========
+// ========== 状态 Markdown 符号 ==========
 
-export const TASKS_STATUS_SYMBOLS: Record<
-	string,
-	{ key: string; zhName: string; icon: string; color: string }
-> = {
+interface TasksStatusDef {
+	key: string;
+	zhName: string;
+	icon: string;
+	color: string;
+}
+
+export const TASKS_STATUS_SYMBOLS: Record<string, TasksStatusDef> = {
 	" ": { key: "todo", zhName: "待办中", icon: "🔲", color: "#2e333b" },
 	">": { key: "in-progress", zhName: "进行中", icon: "⏩", color: "#7fb8f0" },
 	"/": { key: "in-progress", zhName: "进行中", icon: "⏩", color: "#7fb8f0" },

@@ -8,21 +8,23 @@ const isProduction = (() => {
 		) {
 			return true;
 		}
-	} catch (e) {}
+	} catch {
+		// process 不可用时视为非生产环境，忽略错误
+	}
 	return false;
 })();
 
 const logger = {
-	info(...args: any[]) {
+	info(...args: unknown[]) {
 		if (!isProduction) console.log("[TASK-INFO]", ...args);
 	},
-	warn(...args: any[]) {
+	warn(...args: unknown[]) {
 		console.warn("[TASK-WARN]", ...args);
 	},
-	error(...args: any[]) {
+	error(...args: unknown[]) {
 		console.error("[TASK-ERROR]", ...args);
 	},
-	debug(...args: any[]) {
+	debug(...args: unknown[]) {
 		if (!isProduction) console.debug("[TASK-DEBUG]", ...args);
 	},
 };
