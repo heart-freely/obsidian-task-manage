@@ -1,23 +1,20 @@
-// src/ui/sidebar/sidebar.ts
-// 侧边栏面板
+// src/ui/panel/sidebar-panel.ts
+// 视图配置面板
 
+import { getDefaultPresets } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
 import { Preset } from "../../type/type";
+import { Panels } from "./panel";
 
 export class SidebarPanel {
-	private app: unknown;
-	private store: Store;
 	private container: HTMLElement;
-	private lastSidebarWidth: number | null = null;
+	private store: Store;
 	private unsub: (() => void) | null = null;
 
-	constructor(container: HTMLElement, store: Store, app: unknown) {
+	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.app = app;
-		this.unsub = store.subscribe(() => {
-			this.render();
-		});
+		this.unsub = store.subscribe(() => this.render());
 		this.render();
 	}
 
@@ -28,148 +25,139 @@ export class SidebarPanel {
 		}
 	}
 
-	private render() {
-		const allBtns = this.container.querySelectorAll(".preset-btn");
-		allBtns.forEach((btn) => {
-			const el = btn as HTMLElement;
-			el.setCssProps({ "--task-sidebar-btn-width": "" });
-			el.removeClass("task-sidebar-btn-auto", "task-sidebar-btn-fixed");
-		});
+	render() {
 		this.container.empty();
+
 		const state = this.store.getState();
-		const collapsed = state.sidebarCollapsed;
-		this.container.addClass("task-overflow-hidden", "task-relative");
-		this.container.addClass("task-z-1");
+		const preset = state.presets.find((p) => p.id === state.activePresetId);
+		if (!preset) return;
 
-		const topRow = this.container.createDiv({
-			cls:
-				"side-top-row" +
-				(collapsed
-					? " side-top-row-collapsed"
-					: " side-top-row-vertical"),
-		});
-		const toggleBtn = topRow.createEl("button", {
-			text: collapsed ? "▶" : "◀",
-			cls: "preset-btn",
-			title: collapsed ? "展开侧边栏" : "折叠侧边栏",
-		});
-		if (collapsed) toggleBtn.className = "preset-btn side-icon-btn";
-		toggleBtn.addEventListener("click", () => {
+		const updatePreset = (changes: Partial<Preset>) => {
 			const st = this.store.getState();
-			const nc = !st.sidebarCollapsed;
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
 			this.store.update({
-				sidebarCollapsed: nc,
-				sidebarWidth: nc ? 40 : st.sidebarWidth || 100,
+				presets: st.presets.map((p) =>
+					p.id === pr.id ? { ...p, ...changes } : p,
+				),
 			});
-		});
+		};
 
-		const contentDiv = this.container.createDiv({ cls: "side-content" });
-		contentDiv.addClass(
-			"task-overflow-y-auto",
-			"task-flex-1",
-			"task-overflow-x-hidden",
+		// 行1：视图名称
+		const rowName = this.container.createDiv({ cls: "panel-row" });
+		rowName.createSpan({ text: "视图名称", cls: "panel-label" });
+
+		const nameInput = rowName.createEl("input", {
+			type: "text",
+			attr: { placeholder: "输入视图名称" },
+		});
+		nameInput.addClass("task-max-w-150");
+		nameInput.value = preset.name || "";
+		nameInput.addEventListener("change", () =>
+			updatePreset({ name: nameInput.value.trim() || "未命名" }),
 		);
 
-		if (collapsed) {
-			this.container.setCssProps({
-				"--task-sidebar-width": "40px",
-				"--task-sidebar-min-width": "40px",
-			});
-			this.container.addClass("task-sidebar-dynamic-width");
+		// 行2：视图图标
+		const row2 = this.container.createDiv({ cls: "panel-row" });
+		row2.createSpan({ text: "视图图标", cls: "panel-label" });
 
-			const iconBar = contentDiv.createDiv({ cls: "preset-list" });
-			state.presets.forEach((preset) => {
-				const btn = iconBar.createEl("button", {
-					text: preset.icon || preset.name.charAt(0),
-					cls: "preset-btn side-icon-btn",
-					title: preset.name,
-				});
-				if (state.activePresetId === preset.id) btn.addClass("active");
-				btn.addEventListener("click", () =>
-					this.store.update({ activePresetId: preset.id }),
-				);
-			});
-			const newViewBtn = contentDiv.createEl("button", {
-				text: "➕",
-				cls: "preset-btn side-icon-btn",
-				title: "新建视图",
-			});
-			newViewBtn.addEventListener("click", () => this.createNewPreset());
-			return;
-		}
+		const iconInput = row2.createEl("input", {
+			type: "text",
+			cls: "panel-input panel-input-sm",
+			attr: { placeholder: "Emoji" },
+		});
+		iconInput.value = preset.icon || "";
+		iconInput.addEventListener("change", () =>
+			updatePreset({ icon: iconInput.value.trim() || undefined }),
+		);
 
-		this.container.setCssProps({ "--task-sidebar-min-width": "48px" });
-		this.container.addClass("task-sidebar-dynamic-min-width");
+		// 行3：视图配置（按钮）
+		const row4 = this.container.createDiv({ cls: "panel-row" });
+		row4.createSpan({ text: "视图配置", cls: "panel-label" });
 
-		const listDiv = contentDiv.createDiv({ cls: "preset-list" });
-		state.presets.forEach((preset) => {
-			const row = listDiv.createDiv({ cls: "preset-row" });
-			const btn = row.createEl("button", {
-				text: (preset.icon || "📋") + " " + preset.name,
-				cls: "preset-btn",
+		const importBtn = row4.createEl("button", {
+			text: "📥 导入配置",
+			cls: "panel-btn",
+		});
+		importBtn.addEventListener("click", () => {
+			const input = createEl("input");
+			input.type = "file";
+			input.accept = ".json";
+			input.addEventListener("change", () => {
+				if (!input.files?.length) return;
+				const file = input.files[0];
+				file.text()
+					.then((text) => {
+						try {
+							const data = JSON.parse(text);
+							if (!data || typeof data !== "object") return;
+							const st = this.store.getState();
+							const pr = st.presets.find(
+								(p) => p.id === st.activePresetId,
+							);
+							if (!pr) return;
+							const merged = { ...pr, ...data, id: pr.id };
+							this.store.update({
+								presets: st.presets.map((p) =>
+									p.id === pr.id ? merged : p,
+								),
+							});
+							Panels.getInstance().refreshTimePanel();
+							this.render();
+						} catch {
+							// JSON 解析失败时忽略
+						}
+					})
+					.catch(() => {
+						// 文件读取失败时忽略
+					});
 			});
-			if (state.activePresetId === preset.id) btn.addClass("active");
-			btn.addEventListener("click", () =>
-				this.store.update({ activePresetId: preset.id }),
-			);
+			input.click();
 		});
-		const newViewBtn = contentDiv.createEl("button", {
-			text: "➕ 新建视图",
-			cls: "preset-btn",
-			attr: { style: "margin-top: auto;" },
-		});
-		newViewBtn.addEventListener("click", () => this.createNewPreset());
-		window.requestAnimationFrame(() => this.adjustSidebarWidth());
-	}
 
-	private createNewPreset() {
-		const state = this.store.getState();
-		const template = state.presets.find((p) => p.id === "all-tasks");
-		const now = Date.now().toString();
-		const newPreset: Preset = {
-			...(template || {}),
-			id: now,
-			name: "新视图",
-			icon: "📋",
-		} as Preset;
-		this.store.update({
-			presets: [...state.presets, newPreset],
-			activePresetId: newPreset.id,
+		const exportBtn = row4.createEl("button", {
+			text: "📤 导出配置",
+			cls: "panel-btn",
 		});
-	}
+		exportBtn.addEventListener("click", () => {
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const exportData = JSON.stringify(pr, null, 2);
+			const blob = new Blob([exportData], { type: "application/json" });
+			const a = createEl("a");
+			a.href = URL.createObjectURL(blob);
+			a.download = `task-view-${pr.name}.json`;
+			a.click();
+		});
 
-	private adjustSidebarWidth() {
-		if (this.store.getState().sidebarCollapsed) return;
-		const buttons = this.container.querySelectorAll(
-			".preset-btn",
-		) as NodeListOf<HTMLElement>;
-		if (buttons.length === 0) return;
-		buttons.forEach((btn) => {
-			btn.removeClass("task-sidebar-btn-fixed");
-			btn.addClass("task-sidebar-btn-auto");
+		const resetBtn = row4.createEl("button", {
+			text: "🔄 恢复默认",
+			cls: "panel-btn",
 		});
-		this.container.setCssProps({ "--task-sidebar-width": "auto" });
-		void buttons[0].offsetHeight;
-		let maxWidth = 0;
-		buttons.forEach((btn) => {
-			const w = btn.offsetWidth;
-			if (w > maxWidth) maxWidth = w;
+		resetBtn.addEventListener("click", () => {
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const defaultPresets = getDefaultPresets();
+			const def = defaultPresets.find((dp) => dp.id === pr.id);
+			if (!def) return;
+			updatePreset({ ...def, id: pr.id, name: pr.name });
+			Panels.getInstance().refreshTimePanel();
+			this.render();
 		});
-		buttons.forEach((btn) => {
-			btn.removeClass("task-sidebar-btn-auto");
-			btn.addClass("task-sidebar-btn-fixed");
-			btn.setCssProps({ "--task-sidebar-btn-width": maxWidth + "px" });
+
+		const delBtn = row4.createEl("button", {
+			text: "🗑️ 删除视图",
+			cls: "panel-btn",
 		});
-		this.container.addClass("task-pr-0");
-		const newWidth = maxWidth + 4;
-		if (
-			this.lastSidebarWidth === null ||
-			Math.abs(this.lastSidebarWidth - newWidth) > 1
-		) {
-			this.container.setCssProps({
-				"--task-sidebar-width": newWidth + "px",
-			});
-			this.lastSidebarWidth = newWidth;
-		}
+		delBtn.addEventListener("click", () => {
+			const st = this.store.getState();
+			const pr = st.presets.find((p) => p.id === st.activePresetId);
+			if (!pr) return;
+			const np = st.presets.filter((p) => p.id !== pr.id);
+			const na = np.length > 0 ? np[0].id : null;
+			this.store.update({ presets: np, activePresetId: na });
+		});
 	}
 }

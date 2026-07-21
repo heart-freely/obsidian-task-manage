@@ -1,5 +1,4 @@
 // src/util/color-utils.ts
-// 颜色工具 — 主题检测、颜色获取
 
 export function isDarkTheme(): boolean {
 	const bg = getComputedStyle(document.body)

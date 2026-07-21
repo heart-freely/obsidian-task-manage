@@ -1,5 +1,4 @@
 // src/core/parser/md-parser.ts
-// Markdown 文件解析器 — 文件读取、YAML 提取、标题识别、内容结构
 
 import { TaskData, TaskStatus } from "../../type/type";
 import {
@@ -10,8 +9,6 @@ import {
 } from "../config/config";
 import { parseTaskFromYaml } from "./task-parser";
 import { parseTaskLine, TASK_REGEX } from "./tasks-parser";
-
-// ========== 数据结构 ==========
 
 export interface ContentNode {
 	type: "heading" | "task";
@@ -38,8 +35,6 @@ export interface ParsedFileData {
 }
 
 export { TASK_REGEX };
-
-// ========== 工具函数 ==========
 
 function hasTaskMarks(task: TaskData): boolean {
 	if (task.status && task.status !== "none") return true;
@@ -103,12 +98,6 @@ function hasAnyTask(
 	return false;
 }
 
-// ========== YAML 提取 ==========
-
-function getStringValue(val: unknown): string {
-	return typeof val === "string" ? val : "";
-}
-
 function parseFrontmatter(content: string): Record<string, unknown> {
 	if (!content) return {};
 	const trimmed = content.trimStart();
@@ -143,8 +132,6 @@ function stripFrontmatter(content: string): string {
 	if (endIdx === -1) return trimmed;
 	return trimmed.substring(endIdx + 3);
 }
-
-// ========== 文件解析 ==========
 
 export function parseFile(
 	filePath: string,
@@ -196,8 +183,6 @@ export function parseFile(
 	};
 }
 
-// ========== 文件内容解析 ==========
-
 function parseFileContent(
 	content: string,
 	filePath?: string,
@@ -225,7 +210,6 @@ function parseFileContent(
 			continue;
 		}
 		if (inHeadingYaml) continue;
-
 		if (trimmed.startsWith("```")) {
 			inCodeBlock = !inCodeBlock;
 			continue;
@@ -304,9 +288,8 @@ function parseFileContent(
 			currentHeading?.yamlEndLine !== undefined &&
 			i + lineOffset > currentHeading.yamlStartLine &&
 			i + lineOffset < currentHeading.yamlEndLine
-		) {
+		)
 			continue;
-		}
 
 		const taskMatch = trimmed.match(TASK_REGEX);
 		if (!taskMatch) continue;
@@ -323,7 +306,6 @@ function parseFileContent(
 			children: [],
 			task: taskData,
 		};
-
 		const indent = getIndentLevel(line);
 		while (
 			indentStack.length > 0 &&
@@ -436,8 +418,6 @@ function getIndentLevel(line: string): number {
 	}
 	return Math.floor(column / tabSize);
 }
-
-// ========== 批量文件加载 ==========
 
 export function isTaskFile(fileName: string, parsed: ParsedFileData): boolean {
 	if (matchTaskFileName(fileName)) return true;

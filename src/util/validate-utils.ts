@@ -1,5 +1,4 @@
 // src/util/validate-utils.ts
-// 安全导入工具 — 类型检查 + 安全合并
 
 export function safeMergeConfig(
 	target: Record<string, unknown>,

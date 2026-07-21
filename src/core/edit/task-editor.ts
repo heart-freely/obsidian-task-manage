@@ -1,5 +1,4 @@
 // src/core/edit/task-editor.ts
-// 编辑操作对象 + 快照管理 + 文件写入
 
 import { EditState } from "../../type/type";
 import { TASKS_RX } from "../config/tasks-config";
@@ -7,8 +6,6 @@ import { TaskTreeNode } from "../task/task-tree";
 
 const AUTOCOMPLETE_DAYS = 0;
 const MAX_SNAPSHOTS = 5;
-
-// ========== 持久化存储 ==========
 
 interface SnapshotEntry {
 	time: string;
@@ -50,8 +47,6 @@ function addSnapshot(snapshot: Record<string, string>) {
 	saveSnapshots(snapshots);
 }
 
-// ========== 辅助函数 ==========
-
 export function isIncomplete(s: string): boolean {
 	return s === "todo" || s === "in-progress";
 }
@@ -86,8 +81,6 @@ function replaceMark(
 			.trim();
 	return (line + " " + newMark).replace(/\s{2,}/g, " ").trim();
 }
-
-// ========== 状态符号映射 ==========
 
 const STATUS_SYMBOLS: Record<string, string> = {
 	todo: " ",
@@ -125,8 +118,6 @@ function parseDateNative(dateStr: string): Date | null {
 	return d;
 }
 
-// ========== YAML 字段名映射 ==========
-
 const KEY_TO_YAML_NAME: Record<string, string> = {
 	status: "任务状态",
 	priority: "任务优先级",
@@ -141,8 +132,6 @@ const KEY_TO_YAML_NAME: Record<string, string> = {
 	id: "任务唯一ID",
 	forbid: "任务引用ID",
 };
-
-// ========== 编辑操作 ==========
 
 export const Op = {
 	setStatus(line: string, status: string): string {
@@ -393,8 +382,6 @@ export const Op = {
 	},
 };
 
-// ========== 文件写入 ==========
-
 interface VaultLike {
 	getAbstractFileByPath(path: string): { path: string } | null;
 	process(
@@ -512,7 +499,6 @@ export async function writeToFiles(
 								"```",
 							);
 					} else {
-						const innerStart = item.startLine + 1;
 						if (newYamlLines.length === 0)
 							dataLines.splice(
 								item.startLine,
@@ -520,8 +506,8 @@ export async function writeToFiles(
 							);
 						else
 							dataLines.splice(
-								innerStart,
-								Math.max(0, item.endLine - innerStart),
+								item.startLine + 1,
+								Math.max(0, item.endLine - item.startLine - 1),
 								...newYamlLines,
 							);
 					}
@@ -536,8 +522,6 @@ export async function writeToFiles(
 
 	return count;
 }
-
-// ========== 保存与撤回 ==========
 
 export async function saveSingleTask(
 	state: EditState,

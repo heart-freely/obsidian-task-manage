@@ -1,5 +1,4 @@
 // src/util/logger.ts
-// 简易日志工具
 
 const isProduction = (() => {
 	try {
