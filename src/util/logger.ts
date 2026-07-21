@@ -6,11 +6,10 @@ const isProduction = (() => {
 			typeof process !== "undefined" &&
 			process.env &&
 			process.env.NODE_ENV === "production"
-		) {
+		)
 			return true;
-		}
 	} catch {
-		// process 不可用时视为非生产环境
+		/* 非生产环境 */
 	}
 	return false;
 })();

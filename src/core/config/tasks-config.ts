@@ -1,9 +1,6 @@
 // src/core/config/tasks-config.ts
-// Obsidian Tasks 插件格式定义
 
 import { TASK_ELEMENT_ORDER } from "./config";
-
-// ========== 状态 Markdown 符号 ==========
 
 interface TasksStatusDef {
 	key: string;
@@ -29,16 +26,11 @@ export const TASKS_STATUS_SYMBOLS: Record<string, TasksStatusDef> = {
 };
 
 export const TASKS_SYMBOL_TO_STATUS: Record<string, string> = {};
-for (const [symbol, def] of Object.entries(TASKS_STATUS_SYMBOLS)) {
-	TASKS_SYMBOL_TO_STATUS[symbol] = def.key;
-}
-
+for (const [s, d] of Object.entries(TASKS_STATUS_SYMBOLS))
+	TASKS_SYMBOL_TO_STATUS[s] = d.key;
 export const TASKS_STATUS_TO_SYMBOL: Record<string, string> = {};
-for (const [symbol, def] of Object.entries(TASKS_STATUS_SYMBOLS)) {
-	TASKS_STATUS_TO_SYMBOL[def.key] = symbol;
-}
-
-// ========== Emoji 标记正则 ==========
+for (const [s, d] of Object.entries(TASKS_STATUS_SYMBOLS))
+	TASKS_STATUS_TO_SYMBOL[d.key] = s;
 
 export const TASKS_MARK_PATTERNS: Record<string, string> = {
 	priority: "⏬|🔽|🔼|⏫|🔺",
@@ -56,14 +48,9 @@ export const TASKS_MARK_PATTERNS: Record<string, string> = {
 
 export const TASKS_RX: Record<string, RegExp> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
-	const pattern = TASKS_MARK_PATTERNS[k];
-	if (pattern) {
-		// 所有正则均不使用 g 标志，避免 lastIndex 残留导致交替匹配问题
-		TASKS_RX[k] = new RegExp(pattern, "");
-	}
+	const p = TASKS_MARK_PATTERNS[k];
+	if (p) TASKS_RX[k] = new RegExp(p, "");
 });
-
-// ========== 优先级图标映射 ==========
 
 export const TASKS_PRIORITY_ICON_TO_NUM: Record<string, number> = {
 	"🔺": 0,
@@ -72,7 +59,6 @@ export const TASKS_PRIORITY_ICON_TO_NUM: Record<string, number> = {
 	"🔽": 3,
 	"⏬": 4,
 };
-
 export const TASKS_PRIORITY_NUM_TO_ICON: Record<number, string> = {
 	0: "🔺",
 	1: "⏫",
@@ -80,9 +66,6 @@ export const TASKS_PRIORITY_NUM_TO_ICON: Record<number, string> = {
 	3: "🔽",
 	4: "⏬",
 };
-
-// ========== 循环周期映射 ==========
-
 export const TASKS_REPEAT_NORMALIZE: Record<string, string> = {
 	"every day": "every day",
 	"every days": "every day",

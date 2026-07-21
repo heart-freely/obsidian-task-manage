@@ -1,28 +1,18 @@
 // src/core/parser/task-parser.ts
-// YAML 属性解析（文件任务 + 标题任务共用）
 
 import { TaskData, TaskStatus } from "../../type/type";
 import { TASK_ELEMENTS, YAML_DATE_FIELDS } from "../config/config";
 
-// ========== 类型安全的子元素访问（与 config.ts 保持一致）==========
-
-interface StatusChildDef {
+interface ChildDef {
 	key: string;
 	zhName: string;
-	icon: string;
+	icon?: string;
 }
 
-interface PriorityChildDef {
-	key: string;
-	zhName: string;
-	icon: string;
-}
-
-const statusChildren = (TASK_ELEMENTS.status as { children: StatusChildDef[] })
-	.children;
-const priorityChildren = (
-	TASK_ELEMENTS.priority as { children: PriorityChildDef[] }
-).children;
+const statusChildren: ChildDef[] = (TASK_ELEMENTS.status.children ??
+	[]) as ChildDef[];
+const priorityChildren: ChildDef[] = (TASK_ELEMENTS.priority.children ??
+	[]) as ChildDef[];
 
 export function parseTaskFromYaml(
 	yamlData: Record<string, unknown>,
@@ -36,8 +26,14 @@ export function parseTaskFromYaml(
 		pm[c.zhName] = 4 - idx;
 	});
 
-	const rawStatus = String(yamlData["任务状态"] ?? "无状态");
-	const rawPriority = String(yamlData["任务优先级"] ?? "none");
+	const rawStatus =
+		typeof yamlData["任务状态"] === "string"
+			? yamlData["任务状态"]
+			: "无状态";
+	const rawPriority =
+		typeof yamlData["任务优先级"] === "string"
+			? yamlData["任务优先级"]
+			: "none";
 	const sk = (sm[rawStatus] || "none") as TaskStatus;
 	const pi = rawPriority === "none" ? 5 : (pm[rawPriority] ?? 5);
 
@@ -55,28 +51,41 @@ export function parseTaskFromYaml(
 		dv[yn] = fd(yamlData[yn]);
 	}
 
-	const description = String(
-		yamlData["任务简介"] ?? yamlData["任务名称"] ?? "",
-	);
+	const description =
+		typeof yamlData["任务简介"] === "string"
+			? yamlData["任务简介"]
+			: typeof yamlData["任务名称"] === "string"
+				? yamlData["任务名称"]
+				: "";
 
-	if (!description && Object.values(dv).every((v) => v === null)) {
-		return null;
-	}
+	if (!description && Object.values(dv).every((v) => v === null)) return null;
 
 	return {
 		rawLine: "",
 		status: sk,
 		content: description,
 		priority: pi,
-		repeat: String(yamlData["任务周期"] ?? "").replace(/^🔁\s*/, ""),
+		repeat:
+			typeof yamlData["任务周期"] === "string"
+				? yamlData["任务周期"].replace(/^🔁\s*/, "")
+				: "",
 		created: dv["任务创建"] ?? null,
 		scheduled: dv["任务计划"] ?? null,
 		starts: dv["任务开始"] ?? null,
 		due: dv["任务截止"] ?? null,
 		done: dv["任务完成"] ?? null,
 		cancelled: dv["任务取消"] ?? null,
-		tag: String(yamlData["任务标签"] ?? ""),
-		id: String(yamlData["任务唯一ID"] ?? ""),
-		forbid: String(yamlData["任务引用ID"] ?? ""),
+		tag:
+			typeof yamlData["任务标签"] === "string"
+				? yamlData["任务标签"]
+				: "",
+		id:
+			typeof yamlData["任务唯一ID"] === "string"
+				? yamlData["任务唯一ID"]
+				: "",
+		forbid:
+			typeof yamlData["任务引用ID"] === "string"
+				? yamlData["任务引用ID"]
+				: "",
 	};
 }

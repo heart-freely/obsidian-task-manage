@@ -11,24 +11,17 @@ export function safeMergeConfig(
 
 		switch (expectedType) {
 			case "array":
-				if (Array.isArray(sourceValue)) {
-					target[key] = sourceValue;
-				}
+				if (Array.isArray(sourceValue)) target[key] = sourceValue;
 				break;
 			case "string":
-				if (typeof sourceValue === "string") {
-					target[key] = sourceValue;
-				}
+				if (typeof sourceValue === "string") target[key] = sourceValue;
 				break;
 			case "boolean":
-				if (typeof sourceValue === "boolean") {
-					target[key] = sourceValue;
-				}
+				if (typeof sourceValue === "boolean") target[key] = sourceValue;
 				break;
 			case "number":
-				if (typeof sourceValue === "number" && !isNaN(sourceValue)) {
+				if (typeof sourceValue === "number" && !isNaN(sourceValue))
 					target[key] = sourceValue;
-				}
 				break;
 		}
 	}

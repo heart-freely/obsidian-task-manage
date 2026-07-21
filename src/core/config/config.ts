@@ -363,9 +363,7 @@ export const STATUS_ALL_SYMBOLS: Record<string, string[]> = {
 };
 export const SYMBOL_TO_STATUS: Record<string, string> = {};
 for (const [sk, ss] of Object.entries(STATUS_ALL_SYMBOLS)) {
-	for (const s of ss) {
-		SYMBOL_TO_STATUS[s] = sk;
-	}
+	for (const s of ss) SYMBOL_TO_STATUS[s] = sk;
 }
 
 export const ALLOWED_STATUSES = statusChildren.map((c) => c.key);
@@ -377,7 +375,7 @@ export const STATUS_ICONS: Record<string, string> = {};
 statusChildren.forEach((c) => {
 	STATUS_ICONS[c.key] = c.icon ?? "";
 });
-export const STATUS_SORT_ORDER: string[] = [
+export const STATUS_SORT_ORDER = [
 	"none",
 	"todo",
 	"scheduled",
@@ -387,9 +385,7 @@ export const STATUS_SORT_ORDER: string[] = [
 ];
 export const STATUS_SYMBOL_MAP: Record<string, string> = {};
 for (const [sk, ss] of Object.entries(STATUS_ALL_SYMBOLS)) {
-	for (const s of ss) {
-		STATUS_SYMBOL_MAP[s] = sk;
-	}
+	for (const s of ss) STATUS_SYMBOL_MAP[s] = sk;
 }
 export function getStatusColors(): Record<string, string> {
 	return getThemeColorMap(STATUS_COLOR_DEFS);
@@ -419,7 +415,7 @@ export function getRepeatColors(): string[] {
 	return getThemeColorArray(REPEAT_COLOR_DEFS);
 }
 
-export const DATE_MARK_ORDER = [...DATE_MARK_ORDER_INTERNAL] as string[];
+export const DATE_MARK_ORDER = [...DATE_MARK_ORDER_INTERNAL];
 export const DATE_MARK_ICONS: Record<string, string> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
 	if (TASK_ELEMENTS[k].icon) DATE_MARK_ICONS[k] = TASK_ELEMENTS[k].icon;

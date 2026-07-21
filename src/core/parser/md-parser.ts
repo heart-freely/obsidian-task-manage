@@ -10,8 +10,6 @@ import {
 import { parseTaskFromYaml } from "./task-parser";
 import { parseTaskLine, TASK_REGEX } from "./tasks-parser";
 
-// ========== 类型安全的 Record 辅助函数 ==========
-
 function setRecord(
 	record: Record<string, unknown>,
 	key: string,
@@ -19,17 +17,6 @@ function setRecord(
 ): void {
 	record[key] = value;
 }
-
-function getRecordString(record: Record<string, unknown>, key: string): string {
-	const val: unknown = record[key];
-	return typeof val === "string" ? val : "";
-}
-
-function getRecordValue(record: Record<string, unknown>, key: string): unknown {
-	return record[key];
-}
-
-// ========== 数据结构 ==========
 
 export interface ContentNode {
 	type: "heading" | "task";
@@ -161,10 +148,8 @@ export function parseFile(
 ): ParsedFileData {
 	const yaml = parseFrontmatter(content);
 	const fileTask = parseTaskFromYaml(yaml);
-
 	let hasFrontmatter = false;
 	let yamlEndLine = -1;
-
 	const trimmedContent = content.trimStart();
 	if (trimmedContent.startsWith("---")) {
 		const endIdx = trimmedContent.indexOf("---", 3);
@@ -179,14 +164,12 @@ export function parseFile(
 			yamlEndLine = leadingLines + fmPart.split("\n").length - 1;
 		}
 	}
-
 	const body = stripFrontmatter(content);
 	const bodyStartIndex = content.indexOf(body);
 	const actualBodyStartLine =
 		bodyStartIndex >= 0
 			? content.substring(0, bodyStartIndex).split("\n").length - 1
 			: yamlEndLine + 1;
-
 	const contentRoots = body
 		? parseFileContent(body, filePath, actualBodyStartLine)
 		: [];
@@ -220,7 +203,6 @@ function parseFileContent(
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 		const trimmed = line.trim();
-
 		if (trimmed === "```yaml" || trimmed === "```yml") {
 			inHeadingYaml = true;
 			continue;
@@ -250,7 +232,6 @@ function parseFileContent(
 				children: [],
 				task: null,
 			};
-
 			while (
 				headingStack.length > 0 &&
 				headingStack[headingStack.length - 1].depth >= level
@@ -261,7 +242,6 @@ function parseFileContent(
 			else roots.push(node);
 			headingStack.push(node);
 			indentStack.length = 0;
-
 			const yamlBlock = parseHeadingYamlBlock(lines, i, level);
 			if (yamlBlock.yamlData) {
 				const taskData = parseTaskFromYaml(yamlBlock.yamlData);
@@ -277,7 +257,6 @@ function parseFileContent(
 							: undefined;
 				}
 			}
-
 			if (!node.task && matchTaskHeading(title)) {
 				node.task = {
 					rawLine: trimmed,
@@ -331,7 +310,6 @@ function parseFileContent(
 			indentStack[indentStack.length - 1].indent >= indent
 		)
 			indentStack.pop();
-
 		if (indentStack.length > 0)
 			indentStack[indentStack.length - 1].node.children.push(node);
 		else if (headingStack.length > 0)
@@ -400,7 +378,6 @@ function parseHeadingYamlBlock(
 	}
 	if (yamlStartLine === -1 || yamlEndLine === -1)
 		return { yamlData: null, yamlStartLine: -1, yamlEndLine: -1 };
-
 	const yamlData: Record<string, unknown> = {};
 	for (const yamlLine of lines.slice(yamlStartLine + 1, yamlEndLine)) {
 		const colonIdx = yamlLine.indexOf(":");
@@ -411,9 +388,8 @@ function parseHeadingYamlBlock(
 			if (
 				(value.startsWith("'") && value.endsWith("'")) ||
 				(value.startsWith('"') && value.endsWith('"'))
-			) {
+			)
 				value = value.slice(1, -1);
-			}
 		}
 		if (key && value !== "") setRecord(yamlData, key, value);
 	}

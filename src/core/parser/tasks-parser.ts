@@ -1,5 +1,4 @@
 // src/core/parser/tasks-parser.ts
-// Tasks 格式列表任务行解析器
 
 import { TaskData, TaskStatus } from "../../type/type";
 import { matchTaskItem, SYMBOL_TO_STATUS } from "../config/config";
@@ -20,7 +19,6 @@ const ALL_STATUS_SYMBOLS = [
 	"l",
 	"b",
 ];
-
 const ALL_STATUS_SYMBOLS_STR = ALL_STATUS_SYMBOLS.map((s) =>
 	s === "-" || s === "]" || s === "^" || s === "\\" ? "\\" + s : s,
 ).join("");
@@ -49,15 +47,12 @@ export function parseTaskLine(
 	_line: number,
 ): TaskData | null {
 	const statusMatch = fullLine.match(/^\s*- \[(.)\]\s*/);
-
 	if (statusMatch) {
-		const symbol = statusMatch[1];
-		if (!matchTaskItem(symbol)) return null;
+		if (!matchTaskItem(statusMatch[1])) return null;
 	}
-
-	let status: TaskStatus = "todo";
-	if (statusMatch)
-		status = (SYMBOL_TO_STATUS[statusMatch[1]] || "todo") as TaskStatus;
+	const status: TaskStatus = statusMatch
+		? ((SYMBOL_TO_STATUS[statusMatch[1]] || "todo") as TaskStatus)
+		: "todo";
 	const text = fullLine.replace(/^\s*- \[.\]\s*/, "");
 
 	function m(rx: RegExp, idx?: number): string | null {

@@ -1,5 +1,4 @@
-// core/parser/dataview-parser.ts
-// Dataview 格式任务解析器
+// src/core/parser/dataview-parser.ts
 
 import { TaskData, TaskStatus } from "../../type/type";
 import {
@@ -11,7 +10,11 @@ import {
 function parseInlineFields(text: string): Record<string, string> {
 	const fields: Record<string, string> = {};
 	let match: RegExpExecArray | null;
-	while ((match = DATAVIEW_INLINE_REGEX.exec(text)) !== null) {
+	const regex = new RegExp(
+		DATAVIEW_INLINE_REGEX.source,
+		DATAVIEW_INLINE_REGEX.flags,
+	);
+	while ((match = regex.exec(text)) !== null) {
 		fields[match[1].trim()] = match[2].trim();
 	}
 	return fields;
@@ -20,11 +23,13 @@ function parseInlineFields(text: string): Record<string, string> {
 function parseEmojiDates(text: string): Record<string, string> {
 	const dates: Record<string, string> = {};
 	let match: RegExpExecArray | null;
-	while ((match = DATAVIEW_EMOJI_DATE_REGEX.exec(text)) !== null) {
+	const regex = new RegExp(
+		DATAVIEW_EMOJI_DATE_REGEX.source,
+		DATAVIEW_EMOJI_DATE_REGEX.flags,
+	);
+	while ((match = regex.exec(text)) !== null) {
 		const fieldName = DATAVIEW_EMOJI_FIELD_MAP[match[1]];
-		if (fieldName) {
-			dates[fieldName] = match[2];
-		}
+		if (fieldName) dates[fieldName] = match[2];
 	}
 	return dates;
 }
