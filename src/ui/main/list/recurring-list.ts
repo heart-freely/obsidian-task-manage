@@ -29,7 +29,7 @@ export function renderRecurring(
 
 	const cycleOrder = ["every day", "every week", "every month", "every year"];
 
-	const grid = document.createElement("div");
+	const grid = createEl("div");
 	grid.className = "recurring-grid";
 	grid.addClass(
 		"task-grid",

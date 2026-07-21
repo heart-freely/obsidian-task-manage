@@ -28,7 +28,6 @@ export const TASK_ELEMENT_ORDER = [
 // ========== 颜色定义（深浅双值）==========
 
 const C = {
-	// 执行状态
 	statusNone: {
 		dark: "rgba(128,128,128,0.5)",
 		light: "rgba(128,128,128,0.5)",
@@ -38,25 +37,21 @@ const C = {
 	statusInProgress: { dark: "rgba(80, 140, 210, 0.80)", light: "#3b82c4" },
 	statusCancelled: { dark: "rgba(175, 62, 68, 0.70)", light: "#d14343" },
 	statusCompleted: { dark: "rgba(80, 150, 120, 0.75)", light: "#4a8c6a" },
-	// 优先级
 	prioHighest: { dark: "rgba(200, 65, 65, 0.80)", light: "#c93030" },
 	prioHigh: { dark: "rgba(210, 110, 90, 0.80)", light: "#d47040" },
 	prioMedium: { dark: "rgba(200, 155, 85, 0.80)", light: "#c89038" },
 	prioLow: { dark: "rgba(80, 150, 215, 0.80)", light: "#4a8ec7" },
 	prioLowest: { dark: "rgba(110, 160, 100, 0.80)", light: "#5a946e" },
-	// 循环
 	repeatDay: { dark: "rgba(80, 130, 200, 0.75)", light: "#4a7ec4" },
 	repeatWeek: { dark: "rgba(85, 170, 195, 0.75)", light: "#3d9ba8" },
 	repeatMonth: { dark: "rgba(170, 135, 90, 0.70)", light: "#b8783a" },
 	repeatYear: { dark: "rgba(155, 160, 100, 0.70)", light: "#9e9a40" },
-	// 日期标记
 	created: { dark: "rgba(140, 160, 210, 0.70)", light: "#8a9cc8" },
 	scheduled: { dark: "rgba(120, 175, 200, 0.72)", light: "#6aa0b8" },
 	starts: { dark: "rgba(100, 185, 185, 0.72)", light: "#5aa8a0" },
 	cancelled: { dark: "rgba(195, 110, 110, 0.72)", light: "#c46a6a" },
 	done: { dark: "rgba(120, 170, 115, 0.75)", light: "#5a946e" },
 	due: { dark: "rgba(185, 85, 85, 0.75)", light: "#c94a4a" },
-	// 其他
 	tag: { dark: "rgba(165, 140, 210, 0.75)", light: "#8a76b8" },
 	id: { dark: "rgba(115, 150, 215, 0.75)", light: "#5a82c4" },
 	forbid: { dark: "rgba(200, 115, 115, 0.75)", light: "#c46a6a" },
@@ -65,70 +60,18 @@ const C = {
 
 // ========== 子元素类型定义 ==========
 
-interface StatusChildDef {
+interface BaseChildDef {
 	key: string;
 	zhName: string;
-	icon: string;
 	darkColor: string;
 	lightColor: string;
+	icon?: string;
+	enName?: string;
 }
 
-interface PriorityChildDef {
-	key: string;
-	zhName: string;
-	enName: string;
-	icon: string;
-	darkColor: string;
-	lightColor: string;
-}
+// ========== 通用元素接口 ==========
 
-interface RepeatChildDef {
-	key: string;
-	zhName: string;
-	enName: string;
-	darkColor: string;
-	lightColor: string;
-}
-
-// ========== TASK_ELEMENTS 元素类型定义 ==========
-
-interface StatusElementDef {
-	key: "status";
-	zhName: string;
-	enName: string;
-	icon: string;
-	inMarkSequence: boolean;
-	yaName: string;
-	darkColor: string;
-	lightColor: string;
-	children: StatusChildDef[];
-}
-
-interface PriorityElementDef {
-	key: "priority";
-	zhName: string;
-	enName: string;
-	icon: string;
-	inMarkSequence: boolean;
-	yaName: string;
-	darkColor: string;
-	lightColor: string;
-	children: PriorityChildDef[];
-}
-
-interface RepeatElementDef {
-	key: "repeat";
-	zhName: string;
-	enName: string;
-	icon: string;
-	inMarkSequence: boolean;
-	yaName: string;
-	darkColor: string;
-	lightColor: string;
-	children: RepeatChildDef[];
-}
-
-interface LeafElementDef {
+interface TaskElementBase {
 	key: string;
 	zhName: string;
 	enName: string;
@@ -137,17 +80,12 @@ interface LeafElementDef {
 	yaName: string;
 	darkColor: string;
 	lightColor: string;
+	children?: BaseChildDef[];
 }
-
-type TaskElementDef =
-	| StatusElementDef
-	| PriorityElementDef
-	| RepeatElementDef
-	| LeafElementDef;
 
 // ========== TASK_ELEMENTS 定义 ==========
 
-export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
+export const TASK_ELEMENTS: Record<string, TaskElementBase> = {
 	status: {
 		key: "status",
 		zhName: "执行状态",
@@ -388,15 +326,9 @@ export const TASK_ELEMENTS: Record<string, TaskElementDef> = {
 
 // ========== 类型安全的状态子元素访问 ==========
 
-const statusChildren: StatusChildDef[] = (
-	TASK_ELEMENTS.status as StatusElementDef
-).children;
-const priorityChildren: PriorityChildDef[] = (
-	TASK_ELEMENTS.priority as PriorityElementDef
-).children;
-const repeatChildren: RepeatChildDef[] = (
-	TASK_ELEMENTS.repeat as RepeatElementDef
-).children;
+const statusChildren = TASK_ELEMENTS.status.children ?? [];
+const priorityChildren = TASK_ELEMENTS.priority.children ?? [];
+const repeatChildren = TASK_ELEMENTS.repeat.children ?? [];
 
 // ========== 颜色定义 ==========
 
@@ -424,8 +356,10 @@ const DATE_MARK_ORDER_INTERNAL = [
 
 const DATE_MARK_COLOR_DEFS: Record<string, ThemeColor> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
-	const el = TASK_ELEMENTS[k] as LeafElementDef;
-	DATE_MARK_COLOR_DEFS[k] = makeColor(el.darkColor, el.lightColor);
+	const el = TASK_ELEMENTS[k];
+	if (el.darkColor && el.lightColor) {
+		DATE_MARK_COLOR_DEFS[k] = makeColor(el.darkColor, el.lightColor);
+	}
 });
 
 const TAG_PALETTE_DEFS: ThemeColor[] = [
@@ -467,7 +401,7 @@ statusChildren.forEach((c) => {
 });
 export const STATUS_ICONS: Record<string, string> = {};
 statusChildren.forEach((c) => {
-	STATUS_ICONS[c.key] = c.icon;
+	STATUS_ICONS[c.key] = c.icon ?? "";
 });
 export const STATUS_SORT_ORDER: string[] = [
 	"none",
@@ -490,14 +424,14 @@ export function getStatusColors(): Record<string, string> {
 
 // ========== 优先级相关 ==========
 
-export const PRIORITY_ORDER = priorityChildren.map((c) => c.icon);
+export const PRIORITY_ORDER = priorityChildren.map((c) => c.icon ?? "");
 export const PRIORITY_ICONS: Record<string, string> = {};
 priorityChildren.forEach((c) => {
-	PRIORITY_ICONS[c.key] = c.icon;
+	PRIORITY_ICONS[c.key] = c.icon ?? "";
 });
 export const PRIORITY_LABELS: Record<string, string> = {};
 priorityChildren.forEach((c) => {
-	PRIORITY_LABELS[c.key] = `${c.enName}|${c.zhName}`;
+	PRIORITY_LABELS[c.key] = `${c.enName ?? ""}|${c.zhName}`;
 });
 PRIORITY_LABELS["none"] = "None|无";
 
@@ -508,7 +442,7 @@ export function getPriorityColors(): string[] {
 // ========== 循环相关 ==========
 
 export const REPEAT_ORDER = repeatChildren.map((c) => c.key);
-export const REPEAT_ICON = (TASK_ELEMENTS.repeat as RepeatElementDef).icon;
+export const REPEAT_ICON = TASK_ELEMENTS.repeat.icon;
 export const REPEAT_LABELS: Record<string, string> = {};
 repeatChildren.forEach((c) => {
 	REPEAT_LABELS[c.key] = c.zhName;
@@ -520,16 +454,16 @@ export function getRepeatColors(): string[] {
 
 // ========== 日期标记相关 ==========
 
-export const DATE_MARK_ORDER = DATE_MARK_ORDER_INTERNAL as unknown as string[];
+export const DATE_MARK_ORDER = [...DATE_MARK_ORDER_INTERNAL] as string[];
 export const DATE_MARK_ICONS: Record<string, string> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
-	const el = TASK_ELEMENTS[k] as LeafElementDef;
-	DATE_MARK_ICONS[k] = el.icon;
+	const el = TASK_ELEMENTS[k];
+	if (el.icon) DATE_MARK_ICONS[k] = el.icon;
 });
 export const DATE_MARK_NAMES: Record<string, string> = {};
 DATE_MARK_ORDER_INTERNAL.forEach((k) => {
-	const el = TASK_ELEMENTS[k] as LeafElementDef;
-	DATE_MARK_NAMES[k] = el.icon + " " + el.zhName;
+	const el = TASK_ELEMENTS[k];
+	if (el.icon && el.zhName) DATE_MARK_NAMES[k] = el.icon + " " + el.zhName;
 });
 export const DATE_FIELD_SORT_ORDER = [...DATE_MARK_ORDER_INTERNAL];
 
@@ -539,9 +473,9 @@ export function getDateMarkColors(): Record<string, string> {
 
 // ========== 图标与颜色常量 ==========
 
-export const ID_ICON = (TASK_ELEMENTS.id as LeafElementDef).icon;
-export const DEPENDS_ICON = (TASK_ELEMENTS.forbid as LeafElementDef).icon;
-export const TAG_ICON = (TASK_ELEMENTS.tag as LeafElementDef).icon;
+export const ID_ICON = TASK_ELEMENTS.id.icon;
+export const DEPENDS_ICON = TASK_ELEMENTS.forbid.icon;
+export const TAG_ICON = TASK_ELEMENTS.tag.icon;
 
 export const ID_COLOR_DEF: ThemeColor = makeColor(C.id.dark, C.id.light);
 export const DEPENDS_COLOR_DEF: ThemeColor = makeColor(
@@ -557,9 +491,9 @@ export function getTagPalette(): string[] {
 
 // ========== 标记相关 ==========
 
-export const TASK_MARK_SEQUENCE = TASK_ELEMENT_ORDER.filter((k) => {
-	return TASK_ELEMENTS[k].inMarkSequence;
-});
+export const TASK_MARK_SEQUENCE = TASK_ELEMENT_ORDER.filter(
+	(k) => TASK_ELEMENTS[k].inMarkSequence,
+);
 export const MARK_NAMES: Record<string, string> = {};
 TASK_ELEMENT_ORDER.forEach((k) => {
 	const el = TASK_ELEMENTS[k];
@@ -618,16 +552,21 @@ export const YAML_DATE_FIELDS: string[] = TASK_ELEMENT_ORDER.filter((k) => {
 			k,
 		)
 	);
-}).map((k) => TASK_ELEMENTS[k].yaName!);
+})
+	.map((k) => TASK_ELEMENTS[k].yaName ?? "")
+	.filter(Boolean);
 export const YAML_DISPLAY_ORDER: string[] = TASK_ELEMENT_ORDER.filter(
 	(k) => !!TASK_ELEMENTS[k].yaName,
-).map((k) => TASK_ELEMENTS[k].yaName!);
+)
+	.map((k) => TASK_ELEMENTS[k].yaName ?? "")
+	.filter(Boolean);
 
 // ========== 优先级标签函数 ==========
 
 export function getPriorityLabel(icon: string): string {
 	const idx = PRIORITY_ORDER.indexOf(icon);
-	if (idx >= 0) return priorityChildren[idx].zhName;
+	if (idx >= 0 && idx < priorityChildren.length)
+		return priorityChildren[idx].zhName;
 	return "无";
 }
 
@@ -662,8 +601,7 @@ function matchFilter(value: string, filter: PathFilterConfig): boolean {
 			flags,
 		);
 	}
-	const result = regex.test(value);
-	return filter.exclude ? !result : result;
+	return filter.exclude ? !regex.test(value) : regex.test(value);
 }
 
 export function matchTaskFilePath(filePath: string): boolean {
@@ -749,22 +687,13 @@ export function updateTaskFileConfig(config: {
 			.map((p) => p.trim())
 			.filter(Boolean);
 	}
-	if (
-		config.folderFilters !== undefined &&
-		config.folderFilters.some((f) => f.pattern)
-	) {
+	if (config.folderFilters?.some((f) => f.pattern)) {
 		TASK_FOLDER_FILTERS = config.folderFilters.filter((f) => f.pattern);
 	}
-	if (
-		config.fileFilters !== undefined &&
-		config.fileFilters.some((f) => f.pattern)
-	) {
+	if (config.fileFilters?.some((f) => f.pattern)) {
 		TASK_FILE_FILTERS = config.fileFilters.filter((f) => f.pattern);
 	}
-	if (
-		config.headingFilters !== undefined &&
-		config.headingFilters.some((f) => f.pattern)
-	) {
+	if (config.headingFilters?.some((f) => f.pattern)) {
 		TASK_HEADING_FILTERS = config.headingFilters.filter((f) => f.pattern);
 		const first = config.headingFilters.find(
 			(f) => f.pattern && !f.exclude,
@@ -773,14 +702,11 @@ export function updateTaskFileConfig(config: {
 			try {
 				HEADING_TASK_PATTERN = new RegExp(first.pattern);
 			} catch {
-				// 正则无效时忽略
+				/* 正则无效时忽略 */
 			}
 		}
 	}
-	if (
-		config.taskItemFilters !== undefined &&
-		config.taskItemFilters.some((f) => f.pattern)
-	) {
+	if (config.taskItemFilters?.some((f) => f.pattern)) {
 		TASK_ITEM_FILTERS = config.taskItemFilters.filter((f) => f.pattern);
 	}
 }

@@ -8,7 +8,7 @@ import { TaskTreeNode } from "../task/task-tree";
 const AUTOCOMPLETE_DAYS = 0;
 const MAX_SNAPSHOTS = 5;
 
-// ========== 持久化存储（内存缓存 + 异步持久化）==========
+// ========== 持久化存储 ==========
 
 interface SnapshotEntry {
 	time: string;
@@ -30,7 +30,6 @@ export function initStorage(
 export function getSnapshotCache(): SnapshotEntry[] {
 	return _snapshotCache;
 }
-
 export function loadSnapshots(): SnapshotEntry[] {
 	return _snapshotCache;
 }
@@ -46,10 +45,7 @@ export function saveSnapshots(snapshots: SnapshotEntry[]) {
 
 function addSnapshot(snapshot: Record<string, string>) {
 	const snapshots = loadSnapshots();
-	snapshots.unshift({
-		time: new Date().toLocaleString(),
-		snapshot,
-	});
+	snapshots.unshift({ time: new Date().toLocaleString(), snapshot });
 	if (snapshots.length > MAX_SNAPSHOTS) snapshots.length = MAX_SNAPSHOTS;
 	saveSnapshots(snapshots);
 }
@@ -59,7 +55,6 @@ function addSnapshot(snapshot: Record<string, string>) {
 export function isIncomplete(s: string): boolean {
 	return s === "todo" || s === "in-progress";
 }
-
 export function isCompleted(s: string): boolean {
 	return s === "completed" || s === "cancelled";
 }
@@ -125,9 +120,8 @@ function parseDateNative(dateStr: string): Date | null {
 		d.getFullYear() !== parseInt(match[1]) ||
 		d.getMonth() !== parseInt(match[2]) - 1 ||
 		d.getDate() !== parseInt(match[3])
-	) {
+	)
 		return null;
-	}
 	return d;
 }
 
@@ -170,39 +164,38 @@ export const Op = {
 			"id",
 			"forbid",
 		];
-
 		const parts: string[] = [];
 		for (const key of order) {
 			const rx = TASKS_RX[key];
-			if (rx) {
-				const m = line.match(rx);
-				parts.push(m ? m[0] : "");
-			} else {
-				parts.push("");
-			}
+			parts.push(rx ? (line.match(rx)?.[0] ?? "") : "");
 		}
-
 		let clean = line;
 		for (const part of parts) {
 			if (part) clean = clean.replace(part, "");
 		}
-		clean = clean.replace(/\s+/g, " ").trim();
-		clean = clean.replace(/^- \[.\]\s*/, "").trim();
-
+		clean = clean
+			.replace(/\s+/g, " ")
+			.trim()
+			.replace(/^- \[.\]\s*/, "")
+			.trim();
 		const prefixMatch = line.match(/^(- \[.\]\s*)/);
 		const prefix = prefixMatch ? prefixMatch[1] : "- [ ] ";
-		const tags = parts.filter(Boolean);
-		return (prefix + newContent + " " + tags.join(" "))
+		return (prefix + newContent + " " + parts.filter(Boolean).join(" "))
 			.replace(/\s+/g, " ")
 			.trim();
 	},
 
 	setPriority(line: string, emoji: string): string {
-		const cleaned = line
-			.replace(TASKS_RX.priority, "")
+		return (
+			line
+				.replace(TASKS_RX.priority, "")
+				.replace(/\s{2,}/g, " ")
+				.trim() +
+			" " +
+			emoji
+		)
 			.replace(/\s{2,}/g, " ")
 			.trim();
-		return (cleaned + " " + emoji).replace(/\s{2,}/g, " ").trim();
 	},
 	delPriority(line: string): string {
 		return replaceMark(line, TASKS_RX.priority, undefined);
@@ -293,33 +286,21 @@ export const Op = {
 	): string {
 		const yaName = KEY_TO_YAML_NAME[key];
 		if (!yaName) return yamlContent;
-
 		const lines = yamlContent.split("\n");
 		let found = false;
-
 		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i];
-			const colonIdx = line.indexOf(":");
+			const colonIdx = lines[i].indexOf(":");
 			if (colonIdx === -1) continue;
-			const fieldName = line.substring(0, colonIdx).trim();
-			if (fieldName === yaName) {
-				if (value === null) {
-					lines.splice(i, 1);
-				} else {
-					lines[i] = `${yaName}: ${value}`;
-				}
+			if (lines[i].substring(0, colonIdx).trim() === yaName) {
+				if (value === null) lines.splice(i, 1);
+				else lines[i] = `${yaName}: ${value}`;
 				found = true;
 				break;
 			}
 		}
-
-		if (!found && value !== null) {
-			lines.push(`${yaName}: ${value}`);
-		}
-
+		if (!found && value !== null) lines.push(`${yaName}: ${value}`);
 		return lines.filter((l) => l.trim() !== "").join("\n");
 	},
-
 	delYamlField(yamlContent: string, key: string): string {
 		return Op.setYamlField(yamlContent, key, null);
 	},
@@ -327,36 +308,31 @@ export const Op = {
 	setYamlContent(yamlContent: string, newContent: string): string {
 		const lines = yamlContent.split("\n");
 		let found = false;
-
 		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i];
-			const colonIdx = line.indexOf(":");
+			const colonIdx = lines[i].indexOf(":");
 			if (colonIdx === -1) continue;
-			const fieldName = line.substring(0, colonIdx).trim();
+			const fieldName = lines[i].substring(0, colonIdx).trim();
 			if (fieldName === "任务简介" || fieldName === "任务名称") {
 				lines[i] = `${fieldName}: ${newContent}`;
 				found = true;
 				break;
 			}
 		}
-
-		if (!found) {
-			lines.push(`任务简介: ${newContent}`);
-		}
-
+		if (!found) lines.push(`任务简介: ${newContent}`);
 		return lines.filter((l) => l.trim() !== "").join("\n");
 	},
 
 	autoComplete(line: string, days?: number): string {
-		const doneMatch = line.match(TASKS_RX.done);
-		const cancelledMatch = line.match(TASKS_RX.cancelled);
-
+		const doneMatch: RegExpMatchArray | null = line.match(TASKS_RX.done);
+		const cancelledMatch: RegExpMatchArray | null = line.match(
+			TASKS_RX.cancelled,
+		);
 		if (!doneMatch && !cancelledMatch) return line;
-
-		const dateStr = doneMatch ? doneMatch[1] : cancelledMatch[1];
+		const dateStr: string | undefined = doneMatch
+			? doneMatch[1]
+			: cancelledMatch?.[1];
 		if (!dateStr) return line;
-
-		const baseDate = parseDateNative(dateStr);
+		const baseDate: Date | null = parseDateNative(dateStr);
 		if (!baseDate) return line;
 
 		const n = days ?? AUTOCOMPLETE_DAYS;
@@ -372,7 +348,6 @@ export const Op = {
 
 		if (!TASKS_RX.starts.test(newLine)) newLine += " 🛫 " + startsStr;
 		else newLine = replaceMark(newLine, TASKS_RX.starts, "🛫 " + startsStr);
-
 		if (!TASKS_RX.scheduled.test(newLine)) newLine += " ⏳ " + startsStr;
 		else
 			newLine = replaceMark(
@@ -380,7 +355,6 @@ export const Op = {
 				TASKS_RX.scheduled,
 				"⏳ " + startsStr,
 			);
-
 		if (!TASKS_RX.created.test(newLine)) newLine += " ➕ " + startsStr;
 		else
 			newLine = replaceMark(newLine, TASKS_RX.created, "➕ " + startsStr);
@@ -402,27 +376,20 @@ export const Op = {
 			"id",
 			"forbid",
 		];
-
 		const parts: string[] = [];
 		for (const key of order) {
 			const rx = TASKS_RX[key];
-			if (rx) {
-				const m = line.match(rx);
-				parts.push(m ? m[0] : "");
-			}
+			parts.push(rx ? (line.match(rx)?.[0] ?? "") : "");
 		}
-
-		const prefixMatch = line.match(/^(\s*- \[.\]\s*)/);
+		const prefixMatch: RegExpMatchArray | null =
+			line.match(/^(\s*- \[.\]\s*)/);
 		const prefix = prefixMatch ? prefixMatch[1] : "- [ ] ";
-
 		let desc = line.substring(prefix.length);
 		for (const part of parts) {
 			if (part) desc = desc.replace(part, "");
 		}
 		desc = desc.trim();
-
-		const tags = parts.filter(Boolean);
-		return prefix + desc + " " + tags.join(" ");
+		return prefix + desc + " " + parts.filter(Boolean).join(" ");
 	},
 };
 
@@ -446,20 +413,17 @@ export async function writeToFiles(
 	taskIds: string[],
 	linesMap: Record<string, string>,
 ): Promise<number> {
-	const lineGroups: Record<
-		string,
-		Array<{ line: number; newLine: string; rawLine: string }>
-	> = {};
-	const yamlGroups: Record<
-		string,
-		Array<{
-			startLine: number;
-			endLine: number;
-			newYaml: string;
-			isFrontmatter: boolean;
-			hasYaml: boolean;
-		}>
-	> = {};
+	type LineItem = { line: number; newLine: string; rawLine: string };
+	type YamlItem = {
+		startLine: number;
+		endLine: number;
+		newYaml: string;
+		isFrontmatter: boolean;
+		hasYaml: boolean;
+	};
+
+	const lineGroups: Record<string, LineItem[]> = {};
+	const yamlGroups: Record<string, YamlItem[]> = {};
 
 	for (const id of taskIds) {
 		const node = getNode(id);
@@ -492,33 +456,29 @@ export async function writeToFiles(
 		try {
 			const file = app.vault.getAbstractFileByPath(path);
 			if (!file) continue;
-			await app.vault.process(file, (data: string) => {
-				const dataLines = data.split("\n");
+			await app.vault.process(file, (data: string): string => {
+				const dataLines: string[] = data.split("\n");
 				for (const item of items) {
-					let targetLine = item.line;
-					if (targetLine < dataLines.length) {
-						const currentTrimmed = dataLines[targetLine].trim();
-						const rawTrimmed = item.rawLine.trim();
-						if (currentTrimmed !== rawTrimmed) {
-							for (let i = 0; i < dataLines.length; i++) {
-								if (dataLines[i].trim() === rawTrimmed) {
-									targetLine = i;
-									break;
-								}
-							}
-						}
-					} else {
-						const rawTrimmed = item.rawLine.trim();
-						for (let i = 0; i < dataLines.length; i++) {
-							if (dataLines[i].trim() === rawTrimmed) {
-								targetLine = i;
-								break;
-							}
-						}
+					let targetLine: number = item.line;
+					const rawTrimmed: string = item.rawLine.trim();
+					if (
+						targetLine < dataLines.length &&
+						dataLines[targetLine].trim() !== rawTrimmed
+					) {
+						const foundIdx = dataLines.findIndex(
+							(dl: string) => dl.trim() === rawTrimmed,
+						);
+						if (foundIdx >= 0) targetLine = foundIdx;
+					} else if (targetLine >= dataLines.length) {
+						const foundIdx = dataLines.findIndex(
+							(dl: string) => dl.trim() === rawTrimmed,
+						);
+						if (foundIdx >= 0) targetLine = foundIdx;
 					}
-					const originalLine = dataLines[targetLine];
-					const indentMatch = originalLine.match(/^(\s*)/);
-					const indent = indentMatch ? indentMatch[1] : "";
+					const originalLine: string = dataLines[targetLine] ?? "";
+					const indentMatch: RegExpMatchArray | null =
+						originalLine.match(/^(\s*)/);
+					const indent: string = indentMatch?.[1] ?? "";
 					dataLines[targetLine] = indent + item.newLine.trim();
 				}
 				return dataLines.join("\n");
@@ -533,48 +493,37 @@ export async function writeToFiles(
 		try {
 			const file = app.vault.getAbstractFileByPath(path);
 			if (!file) continue;
-			await app.vault.process(file, (data: string) => {
-				const dataLines = data.split("\n");
+			await app.vault.process(file, (data: string): string => {
+				const dataLines: string[] = data.split("\n");
 				for (const item of items) {
-					const newYamlLines = item.newYaml
+					const newYamlLines: string[] = item.newYaml
 						.split("\n")
 						.filter((l: string) => l.trim() !== "");
 					if (!item.hasYaml) {
 						if (newYamlLines.length === 0) continue;
-						if (item.isFrontmatter) {
+						if (item.isFrontmatter)
 							dataLines.unshift("---", ...newYamlLines, "---");
-						} else {
-							const headingLine =
-								item.startLine >= 0 ? item.startLine : 0;
+						else
 							dataLines.splice(
-								headingLine + 1,
+								(item.startLine >= 0 ? item.startLine : 0) + 1,
 								0,
 								"```yaml",
 								...newYamlLines,
 								"```",
 							);
-						}
 					} else {
 						const innerStart = item.startLine + 1;
-						const innerEnd = item.endLine;
-						if (newYamlLines.length === 0) {
+						if (newYamlLines.length === 0)
 							dataLines.splice(
 								item.startLine,
 								item.endLine - item.startLine + 1,
 							);
-						} else {
-							const deleteCount = innerEnd - innerStart;
-							if (
-								deleteCount >= 0 &&
-								innerStart <= dataLines.length
-							) {
-								dataLines.splice(
-									innerStart,
-									Math.max(0, deleteCount),
-									...newYamlLines,
-								);
-							}
-						}
+						else
+							dataLines.splice(
+								innerStart,
+								Math.max(0, item.endLine - innerStart),
+								...newYamlLines,
+							);
 					}
 				}
 				return dataLines.join("\n");
@@ -596,16 +545,10 @@ export async function saveSingleTask(
 	getNode: (uid: string) => TaskTreeNode | undefined,
 	node: TaskTreeNode,
 ): Promise<EditState> {
-	const uid = node.uid;
-	const preview = state.previews.get(uid);
-
+	const preview = state.previews.get(node.uid);
 	if (!preview || preview === node.rawLine) return state;
-
-	const linesMap: Record<string, string> = {};
-	linesMap[uid] = preview;
-	await writeToFiles(app, getNode, [uid], linesMap);
-
-	state.savedTasks.add(uid);
+	await writeToFiles(app, getNode, [node.uid], { [node.uid]: preview });
+	state.savedTasks.add(node.uid);
 	return state;
 }
 
@@ -625,7 +568,6 @@ export async function saveAllChanges(
 		if (!node) continue;
 		const preview = state.previews.get(uid);
 		if (!preview || preview === node.rawLine) continue;
-
 		toSave.push(uid);
 		linesMap[uid] = preview;
 		snapshotMap[uid] = node.rawLine;
@@ -633,15 +575,11 @@ export async function saveAllChanges(
 	}
 
 	if (toSave.length === 0) return { state, previews };
-
 	if (toSave.length > 500) {
-		const batchSize = 500;
-		for (let i = 0; i < toSave.length; i += batchSize) {
-			const batch = toSave.slice(i, i + batchSize);
+		for (let i = 0; i < toSave.length; i += 500) {
+			const batch = toSave.slice(i, i + 500);
 			const batchSnapshot: Record<string, string> = {};
-			for (const uid of batch) {
-				batchSnapshot[uid] = snapshotMap[uid];
-			}
+			for (const uid of batch) batchSnapshot[uid] = snapshotMap[uid];
 			addSnapshot(batchSnapshot);
 		}
 	} else {
@@ -649,11 +587,7 @@ export async function saveAllChanges(
 	}
 
 	await writeToFiles(app, getNode, toSave, linesMap);
-
-	for (const uid of toSave) {
-		state.savedTasks.add(uid);
-	}
-
+	for (const uid of toSave) state.savedTasks.add(uid);
 	return { state, previews };
 }
 
@@ -663,27 +597,19 @@ export async function revertSingleTask(
 	getNode: (uid: string) => TaskTreeNode | undefined,
 	node: TaskTreeNode,
 ): Promise<EditState> {
-	const uid = node.uid;
-	if (!state.savedTasks.has(uid)) return state;
-
+	if (!state.savedTasks.has(node.uid)) return state;
 	let originalLine = node.rawLine;
-	const snapshots = loadSnapshots();
-	for (const snap of snapshots) {
-		if (snap.snapshot[uid]) {
-			originalLine = snap.snapshot[uid];
+	for (const snap of loadSnapshots()) {
+		if (snap.snapshot[node.uid]) {
+			originalLine = snap.snapshot[node.uid];
 			break;
 		}
 	}
-
-	const linesMap: Record<string, string> = {};
-	linesMap[uid] = originalLine;
-	await writeToFiles(app, getNode, [uid], linesMap);
-
-	state.savedTasks.delete(uid);
-	state.previews.delete(uid);
-	state.selectedTasks.add(uid);
-	state.previews.set(uid, originalLine);
-
+	await writeToFiles(app, getNode, [node.uid], { [node.uid]: originalLine });
+	state.savedTasks.delete(node.uid);
+	state.previews.delete(node.uid);
+	state.selectedTasks.add(node.uid);
+	state.previews.set(node.uid, originalLine);
 	return state;
 }
 
@@ -695,23 +621,15 @@ export async function revertFromSnapshot(
 ): Promise<EditState> {
 	const snapshots = loadSnapshots();
 	if (snapshotIndex < 0 || snapshotIndex >= snapshots.length) return state;
-
 	const snap = snapshots[snapshotIndex];
-	const taskIds = Object.keys(snap.snapshot);
 	const linesMap: Record<string, string> = {};
-
-	for (const uid of taskIds) {
+	for (const uid of Object.keys(snap.snapshot))
 		linesMap[uid] = snap.snapshot[uid];
-	}
-
-	await writeToFiles(app, getNode, taskIds, linesMap);
-
+	await writeToFiles(app, getNode, Object.keys(snap.snapshot), linesMap);
 	snapshots.splice(0, snapshotIndex + 1);
 	saveSnapshots(snapshots);
-
 	state.savedTasks.clear();
 	state.previews.clear();
 	state.selectedTasks.clear();
-
 	return state;
 }

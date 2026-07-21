@@ -14,13 +14,24 @@ import {
 import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
+import { createEl } from "../../../util/dom-utils";
 import { tooltip } from "../../component/tooltip/tooltip";
 import { renderTaskTree } from "../list/tree-list";
+
+type LayerDef = {
+	name: string;
+	visible: boolean;
+	fontSize: string;
+	fontWeight: string;
+	color: string;
+	getLabel: (d: Date) => string;
+	nextDate: (d: Date) => Date;
+};
 
 function createTimelineHeader(
 	tr: { minTime: number; maxTime: number },
 	dateToX: (ts: number) => number,
-	totalDays: number,
+	_totalDays: number,
 	dayWidth: number,
 	totalWidth: number,
 	treeWidth: number,
@@ -31,19 +42,19 @@ function createTimelineHeader(
 	const textColor = "var(--text-normal)";
 	const mutedColor = dark ? "#999" : "#888";
 
-	const header = document.createElement("div");
+	const header = createEl("div");
 	header.className = "gantt-header gantt-header-dynamic";
 	header.setCssProps({
 		"--gantt-header-height": HEADER_HEIGHT + "px",
 		"--gantt-header-width": treeWidth + totalWidth + "px",
 	});
 
-	const spacer = document.createElement("div");
+	const spacer = createEl("div");
 	spacer.className = "gantt-header-spacer";
 	spacer.setCssProps({ "--gantt-spacer-width": treeWidth + "px" });
 	header.appendChild(spacer);
 
-	const inner = document.createElement("div");
+	const inner = createEl("div");
 	inner.className = "gantt-header-inner-dynamic";
 	inner.setCssProps({
 		"--gantt-inner-left": treeWidth + "px",
@@ -51,15 +62,6 @@ function createTimelineHeader(
 	});
 	header.appendChild(inner);
 
-	type LayerDef = {
-		name: string;
-		visible: boolean;
-		fontSize: string;
-		fontWeight: string;
-		color: string;
-		getLabel: (d: Date) => string;
-		nextDate: (d: Date) => Date;
-	};
 	const layers: LayerDef[] = [
 		{
 			name: "year",
@@ -67,8 +69,8 @@ function createTimelineHeader(
 			fontSize: "11px",
 			fontWeight: "bold",
 			color: textColor,
-			getLabel: (d) => String(d.getFullYear()),
-			nextDate: (d) => new Date(d.getFullYear() + 1, 0, 1),
+			getLabel: (d: Date): string => String(d.getFullYear()),
+			nextDate: (d: Date): Date => new Date(d.getFullYear() + 1, 0, 1),
 		},
 		{
 			name: "quarter",
@@ -76,9 +78,9 @@ function createTimelineHeader(
 			fontSize: "10px",
 			fontWeight: "bold",
 			color: textColor,
-			getLabel: (d) =>
+			getLabel: (d: Date): string =>
 				"Q" + String(Math.floor(d.getMonth() / 3) + 1).padStart(2, "0"),
-			nextDate: (d) =>
+			nextDate: (d: Date): Date =>
 				new Date(
 					d.getFullYear(),
 					Math.floor(d.getMonth() / 3) * 3 + 3,
@@ -91,8 +93,10 @@ function createTimelineHeader(
 			fontSize: "10px",
 			fontWeight: "bold",
 			color: textColor,
-			getLabel: (d) => "M" + String(d.getMonth() + 1).padStart(2, "0"),
-			nextDate: (d) => new Date(d.getFullYear(), d.getMonth() + 1, 1),
+			getLabel: (d: Date): string =>
+				"M" + String(d.getMonth() + 1).padStart(2, "0"),
+			nextDate: (d: Date): Date =>
+				new Date(d.getFullYear(), d.getMonth() + 1, 1),
 		},
 		{
 			name: "week",
@@ -100,9 +104,9 @@ function createTimelineHeader(
 			fontSize: "8px",
 			fontWeight: "normal",
 			color: mutedColor,
-			getLabel: (d) =>
+			getLabel: (d: Date): string =>
 				"W" + String(DateUtils.getISOWeekNumber(d)).padStart(2, "0"),
-			nextDate: (d) => {
+			nextDate: (d: Date): Date => {
 				const nd = new Date(d);
 				const day = nd.getDay() || 7;
 				nd.setDate(nd.getDate() + (8 - day));
@@ -115,8 +119,8 @@ function createTimelineHeader(
 			fontSize: "8px",
 			fontWeight: "normal",
 			color: mutedColor,
-			getLabel: (d) => String(d.getDate()).padStart(2, "0"),
-			nextDate: (d) => {
+			getLabel: (d: Date): string => String(d.getDate()).padStart(2, "0"),
+			nextDate: (d: Date): Date => {
 				const nd = new Date(d);
 				nd.setDate(nd.getDate() + 1);
 				return nd;
@@ -135,7 +139,7 @@ function createTimelineHeader(
 			const x1 = treeWidth + dateToX(cur.getTime());
 			const x2 = treeWidth + dateToX(nextTs);
 			if (x2 > x1) {
-				const el = document.createElement("span");
+				const el = createEl("span");
 				el.textContent = layer.getLabel(cur);
 				el.className = "gantt-header-label";
 				if (nextTs < tr.maxTime)
@@ -311,7 +315,7 @@ export async function renderGanttWithTree(
 	let deferredUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 	let wheelRafId: number | null = null;
 
-	const dateToX = (ts: number) =>
+	const dateToX = (ts: number): number =>
 		((ts - timeRange.minTime) /
 			(timeRange.maxTime - timeRange.minTime || 86400000)) *
 		zoomState.totalWidth;
@@ -331,8 +335,8 @@ export async function renderGanttWithTree(
 	): { left: number; width: number } | null {
 		const interval = getCachedInterval(node);
 		if (!interval) return null;
-		const left = dateToX(interval.start.getTime());
-		const right = dateToX(interval.end.getTime());
+		const left: number = dateToX(interval.start.getTime());
+		const right: number = dateToX(interval.end.getTime());
 		const maxRight = zoomState.totalWidth;
 		const clampedLeft = Math.max(0, left);
 		const clampedRight = Math.min(maxRight, right);
@@ -348,13 +352,15 @@ export async function renderGanttWithTree(
 		edges: { left: number; width: number },
 		y: number,
 	): HTMLElement {
-		const bar = document.createElement("div");
+		const bar = createEl("div");
 		bar.className = "gantt-bar gantt-bar-dynamic";
 		bar.setAttribute("data-task-bar", "true");
 		bar.setAttribute("data-uid", node.uid);
+		const barLeftPx: string = actualTreeWidth + edges.left + "px";
+		const barTopPx: string = y + "px";
 		bar.setCssProps({
-			"--gantt-bar-left": actualTreeWidth + edges.left + "px",
-			"--gantt-bar-top": y + "px",
+			"--gantt-bar-left": barLeftPx,
+			"--gantt-bar-top": barTopPx,
 			"--gantt-bar-width": edges.width + "px",
 			"--gantt-bar-height": GANTT_CONFIG.TASK_BAR_HEIGHT + "px",
 			"--gantt-bar-bg": statusColors[node.status] || statusColors["todo"],
@@ -362,7 +368,7 @@ export async function renderGanttWithTree(
 		});
 
 		if (edges.width > 60) {
-			const desc = document.createElement("span");
+			const desc = createEl("span");
 			desc.className = "gantt-bar-desc";
 			desc.textContent = node.text || node.content || "";
 			bar.appendChild(desc);
@@ -375,7 +381,7 @@ export async function renderGanttWithTree(
 				: 0,
 		);
 		if (dur && edges.width > 30) {
-			const label = document.createElement("span");
+			const label = createEl("span");
 			label.className = "gantt-bar-label";
 			label.textContent = dur;
 			bar.appendChild(label);
@@ -399,7 +405,7 @@ export async function renderGanttWithTree(
 					clickTimer = null;
 					const row = scrollArea.querySelector(
 						`[data-task-id="${node.uid}"]`,
-					) as HTMLElement;
+					) as HTMLElement | null;
 					if (row)
 						row.scrollIntoView({
 							behavior: "instant",
@@ -487,7 +493,6 @@ export async function renderGanttWithTree(
 		if (dayWidth >= 40) lineGap = gap;
 		else if (dayWidth >= 15) lineGap = gap * 7;
 		else lineGap = gap * 30;
-
 		gridOverlay.setCssProps({
 			"--gantt-grid-bg-image": `repeating-linear-gradient(to right, ${borderColor} 0, ${borderColor} 1px, transparent 1px, transparent ${lineGap}px)`,
 			"--gantt-grid-bg-size": `${lineGap}px 100%`,
@@ -496,11 +501,10 @@ export async function renderGanttWithTree(
 
 	function updateTodayLine() {
 		if (!todayLine) return;
-		const ts = DateUtils.setStart(new Date()).getTime();
+		const ts: number = DateUtils.setStart(new Date()).getTime();
 		if (ts >= timeRange.minTime && ts <= timeRange.maxTime) {
-			todayLine.setCssProps({
-				"--gantt-today-left": actualTreeWidth + dateToX(ts) + "px",
-			});
+			const todayLeft: string = actualTreeWidth + dateToX(ts) + "px";
+			todayLine.setCssProps({ "--gantt-today-left": todayLeft });
 			todayLine.removeClass("task-hidden");
 		} else {
 			todayLine.addClass("task-hidden");
@@ -510,7 +514,7 @@ export async function renderGanttWithTree(
 	function updateLayoutWidths() {
 		const tc = scrollArea.querySelector(
 			".gantt-tree-container",
-		) as HTMLElement;
+		) as HTMLElement | null;
 		actualTreeWidth = tc?.offsetWidth || initTreeWidth;
 		const tw = zoomState.totalWidth;
 		const totalW = actualTreeWidth + tw;
@@ -529,8 +533,8 @@ export async function renderGanttWithTree(
 		barCache.forEach((bar, uid) => {
 			const cached = barPositionCache.get(uid);
 			if (!cached) return;
-			const left = dateToX(cached.intervalStart);
-			const right = dateToX(cached.intervalEnd);
+			const left: number = dateToX(cached.intervalStart);
+			const right: number = dateToX(cached.intervalEnd);
 			const clampedLeft = Math.max(0, left);
 			const clampedRight = Math.min(tw, right);
 			if (clampedRight > clampedLeft) {
@@ -548,7 +552,7 @@ export async function renderGanttWithTree(
 			const tw = zoomState.totalWidth;
 			const oldHeader = scrollArea.querySelector(
 				".gantt-header",
-			) as HTMLElement;
+			) as HTMLElement | null;
 			if (oldHeader)
 				oldHeader.replaceWith(
 					createTimelineHeader(
@@ -563,7 +567,7 @@ export async function renderGanttWithTree(
 
 			const oldLineLayer = scrollArea.querySelector(
 				".gantt-timeline-lines",
-			) as HTMLElement;
+			) as HTMLElement | null;
 			if (oldLineLayer) {
 				oldLineLayer.innerHTML = "";
 				oldLineLayer.setCssProps({
@@ -573,8 +577,8 @@ export async function renderGanttWithTree(
 				for (let i = 0; i < totalDays; i++) {
 					const d = new Date(timeRange.minTime + i * 86400000);
 					if (d.getDate() === 1) {
-						const x = dateToX(d.getTime());
-						const line = document.createElement("div");
+						const x: number = dateToX(d.getTime());
+						const line = createEl("div");
 						line.className = "gantt-timeline-line";
 						line.setCssProps({ "--gantt-line-left": x + "px" });
 						oldLineLayer.appendChild(line);
@@ -607,14 +611,14 @@ export async function renderGanttWithTree(
 	}
 
 	container.addClass("gantt-container");
-	const scrollArea = document.createElement("div");
+	const scrollArea = createEl("div");
 	scrollArea.className = "gantt-scroll-area";
 	container.appendChild(scrollArea);
 
 	scrollArea.addEventListener("mouseover", (e) => {
 		const bar = (e.target as HTMLElement).closest(
 			".gantt-bar",
-		) as HTMLElement;
+		) as HTMLElement | null;
 		if (!bar) {
 			tooltip.hide();
 			return;
@@ -647,7 +651,7 @@ export async function renderGanttWithTree(
 			scrollArea.removeEventListener("scroll", syncHeaderScroll);
 		if (deferredUpdateTimer) window.clearTimeout(deferredUpdateTimer);
 
-		const treeContainer = document.createElement("div");
+		const treeContainer = createEl("div");
 		treeContainer.className =
 			"gantt-tree-container gantt-tree-container-dynamic";
 		treeContainer.setCssProps({
@@ -668,9 +672,9 @@ export async function renderGanttWithTree(
 					rowEl.setAttribute("data-task-id", node.uid);
 					taskMap.set(node.uid, node);
 					if (node.id) taskMap.set(node.id, node);
-					const cc = rowEl.querySelector("div") as HTMLElement;
+					const cc = rowEl.querySelector("div") as HTMLElement | null;
 					if (cc && getBarEdges(node)) {
-						const lb = document.createElement("span");
+						const lb = createEl("span");
 						lb.textContent = "➤";
 						lb.className = "gantt-locate-btn";
 						lb.addEventListener("click", (ev) => {
@@ -711,7 +715,7 @@ export async function renderGanttWithTree(
 			header.addClass("gantt-header-top");
 			scrollArea.insertBefore(header, treeContainer);
 
-			const lineLayer = document.createElement("div");
+			const lineLayer = createEl("div");
 			lineLayer.className =
 				"gantt-timeline-lines gantt-timeline-lines-dynamic gantt-timeline-lines-height";
 			lineLayer.setCssProps({
@@ -721,8 +725,8 @@ export async function renderGanttWithTree(
 			for (let i = 0; i < totalDays; i++) {
 				const d = new Date(timeRange.minTime + i * 86400000);
 				if (d.getDate() === 1) {
-					const x = dateToX(d.getTime());
-					const line = document.createElement("div");
+					const x: number = dateToX(d.getTime());
+					const line = createEl("div");
 					line.className = "gantt-timeline-line";
 					line.setCssProps({ "--gantt-line-left": x + "px" });
 					lineLayer.appendChild(line);
@@ -730,7 +734,7 @@ export async function renderGanttWithTree(
 			}
 			scrollArea.appendChild(lineLayer);
 
-			gridOverlay = document.createElement("div");
+			gridOverlay = createEl("div");
 			gridOverlay.className =
 				"gantt-grid-overlay gantt-grid-overlay-dynamic gantt-grid-overlay-height";
 			gridOverlay.setCssProps({
@@ -740,17 +744,16 @@ export async function renderGanttWithTree(
 			updateGridLevel(zoomState.dayWidth);
 			scrollArea.appendChild(gridOverlay);
 
-			todayLine = document.createElement("div");
+			todayLine = createEl("div");
 			todayLine.className =
 				"gantt-today-line gantt-today-line-dynamic gantt-today-line-height";
-			const todayTs = DateUtils.setStart(new Date()).getTime();
-			todayLine.setCssProps({
-				"--gantt-today-left": actualTreeWidth + dateToX(todayTs) + "px",
-			});
+			const todayTs: number = DateUtils.setStart(new Date()).getTime();
+			const todayLeft: string = actualTreeWidth + dateToX(todayTs) + "px";
+			todayLine.setCssProps({ "--gantt-today-left": todayLeft });
 			updateTodayLine();
 			scrollArea.appendChild(todayLine);
 
-			barsContainer = document.createElement("div");
+			barsContainer = createEl("div");
 			barsContainer.className = "gantt-bars-dynamic";
 			barsContainer.setCssProps({ "--gantt-bars-width": totalW + "px" });
 			scrollArea.appendChild(barsContainer);
@@ -763,7 +766,7 @@ export async function renderGanttWithTree(
 			syncHeaderScroll = () => {
 				const h = scrollArea.querySelector(
 					".gantt-header",
-				) as HTMLElement;
+				) as HTMLElement | null;
 				if (h)
 					h.setCssProps({
 						"--gantt-header-translate": `translateX(${-scrollArea.scrollLeft}px)`,
@@ -800,9 +803,9 @@ export async function renderGanttWithTree(
 		e.preventDefault();
 		e.stopPropagation();
 		const rect = scrollArea.getBoundingClientRect();
-		const mouseContentX =
+		const mouseContentX: number =
 			e.clientX - rect.left + scrollArea.scrollLeft - actualTreeWidth;
-		const mouseTime =
+		const mouseTime: number =
 			timeRange.minTime +
 			(mouseContentX / zoomState.totalWidth) *
 				(timeRange.maxTime - timeRange.minTime);
@@ -830,7 +833,7 @@ export async function renderGanttWithTree(
 			deferredUpdate();
 		});
 
-		const newMouseContentX =
+		const newMouseContentX: number =
 			((mouseTime - timeRange.minTime) /
 				(timeRange.maxTime - timeRange.minTime)) *
 			zoomState.totalWidth;
@@ -878,7 +881,7 @@ export async function renderGanttWithTree(
 			if (onTreeToggle) {
 				const tc = scrollArea.querySelector(
 					".gantt-tree-container",
-				) as HTMLElement;
+				) as HTMLElement | null;
 				tc?.removeEventListener("tree-toggle", onTreeToggle);
 				onTreeToggle = null;
 			}

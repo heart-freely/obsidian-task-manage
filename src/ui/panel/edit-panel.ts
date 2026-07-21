@@ -2,6 +2,34 @@
 // 编辑面板 — 直接持有 EditStore 和 TaskView 引用
 
 import { Store } from "../../core/store/store";
+import { createEl } from "../../util/dom-utils";
+
+interface SnapshotItem {
+	time: string;
+	snapshot: Record<string, string>;
+}
+
+interface EditStoreRef {
+	getState?: () => {
+		batchMode: boolean;
+		selectedTasks: Set<string>;
+		syncMode: boolean;
+	};
+	toggleSyncMode?: () => void;
+	applySortTags?: () => void;
+	applyAutoComplete?: (days?: number) => void;
+	clearPreviews?: () => void;
+	saveCurrent?: () => void;
+	revertSnapshot?: (idx: number) => void;
+	clearAllSnapshots?: () => void;
+	getSnapshots?: () => SnapshotItem[];
+}
+
+interface TaskViewRef {
+	toggleBatchMode?: () => void;
+	toggleSelectAll?: (nodes: unknown[]) => void;
+	refreshEditCards?: () => void;
+}
 
 export class EditPanel {
 	private container: HTMLElement;
@@ -16,13 +44,9 @@ export class EditPanel {
 		this.editStore = store.getEditStore();
 		this.taskView = store.getTaskView();
 		this.render();
-
-		const es = store.getEditStore();
-		if (
-			es &&
-			typeof (es as Record<string, unknown>).subscribePanel === "function"
-		) {
-			(es as Record<string, unknown>).subscribePanel(() => this.render());
+		const es = store.getEditStore() as Record<string, unknown> | null;
+		if (es && typeof es.subscribePanel === "function") {
+			(es.subscribePanel as (l: () => void) => void)(() => this.render());
 		}
 	}
 
@@ -35,46 +59,22 @@ export class EditPanel {
 
 	render() {
 		this.refreshRefs();
-		const es = this.editStore as Record<string, unknown> | null;
-		const tv = this.taskView as Record<string, unknown> | null;
-		const isBatchMode = es
-			? ((es.getState as () => Record<string, unknown>)()
-					.batchMode as boolean)
-			: false;
-		const selectedCount = es
-			? (
-					(es.getState as () => Record<string, unknown>)()
-						.selectedTasks as Set<string>
-				).size
-			: 0;
+		const es = this.editStore as EditStoreRef | null;
+		const tv = this.taskView as TaskViewRef | null;
+		const isBatchMode = es?.getState?.()?.batchMode ?? false;
+		const state = es?.getState?.();
+		const selectedCount = state?.selectedTasks?.size ?? 0;
 		const hasSelected = selectedCount > 0;
 		const allSelected = hasSelected;
-		const isSyncMode = es
-			? ((es.getState as () => Record<string, unknown>)()
-					.syncMode as boolean)
-			: false;
+		const isSyncMode = state?.syncMode ?? false;
 
-		let snapshots: Array<{
-			time: string;
-			snapshot: Record<string, string>;
-		}> = [];
+		let snapshots: SnapshotItem[] = [];
 		try {
-			snapshots =
-				es && typeof es.getSnapshots === "function"
-					? (
-							es as {
-								getSnapshots: () => Array<{
-									time: string;
-									snapshot: Record<string, string>;
-								}>;
-							}
-						).getSnapshots()
-					: [];
+			snapshots = es?.getSnapshots?.() ?? [];
 		} catch {
 			snapshots = [];
 		}
 		const hasSnapshots = snapshots.length > 0;
-
 		const disabledStyle = "opacity: 0.5; cursor: not-allowed;";
 
 		this.container.empty();
@@ -90,9 +90,7 @@ export class EditPanel {
 		if (isBatchMode) batchBtn.addClass("active");
 		batchBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			if (tv && typeof tv.toggleBatchMode === "function") {
-				tv.toggleBatchMode();
-			}
+			tv?.toggleBatchMode?.();
 		});
 
 		const subPanel1 = row1.createDiv({ cls: "panel-sub" });
@@ -113,13 +111,9 @@ export class EditPanel {
 		if (isSyncMode) syncBtn.addClass("active");
 		syncBtn.addEventListener("click", () => {
 			if (!isBatchMode) return;
-			if (es && typeof es.toggleSyncMode === "function") {
-				es.toggleSyncMode();
-			}
-			syncBtn.toggleClass("active", isSyncMode);
-			if (tv && typeof tv.refreshEditCards === "function") {
-				tv.refreshEditCards();
-			}
+			es?.toggleSyncMode?.();
+			syncBtn.toggleClass("active", es?.getState?.()?.syncMode ?? false);
+			tv?.refreshEditCards?.();
 		});
 
 		const selectAllBtn = subPanel1.createEl("button", {
@@ -129,9 +123,7 @@ export class EditPanel {
 		if (!isBatchMode) selectAllBtn.style.cssText += disabledStyle;
 		selectAllBtn.addEventListener("click", () => {
 			if (!isBatchMode) return;
-			if (tv && typeof tv.toggleSelectAll === "function") {
-				tv.toggleSelectAll([]);
-			}
+			tv?.toggleSelectAll?.([]);
 		});
 
 		const sortBtn = subPanel1.createEl("button", {
@@ -142,9 +134,7 @@ export class EditPanel {
 			sortBtn.style.cssText += disabledStyle;
 		sortBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			if (es && typeof es.applySortTags === "function") {
-				es.applySortTags();
-			}
+			es?.applySortTags?.();
 			sortBtn.addClass("active");
 			window.setTimeout(() => sortBtn.removeClass("active"), 300);
 		});
@@ -156,7 +146,7 @@ export class EditPanel {
 			"task-gap-1",
 		);
 
-		const autoCompleteBtn = document.createElement("button");
+		const autoCompleteBtn = createEl("button");
 		autoCompleteBtn.textContent = "补全时间";
 		autoCompleteBtn.className = "panel-btn sub-btn";
 		if (!isBatchMode || !hasSelected)
@@ -166,15 +156,13 @@ export class EditPanel {
 			const rawValue = daysInput.value.trim();
 			const days =
 				rawValue === "" ? undefined : parseInt(rawValue, 10) || 0;
-			if (es && typeof es.applyAutoComplete === "function") {
-				es.applyAutoComplete(days);
-			}
+			es?.applyAutoComplete?.(days);
 			autoCompleteBtn.addClass("active");
 			window.setTimeout(() => autoCompleteBtn.removeClass("active"), 300);
 		});
 		autoCompleteRow.appendChild(autoCompleteBtn);
 
-		const daysInput = document.createElement("input");
+		const daysInput = createEl("input");
 		daysInput.type = "number";
 		daysInput.value = this.savedDaysValue;
 		daysInput.min = "0";
@@ -199,7 +187,7 @@ export class EditPanel {
 		});
 		autoCompleteRow.appendChild(daysInput);
 
-		const daysLabel = document.createElement("span");
+		const daysLabel = createEl("span");
 		daysLabel.textContent = "天";
 		daysLabel.addClass(
 			"task-text-smaller",
@@ -221,9 +209,7 @@ export class EditPanel {
 			clearBtn.style.cssText += disabledStyle;
 		clearBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			if (es && typeof es.clearPreviews === "function") {
-				es.clearPreviews();
-			}
+			es?.clearPreviews?.();
 			clearBtn.addClass("active");
 			window.setTimeout(() => clearBtn.removeClass("active"), 300);
 		});
@@ -236,9 +222,7 @@ export class EditPanel {
 			saveBtn.style.cssText += disabledStyle;
 		saveBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
-			if (es && typeof es.saveCurrent === "function") {
-				es.saveCurrent();
-			}
+			es?.saveCurrent?.();
 			saveBtn.addClass("active");
 			window.setTimeout(() => saveBtn.removeClass("active"), 300);
 		});
@@ -279,9 +263,7 @@ export class EditPanel {
 			if (!hasSnapshots) return;
 			const idx = parseInt(snapshotSelect.value, 10);
 			if (!isNaN(idx)) {
-				if (es && typeof es.revertSnapshot === "function") {
-					es.revertSnapshot(idx);
-				}
+				es?.revertSnapshot?.(idx);
 				revertBtn.addClass("active");
 				window.setTimeout(() => revertBtn.removeClass("active"), 300);
 			}
@@ -294,9 +276,7 @@ export class EditPanel {
 		if (!hasSnapshots) clearSnapshotBtn.style.cssText += disabledStyle;
 		clearSnapshotBtn.addEventListener("click", () => {
 			if (!hasSnapshots) return;
-			if (es && typeof es.clearAllSnapshots === "function") {
-				es.clearAllSnapshots();
-			}
+			es?.clearAllSnapshots?.();
 			clearSnapshotBtn.addClass("active");
 			window.setTimeout(
 				() => clearSnapshotBtn.removeClass("active"),

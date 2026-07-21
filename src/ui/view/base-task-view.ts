@@ -522,7 +522,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				cls: "task-tree-nav-resize task-tree-nav-resize-visible",
 			});
 
-			const arrow = document.createElement("span");
+			const arrow = createEl("span");
 			arrow.addClass("task-tree-nav-arrow");
 			arrow.textContent = "◀";
 			arrow.title = "折叠任务树";
@@ -553,7 +553,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				cls: "task-tree-nav-resize task-tree-nav-resize-hidden",
 			});
 
-			const collapsedArrow = document.createElement("span");
+			const collapsedArrow = createEl("span");
 			collapsedArrow.addClass("task-tree-nav-arrow");
 			collapsedArrow.textContent = "▶";
 			collapsedArrow.title = "展开任务树";

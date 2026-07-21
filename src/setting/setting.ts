@@ -320,7 +320,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			cls: "filter-add-btn",
 		});
 		importBtn.addEventListener("click", () => {
-			const input = document.createElement("input");
+			const input = createEl("input");
 			input.type = "file";
 			input.accept = ".json";
 			input.onchange = () => {
@@ -367,7 +367,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			const blob = new Blob([JSON.stringify(data, null, 2)], {
 				type: "application/json",
 			});
-			const a = document.createElement("a");
+			const a = createEl("a");
 			a.href = URL.createObjectURL(blob);
 			a.download = "task-manage-config.json";
 			a.click();

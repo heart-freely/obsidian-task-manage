@@ -30,7 +30,7 @@ export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
 		},
 	];
 
-	const board = document.createElement("div");
+	const board = createEl("div");
 	board.className = "kanban-board";
 	board.addClass("task-flex", "task-gap-3", "task-items-start");
 

@@ -27,7 +27,7 @@ function buildDescriptionDOM(
 ): DocumentFragment {
 	const frag = document.createDocumentFragment();
 	const text = buildDescription(node, _compact);
-	const span = document.createElement("span");
+	const span = createEl("span");
 	span.textContent = text;
 	frag.appendChild(span);
 	return frag;
@@ -103,7 +103,7 @@ export function createViewCard(
 	const checked = isEditing ? editCtx!.selectedTasks.has(node.uid) : false;
 	const expandedButton = isEditing ? (editCtx?.expandedButton ?? null) : null;
 
-	const li = document.createElement("li");
+	const li = createEl("li");
 	li.className = "task-item";
 	if (compact) li.classList.add("task-item-compact");
 	if (isEditing) li.classList.add("task-item-editing");
@@ -152,7 +152,7 @@ export function createViewCard(
 	}
 
 	if (compact) {
-		const descDiv = document.createElement("div");
+		const descDiv = createEl("div");
 		descDiv.className = "task-desc";
 		descDiv.addClass(
 			"task-font-normal",
@@ -164,7 +164,7 @@ export function createViewCard(
 		descDiv.appendChild(buildDescriptionDOM(node, compact));
 		li.appendChild(descDiv);
 	} else {
-		const row1 = document.createElement("div");
+		const row1 = createEl("div");
 		row1.addClass("task-flex", "task-items-center", "task-gap-1");
 
 		if (isBatchMode && editCtx && node.type === "list") {
@@ -175,7 +175,7 @@ export function createViewCard(
 			);
 		}
 
-		const descEl = document.createElement("span");
+		const descEl = createEl("span");
 		descEl.className = "task-desc";
 		descEl.appendChild(buildDescriptionDOM(node, compact));
 		descEl.addClass(
@@ -231,7 +231,7 @@ export function createViewCard(
 			);
 			li.appendChild(previewRow);
 		} else {
-			const previewRow = document.createElement("div");
+			const previewRow = createEl("div");
 			previewRow.className = "task-preview-row";
 			previewRow.addClass("task-hidden");
 			li.appendChild(previewRow);

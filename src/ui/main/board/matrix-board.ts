@@ -32,7 +32,7 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 		priorityColors[3],
 	];
 
-	const grid = document.createElement("div");
+	const grid = createEl("div");
 	grid.className = "matrix-grid";
 	grid.addClass(
 		"task-grid",

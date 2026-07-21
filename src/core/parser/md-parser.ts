@@ -105,6 +105,10 @@ function hasAnyTask(
 
 // ========== YAML 提取 ==========
 
+function getStringValue(val: unknown): string {
+	return typeof val === "string" ? val : "";
+}
+
 function parseFrontmatter(content: string): Record<string, unknown> {
 	if (!content) return {};
 	const trimmed = content.trimStart();
@@ -117,12 +121,15 @@ function parseFrontmatter(content: string): Record<string, unknown> {
 		const ci = line.indexOf(":");
 		if (ci === -1) continue;
 		const key = line.substring(0, ci).trim();
-		let value = line.substring(ci + 1).trim();
-		if (
-			(value.startsWith("'") && value.endsWith("'")) ||
-			(value.startsWith('"') && value.endsWith('"'))
-		)
-			value = value.slice(1, -1);
+		let value: unknown = line.substring(ci + 1).trim();
+		if (typeof value === "string") {
+			if (
+				(value.startsWith("'") && value.endsWith("'")) ||
+				(value.startsWith('"') && value.endsWith('"'))
+			) {
+				value = value.slice(1, -1);
+			}
+		}
 		if (key) result[key] = value;
 	}
 	return result;
@@ -166,7 +173,6 @@ export function parseFile(
 	}
 
 	const body = stripFrontmatter(content);
-
 	const bodyStartIndex = content.indexOf(body);
 	const actualBodyStartLine =
 		bodyStartIndex >= 0
@@ -210,7 +216,6 @@ function parseFileContent(
 		const line = lines[i];
 		const trimmed = line.trim();
 
-		// ─── 标题 YAML 块 ───
 		if (trimmed === "```yaml" || trimmed === "```yml") {
 			inHeadingYaml = true;
 			continue;
@@ -219,19 +224,13 @@ function parseFileContent(
 			inHeadingYaml = false;
 			continue;
 		}
-		if (inHeadingYaml) {
-			continue;
-		}
+		if (inHeadingYaml) continue;
 
-		// ─── 普通代码块 ───
 		if (trimmed.startsWith("```")) {
 			inCodeBlock = !inCodeBlock;
 			continue;
 		}
-		if (inCodeBlock) {
-			continue;
-		}
-
+		if (inCodeBlock) continue;
 		if (trimmed === "") continue;
 
 		const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)/);
@@ -251,39 +250,30 @@ function parseFileContent(
 			while (
 				headingStack.length > 0 &&
 				headingStack[headingStack.length - 1].depth >= level
-			) {
+			)
 				headingStack.pop();
-			}
-
-			if (headingStack.length > 0) {
+			if (headingStack.length > 0)
 				headingStack[headingStack.length - 1].children.push(node);
-			} else {
-				roots.push(node);
-			}
+			else roots.push(node);
 			headingStack.push(node);
 			indentStack.length = 0;
 
-			// ─── 标题 YAML 块解析 ───
-			{
-				const { yamlData, yamlStartLine, yamlEndLine } =
-					parseHeadingYamlBlock(lines, i, level);
-				if (yamlData) {
-					const taskData = parseTaskFromYaml(yamlData);
-					if (taskData) {
-						node.task = taskData;
-						node.yamlStartLine =
-							yamlStartLine >= 0
-								? yamlStartLine + lineOffset
-								: undefined;
-						node.yamlEndLine =
-							yamlEndLine >= 0
-								? yamlEndLine + lineOffset
-								: undefined;
-					}
+			const yamlBlock = parseHeadingYamlBlock(lines, i, level);
+			if (yamlBlock.yamlData) {
+				const taskData = parseTaskFromYaml(yamlBlock.yamlData);
+				if (taskData) {
+					node.task = taskData;
+					node.yamlStartLine =
+						yamlBlock.yamlStartLine >= 0
+							? yamlBlock.yamlStartLine + lineOffset
+							: undefined;
+					node.yamlEndLine =
+						yamlBlock.yamlEndLine >= 0
+							? yamlBlock.yamlEndLine + lineOffset
+							: undefined;
 				}
 			}
 
-			// ─── 指定识别 ───
 			if (!node.task && matchTaskHeading(title)) {
 				node.task = {
 					rawLine: trimmed,
@@ -305,7 +295,6 @@ function parseFileContent(
 			continue;
 		}
 
-		// ─── 当前标题的 YAML 块区域跳过 ───
 		const currentHeading =
 			headingStack.length > 0
 				? headingStack[headingStack.length - 1]
@@ -339,17 +328,14 @@ function parseFileContent(
 		while (
 			indentStack.length > 0 &&
 			indentStack[indentStack.length - 1].indent >= indent
-		) {
+		)
 			indentStack.pop();
-		}
 
-		if (indentStack.length > 0) {
+		if (indentStack.length > 0)
 			indentStack[indentStack.length - 1].node.children.push(node);
-		} else if (headingStack.length > 0) {
+		else if (headingStack.length > 0)
 			headingStack[headingStack.length - 1].children.push(node);
-		} else {
-			roots.push(node);
-		}
+		else roots.push(node);
 		indentStack.push({ indent, node });
 	}
 
@@ -359,29 +345,29 @@ function parseFileContent(
 
 function promoteToHeadingTasks(nodes: ContentNode[]) {
 	for (const node of nodes) {
-		if (node.type === "heading" && !node.task) {
-			if (hasListTasks(node.children)) {
-				node.task = {
-					rawLine: node.raw,
-					status: "none" as TaskStatus,
-					content: node.text,
-					priority: 5,
-					repeat: "",
-					created: null,
-					scheduled: null,
-					starts: null,
-					due: null,
-					done: null,
-					cancelled: null,
-					tag: "",
-					id: "",
-					forbid: "",
-				};
-			}
+		if (
+			node.type === "heading" &&
+			!node.task &&
+			hasListTasks(node.children)
+		) {
+			node.task = {
+				rawLine: node.raw,
+				status: "none" as TaskStatus,
+				content: node.text,
+				priority: 5,
+				repeat: "",
+				created: null,
+				scheduled: null,
+				starts: null,
+				due: null,
+				done: null,
+				cancelled: null,
+				tag: "",
+				id: "",
+				forbid: "",
+			};
 		}
-		if (node.children.length > 0) {
-			promoteToHeadingTasks(node.children);
-		}
+		if (node.children.length > 0) promoteToHeadingTasks(node.children);
 	}
 }
 
@@ -413,18 +399,22 @@ function parseHeadingYamlBlock(
 	}
 	if (yamlStartLine === -1 || yamlEndLine === -1)
 		return { yamlData: null, yamlStartLine: -1, yamlEndLine: -1 };
+
 	const yamlData: Record<string, unknown> = {};
 	for (const yamlLine of lines.slice(yamlStartLine + 1, yamlEndLine)) {
 		const colonIdx = yamlLine.indexOf(":");
 		if (colonIdx === -1) continue;
 		const key = yamlLine.substring(0, colonIdx).trim();
-		let value = yamlLine.substring(colonIdx + 1).trim();
-		if (
-			(value.startsWith("'") && value.endsWith("'")) ||
-			(value.startsWith('"') && value.endsWith('"'))
-		)
-			value = value.slice(1, -1);
-		if (key && value) yamlData[key] = value;
+		let value: unknown = yamlLine.substring(colonIdx + 1).trim();
+		if (typeof value === "string") {
+			if (
+				(value.startsWith("'") && value.endsWith("'")) ||
+				(value.startsWith('"') && value.endsWith('"'))
+			) {
+				value = value.slice(1, -1);
+			}
+		}
+		if (key && value !== "") yamlData[key] = value;
 	}
 	return {
 		yamlData: Object.keys(yamlData).length > 0 ? yamlData : null,
@@ -439,11 +429,10 @@ function getIndentLevel(line: string): number {
 	const leadingText = line.substring(0, leading);
 	let column = 0;
 	for (const ch of leadingText) {
-		if (ch === "\t") {
-			column = (Math.floor(column / tabSize) + 1) * tabSize;
-		} else {
-			column++;
-		}
+		column +=
+			ch === "\t"
+				? (Math.floor(column / tabSize) + 1) * tabSize - column
+				: 1;
 	}
 	return Math.floor(column / tabSize);
 }
@@ -457,12 +446,21 @@ export function isTaskFile(fileName: string, parsed: ParsedFileData): boolean {
 	return false;
 }
 
-export async function loadAllTaskFiles(app: {
+interface VaultFile {
+	path: string;
+	name: string;
+}
+
+interface AppLike {
 	vault: {
-		getMarkdownFiles(): Array<{ path: string; name: string }>;
-		cachedRead(file: { path: string; name: string }): Promise<string>;
+		getMarkdownFiles(): VaultFile[];
+		cachedRead(file: VaultFile): Promise<string>;
 	};
-}): Promise<ParsedFileData[]> {
+}
+
+export async function loadAllTaskFiles(
+	app: AppLike,
+): Promise<ParsedFileData[]> {
 	if (TASK_ROOT_PATHS.length === 0) return [];
 
 	const files = app.vault
@@ -474,10 +472,8 @@ export async function loadAllTaskFiles(app: {
 		try {
 			const content = await app.vault.cachedRead(file);
 			const parsed = parseFile(file.path, file.name, content);
-			if (isTaskFile(file.name, parsed)) {
-				results.push(parsed);
-			}
-		} catch (e) {
+			if (isTaskFile(file.name, parsed)) results.push(parsed);
+		} catch (e: unknown) {
 			logger.warn("[TaskManage] 读取任务文件失败:", file.path, e);
 		}
 	}

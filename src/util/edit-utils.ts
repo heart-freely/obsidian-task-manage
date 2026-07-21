@@ -231,7 +231,6 @@ function extractMarkFromText(line: string, key: string): string {
 		case "status": {
 			const m = line.match(/^- \[(.)\]/);
 			if (!m) return "none";
-			const s = m[1];
 			const map: Record<string, string> = {
 				" ": "todo",
 				"?": "scheduled",
@@ -242,7 +241,7 @@ function extractMarkFromText(line: string, key: string): string {
 				X: "completed",
 				"-": "cancelled",
 			};
-			return map[s] || "none";
+			return map[m[1]] || "none";
 		}
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
@@ -251,7 +250,7 @@ function extractMarkFromText(line: string, key: string): string {
 		}
 		case "repeat": {
 			const m = line.match(
-				/🔁\s*(every\s+.+?)(?=\s*[➕⏳🛫📅✅❌🏁🆔⛔]|$)/,
+				/🔁\s*(every\s+.+?)(?=\s*[➕⏳🛫📅✅❌🏁🆔⛔]|$)/u,
 			);
 			return m ? m[1].trim() : "";
 		}
@@ -301,7 +300,6 @@ function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 		case "status": {
 			const m = rawLine.match(/^- \[(.)\]/);
 			if (!m) return null;
-			const s = m[1];
 			const map: Record<string, string> = {
 				" ": "todo",
 				"?": "scheduled",
@@ -312,7 +310,7 @@ function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 				X: "completed",
 				"-": "cancelled",
 			};
-			return map[s] || null;
+			return map[m[1]] || null;
 		}
 		case "priority": {
 			const icons = ["🔺", "⏫", "🔼", "🔽", "⏬"];
@@ -321,7 +319,7 @@ function extractOriginalMarkValue(rawLine: string, key: string): string | null {
 		}
 		case "repeat": {
 			const m = rawLine.match(
-				/🔁\s*(every\s+.+?)(?=\s*[➕⏳🛫📅✅❌🏁🆔⛔]|$)/,
+				/🔁\s*(every\s+.+?)(?=\s*[➕⏳🛫📅✅❌🏁🆔⛔]|$)/u,
 			);
 			return m ? m[1].trim() : null;
 		}
@@ -428,8 +426,7 @@ function getMarkDisplayTextFromLine(line: string, key: string): string {
 				"🔽": "低",
 				"⏬": "最低",
 			};
-			const n = names[extracted] || "";
-			return `${extracted} ${n}`;
+			return `${extracted} ${names[extracted] || ""}`;
 		}
 		case "repeat":
 			return extracted ? `🔁 ${extracted}` : "";
@@ -532,23 +529,17 @@ export function createEditBar(
 		const isHovered = hoveredButtonKey === group.key;
 		const isEdited = hasMarkBeenEdited(node, group.key, options);
 		const hasValue = hasMarkValue(node, group.key);
-
 		btn.removeClass(
 			"edit-btn-active",
 			"edit-btn-hover",
 			"edit-btn-default",
 			"edit-btn-hidden",
 		);
-
-		if (isExpanded || isEdited) {
-			btn.addClass("edit-btn-active");
-		} else if (isHovered) {
-			btn.addClass("edit-btn-hover");
-		} else if (hasValue || options.isEditing) {
+		if (isExpanded || isEdited) btn.addClass("edit-btn-active");
+		else if (isHovered) btn.addClass("edit-btn-hover");
+		else if (hasValue || options.isEditing)
 			btn.addClass("edit-btn-default");
-		} else {
-			btn.addClass("edit-btn-hidden");
-		}
+		else btn.addClass("edit-btn-hidden");
 	}
 
 	updateAllButtonStyles();
@@ -572,10 +563,8 @@ export function createEditBar(
 	}
 
 	if (!options.isEditing && !options.expandedButton) {
-		const hasAnyVisible = EDIT_BUTTONS.some((g) =>
-			hasMarkValue(node, g.key),
-		);
-		if (!hasAnyVisible) bar.addClass("task-hidden");
+		if (!EDIT_BUTTONS.some((g) => hasMarkValue(node, g.key)))
+			bar.addClass("task-hidden");
 	}
 
 	return bar;
@@ -600,11 +589,10 @@ function createSubRowContext(
 	subRow: HTMLElement,
 ): SubRowContext {
 	const getMainBtn = (): HTMLElement | null => {
-		const editBar = subRow.closest(".task-edit-bar") as HTMLElement;
-		if (!editBar) return null;
-		return editBar.querySelector(
+		const editBar = subRow.closest(".task-edit-bar") as HTMLElement | null;
+		return editBar?.querySelector(
 			`[data-mark-key="${group.key}"]`,
-		) as HTMLElement;
+		) as HTMLElement | null;
 	};
 	const updateMainBtnText = (displayText: string) => {
 		const mb = getMainBtn();
@@ -615,14 +603,13 @@ function createSubRowContext(
 	let previewValue: string | null = null;
 	if (options.previewText)
 		previewValue = extractMarkFromText(options.previewText, group.key);
-	const hasChanged = originalValue !== previewValue;
 	return {
 		getMainBtn,
 		updateMainBtnText,
 		originalValue,
 		hasOriginalMark,
 		previewValue,
-		hasChanged,
+		hasChanged: originalValue !== previewValue,
 	};
 }
 
@@ -635,8 +622,7 @@ function createOptionsSubRow(
 	ctx: SubRowContext,
 ): void {
 	if (!group.subOptions) return;
-	const subRow = ctx._subRow as HTMLElement;
-	const onEdit = options.onEdit;
+	const subRow = ctx._subRow!;
 	group.subOptions.forEach((opt) => {
 		const btn = createEl("button");
 		btn.textContent = opt;
@@ -662,17 +648,16 @@ function createOptionsSubRow(
 						getNodeMarkValue(node, group.key) ===
 							opt.replace("🏁 ", "");
 		}
-		if (isActive) {
-			btn.addClass("edit-sub-btn-active");
-		}
+		if (isActive) btn.addClass("edit-sub-btn-active");
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			const value =
 				group.key === "status" ? STATUS_KEY_MAP[opt] || opt : opt;
-			const allBtns = btn.parentElement?.querySelectorAll("button");
-			allBtns?.forEach((b: Element) => {
-				(b as HTMLElement).removeClass("edit-sub-btn-active");
-			});
+			btn.parentElement
+				?.querySelectorAll("button")
+				.forEach((b) =>
+					(b as HTMLElement).removeClass("edit-sub-btn-active"),
+				);
 			btn.addClass("edit-sub-btn-active");
 			if (group.key === "status") {
 				const sk = STATUS_KEY_MAP[opt] || opt;
@@ -691,7 +676,7 @@ function createOptionsSubRow(
 			} else {
 				ctx.updateMainBtnText(opt);
 			}
-			onEdit(node, group.key, value);
+			options.onEdit(node, group.key, value);
 		});
 		subRow.appendChild(btn);
 	});
@@ -705,8 +690,7 @@ function createDateSubRow(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const subRow = ctx._subRow as HTMLElement;
-	const onEdit = options.onEdit;
+	const subRow = ctx._subRow!;
 	let currentValue: string | null = null;
 	if (options.previewText) {
 		const extracted = extractMarkFromText(options.previewText, group.key);
@@ -717,26 +701,22 @@ function createDateSubRow(
 	dateInput.type = "date";
 	dateInput.value = currentValue || "";
 	dateInput.className = "edit-date-input";
-	if (currentValue) {
-		dateInput.addClass("edit-date-input-has-value");
-	} else {
-		dateInput.addClass("edit-date-input-empty");
-	}
+	dateInput.addClass(
+		currentValue ? "edit-date-input-has-value" : "edit-date-input-empty",
+	);
 	dateInput.addEventListener("change", () => {
 		const val = dateInput.value;
 		dateInput.removeClass(
 			"edit-date-input-has-value",
 			"edit-date-input-empty",
 		);
-		if (val) {
-			dateInput.addClass("edit-date-input-has-value");
-		} else {
-			dateInput.addClass("edit-date-input-empty");
-		}
+		dateInput.addClass(
+			val ? "edit-date-input-has-value" : "edit-date-input-empty",
+		);
 		ctx.updateMainBtnText(
 			val ? `${group.icon} ${val}` : `${group.icon} ${group.label}`,
 		);
-		onEdit(node, group.key, val || null);
+		options.onEdit(node, group.key, val || null);
 	});
 	dateInput.addEventListener("click", (e) => {
 		e.stopPropagation();
@@ -752,7 +732,7 @@ function createCustomSubRow(
 	options: EditBarOptions,
 	ctx: SubRowContext,
 ): void {
-	const subRow = ctx._subRow as HTMLElement;
+	const subRow = ctx._subRow!;
 	const onEdit = options.onEdit;
 	if (group.key === "id") {
 		const ci = createEl("input");
@@ -890,6 +870,7 @@ function appendDeleteButton(
 	});
 	subRow.appendChild(delBtn);
 }
+
 function appendRestoreButton(
 	node: TaskTreeNode,
 	subRow: HTMLElement,
@@ -904,9 +885,7 @@ function appendRestoreButton(
 	if (!ctx.hasChanged) restoreBtn.addClass("task-hidden");
 	restoreBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		if (ctx.originalValue !== null)
-			options.onEdit(node, group.key, ctx.originalValue);
-		else options.onEdit(node, group.key, null);
+		options.onEdit(node, group.key, ctx.originalValue);
 	});
 	subRow.appendChild(restoreBtn);
 }
@@ -949,12 +928,9 @@ export function createPreviewRow(
 ): HTMLElement {
 	const row = createEl("div");
 	row.className = "task-preview-row";
-	if (saved) {
-		row.addClass("task-edit-preview-saved");
-	} else {
-		row.addClass("task-edit-preview-unsaved");
-	}
-
+	row.addClass(
+		saved ? "task-edit-preview-saved" : "task-edit-preview-unsaved",
+	);
 	const textSpan = createEl("span");
 	textSpan.className = "edit-preview-text";
 	if (saved) {
@@ -977,9 +953,7 @@ export function createPreviewRow(
 			const sb = createEl("button");
 			sb.textContent = "保存";
 			sb.className = "edit-preview-btn";
-			if (hasEdits) {
-				sb.addClass("edit-preview-btn-save");
-			}
+			if (hasEdits) sb.addClass("edit-preview-btn-save");
 			sb.addEventListener("click", (e) => {
 				e.stopPropagation();
 				onSave();

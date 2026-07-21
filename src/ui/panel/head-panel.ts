@@ -63,18 +63,18 @@ export class HeadPanel {
 		let draggedKey: string | null = null;
 
 		toolbarOrder.forEach((barKey, index, arr) => {
-			const btnDiv = document.createElement("div");
+			const btnDiv = createEl("div");
 			btnDiv.className = "panel-header-btn";
 			btnDiv.setAttribute("data-key", barKey);
 			btnDiv.draggable = true;
 			if (index < arr.length - 1) btnDiv.addClass("task-mr-1");
 
-			const label = document.createElement("span");
+			const label = createEl("span");
 			label.className = "panel-header-label";
 			label.textContent = PANEL_LABELS[barKey] || barKey;
 			btnDiv.appendChild(label);
 
-			const eyeBtn = document.createElement("span");
+			const eyeBtn = createEl("span");
 			eyeBtn.className = "panel-eye";
 			eyeBtn.textContent = "👁";
 			const isVisible = barVisibility[barKey] !== false;

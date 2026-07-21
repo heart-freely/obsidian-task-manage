@@ -6,7 +6,7 @@ class TooltipManager {
 
 	ensureDiv() {
 		if (!this.div) {
-			this.div = document.createElement("div");
+			this.div = createEl("div");
 			this.div.className = "dataview-tooltip";
 			document.body.appendChild(this.div);
 
@@ -36,7 +36,7 @@ class TooltipManager {
 		while (div.firstChild) div.removeChild(div.firstChild);
 		const parts = html.split("<br>");
 		parts.forEach((part, i) => {
-			if (i > 0) div.appendChild(document.createElement("br"));
+			if (i > 0) div.appendChild(createEl("br"));
 			div.appendChild(document.createTextNode(part));
 		});
 		div.classList.remove("dataview-tooltip-hidden");

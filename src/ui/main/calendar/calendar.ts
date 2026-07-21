@@ -333,14 +333,12 @@ export function renderCalendarView(
 
 	const globalOrderMap = buildGlobalOrder(nodes);
 
-	const { startDate, endDate } = {
-		startDate: options?.dateRange?.start
-			? new Date(options.dateRange.start)
-			: new Date(),
-		endDate: options?.dateRange?.end
-			? new Date(options.dateRange.end)
-			: new Date(),
-	};
+	const startDate: Date = options?.dateRange?.start
+		? new Date(options.dateRange.start)
+		: new Date();
+	const endDate: Date = options?.dateRange?.end
+		? new Date(options.dateRange.end)
+		: new Date();
 
 	const fingerprint =
 		nodes.length > 0
@@ -376,10 +374,10 @@ export function renderCalendarView(
 
 	const titleEl = createEl("div");
 	titleEl.addClass("calendar-filter-title");
-	titleEl.textContent =
-		"🔍 " +
-		(options?.filterTitle ||
-			`${formatDate(startDate)} ~ ${formatDate(endDate)} · ${nodes.length}个任务`);
+	const filterTitle: string =
+		options?.filterTitle ||
+		`${formatDate(startDate)} ~ ${formatDate(endDate)} · ${nodes.length}个任务`;
+	titleEl.textContent = "🔍 " + filterTitle;
 	container.appendChild(titleEl);
 
 	const toolbar = createEl("div");
@@ -628,7 +626,7 @@ export function renderCalendarView(
 		const emptyRow = createEl("div");
 		emptyRow.className = "empty-periods-row";
 		for (const period of emptyPeriods) {
-			const tag = createEl("span");
+			const tag: HTMLElement = createEl("span");
 			tag.className = "empty-period-tag";
 			tag.textContent = period;
 			emptyRow.appendChild(tag);
