@@ -3,6 +3,7 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import { updateTaskFileConfig } from "../core/config/config";
 import { DataManager } from "../core/data/data-manager";
+import { ManageViewLike } from "../type/type";
 import { safeMergeConfig } from "../util/validate-utils";
 
 export interface PathFilterConfig {
@@ -100,15 +101,8 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		const leaves = this.app.workspace.getLeavesOfType("manage-view");
 		if (leaves.length > 0) {
-			const view = leaves[0].view;
-			if (
-				view &&
-				typeof (view as Record<string, unknown>).refreshView ===
-					"function"
-			) {
-				(view as Record<string, unknown>).refreshView();
-			}
-			view.refreshView?.();
+			const view = leaves[0].view as ManageViewLike;
+			view.refreshView();
 		}
 	}
 

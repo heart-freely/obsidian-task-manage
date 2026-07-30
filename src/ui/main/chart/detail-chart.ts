@@ -7,6 +7,7 @@ import {
 	STATUS_NAMES,
 } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { EChartsInstance } from "../../../type/type";
 import { DateUtils } from "../../../util/date-utils";
 import { createEl } from "../../../util/dom-utils";
 import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
@@ -83,9 +84,9 @@ export function renderDetail(
 	);
 	wrapper.appendChild(zoomBtn);
 	container.appendChild(wrapper);
-	let chart: unknown;
+	let chart: EChartsInstance | null = null;
 	try {
-		chart = echarts.init(chartDiv);
+		chart = echarts.init(chartDiv) as EChartsInstance;
 	} catch (e: unknown) {
 		console.error("[TaskManage] 详细统计图初始化失败:", e);
 		chartDiv.textContent = "图表加载失败";
@@ -99,7 +100,7 @@ export function renderDetail(
 	}
 	const theme = getComputedStyle(document.body);
 	const textColor = theme.getPropertyValue("--text-normal") || "#333";
-	const option = {
+	const option: Record<string, unknown> = {
 		tooltip: getEChartsTooltipConfig("axis"),
 		xAxis: {
 			type: "category",
@@ -118,7 +119,7 @@ export function renderDetail(
 		legend: { bottom: 0, textStyle: { fontSize: 10, color: textColor } },
 		textStyle: { color: textColor },
 	};
-	(chart as { setOption: (o: unknown) => void }).setOption(option);
+	chart.setOption(option);
 	zoomBtn.addEventListener("click", () => {
 		const modal = createEl("div");
 		modal.addClass(
@@ -147,10 +148,10 @@ export function renderDetail(
 		modal.appendChild(bigChartDiv);
 		modal.appendChild(closeBtn);
 		document.body.appendChild(modal);
-		let bigChart: unknown;
+		let bigChart: EChartsInstance | null = null;
 		try {
-			bigChart = echarts.init(bigChartDiv);
-			(bigChart as { setOption: (o: unknown) => void }).setOption(option);
+			bigChart = echarts.init(bigChartDiv) as EChartsInstance;
+			bigChart.setOption(option);
 		} catch (e: unknown) {
 			console.error("[TaskManage] 放大图表初始化失败:", e);
 			bigChartDiv.textContent = "图表加载失败";
@@ -162,7 +163,7 @@ export function renderDetail(
 			);
 		}
 		const closeModal = () => {
-			if (bigChart) (bigChart as { dispose: () => void }).dispose();
+			bigChart?.dispose();
 			modal.remove();
 		};
 		closeBtn.addEventListener("click", closeModal);

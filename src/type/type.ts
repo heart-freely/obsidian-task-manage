@@ -180,3 +180,71 @@ export interface TaskViewInterface {
 	toggleSelectAll(nodes: TaskTreeNodeLike[]): void;
 	refreshEditCards(): void;
 }
+// ========== 甘特图 SVG 接口 ==========
+
+export interface GanttSvgElement extends SVGSVGElement {
+	__redraw?: (
+		barPositions: Map<string, { left: number; right: number; y: number }>,
+	) => void;
+}
+
+// ========== ECharts 实例接口 ==========
+
+export interface EChartsInstance {
+	setOption(option: Record<string, unknown>): void;
+	dispose(): void;
+}
+
+// ========== Obsidian 最小接口 ==========
+
+export interface VaultLike {
+	getAbstractFileByPath(path: string): { path: string } | null;
+	process(
+		file: { path: string },
+		fn: (data: string) => string,
+	): Promise<void>;
+	cachedRead(file: { path: string }): Promise<string>;
+	getMarkdownFiles(): Array<{ path: string; name: string }>;
+	getAllLoadedFiles(): Array<{ path?: string; children?: unknown[] }>;
+}
+
+export interface AppLike {
+	vault: VaultLike;
+	workspace: {
+		on(name: string, callback: (...args: unknown[]) => unknown): void;
+		getLeaf(split?: boolean): unknown;
+		getLeavesOfType(type: string): unknown[];
+		setActiveLeaf(leaf: unknown, options?: { focus?: boolean }): void;
+	};
+}
+
+// ========== 视图刷新接口 ==========
+
+export interface ManageViewLike {
+	refreshView(): void;
+}
+
+// ========== 编辑存储接口 ==========
+
+export interface EditStoreLike {
+	getState(): {
+		batchMode: boolean;
+		selectedTasks: Set<string>;
+		syncMode: boolean;
+	};
+	subscribePanel(listener: () => void): () => void;
+	toggleSyncMode(): void;
+	applySortTags(): void;
+	applyAutoComplete(days?: number): void;
+	clearPreviews(): void;
+	saveCurrent(): void;
+	revertSnapshot(idx: number): void;
+	clearAllSnapshots(): void;
+	getSnapshots(): Array<{ time: string; snapshot: Record<string, string> }>;
+}
+
+export interface TaskViewLike {
+	toggleBatchMode(): void;
+	toggleSelectAll(nodes: Array<{ uid: string }>): void;
+	refreshEditCards(): void;
+}

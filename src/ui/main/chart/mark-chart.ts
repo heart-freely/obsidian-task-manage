@@ -18,6 +18,7 @@ import {
 } from "../../../core/config/config";
 import { getTaskMarks } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { EChartsInstance } from "../../../type/type";
 import { getThemeColor } from "../../../util/color-utils";
 import { createEl } from "../../../util/dom-utils";
 import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
@@ -35,7 +36,9 @@ const MISSING_COLOR = "rgba(128,128,128,0.5)";
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.querySelectorAll(".chart-body").forEach((el) => {
-		const instance = echarts.getInstanceByDom(el as HTMLElement);
+		const instance = echarts.getInstanceByDom(el as HTMLElement) as
+			| EChartsInstance
+			| undefined;
 		if (instance) instance.dispose();
 	});
 	echarts.dispose(container);
@@ -85,7 +88,9 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		item.appendChild(chartDiv);
 		grid.appendChild(item);
 		try {
-			const chart = echarts.init(chartDiv);
+			const chart: EChartsInstance = echarts.init(
+				chartDiv,
+			) as EChartsInstance;
 			chart.setOption({
 				backgroundColor: "transparent",
 				textStyle: { color: textColor },
@@ -135,7 +140,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 						},
 					},
 				],
-			});
+			} as Record<string, unknown>);
 		} catch (e: unknown) {
 			console.error("[TaskManage] 图表初始化失败:", e);
 			chartDiv.textContent = "图表加载失败";

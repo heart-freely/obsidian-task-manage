@@ -1,59 +1,45 @@
 // src/ui/panel/edit-panel.ts
 
 import { Store } from "../../core/store/store";
+import { EditStoreLike, TaskViewLike } from "../../type/type";
 import { createEl } from "../../util/dom-utils";
 
 interface SnapshotItem {
 	time: string;
 	snapshot: Record<string, string>;
 }
-interface EditStoreRef {
-	getState?: () => {
-		batchMode: boolean;
-		selectedTasks: Set<string>;
-		syncMode: boolean;
-	};
-	toggleSyncMode?: () => void;
-	applySortTags?: () => void;
-	applyAutoComplete?: (days?: number) => void;
-	clearPreviews?: () => void;
-	saveCurrent?: () => void;
-	revertSnapshot?: (idx: number) => void;
-	clearAllSnapshots?: () => void;
-	getSnapshots?: () => SnapshotItem[];
-}
-interface TaskViewRef {
-	toggleBatchMode?: () => void;
-	toggleSelectAll?: (nodes: unknown[]) => void;
-	refreshEditCards?: () => void;
-}
 
 export class EditPanel {
 	private container: HTMLElement;
 	private store: Store;
 	private savedDaysValue = "0";
-	private editStore: unknown;
-	private taskView: unknown;
+	private editStore: EditStoreLike | null = null;
+	private taskView: TaskViewLike | null = null;
+
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.editStore = store.getEditStore();
-		this.taskView = store.getTaskView();
+		this.editStore = store.getEditStore() as EditStoreLike | null;
+		this.taskView = store.getTaskView() as TaskViewLike | null;
 		this.render();
-		const es = store.getEditStore() as Record<string, unknown> | null;
-		if (es && typeof es.subscribePanel === "function")
-			(es.subscribePanel as (l: () => void) => void)(() => this.render());
+
+		const es = store.getEditStore() as EditStoreLike | null;
+		if (es && typeof es.subscribePanel === "function") {
+			es.subscribePanel(() => this.render());
+		}
 	}
+
 	destroy() {}
+
 	private refreshRefs() {
-		this.editStore = this.store.getEditStore();
-		this.taskView = this.store.getTaskView();
+		this.editStore = this.store.getEditStore() as EditStoreLike | null;
+		this.taskView = this.store.getTaskView() as TaskViewLike | null;
 	}
 
 	render() {
 		this.refreshRefs();
-		const es = this.editStore as EditStoreRef | null;
-		const tv = this.taskView as TaskViewRef | null;
+		const es = this.editStore;
+		const tv = this.taskView;
 		const isBatchMode = es?.getState?.()?.batchMode ?? false;
 		const state = es?.getState?.();
 		const selectedCount = state?.selectedTasks?.size ?? 0;

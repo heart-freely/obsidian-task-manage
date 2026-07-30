@@ -2,8 +2,9 @@
 // 任务导航工具 — 跳转到文件对应行
 
 import { TaskTreeNode } from "../core/task/task-tree";
+import { AppLike } from "../type/type";
 
-/** Obsidian 相关类型的最小接口 */
+/** Obsidian 内部接口（导航特有） */
 interface LeafLike {
 	setViewState(state: { type: string; active?: boolean }): Promise<void>;
 	openFile(
@@ -45,17 +46,6 @@ interface EditorLike {
 	};
 }
 
-interface AppLike {
-	vault: {
-		getAbstractFileByPath(path: string): { path: string } | null;
-	};
-	workspace: {
-		getLeaf(split?: boolean | "tab" | "split"): LeafLike;
-		getLeavesOfType(type: string): LeafLike[];
-		setActiveLeaf(leaf: LeafLike, options?: { focus?: boolean }): void;
-	};
-}
-
 export class TaskNavigator {
 	static async openTaskAtLine(
 		app: AppLike,
@@ -67,7 +57,7 @@ export class TaskNavigator {
 		if (!file) return;
 
 		const targetLine = node.line;
-		const leaf = app.workspace.getLeaf(false);
+		const leaf = app.workspace.getLeaf(false) as LeafLike;
 
 		await leaf.openFile(file, { active: true });
 

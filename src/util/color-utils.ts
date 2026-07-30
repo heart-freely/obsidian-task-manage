@@ -43,14 +43,12 @@ export function getThemeColorArray(defs: ThemeColor[]): string[] {
 }
 
 export function rgbaToSolidOnDark(rgbaStr: string): string {
-	const match: RegExpMatchArray | null = rgbaStr.match(
-		/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/,
-	);
+	const match = rgbaStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
 	if (!match) return rgbaStr;
-	const r = parseInt(match[1]),
-		g = parseInt(match[2]),
-		b = parseInt(match[3]),
-		a = parseFloat(match[4]);
+	const r = parseInt(match[1], 10);
+	const g = parseInt(match[2], 10);
+	const b = parseInt(match[3], 10);
+	const a = parseFloat(match[4]);
 	const bgR = 30,
 		bgG = 30,
 		bgB = 30;

@@ -17,7 +17,7 @@ import {
 	flattenTree,
 	TaskTreeNode,
 } from "../../core/task/task-tree";
-import { GlobalFilter } from "../../type/type";
+import { AppLike, GlobalFilter } from "../../type/type";
 import { DateUtils } from "../../util/date-utils";
 import { createEl } from "../../util/dom-utils";
 import logger from "../../util/logger";
@@ -54,6 +54,16 @@ interface GanttInstance {
 	destroy: () => void;
 }
 
+interface EditorApp {
+	vault: {
+		getAbstractFileByPath(path: string): { path: string } | null;
+		process(
+			file: { path: string },
+			fn: (data: string) => string,
+		): Promise<void>;
+	};
+}
+
 export abstract class BaseTaskView extends BaseTaskEdit {
 	protected container: HTMLElement;
 	protected store: Store;
@@ -88,15 +98,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.app = app;
 		this.dataManager = DataManager.getInstance();
 		this.editStore = new EditStore(
-			this.app as {
-				vault: {
-					getAbstractFileByPath(p: string): unknown;
-					process(
-						f: { path: string },
-						fn: (d: string) => string,
-					): Promise<void>;
-				};
-			},
+			this.app as EditorApp,
 			(uid: string) => this.dataManager.getNodeByUid(uid),
 			this.store,
 		);
@@ -209,9 +211,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 	private async loadData(): Promise<{ fullTree: TaskTreeNode } | null> {
 		try {
-			await this.dataManager.loadData(
-				this.app as Parameters<typeof this.dataManager.loadData>[0],
-			);
+			await this.dataManager.loadData(this.app as AppLike);
 			return { fullTree: this.dataManager.getFullTree() };
 		} catch (e: unknown) {
 			const m = e instanceof Error ? e.message : String(e);
@@ -668,6 +668,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 					onClick: h,
 					onEnterEdit: edit,
 				});
+				break;
 			case "tag":
 				renderTag(container, nodes, { onClick: h, onEnterEdit: edit });
 				break;

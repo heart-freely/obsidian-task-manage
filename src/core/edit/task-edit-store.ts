@@ -2,7 +2,7 @@
 // 编辑状态管理器
 
 import { Notice } from "obsidian";
-import { EditState, Snapshot } from "../../type/type";
+import { EditState, Snapshot, VaultLike } from "../../type/type";
 import { parseTaskLine } from "../parser/tasks-parser";
 import { Store } from "../store/store";
 import { TaskTreeNode } from "../task/task-tree";
@@ -16,14 +16,6 @@ import {
 } from "./task-editor";
 
 const BATCH_CHUNK_SIZE = 50;
-
-interface VaultLike {
-	getAbstractFileByPath(path: string): { path: string } | null;
-	process(
-		file: { path: string },
-		fn: (data: string) => string,
-	): Promise<void>;
-}
 
 interface AppLike {
 	vault: VaultLike;

@@ -13,6 +13,7 @@ import {
 } from "../../../core/process/gantt-view-process";
 import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { GanttSvgElement } from "../../../type/type";
 import { DateUtils } from "../../../util/date-utils";
 import { createEl } from "../../../util/dom-utils";
 import { tooltip } from "../../component/tooltip/tooltip";
@@ -166,9 +167,12 @@ function createTimelineHeader(
 function createDependencySVG(
 	taskMap: Map<string, TaskTreeNode>,
 	totalWidth: number,
-): SVGSVGElement {
+): GanttSvgElement {
 	const DEP_COLOR = "var(--text-muted)";
-	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	const svg: GanttSvgElement = document.createElementNS(
+		"http://www.w3.org/2000/svg",
+		"svg",
+	) as GanttSvgElement;
 	svg.setAttribute(
 		"class",
 		"gantt-dependencies gantt-dependency-svg-dynamic",
@@ -247,7 +251,7 @@ function createDependencySVG(
 				});
 		});
 	}
-	(svg as unknown as Record<string, unknown>).__redraw = redraw;
+	svg.__redraw = redraw;
 	return svg;
 }
 
@@ -300,7 +304,7 @@ export async function renderGanttWithTree(
 	let isDragging = false;
 	let lastDragX = 0;
 	let dragStartScrollLeft = 0;
-	let currentSvg: SVGSVGElement | null = null;
+	let currentSvg: GanttSvgElement | null = null;
 	let gridOverlay: HTMLElement | null = null;
 	let todayLine: HTMLElement | null = null;
 	let actualTreeWidth = initTreeWidth;
@@ -480,9 +484,7 @@ export async function renderGanttWithTree(
 				barPositionCache.delete(uid);
 			}
 		}
-		(currentSvg as unknown as Record<string, unknown>)?.__redraw?.(
-			barPositions,
-		);
+		currentSvg?.__redraw?.(barPositions);
 	}
 
 	function updateGridLevel(dayWidth: number) {
@@ -604,9 +606,7 @@ export async function renderGanttWithTree(
 				});
 				if (node.id) barPositions.set(node.id, barPositions.get(uid)!);
 			});
-			(currentSvg as unknown as Record<string, unknown>)?.__redraw?.(
-				barPositions,
-			);
+			currentSvg?.__redraw?.(barPositions);
 		}, 150);
 	}
 
