@@ -2,10 +2,10 @@
 
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { Store } from "../core/store/store";
+import logger from "../util/logger";
 import { Panels } from "./panel/panel";
 import { SidebarPanel } from "./sidebar/sidebar";
 import { BaseTaskView } from "./view/base-task-view";
-
 export class ManageView extends ItemView {
 	protected store: Store;
 	protected cleanup?: () => void;

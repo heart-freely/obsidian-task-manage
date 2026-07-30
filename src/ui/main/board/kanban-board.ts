@@ -5,7 +5,14 @@ import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createEl } from "../../../util/dom-utils";
 import { createGroupCard } from "../card/group-card";
 
-export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
+export function renderKanban(
+	container: HTMLElement,
+	nodes: TaskTreeNode[],
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
+) {
 	container.empty();
 	const statusColors = getStatusColors();
 	const validStatuses = ["todo", "scheduled", "in-progress"];
@@ -36,6 +43,8 @@ export function renderKanban(container: HTMLElement, nodes: TaskTreeNode[]) {
 			count: groups[col.key].length,
 			tasks: groups[col.key],
 			color: col.color,
+			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 		});
 		card.addClass("task-flex-1", "task-min-w-0");
 		board.appendChild(card);

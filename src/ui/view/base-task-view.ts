@@ -20,10 +20,14 @@ import {
 import { GlobalFilter } from "../../type/type";
 import { DateUtils } from "../../util/date-utils";
 import { createEl } from "../../util/dom-utils";
+import logger from "../../util/logger";
 import { TaskNavigator } from "../../util/navigator-utils";
 import { renderKanban } from "../main/board/kanban-board";
 import { renderMatrix } from "../main/board/matrix-board";
-import { renderCalendarView } from "../main/calendar/calendar";
+import {
+	invalidateCalendarCache,
+	renderCalendarView,
+} from "../main/calendar/calendar";
 import { renderCards } from "../main/card/grid-card";
 import { createViewCard } from "../main/card/view-card";
 import { renderDetail } from "../main/chart/detail-chart";
@@ -145,6 +149,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		});
 		this.store.setOnFullRender(() => {
 			this.dataManager.invalidateFilterCache();
+			invalidateCalendarCache();
 			void this.render();
 		});
 	}
@@ -629,10 +634,16 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				});
 				break;
 			case "kanban":
-				renderKanban(container, nodes);
+				renderKanban(container, nodes, {
+					onClick: h,
+					onEnterEdit: edit,
+				});
 				break;
 			case "matrix":
-				renderMatrix(container, nodes);
+				renderMatrix(container, nodes, {
+					onClick: h,
+					onEnterEdit: edit,
+				});
 				break;
 			case "recurring":
 				renderRecurring(container, nodes, {
@@ -653,8 +664,10 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				});
 				break;
 			case "timeline":
-				renderTimeline(container, nodes, { onEnterEdit: edit });
-				break;
+				renderTimeline(container, nodes, {
+					onClick: h,
+					onEnterEdit: edit,
+				});
 			case "tag":
 				renderTag(container, nodes, { onClick: h, onEnterEdit: edit });
 				break;

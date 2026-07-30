@@ -5,7 +5,14 @@ import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createEl } from "../../../util/dom-utils";
 import { createGroupCard } from "../card/group-card";
 
-export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
+export function renderMatrix(
+	container: HTMLElement,
+	nodes: TaskTreeNode[],
+	options?: {
+		onClick?: (node: TaskTreeNode) => void;
+		onEnterEdit?: (node: TaskTreeNode) => void;
+	},
+) {
 	container.empty();
 	const priorityColors = getPriorityColors();
 	const filteredNodes = nodes.filter((n) => n.priority !== 5);
@@ -43,6 +50,8 @@ export function renderMatrix(container: HTMLElement, nodes: TaskTreeNode[]) {
 			count: quadrants[idx].length,
 			tasks: quadrants[idx],
 			color: colors[idx],
+			onClick: options?.onClick,
+			onEnterEdit: options?.onEnterEdit,
 		});
 		grid.appendChild(card);
 	});

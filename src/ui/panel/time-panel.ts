@@ -61,6 +61,10 @@ export class TimePanel {
 	private dynamicSection: HTMLElement | null = null;
 	private staticSection: HTMLElement | null = null;
 
+	// 渲染锁：防止异步 render() 并发执行导致竞态
+	private isRendering = false;
+	private pendingRender = false;
+
 	constructor(container: HTMLElement, store: Store, app?: unknown) {
 		this.container = container;
 		this.store = store;
@@ -609,113 +613,142 @@ export class TimePanel {
 	}
 
 	async render() {
-		this.container.empty();
-		this.enhancedSliders.forEach((s) => s.destroy());
-		this.enhancedSliders.clear();
-		this.updateMidLines.clear();
-		this.unitBtns.clear();
-		this.modeBtns.clear();
-		this.useDynamicBtn = null;
-		this.dynamicSection = null;
-		this.staticSection = null;
-		await this.initRange();
-		const pre = this.store.getActivePreset();
-		this.intervalMode = pre?.intervalMode ?? "any-date";
-		this.useDynamic = pre?.useDynamic ?? false;
-		if (this.initialRender) {
-			this.initialRender = false;
-			const cf = pre?.filter;
-			if (
-				cf &&
-				!cf.dateRange.isAll &&
-				cf.dateRange.start &&
-				cf.dateRange.end
-			) {
-				this.staticStart = DateUtils.setStart(
-					new Date(cf.dateRange.start),
-				);
-				this.staticEnd = DateUtils.setEnd(new Date(cf.dateRange.end));
-				if (this.useDynamic) {
-					this.dynamicStart = DateUtils.setStart(
+		// 渲染锁：如果已在渲染，标记待处理并返回
+		if (this.isRendering) {
+			this.pendingRender = true;
+			return;
+		}
+		this.isRendering = true;
+
+		try {
+			this.container.empty();
+			this.enhancedSliders.forEach((s) => s.destroy());
+			this.enhancedSliders.clear();
+			this.updateMidLines.clear();
+			this.unitBtns.clear();
+			this.modeBtns.clear();
+			this.useDynamicBtn = null;
+			this.dynamicSection = null;
+			this.staticSection = null;
+			await this.initRange();
+			const pre = this.store.getActivePreset();
+			this.intervalMode = pre?.intervalMode ?? "any-date";
+			this.useDynamic = pre?.useDynamic ?? false;
+			if (this.initialRender) {
+				this.initialRender = false;
+				const cf = pre?.filter;
+				if (
+					cf &&
+					!cf.dateRange.isAll &&
+					cf.dateRange.start &&
+					cf.dateRange.end
+				) {
+					this.staticStart = DateUtils.setStart(
 						new Date(cf.dateRange.start),
 					);
-					this.dynamicEnd = DateUtils.setStart(
+					this.staticEnd = DateUtils.setEnd(
 						new Date(cf.dateRange.end),
 					);
+					if (this.useDynamic) {
+						this.dynamicStart = DateUtils.setStart(
+							new Date(cf.dateRange.start),
+						);
+						this.dynamicEnd = DateUtils.setStart(
+							new Date(cf.dateRange.end),
+						);
+					}
 				}
+				this.currentMinYear = this.staticStart.getFullYear();
+				this.currentMaxYear = this.staticEnd.getFullYear();
+				this.childSlidersDrivenByYear = true;
 			}
-			this.currentMinYear = this.staticStart.getFullYear();
-			this.currentMaxYear = this.staticEnd.getFullYear();
-			this.childSlidersDrivenByYear = true;
-		}
-		const mr = this.container.createDiv({ cls: "panel-row" });
-		mr.createSpan({ text: "时间筛选", cls: "panel-label" });
-		const mainBtn = mr.createEl("button", {
-			text: "时间模式",
-			cls: "panel-btn",
-		});
-		if (this.intervalMode !== "none") mainBtn.addClass("active");
-		mainBtn.addEventListener("click", () => {
-			const nm = this.intervalMode !== "none" ? "none" : "any-date";
-			this.intervalMode = nm;
-			this.updateModeButtons();
-			this.updatePreset({ intervalMode: this.intervalMode });
-			if (nm !== "none")
-				this.updatePreset({
-					dateRange: true,
-					intervalMode: this.intervalMode,
-				});
-		});
-		const sp = mr.createDiv({ cls: "panel-sub" });
-		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
-		const modes = [
-			{ key: "any-date", label: "任意时间" },
-			{ key: "scheduled-due", label: "计划时间" },
-			{ key: "starts-done", label: "执行时间" },
-		];
-		modes.forEach(({ key, label }) => {
-			const btn = sp.createEl("button", {
-				text: label,
-				cls: "panel-btn sub-btn",
+			const mr = this.container.createDiv({ cls: "panel-row" });
+			mr.createSpan({ text: "时间筛选", cls: "panel-label" });
+			const mainBtn = mr.createEl("button", {
+				text: "时间模式",
+				cls: "panel-btn",
 			});
-			if (this.intervalMode === key) btn.addClass("active");
-			btn.addEventListener("click", () => this.onSelectMode(key));
-			this.modeBtns.set(key, btn);
-		});
-		this.dynamicSection = this.container.createDiv({
-			cls: "panel-section",
-		});
-		const uRow = this.dynamicSection.createDiv({ cls: "panel-row" });
-		uRow.createSpan({ text: "动态时间", cls: "panel-label" });
-		(["年", "季", "月", "周", "日"] as const).forEach((u) => {
-			const k =
-				u === "年"
-					? "year"
-					: u === "季"
-						? "quarter"
-						: u === "月"
-							? "month"
-							: u === "周"
-								? "week"
-								: "day";
-			const b = uRow.createEl("button", { text: u, cls: "panel-btn" });
-			if (this.dynamicUnit === k) b.addClass("active");
-			this.unitBtns.set(k, b);
-			b.addEventListener("click", () => this.onSwitchUnit(k));
-		});
-		this.useDynamicBtn = uRow.createEl("button", {
-			text: "使用动态",
-			cls: "panel-btn",
-		});
-		if (this.useDynamic) this.useDynamicBtn.addClass("active");
-		this.useDynamicBtn.addEventListener("click", () =>
-			this.onToggleDynamic(),
-		);
-		this.rebuildDynamicSlider();
-		this.staticSection = this.container.createDiv({ cls: "panel-section" });
-		this.staticSection
-			.createDiv({ cls: "panel-row" })
-			.createSpan({ text: "静态时间", cls: "panel-label" });
-		this.rebuildStaticSliders();
+			if (this.intervalMode !== "none") mainBtn.addClass("active");
+			mainBtn.addEventListener("click", () => {
+				const nm = this.intervalMode !== "none" ? "none" : "any-date";
+				this.intervalMode = nm;
+				this.updateModeButtons();
+				this.updatePreset({ intervalMode: this.intervalMode });
+				if (nm !== "none")
+					this.updatePreset({
+						dateRange: true,
+						intervalMode: this.intervalMode,
+					});
+			});
+			const sp = mr.createDiv({ cls: "panel-sub" });
+			sp.addClass(
+				"task-flex",
+				"task-flex-wrap",
+				"task-gap-1",
+				"task-ml-2",
+			);
+			const modes = [
+				{ key: "any-date", label: "任意时间" },
+				{ key: "scheduled-due", label: "计划时间" },
+				{ key: "starts-done", label: "执行时间" },
+			];
+			modes.forEach(({ key, label }) => {
+				const btn = sp.createEl("button", {
+					text: label,
+					cls: "panel-btn sub-btn",
+				});
+				if (this.intervalMode === key) btn.addClass("active");
+				btn.addEventListener("click", () => this.onSelectMode(key));
+				this.modeBtns.set(key, btn);
+			});
+			this.dynamicSection = this.container.createDiv({
+				cls: "panel-section",
+			});
+			const uRow = this.dynamicSection.createDiv({ cls: "panel-row" });
+			uRow.createSpan({ text: "动态时间", cls: "panel-label" });
+			(["年", "季", "月", "周", "日"] as const).forEach((u) => {
+				const k =
+					u === "年"
+						? "year"
+						: u === "季"
+							? "quarter"
+							: u === "月"
+								? "month"
+								: u === "周"
+									? "week"
+									: "day";
+				const b = uRow.createEl("button", {
+					text: u,
+					cls: "panel-btn",
+				});
+				if (this.dynamicUnit === k) b.addClass("active");
+				this.unitBtns.set(k, b);
+				b.addEventListener("click", () => this.onSwitchUnit(k));
+			});
+			this.useDynamicBtn = uRow.createEl("button", {
+				text: "使用动态",
+				cls: "panel-btn",
+			});
+			if (this.useDynamic) this.useDynamicBtn.addClass("active");
+			this.useDynamicBtn.addEventListener("click", () =>
+				this.onToggleDynamic(),
+			);
+			this.rebuildDynamicSlider();
+			this.staticSection = this.container.createDiv({
+				cls: "panel-section",
+			});
+			this.staticSection
+				.createDiv({ cls: "panel-row" })
+				.createSpan({ text: "静态时间", cls: "panel-label" });
+			this.rebuildStaticSliders();
+		} finally {
+			this.isRendering = false;
+
+			// 如果在渲染期间有新请求，立即重新渲染
+			if (this.pendingRender) {
+				this.pendingRender = false;
+				void this.render();
+			}
+		}
 	}
 }

@@ -17,12 +17,37 @@ import {
 import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createEl } from "../../../util/dom-utils";
+import logger from "../../../util/logger";
 import { tooltip } from "../../component/tooltip/tooltip";
 import { createTaskCard } from "../card/card";
 
-let cachedNodesFingerprint: string = "";
-let cachedIntervalMode: string | null = null;
-let cachedDateTaskMap: Map<string, TaskTreeNode[]> | null = null;
+// ========== 模块级缓存 ==========
+
+interface CalendarCacheEntry {
+	fingerprint: string;
+	intervalMode: string;
+	dateTaskMap: Map<string, TaskTreeNode[]>;
+}
+
+let calendarCache: CalendarCacheEntry | null = null;
+
+/**
+ * 使日历视图缓存失效
+ * 在数据变更（编辑保存、筛选条件变化）时调用
+ */
+export function invalidateCalendarCache() {
+	calendarCache = null;
+}
+
+function getCalendarCacheKey(
+	nodes: TaskTreeNode[],
+	intervalMode: string,
+): string {
+	if (nodes.length === 0) return "empty";
+	return `${nodes.length}-${nodes[0].uid}-${nodes[nodes.length - 1].uid}-${intervalMode}`;
+}
+
+// ========== 常量 ==========
 
 const YEAR_HEAT_RGB = "64, 120, 209";
 const TIMELINE_ROW_HEIGHT = 20;
@@ -30,6 +55,8 @@ const TIMELINE_ROW_HEIGHT = 20;
 function padTwo(n: number): string {
 	return n < 10 ? "0" + n : String(n);
 }
+
+// ========== 时间轴渲染（性能优化版） ==========
 
 function renderTimeline(
 	container: HTMLElement,
@@ -46,6 +73,7 @@ function renderTimeline(
 		const displayDays = days.slice(0, maxDays);
 		const seen = new Set<string>();
 		const allTasks: TaskTreeNode[] = [];
+		// 优化：批量预计算所有任务的时间区间，避免每行重复计算
 		const taskIntervals = new Map<
 			string,
 			{ start: number; end: number } | null
@@ -95,70 +123,103 @@ function renderTimeline(
 				(globalOrderMap.get(b.uid) || 999999),
 		);
 
+		// 预计算所有任务在各行的起始/结束列索引
+		const taskRowInfo = new Map<
+			string,
+			Array<{ rowIndex: number; taskStart: number; taskEnd: number }>
+		>();
+
 		const todayStr = formatDate(new Date());
 		const actualDays = displayDays.length;
 		const colsPerRow = maxDays <= 7 ? maxDays : 7;
 		const totalRows = Math.ceil(actualDays / colsPerRow);
 		const colWidth = 100 / colsPerRow;
 
-		const rowTasks: TaskTreeNode[][] = [];
-		const rowTaskIntervals: Map<
-			string,
-			{ taskStart: number; taskEnd: number }
-		>[] = [];
-		for (let row = 0; row < totalRows; row++) {
-			rowTasks.push([]);
-			rowTaskIntervals.push(new Map());
-			const rowStart = row * colsPerRow;
-			const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
-			for (const task of allTasks) {
-				const interval = taskIntervals.get(task.uid);
-				let taskStart = -1;
-				let taskEnd = -1;
-				if (interval) {
-					const startDate = setStart(new Date(interval.start));
-					const endDate = setEnd(new Date(interval.end));
-					const sIdx = displayDays.findIndex(
-						(d) => formatDate(d) === formatDate(startDate),
-					);
-					const eIdx = displayDays.findIndex(
-						(d) => formatDate(d) === formatDate(endDate),
-					);
-					if (sIdx >= 0 && eIdx >= 0) {
-						taskStart = sIdx;
-						taskEnd = eIdx;
-					}
-				} else {
-					const fallbackTs =
-						task.scheduled ||
-						task.due ||
-						task.starts ||
-						task.created ||
-						task.done ||
-						task.cancelled;
-					if (fallbackTs) {
-						const dateStr = formatDate(new Date(fallbackTs));
-						const idx = displayDays.findIndex(
-							(d) => formatDate(d) === dateStr,
-						);
-						if (idx >= 0) taskStart = taskEnd = idx;
-					}
+		// 预计算：一次性遍历所有行和任务，构建 taskRowInfo
+		for (const task of allTasks) {
+			const interval = taskIntervals.get(task.uid);
+			let globalTaskStart = -1;
+			let globalTaskEnd = -1;
+			if (interval) {
+				const startDate = setStart(new Date(interval.start));
+				const endDate = setEnd(new Date(interval.end));
+				const sIdx = displayDays.findIndex(
+					(d) => formatDate(d) === formatDate(startDate),
+				);
+				const eIdx = displayDays.findIndex(
+					(d) => formatDate(d) === formatDate(endDate),
+				);
+				if (sIdx >= 0 && eIdx >= 0) {
+					globalTaskStart = sIdx;
+					globalTaskEnd = eIdx;
 				}
-				if (taskStart < 0) continue;
-				if (taskEnd < rowStart || taskStart > rowEnd) continue;
-				rowTasks[row].push(task);
-				rowTaskIntervals[row].set(task.uid, { taskStart, taskEnd });
+			} else {
+				const fallbackTs =
+					task.scheduled ||
+					task.due ||
+					task.starts ||
+					task.created ||
+					task.done ||
+					task.cancelled;
+				if (fallbackTs) {
+					const dateStr = formatDate(new Date(fallbackTs));
+					const idx = displayDays.findIndex(
+						(d) => formatDate(d) === dateStr,
+					);
+					if (idx >= 0) globalTaskStart = globalTaskEnd = idx;
+				}
+			}
+			if (globalTaskStart < 0) continue;
+
+			const rowInfos: Array<{
+				rowIndex: number;
+				taskStart: number;
+				taskEnd: number;
+			}> = [];
+			for (let row = 0; row < totalRows; row++) {
+				const rowStart = row * colsPerRow;
+				const rowEnd = Math.min(
+					rowStart + colsPerRow - 1,
+					actualDays - 1,
+				);
+				if (globalTaskEnd < rowStart || globalTaskStart > rowEnd)
+					continue;
+				rowInfos.push({
+					rowIndex: row,
+					taskStart: Math.max(globalTaskStart, rowStart),
+					taskEnd: Math.min(globalTaskEnd, rowEnd),
+				});
+			}
+			if (rowInfos.length > 0) {
+				taskRowInfo.set(task.uid, rowInfos);
 			}
 		}
 
-		const hasAnyRow = rowTasks.some((arr) => arr.length > 0);
-		if (!hasAnyRow) return false;
+		// 筛选出有任务的行
+		const rowsWithTasks: number[] = [];
+		for (let row = 0; row < totalRows; row++) {
+			for (const [, infos] of taskRowInfo) {
+				if (infos.some((info) => info.rowIndex === row)) {
+					rowsWithTasks.push(row);
+					break;
+				}
+			}
+		}
+
+		if (rowsWithTasks.length === 0) return false;
 
 		const body = createEl("div");
 		body.className = "timeline-body";
 
-		for (let row = 0; row < totalRows; row++) {
-			const tasksInRow = rowTasks[row];
+		for (const row of rowsWithTasks) {
+			const tasksInRow: TaskTreeNode[] = [];
+			for (const task of allTasks) {
+				const infos = taskRowInfo.get(task.uid);
+				if (infos?.some((info) => info.rowIndex === row)) {
+					tasksInRow.push(task);
+				}
+			}
+
 			if (tasksInRow.length === 0) continue;
 
 			const taskCount = tasksInRow.length;
@@ -229,13 +290,12 @@ function renderTimeline(
 			const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
 
 			tasksInRow.forEach((task, taskIdx) => {
-				const taskInfo = rowTaskIntervals[row].get(task.uid);
-				if (!taskInfo) return;
+				const infos = taskRowInfo.get(task.uid);
+				const rowInfo = infos?.find((info) => info.rowIndex === row);
+				if (!rowInfo) return;
 
-				const clampedStart = Math.max(taskInfo.taskStart, rowStart);
-				const clampedEnd = Math.min(taskInfo.taskEnd, rowEnd);
-				const col = clampedStart - rowStart;
-				const spanCols = clampedEnd - clampedStart + 1;
+				const col = rowInfo.taskStart - rowStart;
+				const spanCols = rowInfo.taskEnd - rowInfo.taskStart + 1;
 
 				const bar = createEl("div");
 				bar.className = `timeline-bar timeline-bar-dynamic ${task.status}`;
@@ -296,6 +356,8 @@ function renderTimeline(
 	}
 }
 
+// ========== 主入口 ==========
+
 export function renderCalendarView(
 	container: HTMLElement,
 	nodes: TaskTreeNode[],
@@ -340,23 +402,23 @@ export function renderCalendarView(
 		? new Date(options.dateRange.end)
 		: new Date();
 
-	const fingerprint =
-		nodes.length > 0
-			? `${nodes.length}-${nodes[0].uid}-${nodes[nodes.length - 1].uid}`
-			: "empty";
+	// 使用缓存键判断是否需要重建 dateTaskMap
+	const cacheKey = getCalendarCacheKey(nodes, intervalMode);
 
 	let dateTaskMap: Map<string, TaskTreeNode[]>;
 	if (
-		fingerprint === cachedNodesFingerprint &&
-		cachedIntervalMode === intervalMode &&
-		cachedDateTaskMap
+		calendarCache &&
+		calendarCache.fingerprint === cacheKey &&
+		calendarCache.intervalMode === intervalMode
 	) {
-		dateTaskMap = cachedDateTaskMap;
+		dateTaskMap = calendarCache.dateTaskMap;
 	} else {
 		dateTaskMap = buildDateTaskMap(nodes, intervalMode);
-		cachedNodesFingerprint = fingerprint;
-		cachedIntervalMode = intervalMode;
-		cachedDateTaskMap = dateTaskMap;
+		calendarCache = {
+			fingerprint: cacheKey,
+			intervalMode,
+			dateTaskMap,
+		};
 	}
 
 	for (const [, taskList] of dateTaskMap) {

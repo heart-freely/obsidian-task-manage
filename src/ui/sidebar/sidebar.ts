@@ -10,6 +10,7 @@ export class SidebarPanel {
 	private container: HTMLElement;
 	private lastSidebarWidth: number | null = null;
 	private unsub: (() => void) | null = null;
+	private resizeRafId: number | null = null;
 
 	constructor(container: HTMLElement, store: Store, app: App) {
 		this.container = container;
@@ -23,14 +24,26 @@ export class SidebarPanel {
 			this.unsub();
 			this.unsub = null;
 		}
+		if (this.resizeRafId !== null) {
+			cancelAnimationFrame(this.resizeRafId);
+			this.resizeRafId = null;
+		}
 	}
 
 	private render() {
-		this.container.querySelectorAll(".preset-btn").forEach((btn) => {
-			const el = btn as HTMLElement;
-			el.setCssProps({ "--task-sidebar-btn-width": "" });
-			el.removeClass("task-sidebar-btn-auto", "task-sidebar-btn-fixed");
+		// 取消待执行的宽度调整
+		if (this.resizeRafId !== null) {
+			cancelAnimationFrame(this.resizeRafId);
+			this.resizeRafId = null;
+		}
+
+		// 先收集需要重置的按钮，避免在遍历过程中修改 DOM 触发重排
+		const existingButtons = this.container.querySelectorAll(".preset-btn");
+		const buttonsToReset: HTMLElement[] = [];
+		existingButtons.forEach((btn) => {
+			buttonsToReset.push(btn as HTMLElement);
 		});
+
 		this.container.empty();
 		const state = this.store.getState();
 		const collapsed = state.sidebarCollapsed;
@@ -114,7 +127,12 @@ export class SidebarPanel {
 				attr: { style: "margin-top: auto;" },
 			})
 			.addEventListener("click", () => this.createNewPreset());
-		window.requestAnimationFrame(() => this.adjustSidebarWidth());
+
+		// 使用单次 rAF 批量调整，避免中间状态可见
+		this.resizeRafId = window.requestAnimationFrame(() => {
+			this.resizeRafId = null;
+			this.adjustSidebarWidth();
+		});
 	}
 
 	private createNewPreset() {
@@ -153,7 +171,6 @@ export class SidebarPanel {
 			btn.addClass("task-sidebar-btn-auto");
 		});
 		this.container.setCssProps({ "--task-sidebar-width": "auto" });
-		const _height = buttons[0]?.offsetHeight;
 		let maxWidth = 0;
 		buttons.forEach((btn) => {
 			const w = btn.offsetWidth;

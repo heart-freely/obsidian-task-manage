@@ -1,7 +1,7 @@
 // src/core/store/store.ts
 
 import { AppState, EditPanelState, Preset } from "../../type/type";
-
+import logger from "../../util/logger";
 type Listener = (state: AppState) => void;
 
 interface EditStoreRef {

@@ -1,8 +1,8 @@
 // src/core/store/preset/preset.ts
 
 import { Preset } from "../../../type/type";
+import logger from "../../../util/logger";
 import { Store } from "../store";
-
 // 添加方案
 export function addPreset(
 	store: Store,

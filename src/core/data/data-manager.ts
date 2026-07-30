@@ -2,6 +2,8 @@
 // 数据管理器 — 统一数据加载、缓存、筛选、排序、收集
 
 import { GlobalFilter } from "../../type/type";
+import { invalidateCalendarCache } from "../../ui/main/calendar/calendar";
+import logger from "../../util/logger";
 import { loadAllTaskFiles, ParsedFileData } from "../parser/md-parser";
 import {
 	buildTaskTree,
@@ -10,7 +12,6 @@ import {
 	TaskTreeNode,
 	TreeFilterOptions,
 } from "../task/task-tree";
-
 export type SortConfig = { type: string; order: "asc" | "desc" };
 
 interface DataCache {
@@ -213,6 +214,7 @@ export class DataManager {
 			filteredTree: null,
 			flatNodes: null,
 		};
+		invalidateCalendarCache();
 	}
 
 	invalidateFilterCache() {
