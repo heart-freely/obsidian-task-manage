@@ -808,8 +808,8 @@
 .task-hidden {
 	display: none;
 }
-.task-hidden-important {
-	display: none !important;
+.task-hidden-important.task-hidden-important {
+	display: none;
 }
 .task-grid {
 	display: grid;
@@ -1424,7 +1424,6 @@
 	padding: 1px 3px;
 	text-align: inherit;
 	text-decoration: none;
-	text-indent: 0;
 	text-shadow: none;
 	text-transform: none;
 	white-space: nowrap;
