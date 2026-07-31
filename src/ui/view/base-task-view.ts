@@ -522,7 +522,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		void this.render();
 	}
 	protected openTaskAtLine(node: TaskTreeNode) {
-		TaskNavigator.openTaskAtLine(this.app as AppLike, node);
+		void TaskNavigator.openTaskAtLine(this.app as AppLike, node);
 	}
 	private toggleTaskTreeNav(collapsed: boolean) {
 		const p = this.store.getActivePreset();

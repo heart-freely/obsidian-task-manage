@@ -301,7 +301,7 @@ export default class TaskManagePlugin extends Plugin {
 		})();
 	}
 
-	async onunload() {
+	async onunload(): Promise<void> {
 		if (this.saveAllSettings) {
 			try {
 				await this.saveAllSettings();
