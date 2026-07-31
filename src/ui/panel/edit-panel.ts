@@ -126,7 +126,11 @@ export class EditPanel {
 			window.setTimeout(() => acBtn.removeClass("active"), 300);
 		});
 		acRow.appendChild(acBtn);
-		const daysInput = createEl("input");
+
+		// 修复：使用 HTMLInputElement 类型
+		const daysInput: HTMLInputElement = createEl(
+			"input",
+		) as HTMLInputElement;
 		daysInput.type = "number";
 		daysInput.value = this.savedDaysValue;
 		daysInput.min = "0";
@@ -189,7 +193,9 @@ export class EditPanel {
 		const row2 = this.container.createDiv({ cls: "panel-row" });
 		row2.addClass("task-flex-wrap", "task-gap-1");
 		row2.createSpan({ text: "批量撤回", cls: "panel-label" });
-		const ss = row2.createEl("select");
+
+		// 修复：使用 HTMLSelectElement 类型
+		const ss: HTMLSelectElement = createEl("select") as HTMLSelectElement;
 		ss.className = "panel-btn";
 		ss.addClass(
 			"task-max-w-55",
@@ -197,16 +203,22 @@ export class EditPanel {
 			"task-min-h-unset",
 			"task-appearance-none",
 		);
-		if (!hasSnapshots)
-			ss.createEl("option", { text: "无编辑备份", disabled: true });
-		else
+		if (!hasSnapshots) {
+			const opt = document.createElement("option");
+			opt.textContent = "无编辑备份";
+			opt.disabled = true;
+			ss.appendChild(opt);
+		} else {
 			snapshots.forEach((snap, i) => {
-				const o = ss.createEl("option", {
-					text: `${snap.time} (${Object.keys(snap.snapshot).length}个)`,
-				});
-				o.value = String(i);
-				if (i === 0) o.selected = true;
+				const opt = document.createElement("option");
+				opt.textContent = `${snap.time} (${Object.keys(snap.snapshot).length}个)`;
+				opt.value = String(i);
+				if (i === 0) opt.selected = true;
+				ss.appendChild(opt);
 			});
+		}
+		row2.appendChild(ss);
+
 		const revBtn = row2.createEl("button", {
 			text: "备份恢复",
 			cls: "panel-btn",

@@ -1,6 +1,5 @@
 // src/ui/ui.ts
-
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { App, ItemView, WorkspaceLeaf } from "obsidian";
 import { Store } from "../core/store/store";
 import logger from "../util/logger";
 import { Panels } from "./panel/panel";
@@ -137,7 +136,7 @@ export function createManageLayout(
 		"task-relative",
 		"task-pt-0",
 	);
-	new SidebarPanel(sidebarEl, store, app);
+	new SidebarPanel(sidebarEl, store, app as App);
 	const panels = Panels.getInstance();
 	panels.init(store, viewEl, toolbarEl, app);
 	new ViewContainer(viewEl, store, app);

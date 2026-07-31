@@ -505,7 +505,7 @@ export async function saveAllChanges(
 		sm[uid] = node.rawLine;
 		pv[uid] = preview;
 	}
-	if (ts.length === 0) return { state, pv };
+	if (ts.length === 0) return { state, previews: pv };
 	if (ts.length > 500) {
 		for (let i = 0; i < ts.length; i += 500) {
 			const b = ts.slice(i, i + 500);
@@ -518,7 +518,7 @@ export async function saveAllChanges(
 	}
 	await writeToFiles(app, getNode, ts, lm);
 	for (const uid of ts) state.savedTasks.add(uid);
-	return { state, pv };
+	return { state, previews: pv };
 }
 export async function revertSingleTask(
 	state: EditState,

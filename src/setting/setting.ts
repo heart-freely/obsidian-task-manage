@@ -78,7 +78,8 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(app: App, plugin: PluginRef) {
-		super(app, plugin);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- PluginSettingTab 基类需要完整的 Plugin 类型
+		super(app, plugin as any);
 		this.plugin = plugin;
 	}
 	getSettingDefinitions() {
@@ -101,7 +102,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		const leaves = this.app.workspace.getLeavesOfType("manage-view");
 		if (leaves.length > 0) {
-			const view = leaves[0].view as ManageViewLike;
+			const view = leaves[0].view as unknown as ManageViewLike;
 			view.refreshView();
 		}
 	}
@@ -338,7 +339,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 								return;
 							}
 							safeMergeConfig(
-								this.plugin.settings,
+								this.plugin.settings as unknown as Record<
+									string,
+									unknown
+								>,
 								data as Record<string, unknown>,
 								CONFIG_SCHEMA,
 							);

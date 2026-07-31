@@ -1,23 +1,8 @@
 // src/util/logger.ts
 
-const isProduction = (() => {
-	try {
-		if (
-			typeof process !== "undefined" &&
-			process.env &&
-			(process.env as Record<string, string | undefined>).NODE_ENV ===
-				"production"
-		)
-			return true;
-	} catch {
-		/* 非生产环境 */
-	}
-	return false;
-})();
-
 const logger = {
 	info(...args: unknown[]) {
-		if (!isProduction) console.log("[TASK-INFO]", ...args);
+		console.log("[TASK-INFO]", ...args);
 	},
 	warn(...args: unknown[]) {
 		console.warn("[TASK-WARN]", ...args);
@@ -26,7 +11,7 @@ const logger = {
 		console.error("[TASK-ERROR]", ...args);
 	},
 	debug(...args: unknown[]) {
-		if (!isProduction) console.debug("[TASK-DEBUG]", ...args);
+		console.debug("[TASK-DEBUG]", ...args);
 	},
 };
 

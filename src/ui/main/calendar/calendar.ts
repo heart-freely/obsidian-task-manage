@@ -16,6 +16,7 @@ import {
 } from "../../../core/process/calendar-view-process";
 import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { TaskTreeNodeLike } from "../../../type/type";
 import { createEl } from "../../../util/dom-utils";
 import logger from "../../../util/logger";
 import { tooltip } from "../../component/tooltip/tooltip";
@@ -26,7 +27,7 @@ import { createTaskCard } from "../card/card";
 interface CalendarCacheEntry {
 	fingerprint: string;
 	intervalMode: string;
-	dateTaskMap: Map<string, TaskTreeNode[]>;
+	dateTaskMap: Map<string, TaskTreeNodeLike[]>;
 }
 
 let calendarCache: CalendarCacheEntry | null = null;
@@ -61,7 +62,7 @@ function padTwo(n: number): string {
 function renderTimeline(
 	container: HTMLElement,
 	days: Date[],
-	dateTaskMap: Map<string, TaskTreeNode[]>,
+	dateTaskMap: Map<string, TaskTreeNodeLike[]>,
 	intervalMode: string,
 	globalOrderMap: Map<string, number>,
 	maxDays: number = 31,
@@ -72,7 +73,7 @@ function renderTimeline(
 	try {
 		const displayDays = days.slice(0, maxDays);
 		const seen = new Set<string>();
-		const allTasks: TaskTreeNode[] = [];
+		const allTasks: TaskTreeNodeLike[] = [];
 		// 优化：批量预计算所有任务的时间区间，避免每行重复计算
 		const taskIntervals = new Map<
 			string,
@@ -178,16 +179,18 @@ function renderTimeline(
 			}> = [];
 			for (let row = 0; row < totalRows; row++) {
 				const rowStart = row * colsPerRow;
-				const rowEnd = Math.min(
-					rowStart + colsPerRow - 1,
-					actualDays - 1,
-				);
-				if (globalTaskEnd < rowStart || globalTaskStart > rowEnd)
+				if (
+					globalTaskEnd < rowStart ||
+					globalTaskStart > rowStart + colsPerRow - 1
+				)
 					continue;
 				rowInfos.push({
 					rowIndex: row,
 					taskStart: Math.max(globalTaskStart, rowStart),
-					taskEnd: Math.min(globalTaskEnd, rowEnd),
+					taskEnd: Math.min(
+						globalTaskEnd,
+						Math.min(rowStart + colsPerRow - 1, actualDays - 1),
+					),
 				});
 			}
 			if (rowInfos.length > 0) {
@@ -212,7 +215,7 @@ function renderTimeline(
 		body.className = "timeline-body";
 
 		for (const row of rowsWithTasks) {
-			const tasksInRow: TaskTreeNode[] = [];
+			const tasksInRow: TaskTreeNodeLike[] = [];
 			for (const task of allTasks) {
 				const infos = taskRowInfo.get(task.uid);
 				if (infos?.some((info) => info.rowIndex === row)) {
@@ -287,7 +290,6 @@ function renderTimeline(
 			}
 
 			const rowStart = row * colsPerRow;
-			const rowEnd = Math.min(rowStart + colsPerRow - 1, actualDays - 1);
 
 			tasksInRow.forEach((task, taskIdx) => {
 				const infos = taskRowInfo.get(task.uid);
@@ -312,7 +314,9 @@ function renderTimeline(
 				bar.appendChild(label);
 
 				const tipHtml =
-					getDisplayText(task) + "<br>" + buildTooltip(task);
+					getDisplayText(task as TaskTreeNode) +
+					"<br>" +
+					buildTooltip(task as TaskTreeNode);
 				if (tipHtml) {
 					bar.addEventListener("mouseenter", (e) =>
 						tooltip.show(tipHtml, e.clientX, e.clientY),
@@ -335,7 +339,7 @@ function renderTimeline(
 							clickX < rect.width * 0.85
 						) {
 							e.stopPropagation();
-							onTaskClick(task);
+							onTaskClick(task as TaskTreeNode);
 						}
 					});
 					bar.addClass("task-clickable");
@@ -405,7 +409,7 @@ export function renderCalendarView(
 	// 使用缓存键判断是否需要重建 dateTaskMap
 	const cacheKey = getCalendarCacheKey(nodes, intervalMode);
 
-	let dateTaskMap: Map<string, TaskTreeNode[]>;
+	let dateTaskMap: Map<string, TaskTreeNodeLike[]>;
 	if (
 		calendarCache &&
 		calendarCache.fingerprint === cacheKey &&
@@ -496,7 +500,7 @@ export function renderCalendarView(
 			);
 			for (const node of uniqueNodes) {
 				dayGroup.appendChild(
-					createTaskCard(node, {
+					createTaskCard(node as TaskTreeNode, {
 						compact: false,
 						onClick: options?.onClick,
 					}),

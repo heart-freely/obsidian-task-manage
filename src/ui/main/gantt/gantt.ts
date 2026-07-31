@@ -324,10 +324,7 @@ export async function renderGanttWithTree(
 			(timeRange.maxTime - timeRange.minTime || 86400000)) *
 		zoomState.totalWidth;
 
-	const intervalCache = new Map<
-		string,
-		{ start: number; end: number } | null
-	>();
+	const intervalCache = new Map<string, { start: Date; end: Date } | null>();
 	function getCachedInterval(node: TaskTreeNode) {
 		if (!intervalCache.has(node.uid))
 			intervalCache.set(node.uid, getTaskInterval(node, im));

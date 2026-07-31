@@ -15,16 +15,9 @@ interface DataManagerLike {
 	getNodeByUid(uid: string): TaskTreeNode | undefined;
 	getFullTree(): TaskTreeNode;
 	invalidate(): void;
-	loadData(
-		app: unknown,
-	): Promise<{ nodes: TaskTreeNode[]; fullTree: TaskTreeNode }>;
-}
-
-interface AppLike {
-	vault: {
-		getAbstractFileByPath(path: string): { path: string } | null;
-		cachedRead(file: { path: string }): Promise<string>;
-	};
+	loadData(app: unknown): Promise<{
+		nodes: TaskTreeNode[];
+	}>;
 }
 
 export class BaseTaskEdit {
@@ -32,7 +25,7 @@ export class BaseTaskEdit {
 	protected dataManager!: DataManagerLike;
 	protected container!: HTMLElement;
 	protected rightContentContainer: HTMLElement | null = null;
-	protected app!: AppLike;
+	protected app: unknown;
 	public previouslyEditedUids: Set<string> = new Set();
 	public _needsEditRefresh: boolean = false;
 	private _lastSyncMode: boolean = false;
@@ -103,7 +96,7 @@ export class BaseTaskEdit {
 				const checked = this.editStore
 					.getState()
 					.selectedTasks.has(uid);
-				const cb = createEl("input");
+				const cb = createEl("input") as HTMLInputElement;
 				cb.type = "checkbox";
 				cb.checked = checked;
 				cb.className = "edit-checkbox";

@@ -1,8 +1,8 @@
 {
 	"compilerOptions": {
-		"target": "ES6",
+		"target": "ES2018",
 		"module": "ESNext",
-		"lib": ["ES6", "ES2016", "DOM"], // 添加 ES2016
+		"lib": ["ES2018", "DOM"],
 		"strict": true,
 		"noImplicitAny": true,
 		"strictNullChecks": true,
@@ -14,5 +14,5 @@
 		"outDir": "./dist",
 		"rootDir": "./src"
 	},
-	"include": ["src/**/*.ts", "src/process/config/config.ts"]
+	"include": ["src/**/*.ts"]
 }

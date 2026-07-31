@@ -36,6 +36,7 @@ export interface TaskTreeNode {
 	yamlEndLine: number;
 	isFrontmatter: boolean;
 	hasYaml: boolean;
+	[key: string]: unknown;
 }
 
 export interface FileRelations {
@@ -51,7 +52,7 @@ export interface FileRelations {
 
 export interface TreeFilterOptions {
 	statuses?: string[];
-	searchText?: string[];
+	searchText?: string;
 	priorityValues?: string[];
 	repeatCycles?: string[];
 	includeMarks?: string[];
@@ -459,12 +460,15 @@ function taskMatchesFilter(
 	if (dpms.length)
 		ag.push(() => dpms.some((m) => marks[m as keyof typeof marks]));
 	if (im.includes("tag")) ag.push(() => !!node.tag);
-	if (options.searchText?.length) {
-		const kw = options.searchText.filter((k: string) => k.length > 0);
+	if (options.searchText) {
+		const kw = options.searchText
+			.toLowerCase()
+			.split(/\s+/)
+			.filter((k: string) => k.length > 0);
 		if (kw.length)
 			ag.push(() => {
 				const t = (node.content || node.text || "").toLowerCase();
-				return kw.every((k: string) => t.includes(k.toLowerCase()));
+				return kw.every((k: string) => t.includes(k));
 			});
 	}
 	if (ag.length === 0) return true;

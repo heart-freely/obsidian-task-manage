@@ -61,6 +61,9 @@ interface EditorApp {
 			file: { path: string },
 			fn: (data: string) => string,
 		): Promise<void>;
+		cachedRead(file: { path: string }): Promise<string>;
+		getMarkdownFiles(): Array<{ path: string; name: string }>;
+		getAllLoadedFiles(): Array<{ path?: string; children?: unknown[] }>;
 	};
 }
 
@@ -409,7 +412,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				onClick: (n) => this.onTaskTreeNavClick(n),
 				onDoubleClick: (n) => this.openTaskAtLine(n),
 				onRestore: () => this.restoreFocus(),
-				sort,
+				sort: sort as { type: string; order: "asc" | "desc" },
 			});
 			this.resizeHandle = lc.createDiv({
 				cls: "task-tree-nav-resize task-tree-nav-resize-visible",
@@ -523,7 +526,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		void this.render();
 	}
 	protected openTaskAtLine(node: TaskTreeNode) {
-		TaskNavigator.openTaskAtLine(this.app, node);
+		TaskNavigator.openTaskAtLine(this.app as AppLike, node);
 	}
 	private toggleTaskTreeNav(collapsed: boolean) {
 		const p = this.store.getActivePreset();
@@ -833,7 +836,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				return node.cancelled;
 			default:
 				return (
-					((node as Record<string, unknown>)[type] as
+					((node as unknown as Record<string, unknown>)[type] as
 						| string
 						| number
 						| null) ?? null
