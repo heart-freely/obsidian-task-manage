@@ -78,7 +78,6 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(app: App, plugin: PluginRef) {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- PluginSettingTab 基类需要完整的 Plugin 类型
 		super(app, plugin as any);
 		this.plugin = plugin;
 	}

@@ -540,7 +540,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 						: x,
 				),
 		});
-		this.store.saveSilent();
+		void this.store.saveSilent();
 		void this.render();
 	}
 	private startResize(e: MouseEvent) {
@@ -578,7 +578,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 							x.id === p.id ? { ...x, taskTreeNavWidth: w } : x,
 						),
 				});
-				this.store.saveSilent();
+				void this.store.saveSilent();
 			}
 		}
 	}
@@ -737,7 +737,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 										: p,
 								),
 							});
-							this.store.saveSilent();
+							void this.store.saveSilent();
 						}
 						void this.render();
 					},
@@ -758,7 +758,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 										: p,
 								),
 							});
-							this.store.saveSilent();
+							void this.store.saveSilent();
 						}
 						void this.render();
 					},

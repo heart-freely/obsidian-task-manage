@@ -635,13 +635,15 @@ export class BaseTaskEdit {
 		}
 		for (const pu of Array.from(this.previouslyEditedUids))
 			this.setCardReadMode(pu);
-		state.batchMode
-			? (es.exitBatchToReading(),
-				this.applyEditContext(),
-				this.previouslyEditedUids.clear(),
-				this.refreshAllCardsForBatchMode(),
-				this.refreshEditPanel())
-			: (es.exitEditMode(false),
-				window.requestAnimationFrame(() => this.onEditStateChange()));
+		if (state.batchMode) {
+			es.exitBatchToReading();
+			this.applyEditContext();
+			this.previouslyEditedUids.clear();
+			this.refreshAllCardsForBatchMode();
+			this.refreshEditPanel();
+		} else {
+			es.exitEditMode(false);
+			window.requestAnimationFrame(() => this.onEditStateChange());
+		}
 	};
 }

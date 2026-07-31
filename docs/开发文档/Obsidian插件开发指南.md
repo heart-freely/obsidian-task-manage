@@ -395,17 +395,39 @@ el.setCssProps({ "--task-bg": userColor });
 
 ### 审核警告消除
 
-- 用接口替代 `any`
-- 用 Obsidian 数据 API 替代 `localStorage`：在 `onload` 中最先 `await this.loadData()` 获取初始数据初始化内存缓存，导出同步读取函数，写入时更新缓存并异步持久化；`persistData` 须从内存缓存读取最新值，避免被 Store 旧数据覆盖
-- 用 `activeDocument` 替代 `document`
-- `setTimeout`/`requestAnimationFrame` 加 `window.` 前缀
-- 删除未使用的变量和函数
-- `manifest.json` description 末尾加标点
-- README 须含英文
-- `fundingUrl` 确保有效
-- `alert()` → `new Notice()`，`confirm()` → 直接执行操作
-- 空状态视图渲染前先调用 `container.empty()` 清空容器，避免文字累积
-- CSS 中 `opacity: 0` 改为 `opacity: var(--resize-opacity, 0)`，配合 `setCssProps` 控制显隐，避免 CSS 类优先级冲突
+#### 可消除的警告
+
+| 修复方法                                               | 是否有效              | 验证依据                                                     |
+| :----------------------------------------------------- | :-------------------- | :----------------------------------------------------------- |
+| 用接口替代 `any`                                       | ✅ 有效                | `GanttSvgElement`、`EChartsInstance` 等接口应用后，gantt.ts、detail-chart.ts 的类型错误已消除 |
+| `document.createElement` → `createEl`                  | ❓ 未验证              | 审核仍报 100+ 处 `prefer-create-el`，因为审核工具不认自定义 `createEl`，只认 `obsidian` 包的 `createEl` |
+| `setTimeout`/`requestAnimationFrame` 加 `window.` 前缀 | ✅ 有效                | 审核结果中无此类报错                                         |
+| 删除未使用的变量和函数                                 | ✅ 有效                | 文档描述正确，`calendar.ts` 的 `rowEnd` 删除后可消除         |
+| 空 `catch` 块添加注释说明                              | ✅ 有效                | 审核结果中无 `no-empty` 报错                                 |
+| 移除冗余的 `as` 类型断言                               | ⚠️ 部分有效            | 部分已消除，但审核仍报 ~25 处不必要断言。原因是 `querySelector` 改用泛型后仍需 `as`，TypeScript 对某些场景的断言无法完全避免 |
+| `no-floating-promises` 添加 `void`                     | ✅ 有效                | 方法正确，但修复未应用到文件                                 |
+| `this: void` 注解                                      | ✅ 有效                | 方法正确，但修复未应用到文件                                 |
+| surrogate pair 添加 eslint-disable                     | ✅ 有效                | 方法正确，但修复未应用到文件                                 |
+| CSS `!important` 移除                                  | ✅ 有效                | 审核结果中无 CSS 报错                                        |
+| CSS `all: unset` 移除                                  | ✅ 有效                | 审核结果中无 CSS 报错                                        |
+| CSS 重复属性合并                                       | ✅ 有效                | 审核结果中无 CSS 报错                                        |
+| `substr` → `substring`                                 | ✅ 有效                | 审核结果中无此报错                                           |
+| `getSettingDefinitions()` 替代 `display`               | ⚠️ 仍报 Recommendation | `display` 方法仍存在，报 Recommendation 但不影响审核通过     |
+| 具体 HTML 元素类型                                     | ✅ 有效                | `HTMLInputElement` 等应用后，edit-panel、sidebar-panel 类型错误已消除 |
+| `tsconfig.json` 配置升级                               | ✅ 有效                | `padStart`、`Object.entries` 全部消除                        |
+| 接口类型统一                                           | ✅ 有效                | `TreeFilterOptions`、`DataManagerLike`、`CalendarCacheEntry` 类型对齐后错误消除 |
+| 缺失导入                                               | ✅ 有效                | `import logger`、`import App` 后相关错误消除                 |
+
+#### 无法消除的警告
+
+| 类别                                                  | 判断是否正确                                                 |
+| :---------------------------------------------------- | :----------------------------------------------------------- |
+| `no-unsafe-call` — `Record<string, unknown>` 动态调用 | ✅ 正确。`md-parser.ts` YAML 解析、`config.ts` 动态构建映射、`task-editor.ts` 文件写入回调，均为运行时确定类型，无法静态验证 |
+| `no-unsafe-member-access` — 动态键访问                | ✅ 正确。YAML 字段名、配置键名均来自运行时数据                |
+| `no-unsafe-assignment` — 动态赋值                     | ✅ 正确。`main.ts` 的 `loadData()` 返回 `unknown`，Obsidian API 限制 |
+| `no-unsafe-argument` — `unknown` 传入回调             | ✅ 正确。`app.vault.process` 回调参数类型由 Obsidian 决定     |
+| `no-unsafe-return` — 返回 `Record<string, unknown>`   | ✅ 正确。`parseFrontmatter()` 解析任意 YAML 内容              |
+| 必要类型断言                                          | ✅ 正确。`as TaskStatus` 字符串到字面量联合类型、`as unknown as` 跨模块转换均为必要 |
 
 ### 对源代码的影响
 

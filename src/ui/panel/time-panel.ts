@@ -78,7 +78,7 @@ export class TimePanel {
 		this.lastCheckedDate = DateUtils.formatDate(t);
 		this.currentMinYear = t.getFullYear();
 		this.currentMaxYear = t.getFullYear();
-		this.render();
+		void this.render();
 		this.dateCheckInterval = window.setInterval(
 			() => this.checkDateChange(),
 			60000,
