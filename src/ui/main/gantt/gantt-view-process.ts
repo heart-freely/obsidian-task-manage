@@ -1,10 +1,13 @@
 // src/core/process/gantt-view-process.ts
 // 甘特图数据处理 — 时间区间、范围推断、网格级别、依赖路径
 
-import { DateUtils } from "../../util/date-utils";
-import { YEAR_RANGE_OFFSET } from "../store/preset/panel-preset";
-import { getTaskTimeRange, IntervalMode } from "../task/task-derived";
-import { TaskTreeNode } from "../task/task-tree";
+import { YEAR_RANGE_OFFSET } from "../../../core/store/preset/panel-preset";
+import {
+	getTaskTimeRange,
+	IntervalMode,
+} from "../../../core/task/task-derived";
+import { TaskTreeNode } from "../../../core/task/task-tree";
+import { DateUtils } from "../../../util/date-utils";
 
 export interface GanttTaskRow {
 	start: Date;

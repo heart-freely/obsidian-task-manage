@@ -1,6 +1,13 @@
 // src/ui/main/calendar/calendar.ts
 // 统一日历视图 — 日/周/月/季/年（时间轴换行方案）
 
+import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
+import { TaskTreeNode } from "../../../core/task/task-tree";
+import { TaskTreeNodeLike } from "../../../type/type";
+import { createEl } from "../../../util/dom-utils";
+import logger from "../../../util/logger";
+import { tooltip } from "../../component/tooltip/tooltip";
+import { createTaskCard } from "../card/card";
 import {
 	buildDateTaskMap,
 	buildGlobalOrder,
@@ -13,14 +20,7 @@ import {
 	getYearsInRange,
 	setEnd,
 	setStart,
-} from "../../../core/process/calendar-view-process";
-import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
-import { TaskTreeNode } from "../../../core/task/task-tree";
-import { TaskTreeNodeLike } from "../../../type/type";
-import { createEl } from "../../../util/dom-utils";
-import logger from "../../../util/logger";
-import { tooltip } from "../../component/tooltip/tooltip";
-import { createTaskCard } from "../card/card";
+} from "./calendar-view-process";
 
 // ========== 模块级缓存 ==========
 

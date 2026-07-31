@@ -1,14 +1,14 @@
 // src/ui/main/list/tree-list.ts
 
-import {
-	countNodeStatuses,
-	removeHeadingNumber,
-	sortFileNodes,
-} from "../../../core/process/tree-view-process";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { createEl } from "../../../util/dom-utils";
 import { createProgressBar } from "../../component/progress/progress";
 import { createTaskCard } from "../card/card";
+import {
+	countNodeStatuses,
+	removeHeadingNumber,
+	sortFileNodes,
+} from "./tree-view-process";
 
 const INDENT_WIDTH = 24;
 
@@ -214,7 +214,7 @@ function renderNode(
 		onClick: options?.onDoubleClick,
 		onSingleClick: options?.onClick,
 	});
-	const descEl = card.querySelector(".task-desc") as HTMLElement | null;
+	const descEl = card.querySelector<HTMLElement>(".task-desc");
 	if (descEl) descEl.addClass("task-text-sm");
 	contentContainer.appendChild(card);
 	if (nodeStats.total > 0 && hasChildren)

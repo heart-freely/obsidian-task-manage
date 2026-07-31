@@ -1,9 +1,9 @@
 // src/core/process/calendar-view-process.ts
 // 日历视图数据处理 — 纯函数，不涉及 DOM
 
-import { IntervalMode, TaskTreeNodeLike } from "../../type/type";
-import { DateUtils } from "../../util/date-utils";
-import { getTaskTimeRange } from "../task/task-derived";
+import { getTaskTimeRange } from "../../../core/task/task-derived";
+import { IntervalMode, TaskTreeNodeLike } from "../../../type/type";
+import { DateUtils } from "../../../util/date-utils";
 
 // ========== 日期工具 ==========
 

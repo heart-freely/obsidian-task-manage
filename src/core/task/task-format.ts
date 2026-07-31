@@ -2,9 +2,9 @@
 // src/core/task/task-format.ts
 // 任务格式化 — HTML 内容构建，纯字符串拼接，不涉及 DOM
 
+import { removeHeadingNumber } from "../../ui/main/list/tree-view-process";
 import { DateUtils, formatDisplayDate } from "../../util/date-utils";
 import { STATUS_ICONS, STATUS_NAMES } from "../config/config";
-import { removeHeadingNumber } from "../process/tree-view-process";
 import { TaskTreeNode } from "./task-tree";
 
 /** 任务类型显示标记 */

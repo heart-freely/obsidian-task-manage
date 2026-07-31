@@ -1,9 +1,9 @@
 // src/core/process/tree-view-process.ts
 // 任务树视图数据处理
 
-import { countTaskStatuses } from "../../ui/component/progress/progress";
-import { ContentNode } from "../parser/md-parser";
-import { TaskTreeNode } from "../task/task-tree";
+import { ContentNode } from "../../../core/parser/md-parser";
+import { TaskTreeNode } from "../../../core/task/task-tree";
+import { countTaskStatuses } from "../../component/progress/progress";
 
 export function removeHeadingNumber(text: string): string {
 	return text

@@ -31,17 +31,16 @@ export class SidebarPanel {
 	}
 
 	private render() {
-		// 取消待执行的宽度调整
 		if (this.resizeRafId !== null) {
 			cancelAnimationFrame(this.resizeRafId);
 			this.resizeRafId = null;
 		}
 
-		// 先收集需要重置的按钮，避免在遍历过程中修改 DOM 触发重排
-		const existingButtons = this.container.querySelectorAll(".preset-btn");
+		const existingButtons =
+			this.container.querySelectorAll<HTMLElement>(".preset-btn");
 		const buttonsToReset: HTMLElement[] = [];
 		existingButtons.forEach((btn) => {
-			buttonsToReset.push(btn as HTMLElement);
+			buttonsToReset.push(btn);
 		});
 
 		this.container.empty();
@@ -128,7 +127,6 @@ export class SidebarPanel {
 			})
 			.addEventListener("click", () => this.createNewPreset());
 
-		// 使用单次 rAF 批量调整，避免中间状态可见
 		this.resizeRafId = window.requestAnimationFrame(() => {
 			this.resizeRafId = null;
 			this.adjustSidebarWidth();
@@ -162,9 +160,8 @@ export class SidebarPanel {
 
 	private adjustSidebarWidth() {
 		if (this.store.getState().sidebarCollapsed) return;
-		const buttons = this.container.querySelectorAll(
-			".preset-btn",
-		) as NodeListOf<HTMLElement>;
+		const buttons =
+			this.container.querySelectorAll<HTMLElement>(".preset-btn");
 		if (buttons.length === 0) return;
 		buttons.forEach((btn) => {
 			btn.removeClass("task-sidebar-btn-fixed");

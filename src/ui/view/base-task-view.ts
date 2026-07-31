@@ -4,7 +4,6 @@ import { STATUS_NAMES } from "../../core/config/config";
 import { DataManager } from "../../core/data/data-manager";
 import { BaseTaskEdit } from "../../core/edit/base-task-edit";
 import { EditStore } from "../../core/edit/task-edit-store";
-import { formatDate } from "../../core/process/calendar-view-process";
 import {
 	getDefaultFilter,
 	getDefaultHideConfig,
@@ -28,6 +27,7 @@ import {
 	invalidateCalendarCache,
 	renderCalendarView,
 } from "../main/calendar/calendar";
+import { formatDate } from "../main/calendar/calendar-view-process";
 import { renderCards } from "../main/card/grid-card";
 import { createViewCard } from "../main/card/view-card";
 import { renderDetail } from "../main/chart/detail-chart";
@@ -338,9 +338,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 	private getScrollContainer(): HTMLElement | null {
 		if (this.rightContentContainer) return this.rightContentContainer;
-		const vc = this.container.querySelector(
-			".view-content",
-		) as HTMLElement | null;
+		const vc = this.container.querySelector<HTMLElement>(".view-content");
 		if (vc && vc.scrollHeight > vc.clientHeight) return vc;
 		if (this.container.scrollHeight > this.container.clientHeight)
 			return this.container;
@@ -351,7 +349,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		return p ? `${p.id}-${p.viewStyle}-${p.businessView}` : "default";
 	}
 	private getRootElement(): HTMLElement | null {
-		return this.container.closest(".manage-root") as HTMLElement | null;
+		return this.container.closest<HTMLElement>(".manage-root");
 	}
 	private restoreFocus() {
 		this.focusHistory.pop();
@@ -484,9 +482,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 
 	refreshSingleCard(node: TaskTreeNode) {
 		const sr = this.rightContentContainer || this.container;
-		const card = sr.querySelector(
-			`[data-uid="${node.uid}"]`,
-		) as HTMLElement | null;
+		const card = sr.querySelector<HTMLElement>(`[data-uid="${node.uid}"]`);
 		if (!card?.parentNode) return;
 		card.parentNode.replaceChild(
 			createViewCard(node, {

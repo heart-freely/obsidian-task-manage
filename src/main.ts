@@ -5,10 +5,6 @@ import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
 import { DataManager } from "./core/data/data-manager";
 import { getSnapshotCache, initStorage } from "./core/edit/task-editor";
-import {
-	getZoomCache,
-	initGanttStorage,
-} from "./core/process/gantt-view-process";
 import { getDefaultPresets } from "./core/store/preset/panel-preset";
 import { Store } from "./core/store/store";
 import {
@@ -17,6 +13,10 @@ import {
 	TaskManageSettings,
 } from "./setting/setting";
 import { AppState, GlobalFilter, Preset } from "./type/type";
+import {
+	getZoomCache,
+	initGanttStorage,
+} from "./ui/main/gantt/gantt-view-process";
 import { ManageView } from "./ui/ui";
 import logger from "./util/logger";
 

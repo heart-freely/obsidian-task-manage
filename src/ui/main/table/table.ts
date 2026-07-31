@@ -5,7 +5,6 @@ import {
 	STATUS_ICONS,
 	STATUS_NAMES,
 } from "../../../core/config/config";
-import { removeHeadingNumber } from "../../../core/process/tree-view-process";
 import {
 	getPriorityIcon,
 	getPriorityName,
@@ -13,6 +12,7 @@ import {
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { formatDisplayDate } from "../../../util/date-utils";
 import { createEl } from "../../../util/dom-utils";
+import { removeHeadingNumber } from "../list/tree-view-process";
 
 interface TaskTableOptions {
 	onClick?: (node: TaskTreeNode) => void;
