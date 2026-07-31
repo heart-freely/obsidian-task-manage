@@ -165,49 +165,49 @@
 
 /* 面板按钮 */
 .panel-btn {
-	padding: 3px 6px !important;
-	font-family: var(--font-text) !important;
-	font-size: var(--font-ui-small) !important;
-	line-height: var(--line-height-normal) !important;
-	margin: 2px 4px 2px 0 !important;
-	text-align: left !important;
+	padding: 3px 6px;
+	font-family: var(--font-text);
+	font-size: var(--font-ui-small);
+	line-height: var(--line-height-normal);
+	margin: 2px 4px 2px 0;
+	text-align: left;
 	white-space: nowrap;
-	display: inline-flex !important;
+	display: inline-flex;
 	align-items: center;
 	justify-content: flex-start;
-	flex-grow: 0 !important;
-	flex-shrink: 0 !important;
-	width: auto !important;
-	min-width: auto !important;
-	height: auto !important;
+	flex-grow: 0;
+	flex-shrink: 0;
+	width: auto;
+	min-width: auto;
+	height: auto;
 	border-radius: 16px;
 	background: var(--interactive-normal);
 	border: none;
 	cursor: pointer;
 }
 .panel-btn.active {
-	background: var(--interactive-accent) !important;
-	color: white !important;
+	background: var(--interactive-accent);
+	color: white;
 }
 .panel-btn.sub-btn {
-	padding: 2px 5px !important;
-	font-size: var(--font-ui-smaller) !important;
+	padding: 2px 5px;
+	font-size: var(--font-ui-smaller);
 	border-radius: 12px;
 }
 .panel-label {
-	font-family: var(--font-text) !important;
-	font-size: var(--font-ui-small) !important;
-	font-weight: normal !important;
-	color: var(--text-normal) !important;
+	font-family: var(--font-text);
+	font-size: var(--font-ui-small);
+	font-weight: normal;
+	color: var(--text-normal);
 	width: 4em;
 	flex-shrink: 0;
-	margin: 0 !important;
-	margin-right: 6px !important;
-	padding: 0 !important;
-	border: none !important;
-	box-sizing: border-box !important;
+	margin: 0;
+	margin-right: 6px;
+	padding: 0;
+	border: none;
+	box-sizing: border-box;
 	overflow: hidden;
-	white-space: normal !important;
+	white-space: normal;
 	word-break: keep-all;
 }
 .panel-row {
@@ -1414,45 +1414,59 @@
 
 /* 编辑按钮基类 */
 .edit-btn {
+	background: transparent;
+	border: none;
+	color: inherit;
+	font: inherit;
+	letter-spacing: inherit;
+	line-height: 1;
+	margin: 0;
 	padding: 1px 3px;
+	text-align: inherit;
+	text-decoration: none;
+	text-indent: 0;
+	text-shadow: none;
+	text-transform: none;
+	white-space: nowrap;
+	word-spacing: inherit;
 	border-radius: 3px;
 	cursor: pointer;
-	font-size: inherit;
-	font-family: inherit;
-	line-height: 1;
 	display: inline-flex;
 	align-items: center;
 	outline: none;
 	box-sizing: border-box;
+	-webkit-appearance: none;
+	appearance: none;
+	min-height: 0;
+	min-width: 0;
+	overflow: visible;
+	vertical-align: middle;
+}
+
+/* 编辑按钮 - 激活态 */
+.edit-btn-active.edit-btn-active {
+	background: var(--interactive-accent);
+	color: white;
+	border: 1px solid var(--interactive-accent);
+}
+
+/* 编辑按钮 - 悬停态 */
+.edit-btn-hover.edit-btn-hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+}
+
+/* 编辑按钮 - 默认态 */
+.edit-btn-default.edit-btn-default {
 	background: transparent;
 	color: inherit;
 	border: 1px solid transparent;
 }
 
-/* 编辑按钮 - 激活态 */
-.edit-btn-active {
-	background: var(--interactive-accent) !important;
-	color: white !important;
-	border: 1px solid var(--interactive-accent) !important;
-}
-
-/* 编辑按钮 - 悬停态 */
-.edit-btn-hover {
-	background: var(--background-modifier-hover) !important;
-	color: var(--text-normal) !important;
-	border: 1px solid var(--background-modifier-border) !important;
-}
-
-/* 编辑按钮 - 默认态 */
-.edit-btn-default {
-	background: transparent !important;
-	color: inherit !important;
-	border: 1px solid transparent !important;
-}
-
 /* 编辑按钮 - 隐藏态 */
-.edit-btn-hidden {
-	display: none !important;
+.edit-btn-hidden.edit-btn-hidden {
+	display: none;
 }
 .edit-file-name {
 	padding: 0;
@@ -2013,10 +2027,9 @@
 	position: relative;
 	z-index: 49;
 	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
 	border-radius: 6px;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-	padding: 0;
+	padding: var(--panel-padding, 0);
 	margin-bottom: 0;
 	margin-top: 0;
 	display: flex;
@@ -2026,7 +2039,6 @@
 	overflow-x: hidden;
 	box-sizing: border-box;
 	height: var(--panel-height, 300px);
-	padding: var(--panel-padding, 0);
 	border: var(--panel-border, 1px solid var(--background-modifier-border));
 }
 

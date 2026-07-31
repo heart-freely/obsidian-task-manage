@@ -19,7 +19,6 @@
 		"obsidian": "latest"
 	},
 	"dependencies": {
-		"echarts": "^6.0.0",
-		"nouislider": "^15.8.1"
+		"echarts": "^6.0.0"
 	}
 }
