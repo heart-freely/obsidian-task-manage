@@ -61,7 +61,6 @@ export class TimePanel {
 	private dynamicSection: HTMLElement | null = null;
 	private staticSection: HTMLElement | null = null;
 
-	// 渲染锁：防止异步 render() 并发执行导致竞态
 	private isRendering = false;
 	private pendingRender = false;
 
@@ -85,6 +84,7 @@ export class TimePanel {
 		);
 		this.registerWorkspaceEvent();
 	}
+
 	destroy() {
 		if (this.dateCheckInterval !== null) {
 			window.clearInterval(this.dateCheckInterval);
@@ -149,6 +149,7 @@ export class TimePanel {
 		app.workspace.on("active-leaf-change", () => this.checkDateChange());
 		app.workspace.on("layout-change", () => this.checkDateChange());
 	}
+
 	private checkDateChange() {
 		if (this.pendingDateCheck !== null)
 			cancelAnimationFrame(this.pendingDateCheck);
@@ -157,6 +158,7 @@ export class TimePanel {
 			this.doCheckDateChange();
 		});
 	}
+
 	private doCheckDateChange() {
 		const t = new Date();
 		const ds = DateUtils.formatDate(t);
@@ -203,6 +205,7 @@ export class TimePanel {
 		this.childSlidersDrivenByYear = false;
 		this.refreshAllStaticSliders();
 	}
+
 	private onDynamicChange(sv: number, ev: number) {
 		const { startDate, endDate } = datesFromLevel(
 			"dynamic",
@@ -219,37 +222,36 @@ export class TimePanel {
 		}
 	}
 
-	private onStaticChange(this: void, lv: string, sv: number, ev: number) {
-		const self = this as unknown as TimePanel;
-		const minV = Math.min(sv, ev),
-			maxV = Math.max(sv, ev);
+	private onStaticChange(lv: string, sv: number, ev: number) {
+		const minV = Math.min(sv, ev);
+		const maxV = Math.max(sv, ev);
 		if (lv === "year") {
-			self.currentMinYear = minV;
-			self.currentMaxYear = maxV;
-			self.childSlidersDrivenByYear = true;
+			this.currentMinYear = minV;
+			this.currentMaxYear = maxV;
+			this.childSlidersDrivenByYear = true;
 			const { startDate, endDate } = datesFromLevel("year", minV, maxV);
-			self.staticStart = DateUtils.setStart(startDate);
-			self.staticEnd = DateUtils.setEnd(endDate);
+			this.staticStart = DateUtils.setStart(startDate);
+			this.staticEnd = DateUtils.setEnd(endDate);
 		} else {
 			const { startDate, endDate } = datesFromLevel(
 				lv,
 				minV,
 				maxV,
 				undefined,
-				self.currentMinYear,
+				this.currentMinYear,
 			);
-			self.staticStart = DateUtils.setStart(
+			this.staticStart = DateUtils.setStart(
 				startDate <= endDate ? startDate : endDate,
 			);
-			self.staticEnd = DateUtils.setEnd(
+			this.staticEnd = DateUtils.setEnd(
 				startDate <= endDate ? endDate : startDate,
 			);
-			if (self.childSlidersDrivenByYear)
-				self.childSlidersDrivenByYear = false;
+			if (this.childSlidersDrivenByYear)
+				this.childSlidersDrivenByYear = false;
 		}
-		self.rebuildStaticSliders();
-		if (self.intervalMode !== "none")
-			self.updatePreset({ dateRange: true });
+		this.rebuildStaticSliders();
+		if (this.intervalMode !== "none")
+			this.updatePreset({ dateRange: true });
 	}
 
 	private onToggleDynamic() {
@@ -292,6 +294,7 @@ export class TimePanel {
 		this.updateModeButtons();
 		this.updatePreset({ intervalMode: this.intervalMode });
 	}
+
 	private updateModeButtons() {
 		const mb = this.container.querySelector(
 			".panel-btn:not(.sub-btn)",
@@ -305,11 +308,12 @@ export class TimePanel {
 			else btn.removeClass("active");
 		});
 	}
+
 	private onSwitchUnit(k: "day" | "week" | "month" | "quarter" | "year") {
 		if (this.dynamicUnit === k) return;
 		const nm = maxDynamicRange(k);
-		const ds = calcDynamicOffset(this.dynamicStart, k),
-			de = calcDynamicOffset(this.dynamicEnd, k);
+		const ds = calcDynamicOffset(this.dynamicStart, k);
+		const de = calcDynamicOffset(this.dynamicEnd, k);
 		if (ds < -nm || ds > nm || de < -nm || de > nm) {
 			const t = new Date();
 			t.setHours(0, 0, 0, 0);
@@ -327,6 +331,7 @@ export class TimePanel {
 		);
 		this.rebuildDynamicSlider();
 	}
+
 	private syncUseDynamicButton() {
 		if (this.useDynamicBtn) {
 			if (this.useDynamic) this.useDynamicBtn.addClass("active");
@@ -350,8 +355,8 @@ export class TimePanel {
 			-dmx,
 			dmx,
 		);
-		const minV = Math.min(ds, de),
-			maxV = Math.max(ds, de);
+		const minV = Math.min(ds, de);
+		const maxV = Math.max(ds, de);
 		const r = createEnhancedSlider({
 			container: this.dynamicSection!,
 			min: -dmx,
@@ -438,53 +443,38 @@ export class TimePanel {
 			week: (x: number) => formatWeekValue(x, this.currentMinYear),
 			day: (x: number) => formatDayValue(x, this.currentMinYear),
 		};
-		["year", "quarter", "month", "week", "day"].forEach((key) => {
-			this.createSlider(
-				key,
-				Number(ranges[(key + "Min") as keyof typeof ranges]),
-				Number(ranges[(key + "Max") as keyof typeof ranges]),
-				sv(key),
-				ev(key),
-				fmtFns[key],
-				cur(key),
-			);
-		});
-	}
 
-	private createSlider(
-		this: void,
-		key: string,
-		min: number,
-		max: number,
-		start: number,
-		end: number,
-		format: (v: number) => string,
-		todayVal: number,
-	) {
-		const self = this as unknown as TimePanel;
-		if (!self.staticSection) return;
-		const r = createEnhancedSlider({
-			container: self.staticSection,
-			min,
-			max,
-			start: clamp(Math.min(start, end), min, max),
-			end: clamp(Math.max(start, end), min, max),
-			format,
-			onChange: (s, ev) => self.onStaticChange(key, s, ev),
-			todayValue: todayVal,
-			midValue: todayVal,
+		["year", "quarter", "month", "week", "day"].forEach((key) => {
+			const min = Number(ranges[(key + "Min") as keyof typeof ranges]);
+			const max = Number(ranges[(key + "Max") as keyof typeof ranges]);
+			const s = sv(key);
+			const e = ev(key);
+			const f = fmtFns[key];
+			const t = cur(key);
+
+			const r = createEnhancedSlider({
+				container: this.staticSection!,
+				min,
+				max,
+				start: clamp(Math.min(s, e), min, max),
+				end: clamp(Math.max(s, e), min, max),
+				format: f,
+				onChange: (sv2, ev2) => this.onStaticChange(key, sv2, ev2),
+				todayValue: t,
+				midValue: t,
+			});
+			r.refs.row.addClass("task-pl-4");
+			this.enhancedSliders.set(key, r.refs);
+			this.updateMidLines.set(key, r.updateMidLine);
 		});
-		r.refs.row.addClass("task-pl-4");
-		self.enhancedSliders.set(key, r.refs);
-		self.updateMidLines.set(key, r.updateMidLine);
 	}
 
 	private refreshDynamicUI() {
 		const ref = this.enhancedSliders.get("dynamic");
 		const um = this.updateMidLines.get("dynamic");
 		if (!ref || !um) return;
-		const mx = maxDynamicRange(this.dynamicUnit),
-			mn = -mx;
+		const mx = maxDynamicRange(this.dynamicUnit);
+		const mn = -mx;
 		const ds = clamp(
 			calcDynamicOffset(this.dynamicStart, this.dynamicUnit),
 			mn,
@@ -495,8 +485,8 @@ export class TimePanel {
 			mn,
 			mx,
 		);
-		const minV = Math.min(ds, de),
-			maxV = Math.max(ds, de);
+		const minV = Math.min(ds, de);
+		const maxV = Math.max(ds, de);
 		ref.update(minV, maxV);
 		ref.labelSpan.textContent =
 			minV === maxV
@@ -613,7 +603,6 @@ export class TimePanel {
 	}
 
 	async render() {
-		// 渲染锁：如果已在渲染，标记待处理并返回
 		if (this.isRendering) {
 			this.pendingRender = true;
 			return;
@@ -744,7 +733,6 @@ export class TimePanel {
 		} finally {
 			this.isRendering = false;
 
-			// 如果在渲染期间有新请求，立即重新渲染
 			if (this.pendingRender) {
 				this.pendingRender = false;
 				void this.render();

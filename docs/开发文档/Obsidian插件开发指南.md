@@ -393,41 +393,48 @@ el.setCssProps({ "--task-bg": userColor });
 
 **修复流程**：查看审核报错定位文件+行号 → 分析错误类型选择修复方案 → 单文件修改编译测试 → 提交审核确认错误消失 → 重复至所有 Error 清零。
 
+
+
 ### 审核警告消除
 
 #### 可消除的警告
 
-| 修复方法                                               | 是否有效              | 验证依据                                                     |
-| :----------------------------------------------------- | :-------------------- | :----------------------------------------------------------- |
-| 用接口替代 `any`                                       | ✅ 有效                | `GanttSvgElement`、`EChartsInstance` 等接口应用后，gantt.ts、detail-chart.ts 的类型错误已消除 |
-| `document.createElement` → `createEl`                  | ❓ 未验证              | 审核仍报 100+ 处 `prefer-create-el`，因为审核工具不认自定义 `createEl`，只认 `obsidian` 包的 `createEl` |
-| `setTimeout`/`requestAnimationFrame` 加 `window.` 前缀 | ✅ 有效                | 审核结果中无此类报错                                         |
-| 删除未使用的变量和函数                                 | ✅ 有效                | 文档描述正确，`calendar.ts` 的 `rowEnd` 删除后可消除         |
-| 空 `catch` 块添加注释说明                              | ✅ 有效                | 审核结果中无 `no-empty` 报错                                 |
-| 移除冗余的 `as` 类型断言                               | ⚠️ 部分有效            | 部分已消除，但审核仍报 ~25 处不必要断言。原因是 `querySelector` 改用泛型后仍需 `as`，TypeScript 对某些场景的断言无法完全避免 |
-| `no-floating-promises` 添加 `void`                     | ✅ 有效                | 方法正确，但修复未应用到文件                                 |
-| `this: void` 注解                                      | ✅ 有效                | 方法正确，但修复未应用到文件                                 |
-| surrogate pair 添加 eslint-disable                     | ✅ 有效                | 方法正确，但修复未应用到文件                                 |
-| CSS `!important` 移除                                  | ✅ 有效                | 审核结果中无 CSS 报错                                        |
-| CSS `all: unset` 移除                                  | ✅ 有效                | 审核结果中无 CSS 报错                                        |
-| CSS 重复属性合并                                       | ✅ 有效                | 审核结果中无 CSS 报错                                        |
-| `substr` → `substring`                                 | ✅ 有效                | 审核结果中无此报错                                           |
-| `getSettingDefinitions()` 替代 `display`               | ⚠️ 仍报 Recommendation | `display` 方法仍存在，报 Recommendation 但不影响审核通过     |
-| 具体 HTML 元素类型                                     | ✅ 有效                | `HTMLInputElement` 等应用后，edit-panel、sidebar-panel 类型错误已消除 |
-| `tsconfig.json` 配置升级                               | ✅ 有效                | `padStart`、`Object.entries` 全部消除                        |
-| 接口类型统一                                           | ✅ 有效                | `TreeFilterOptions`、`DataManagerLike`、`CalendarCacheEntry` 类型对齐后错误消除 |
-| 缺失导入                                               | ✅ 有效                | `import logger`、`import App` 后相关错误消除                 |
+| 修复方法                                                | 是否有效              | 验证依据                                                     |
+| :------------------------------------------------------ | :-------------------- | :----------------------------------------------------------- |
+| 用接口替代 `any`                                        | ✅ 有效                | `GanttSvgElement`、`EChartsInstance`、`AppLike`、`VaultLike`、`ManageViewLike`、`EditStoreLike`、`TaskViewLike` 等接口应用后，gantt.ts、detail-chart.ts、base-task-view.ts、setting.ts、edit-panel.ts、navigator-utils.ts、task-edit-store.ts 的类型错误已消除；`TaskTreeNode` 添加 `[key: string]: unknown` 索引签名解决动态键访问断言 |
+| `document.createElement` → `createEl`                   | ❌ 无效                | 审核仍报 100+ 处 `prefer-create-el`，审核工具只认 `obsidian` 包的 `createEl`，项目自定义 `createEl` 不被认可。**更正为：无法消除，建议审核时说明项目使用自定义 DOM 工具函数** |
+| `setTimeout`/`requestAnimationFrame` 加 `window.` 前缀  | ✅ 有效                | 审核结果中无此类报错                                         |
+| 删除未使用的变量和函数                                  | ✅ 有效                | `calendar.ts` 删除未使用的 `rowEnd` 变量，警告消除           |
+| 空 `catch` 块添加注释说明                               | ✅ 有效                | 审核结果中无 `no-empty` 报错                                 |
+| 移除冗余的 `as` 类型断言                                | ⚠️ 部分有效            | 部分已消除（`querySelector` 改用泛型 `querySelector<HTMLElement>` 可消除部分），但 `as TaskStatus` 等字面量联合类型断言、`marks[m as keyof typeof marks]` 等动态键访问断言无法完全避免 |
+| `no-floating-promises` 添加 `void`                      | ✅ 有效                | `time-panel.ts:81` 中 `void this.render()` 已应用，警告消除；`base-task-view.ts:529` 中 `void this.store.saveSilent()` 修复未应用 |
+| `this: void` 注解                                       | ✅ 有效                | 方法签名添加 `this: void` 注解可消除 `unbound-method` 警告，修复未应用到 `time-panel.ts:410,514` |
+| surrogate pair / combined character 添加 eslint-disable | ✅ 有效                | `dataview-config.ts:7` 添加 `eslint-disable-next-line no-misleading-character-class -- 正则包含 Emoji 组合字符用于匹配任务日期标记图标` 注释可消除 |
+| `no-console` 添加 eslint-disable                        | ✅ 有效                | `logger.ts` 中每个 `console.xxx` 添加 `eslint-disable-next-line no-console -- 项目唯一日志工具` 注释，已消除部分，`logger.ts:5` 仍有一处遗漏 |
+| CSS `!important` 移除                                   | ✅ 有效                | 审核结果中无 CSS 报错                                        |
+| CSS `all: unset` 移除                                   | ✅ 有效                | 审核结果中无 CSS 报错                                        |
+| CSS 重复属性合并                                        | ✅ 有效                | 审核结果中无 CSS 报错                                        |
+| `substr` → `substring`                                  | ✅ 有效                | 审核结果中无此报错                                           |
+| `getSettingDefinitions()` 替代 `display`                | ⚠️ 仍报 Recommendation | `display` 方法保留，`getSettingDefinitions()` 已实现，报 Recommendation 但不影响审核通过 |
+| 具体 HTML 元素类型                                      | ✅ 有效                | `HTMLInputElement`、`HTMLSelectElement`、`HTMLAnchorElement` 替代 `HTMLElement` 后，edit-panel.ts、sidebar-panel.ts、base-task-edit.ts 的类型错误已消除 |
+| `tsconfig.json` 配置升级                                | ✅ 有效                | `target: "ES6"` → `"ES2018"`，`lib: ["ES2018", "DOM"]`，`padStart`、`Object.entries` 全部消除 |
+| 接口类型统一                                            | ✅ 有效                | `TreeFilterOptions.searchText` 从 `string[]` 改为 `string`，`DataManagerLike.loadData` 返回类型与实际实现对齐，`CalendarCacheEntry.dateTaskMap` 统一为 `Map<string, TaskTreeNodeLike[]>`，类型错误消除 |
+| 缺失导入                                                | ✅ 有效                | `import logger`、`import { App }` 显式导入后相关隐式 any 错误消除 |
+| `@ts-expect-error` 替代 `any`                           | ✅ 有效                | `setting.ts:81` 中 `plugin as any` 改为 `@ts-expect-error` 配合说明注释，消除 `no-explicit-any` 错误（如 TypeScript 版本兼容导致 `@ts-expect-error` 未使用，则直接移除并正常调用） |
+| 逗号表达式改为 if-else                                  | ✅ 有效                | `base-task-edit.ts:638` 中三元运算符逗号表达式改为 if-else 语句块，消除 `Expected an assignment or function call` 警告 |
+| `main.ts` 类型守卫                                      | ⚠️ 部分有效            | `this.loadData()` 返回 `unknown`，添加 `typeof` 类型守卫后可减少部分 `unsafe-assignment`，但 Obsidian API 本质返回 `unknown`，无法完全消除 |
 
 #### 无法消除的警告
 
-| 类别                                                  | 判断是否正确                                                 |
-| :---------------------------------------------------- | :----------------------------------------------------------- |
-| `no-unsafe-call` — `Record<string, unknown>` 动态调用 | ✅ 正确。`md-parser.ts` YAML 解析、`config.ts` 动态构建映射、`task-editor.ts` 文件写入回调，均为运行时确定类型，无法静态验证 |
-| `no-unsafe-member-access` — 动态键访问                | ✅ 正确。YAML 字段名、配置键名均来自运行时数据                |
-| `no-unsafe-assignment` — 动态赋值                     | ✅ 正确。`main.ts` 的 `loadData()` 返回 `unknown`，Obsidian API 限制 |
-| `no-unsafe-argument` — `unknown` 传入回调             | ✅ 正确。`app.vault.process` 回调参数类型由 Obsidian 决定     |
-| `no-unsafe-return` — 返回 `Record<string, unknown>`   | ✅ 正确。`parseFrontmatter()` 解析任意 YAML 内容              |
-| 必要类型断言                                          | ✅ 正确。`as TaskStatus` 字符串到字面量联合类型、`as unknown as` 跨模块转换均为必要 |
+| 类别                      | 原因                                                         |
+| :------------------------ | :----------------------------------------------------------- |
+| `no-unsafe-call`          | `Record<string, unknown>` 动态属性调用：`config.ts` 中 `TASK_ELEMENTS` 遍历构建颜色映射；`tasks-config.ts` 中 `TASKS_RX` 正则构建；`task-parser.ts` 中 YAML 字段动态映射；`md-parser.ts` 中 YAML 解析 `yamlData[key] = value` 动态赋值；Obsidian `vault.process` 回调 |
+| `no-unsafe-member-access` | YAML 解析返回 `Record<string, unknown>` 的动态键访问：`md-parser.ts` 中 frontmatter 字段访问；配置映射的动态键访问：`config.ts` 中 `STATUS_COLOR_DEFS[c.key]`；浏览器 DOM API 返回值 |
+| `no-unsafe-assignment`    | 动态属性赋值给变量：`md-parser.ts` 中 `yamlData[key] = value`；第三方库返回值类型推断不足：`main.ts` 中 `this.loadData()` 返回 `Promise<unknown>` |
+| `no-unsafe-argument`      | `unknown` 类型传入回调参数：`task-editor.ts` 中 `app.vault.process(file, fn)` 回调参数；Obsidian API 参数类型无法覆盖 |
+| `no-unsafe-return`        | 函数返回 `Record<string, unknown>` 类型：`md-parser.ts` 中 `parseFrontmatter()` 返回 YAML 解析结果；`color-utils.ts` 中 `rgbaToSolidOnDark()` 颜色计算 |
+| 必要类型断言              | `as TaskStatus` 类型收窄：`tasks-parser.ts` 中 `SYMBOL_TO_STATUS` 字符串到字面量联合类型转换；`as unknown as` 跨模块转换：`edit-panel.ts` 中 `store.getEditStore()` 类型适配；`marks[m as keyof typeof marks]` 动态键访问 |
+| `prefer-create-el`        | 审核工具只认 `obsidian` 包的 `createEl`，项目使用自定义 DOM 工具函数 `src/util/dom-utils.ts`，约 100+ 处无法通过审核 |
 
 ### 对源代码的影响
 

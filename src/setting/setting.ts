@@ -78,7 +78,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(app: App, plugin: PluginRef) {
-		super(app, plugin as any);
+		super(app, plugin);
 		this.plugin = plugin;
 	}
 	getSettingDefinitions() {
