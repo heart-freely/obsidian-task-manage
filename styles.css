@@ -1,5 +1,3 @@
-整理gantt部分：
-
 /* ================================================================
    Obsidian Task Manage — 完整样式文件
    ================================================================ */
@@ -1414,8 +1412,7 @@
 	flex-basis: 100%;
 }
 
-/* 编辑按钮 */
-/* 编辑按钮基类 - 不用 all:unset，使用透明默认值 */
+/* 编辑按钮基类 */
 .edit-btn {
 	padding: 1px 3px;
 	border-radius: 3px;
@@ -1425,13 +1422,14 @@
 	line-height: 1;
 	display: inline-flex;
 	align-items: center;
+	outline: none;
 	box-sizing: border-box;
-	background: transparent !important;
-	color: inherit !important;
-	border: 1px solid transparent !important;
+	background: transparent;
+	color: inherit;
+	border: 1px solid transparent;
 }
 
-/* 编辑按钮 - 激活态（编辑模式下有值或展开时） */
+/* 编辑按钮 - 激活态 */
 .edit-btn-active {
 	background: var(--interactive-accent) !important;
 	color: white !important;
@@ -1445,7 +1443,7 @@
 	border: 1px solid var(--background-modifier-border) !important;
 }
 
-/* 编辑按钮 - 默认态（阅读模式下透明，编辑模式下显示文字） */
+/* 编辑按钮 - 默认态 */
 .edit-btn-default {
 	background: transparent !important;
 	color: inherit !important;
@@ -1571,7 +1569,6 @@
 }
 
 .edit-preview-btn {
-	all: unset;
 	padding: 0 3px;
 	border-radius: 3px;
 	border: 1px solid var(--background-modifier-border);
@@ -1593,7 +1590,6 @@
 
 /* 删除/恢复 */
 .edit-del-btn {
-	all: unset;
 	padding: 0 3px;
 	border-radius: 3px;
 	border: 1px solid rgba(200, 80, 80, 0.3);
@@ -1609,7 +1605,6 @@
 	box-sizing: border-box;
 }
 .edit-restore-btn {
-	all: unset;
 	padding: 0 3px;
 	border-radius: 3px;
 	border: 1px solid var(--background-modifier-border);
@@ -1895,7 +1890,7 @@
 	height: 100%;
 }
 
-/* 任务条（基类在 styles.css 中已定义） */
+/* 任务条 */
 .timeline-bar-dynamic {
 	left: var(--timeline-bar-left, 0%);
 	top: var(--timeline-bar-top, 0px);
@@ -1990,7 +1985,7 @@
 .task-cursor-col-resize {
 	cursor: col-resize;
 }
-/* ========== Panel 布局（替代 style.cssText）========== */
+/* ========== Panel 布局 ========== */
 .panel-host-layout {
 	position: absolute;
 	top: 0;
@@ -2030,6 +2025,9 @@
 	overflow-y: auto;
 	overflow-x: hidden;
 	box-sizing: border-box;
+	height: var(--panel-height, 300px);
+	padding: var(--panel-padding, 0);
+	border: var(--panel-border, 1px solid var(--background-modifier-border));
 }
 
 .panel-content-inner {
@@ -2062,208 +2060,7 @@
 	color: rgba(255, 255, 255, 0.8);
 	line-height: 1;
 }
-/* ================================================================
-   编辑按钮
-   ================================================================ */
 
-/* 编辑按钮基类 */
-.edit-btn {
-	all: unset;
-	padding: 1px 3px;
-	border-radius: 3px;
-	cursor: pointer;
-	font-size: inherit;
-	font-family: inherit;
-	line-height: 1;
-	display: inline-flex;
-	align-items: center;
-	outline: none;
-	box-sizing: border-box;
-	background: transparent;
-	color: inherit;
-	border: 1px solid transparent;
-}
-
-/* 编辑按钮 - 激活态 */
-.edit-btn-active {
-	background: var(--interactive-accent);
-	color: white;
-	border: 1px solid var(--interactive-accent);
-}
-
-/* 编辑按钮 - 悬停态 */
-.edit-btn-hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-	border: 1px solid var(--background-modifier-border);
-}
-
-/* 编辑按钮 - 隐藏态 */
-.edit-btn-hidden {
-	display: none;
-}
-
-/* 编辑按钮 - 文件名 */
-.edit-file-name {
-	padding: 0;
-	border: none;
-	font-size: inherit;
-	line-height: normal;
-	color: inherit;
-	display: inline-flex;
-	align-items: center;
-}
-
-/* ================================================================
-   编辑子按钮
-   ================================================================ */
-
-.edit-sub-btn {
-	padding: 0 3px;
-	border-radius: 3px;
-	border: 1px solid var(--background-modifier-border);
-	cursor: pointer;
-	font-size: 10px;
-	font-family: inherit;
-	line-height: 16px;
-	min-height: 16px;
-	display: inline-flex;
-	align-items: center;
-	box-sizing: border-box;
-	background: var(--interactive-normal);
-	color: var(--text-normal);
-}
-
-.edit-sub-btn-active {
-	background: var(--interactive-accent);
-	color: white;
-}
-
-.edit-sub-btn-input {
-	background: var(--background-primary);
-	width: 70px;
-}
-
-/* ================================================================
-   编辑日期输入框
-   ================================================================ */
-
-.edit-date-input {
-	padding: 0 3px;
-	border-radius: 3px;
-	border: 1px solid var(--background-modifier-border);
-	font-size: 10px;
-	font-family: inherit;
-	line-height: 16px;
-	min-height: 16px;
-	min-width: 100px;
-	box-sizing: border-box;
-	background: var(--background-primary);
-	cursor: pointer;
-	flex-shrink: 0;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	outline: none;
-}
-
-.edit-date-input-has-value {
-	color: var(--text-normal);
-}
-
-.edit-date-input-empty {
-	color: var(--text-muted);
-}
-
-/* ================================================================
-   编辑预览行
-   ================================================================ */
-
-.task-edit-preview-saved {
-	background: rgba(71, 133, 47, 0.15);
-}
-
-.task-edit-preview-unsaved {
-	background: rgba(127, 184, 240, 0.1);
-}
-
-.edit-preview-text {
-	color: var(--text-muted);
-}
-
-.edit-preview-btn {
-	all: unset;
-	padding: 0 3px;
-	border-radius: 3px;
-	border: 1px solid var(--background-modifier-border);
-	cursor: pointer;
-	font-size: 9px;
-	font-family: inherit;
-	line-height: 14px;
-	min-height: 14px;
-	background: var(--interactive-normal);
-	color: var(--text-muted);
-	display: inline-flex;
-	align-items: center;
-	box-sizing: border-box;
-}
-
-.edit-preview-btn-save {
-	background: var(--interactive-accent);
-	color: white;
-}
-
-/* ================================================================
-   编辑删除/恢复按钮
-   ================================================================ */
-
-.edit-del-btn {
-	all: unset;
-	padding: 0 3px;
-	border-radius: 3px;
-	border: 1px solid rgba(200, 80, 80, 0.3);
-	cursor: pointer;
-	font-size: 10px;
-	font-family: inherit;
-	line-height: 16px;
-	min-height: 16px;
-	background: rgba(200, 80, 80, 0.08);
-	color: var(--text-normal);
-	display: inline-flex;
-	align-items: center;
-	box-sizing: border-box;
-}
-
-.edit-restore-btn {
-	all: unset;
-	padding: 0 3px;
-	border-radius: 3px;
-	border: 1px solid var(--background-modifier-border);
-	cursor: pointer;
-	font-size: 10px;
-	font-family: inherit;
-	line-height: 16px;
-	min-height: 16px;
-	background: var(--interactive-normal);
-	color: var(--text-normal);
-	display: inline-flex;
-	align-items: center;
-	box-sizing: border-box;
-}
-
-/* 光标 */
-.task-cursor-text {
-	cursor: text;
-}
-
-.task-cursor-default {
-	cursor: default;
-}
-.panel-container-layout {
-	height: var(--panel-height, 300px);
-	padding: var(--panel-padding, 0);
-	border: var(--panel-border, 1px solid var(--background-modifier-border));
-}
 .manage-view {
 	padding-top: var(--view-padding-top, 0px);
 }
