@@ -110,6 +110,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
+		this.renderSettings();
+	}
+
+	private renderSettings(): void {
 		this.folderCache = null;
 		const { containerEl } = this;
 		containerEl.empty();
@@ -333,7 +337,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 								CONFIG_SCHEMA,
 							);
 							void this.saveSettings();
-							this.display();
+							this.renderSettings();
 						} catch {
 							new Notice("导入失败：文件格式不正确");
 						}
