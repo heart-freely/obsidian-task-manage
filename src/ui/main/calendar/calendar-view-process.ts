@@ -93,7 +93,7 @@ export function buildGlobalOrder(
 ): Map<string, number> {
 	const arr = [...nodes];
 	arr.sort((a, b) => {
-		if (a.priority !== b.priority) return a.priority - b.priority;
+		if (a.priority !== b.priority) return b.priority - a.priority;
 		const order: Record<string, number> = {
 			todo: 0,
 			scheduled: 1,

@@ -229,7 +229,7 @@
 	padding: 0;
 }
 .panel-view-btn {
-	min-width: 80px;
+	min-width: auto;
 }
 .panel-input {
 	padding: 4px 8px;

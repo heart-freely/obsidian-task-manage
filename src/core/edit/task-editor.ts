@@ -2,8 +2,15 @@
 
 import { EditState } from "../../type/type";
 import logger from "../../util/logger";
+import { TASK_ELEMENT_ORDER } from "../config/config";
 import { TASKS_RX } from "../config/tasks-config";
 import { TaskTreeNode } from "../task/task-tree";
+
+/** 标记排序顺序：与 TASK_ELEMENT_ORDER 保持一致（排除执行状态） */
+const MARK_SORT_ORDER: string[] = TASK_ELEMENT_ORDER.filter(
+	(k) => k !== "status",
+);
+
 const AUTOCOMPLETE_DAYS = 0;
 const MAX_SNAPSHOTS = 5;
 
@@ -133,19 +140,7 @@ export const Op = {
 		return line.replace(/^(- \[).(\] )/, `$1${symbol}$2`);
 	},
 	setContent(line: string, newContent: string): string {
-		const order = [
-			"priority",
-			"repeat",
-			"created",
-			"scheduled",
-			"starts",
-			"due",
-			"done",
-			"cancelled",
-			"tag",
-			"id",
-			"forbid",
-		];
+		const order = MARK_SORT_ORDER;
 		const parts: string[] = [];
 		for (const key of order) {
 			const rx = TASKS_RX[key];
@@ -316,19 +311,7 @@ export const Op = {
 		return Op.sortTags(nl);
 	},
 	sortTags(line: string): string {
-		const order = [
-			"priority",
-			"repeat",
-			"created",
-			"scheduled",
-			"starts",
-			"due",
-			"done",
-			"cancelled",
-			"tag",
-			"id",
-			"forbid",
-		];
+		const order = MARK_SORT_ORDER;
 		const parts: string[] = [];
 		for (const key of order) {
 			const rx = TASKS_RX[key];

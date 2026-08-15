@@ -85,11 +85,11 @@ export function buildTooltip(node: TaskTreeNode): string {
 		parts.push(`⏳ ${DateUtils.formatDate(new Date(node.scheduled))}`);
 	if (node.starts)
 		parts.push(`🛫 ${DateUtils.formatDate(new Date(node.starts))}`);
-	if (node.due) parts.push(`📅 ${DateUtils.formatDate(new Date(node.due))}`);
-	if (node.done)
-		parts.push(`✅ ${DateUtils.formatDate(new Date(node.done))}`);
 	if (node.cancelled)
 		parts.push(`❌ ${DateUtils.formatDate(new Date(node.cancelled))}`);
+	if (node.done)
+		parts.push(`✅ ${DateUtils.formatDate(new Date(node.done))}`);
+	if (node.due) parts.push(`📅 ${DateUtils.formatDate(new Date(node.due))}`);
 	if (node.id) parts.push(`🆔 ${node.id}`);
 	if (node.forbid) parts.push(`⛔ ${node.forbid}`);
 	if (node.tag) parts.push(`🏁 ${node.tag}`);

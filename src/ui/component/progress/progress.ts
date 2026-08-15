@@ -43,8 +43,8 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		"todo",
 		"scheduled",
 		"in-progress",
-		"completed",
 		"cancelled",
+		"completed",
 	];
 	let accumulated = 0;
 	order.forEach((status) => {

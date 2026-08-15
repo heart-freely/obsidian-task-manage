@@ -291,7 +291,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			const vc = this.container.createDiv({
 				cls: "view-content task-view-full",
 			});
-			this.ganttInstance = renderGanttWithTree(vc, dateFilteredTree, {
+			const ganttPromise = renderGanttWithTree(vc, dateFilteredTree, {
 				onTaskClick: (n) => this.openTaskAtLine(n),
 				onRestore: () => this.restoreFocus(),
 				onNodeClick: (n) => this.onTaskTreeNavClick(n),
@@ -299,7 +299,14 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				sort,
 				dateRange: af.dateRange,
 				focusRoot: this.focusedTreeNode || undefined,
-			}) as unknown as GanttInstance;
+			});
+			ganttPromise
+				.then((instance) => {
+					this.ganttInstance = instance as unknown as GanttInstance;
+				})
+				.catch(() => {
+					this.ganttInstance = null;
+				});
 		} else {
 			this.renderSplitLayout(
 				dateFilteredTree,
@@ -603,21 +610,49 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	) {
 		const h = (n: TaskTreeNode) => this.openTaskAtLine(n);
 		const edit = (n: TaskTreeNode) => this.handleEnterEdit(n);
+
+		// 分帧渲染：将节点分批，每帧渲染一批，避免 UI 阻塞
+		const renderChunked = (
+			renderOne: (nodes: TaskTreeNode[]) => HTMLElement | void,
+			chunkSize = 50,
+		) => {
+			if (nodes.length <= chunkSize) {
+				renderOne(nodes);
+				return;
+			}
+
+			let index = 0;
+			const total = nodes.length;
+			const processChunk = () => {
+				const end = Math.min(index + chunkSize, total);
+				renderOne(nodes.slice(index, end));
+				index = end;
+				if (index < total) {
+					window.requestAnimationFrame(processChunk);
+				}
+			};
+			window.requestAnimationFrame(processChunk);
+		};
+
 		switch (style) {
 			case "table":
 				renderTaskTable(container, nodes, { onClick: h });
 				break;
 			case "list":
-				renderTaskList(container, nodes, {
-					onClick: h,
-					compact: false,
-					onEnterEdit: edit,
+				renderChunked((batch) => {
+					renderTaskList(container, batch, {
+						onClick: h,
+						compact: false,
+						onEnterEdit: edit,
+					});
 				});
 				break;
 			case "cards":
-				renderCards(container, nodes, {
-					onClick: h,
-					onEnterEdit: edit,
+				renderChunked((batch) => {
+					renderCards(container, batch, {
+						onClick: h,
+						onEnterEdit: edit,
+					});
 				});
 				break;
 			case "status":
@@ -817,7 +852,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			case "description":
 				return (node.content || node.text || "").toLowerCase();
 			case "priority":
-				return node.priority;
+				return 5 - node.priority;
 			case "scheduled":
 				return node.scheduled;
 			case "due":

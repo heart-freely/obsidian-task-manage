@@ -2,6 +2,7 @@
 
 import { PathFilterConfig, TaskItemFilterConfig } from "../../setting/setting";
 import {
+	getThemeColor,
 	getThemeColorArray,
 	getThemeColorMap,
 	makeColor,
@@ -38,6 +39,7 @@ const C = {
 	prioMedium: { dark: "rgba(200, 155, 85, 0.80)", light: "#c89038" },
 	prioLow: { dark: "rgba(80, 150, 215, 0.80)", light: "#4a8ec7" },
 	prioLowest: { dark: "rgba(110, 160, 100, 0.80)", light: "#5a946e" },
+	missing: { dark: "rgba(128,128,128,0.5)", light: "rgba(128,128,128,0.5)" },
 	repeatDay: { dark: "rgba(80, 130, 200, 0.75)", light: "#4a7ec4" },
 	repeatWeek: { dark: "rgba(85, 170, 195, 0.75)", light: "#3d9ba8" },
 	repeatMonth: { dark: "rgba(170, 135, 90, 0.70)", light: "#b8783a" },
@@ -403,6 +405,9 @@ priorityChildren.forEach((c) => {
 PRIORITY_LABELS["none"] = "None|无";
 export function getPriorityColors(): string[] {
 	return getThemeColorArray(PRIORITY_COLOR_DEFS);
+}
+export function getMissingColor(): string {
+	return getThemeColor(makeColor(C.missing.dark, C.missing.light));
 }
 
 export const REPEAT_ORDER = repeatChildren.map((c) => c.key);

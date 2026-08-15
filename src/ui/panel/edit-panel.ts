@@ -127,32 +127,35 @@ export class EditPanel {
 		});
 		acRow.appendChild(acBtn);
 
-		// 修复：使用 HTMLInputElement 类型
-		const daysInput: HTMLInputElement = createEl(
+		const daysInput = createEl(
 			"input",
-		) as HTMLInputElement;
-		daysInput.type = "number";
-		daysInput.value = this.savedDaysValue;
-		daysInput.min = "0";
-		daysInput.addClass(
-			"task-w-12",
-			"task-h-5",
-			"task-text-center",
-			"task-px-1",
-			"task-py-0",
-			"task-rounded-full",
-			"task-border",
-			"task-text-smaller",
-			"task-leading-normal",
-			"task-box-border",
+			{
+				type: "number",
+			},
+			(el) => {
+				el.value = this.savedDaysValue;
+				el.min = "0";
+				el.addClass(
+					"task-w-12",
+					"task-h-5",
+					"task-text-center",
+					"task-px-1",
+					"task-py-0",
+					"task-rounded-full",
+					"task-border",
+					"task-text-smaller",
+					"task-leading-normal",
+					"task-box-border",
+				);
+				if (!isBatchMode || !hasSelected) {
+					el.disabled = true;
+					el.style.cssText += ds;
+				}
+				el.addEventListener("input", () => {
+					this.savedDaysValue = el.value;
+				});
+			},
 		);
-		if (!isBatchMode || !hasSelected) {
-			daysInput.disabled = true;
-			daysInput.style.cssText += ds;
-		}
-		daysInput.addEventListener("input", () => {
-			this.savedDaysValue = daysInput.value;
-		});
 		acRow.appendChild(daysInput);
 		const daysLabel = createEl("span");
 		daysLabel.textContent = "天";
@@ -194,29 +197,34 @@ export class EditPanel {
 		row2.addClass("task-flex-wrap", "task-gap-1");
 		row2.createSpan({ text: "批量撤回", cls: "panel-label" });
 
-		// 修复：使用 HTMLSelectElement 类型
-		const ss: HTMLSelectElement = createEl("select") as HTMLSelectElement;
-		ss.className = "panel-btn";
-		ss.addClass(
-			"task-max-w-55",
-			"task-h-auto",
-			"task-min-h-unset",
-			"task-appearance-none",
+		const ss = createEl(
+			"select",
+			{
+				cls: "panel-btn",
+			},
+			(el) => {
+				el.addClass(
+					"task-max-w-55",
+					"task-h-auto",
+					"task-min-h-unset",
+					"task-appearance-none",
+				);
+				if (!hasSnapshots) {
+					const opt = el.createEl("option", {
+						text: "无编辑备份",
+						disabled: true,
+					});
+				} else {
+					snapshots.forEach((snap, i) => {
+						const opt = el.createEl("option", {
+							text: `${snap.time} (${Object.keys(snap.snapshot).length}个)`,
+							value: String(i),
+						});
+						if (i === 0) opt.selected = true;
+					});
+				}
+			},
 		);
-		if (!hasSnapshots) {
-			const opt = document.createElement("option");
-			opt.textContent = "无编辑备份";
-			opt.disabled = true;
-			ss.appendChild(opt);
-		} else {
-			snapshots.forEach((snap, i) => {
-				const opt = document.createElement("option");
-				opt.textContent = `${snap.time} (${Object.keys(snap.snapshot).length}个)`;
-				opt.value = String(i);
-				if (i === 0) opt.selected = true;
-				ss.appendChild(opt);
-			});
-		}
 		row2.appendChild(ss);
 
 		const revBtn = row2.createEl("button", {

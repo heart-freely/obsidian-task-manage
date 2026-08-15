@@ -12,6 +12,9 @@ node_modules
 # They should be uploaded to GitHub releases instead.
 main.js
 
+# Stale build artifact (legacy nouislider CSS); plugin styles live in styles.css
+main.css
+
 # Exclude sourcemaps
 *.map
 

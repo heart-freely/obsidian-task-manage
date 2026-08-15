@@ -3,26 +3,24 @@
 ## 修订记录
 
 | 版本  | 日期       | 修订内容                                                     |
-| ----- | ---------- | ------------------------------------------------------------ |
+| :---- | :--------- | :----------------------------------------------------------- |
 | 2.0.0 | 2026-05-21 | 初始版本                                                     |
 | 2.2.0 | 2026-06-11 | 状态键名修正(planned→scheduled)、新增HideConfig结构、面板架构简化、intervalMode扩展、侧边栏简化、数据层引入DataManager |
 | 2.3.0 | 2026-06-27 | 全面更新至当前代码实现：新增EditPanel面板、编辑系统重构（EditStore+BaseTaskEdit+task-editor）、侧边栏SidebarPanel独立文件、所有面板组件完整描述、工具模块补充、文件路径修正 |
-|       |            |                                                              |
-
----
+| 2.4.0 | 2026-07-31 | 审核修复版本：类型安全转换（新增GanttSvgElement、EChartsInstance、AppLike、VaultLike等接口）、面板键名统一为filter、logger模块精简、甘特图异步初始化修复、视图回调补全、日历缓存失效机制、时间轴性能优化、TimePanel渲染锁、侧边栏宽度调整优化 |
 
 # 引言
 
 ## 标识
 
-- **项目名称**：Obsidian Task Manage
+- **项目名称**：Task Manage
 - **文档名称**：软件(结构)设计说明 (SDD)
-- **版本**：2.3.1
-- **更新日期**：2026-06-27
+- **版本**：2.4.0
+- **更新日期**：2026-07-31
 
 ## 系统概述
 
-本插件将 Obsidian 中的任务标记转化为结构化数据，通过19种可视化视图帮助用户管理任务。采用 Store + 组件化 + 方案（Preset）架构：Store 为单一状态源（发布/订阅），Preset 驱动视图配置，Panels 管理器统一控制9个功能面板。业务视图与通用组件完全解耦。
+本插件将 Obsidian 中的任务标记转化为结构化数据，通过19种可视化视图帮助用户管理任务。采用 Store + 组件化 + 方案（Preset）架构：Store 为单一状态源（发布/订阅），Preset 驱动视图配置，Panels 管理器统一控制7个功能面板。业务视图与通用组件完全解耦。
 
 ## 文档概述
 
@@ -32,11 +30,11 @@
 
 - Obsidian API ≥ 0.15.0
 - TypeScript 5.x + esbuild
-- 依赖：Dataview、Obsidian Tasks
+- 依赖：Dataview、Obsidian Tasks、ECharts
 
 # 引用文件
 
-- Obsidian API 文档：https://docs.obsidian.md
+- Obsidian API 文档：[https://docs.obsidian.md](https://docs.obsidian.md/)
 - 官方示例插件：https://github.com/obsidianmd/obsidian-sample-plugin
 - ECharts 文档：https://echarts.apache.org/
 - GB/T 8567-2006 软件文档编制规范
@@ -50,28 +48,26 @@
 
 **功能视图**：待办（InboxView）、重要（ImportantView）、今天（TodayView）、未来（FutureView）、所有任务（AllTasksView）、基础统计图、详细统计图。
 
-**配置面板**（9个功能栏，默认顺序）：
+**配置面板**（7个功能栏，默认顺序）：
 
-| 键     | 名称     | 核心能力                                         |
-| ------ | -------- | ------------------------------------------------ |
-| excut  | 筛选状态 | 5种状态多选，主按钮全选/全不选                   |
-| search | 筛选描述 | 关键词实时过滤，空格分隔且逻辑，双层输入保护     |
-| mark   | 筛选标记 | 优先级/循环/日期/依赖/标签多选                   |
-| time   | 筛选时间 | 动态+静态滑动条，三种时间模式，动态↔静态单向联动 |
-| view   | 任务视图 | 4组19种视图样式切换                              |
-| hide   | 视图隐藏 | 基于HideConfig的状态/优先级/循环/标记隐藏        |
-| edit   | 视图编辑 | 批量编辑/补全时间/保存修改/撤回快照              |
-| sort   | 视图排序 | 15种排序选项（原始+14种字段）                    |
-| config | 视图配置 | 名称/图标、导入导出、恢复默认、删除              |
+| 键     | 名称     | 核心能力                                                     |
+| :----- | :------- | :----------------------------------------------------------- |
+| filter | 筛选内容 | 状态筛选 + 描述搜索 + 标记筛选（优先级/循环/日期/依赖/标签），合并为统一筛选面板 |
+| time   | 筛选时间 | 动态+静态滑动条，三种时间模式（any-date/scheduled-due/starts-done），动态↔静态单向联动 |
+| view   | 任务视图 | 4组19种视图样式切换                                          |
+| hide   | 视图隐藏 | 基于HideConfig的状态/优先级/循环/标记隐藏                    |
+| edit   | 视图编辑 | 批量编辑/补全时间/保存修改/撤回快照                          |
+| sort   | 视图排序 | 15种排序选项（原始+14种字段）                                |
+| config | 视图配置 | 名称/图标、导入导出、恢复默认、删除                          |
 
 ## 命名规范
 
-| 元素      | 规则       | 示例                     |
-| --------- | ---------- | ------------------------ |
-| 文件名    | kebab-case | `base-task-view.ts`      |
-| 类名      | PascalCase | `BaseTaskView`, `Panels` |
-| 函数/变量 | camelCase  | `filterTasks`            |
-| CSS类名   | kebab-case | `.task-list`             |
+| 元素      | 规则                    | 示例                         |
+| :-------- | :---------------------- | :--------------------------- |
+| 文件名    | kebab-case              | `base-task-view.ts`          |
+| 类名      | PascalCase              | `BaseTaskView`, `Panels`     |
+| 函数/变量 | camelCase               | `filterTasks`                |
+| CSS类名   | task- 前缀 + kebab-case | `.task-list`, `.task-hidden` |
 
 代码风格：TypeScript strict mode，2空格缩进，单引号，必须分号，始终尾逗号。
 
@@ -84,18 +80,19 @@
 5. **组件化复用**：通用视图组件接收数据数组返回 DOM，面板各栏独立封装
 6. **筛选状态同步**：`GlobalFilter` 管理筛选条件，`HideConfig` 管理隐藏配置（独立于筛选）
 7. **编辑系统分离**：`EditStore` 管理编辑状态，`BaseTaskEdit` 处理编辑交互，`Op` 对象提供标记操作，编辑UI工具在 `util/edit-utils.ts`
-8. **状态持久化**：Store 通过 `loadData()/saveData()` 自动保存，整理处快照用 `localStorage`
-9. **性能优化**：50ms防抖渲染，`DataManager` 单例缓存+筛选指纹，面板实例 Map 复用，输入聚焦时跳过面板重建
+8. **状态持久化**：Store 通过 `loadData()/saveData()` 自动保存，整理处快照用插件数据存储
+9. **性能优化**：50ms防抖渲染，`DataManager` 单例缓存+筛选指纹，面板实例 Map 复用，输入聚焦时跳过面板重建，甘特图异步初始化避免阻塞
 
 ## 全局约束与假设
 
 | 约束项   | 说明                                                         |
-| -------- | ------------------------------------------------------------ |
+| :------- | :----------------------------------------------------------- |
 | 运行环境 | Obsidian 0.15.0+，需启用 Dataview 和 Obsidian Tasks 插件     |
 | CSS变量  | 假定主题提供 `--font-text`、`--font-ui-small`、`--font-ui-smaller`、`--text-normal`、`--text-muted`、`--background-primary`、`--background-secondary`、`--background-modifier-border`、`--background-modifier-hover`、`--background-modifier-active`、`--interactive-accent`、`--interactive-normal` |
-| 浏览器   | Chromium (Electron)，支持 ES2020+、ResizeObserver、CSS Flexbox |
+| 浏览器   | Chromium (Electron)，支持 ES2018+、ResizeObserver、CSS Flexbox |
 | 移动端   | 当前未充分测试                                               |
 | 预设数量 | 通常不超过 20 个，重渲染性能可接受                           |
+| CSS 样式 | 禁用 `all: unset`，使用显式属性声明；禁用 `!important`，通过提高选择器特异性覆盖样式；编辑按钮使用 `all: unset` 为唯一例外 |
 
 # CSCI体系结构设计
 
@@ -105,6 +102,7 @@
 ┌────────────────────────────────────────┐
 │              main.ts (入口)             │
 │  初始化 Store、注册视图、侧边栏         │
+│  onload(): void 同步入口，异步逻辑 IIFE │
 └────────────────┬───────────────────────┘
                  │
 ┌────────────────▼───────────────────────┐
@@ -124,7 +122,6 @@
 │           数据层 (core/)               │
 │  解析器(parser/) → 任务树(task/)       │
 │  → 数据管理(data/) → 日期计算(date/)   │
-│  → 组件处理(process/)                  │
 └────────────────────────────────────────┘
 ```
 
@@ -139,13 +136,13 @@
 
 组件:
   名称: Panels
-  描述: 面板管理器单例，管理9个功能栏的显隐、排序、高度、复用
+  描述: 面板管理器单例，管理7个功能栏的显隐、排序、高度、复用
   接口: [getInstance, init, syncState, refreshContent, applyVisibility, refreshTimePanel, initPanelSubscriptions, getEditPanel, cleanupAll]
-  依赖: [Store, HeadPanel, TimePanel, StatusPanel, SearchPanel, MarkPanel, ViewPanel, HidePanel, EditPanel, SortPanel, PresetPanel]
+  依赖: [Store, HeadPanel, TimePanel, FilterPanel, ViewPanel, HidePanel, EditPanel, SortPanel, SidebarPanel]
 
 组件:
   名称: BaseTaskView
-  描述: 业务视图基类（继承BaseTaskEdit），防抖渲染(50ms)，分屏布局，19种视图切换，任务跳转
+  描述: 业务视图基类（继承BaseTaskEdit），防抖渲染(50ms)，分屏布局，19种视图切换，任务跳转。甘特图异步初始化避免阻塞
   接口: [render, destroy, renderByStyle, getDefaultFilter, applySort, openTaskAtLine, renderEmpty, renderSplitLayout, toggleTaskTreeNav]
   依赖: [Store, DataManager, EditStore, BaseTaskEdit]
 
@@ -178,8 +175,8 @@
 
 ```
 src/
-├── main.ts                              # 插件入口
-├── type/type.ts                         # 类型定义（AppState, Preset, GlobalFilter, HideConfig, EditState, EditPanelState, TaskData, TaskTreeNode, FileRelations）
+├── main.ts                              # 插件入口（onload(): void 同步入口）
+├── type/type.ts                         # 类型定义（AppState, Preset, GlobalFilter, HideConfig, EditState, EditPanelState, TaskData, TaskTreeNode, FileRelations, GanttSvgElement, EChartsInstance, AppLike, VaultLike, ManageViewLike, EditStoreLike, TaskViewLike）
 ├── setting/setting.ts                   # 设置面板（TaskManageSettingTab）
 ├── core/
 │   ├── config/
@@ -190,29 +187,25 @@ src/
 │   │   ├── store.ts                     # Store 类（全局状态管理+编辑面板状态+editStore集成）
 │   │   └── preset/
 │   │       ├── preset.ts               # 预设管理（增删改激活方案）
-│   │       └── panel-preset.ts         # 面板默认配置（getDefaultFilter, getDefaultHideConfig, getDefaultPresets, YEAR_RANGE_OFFSET）
+│   │       └── panel-preset.ts         # 面板默认配置
 │   ├── edit/
 │   │   ├── task-edit-store.ts          # EditStore 编辑状态管理
 │   │   ├── base-task-edit.ts           # BaseTaskEdit 编辑交互Mixin
-│   │   └── task-editor.ts              # 编辑操作对象Op（标记设置/删除、补全、排序、快照管理、文件写入）
+│   │   └── task-editor.ts              # 编辑操作对象Op
 │   ├── data/
 │   │   └── data-manager.ts             # DataManager 单例数据管理器
 │   ├── date/
-│   │   └── date-calc.ts               # 日期计算模块（ISO周数、年份缓存、格式化、滑动条联动、动态/静态时间处理）
+│   │   └── date-calc.ts               # 日期计算模块
 │   ├── parser/
-│   │   ├── md-parser.ts                # Markdown文件解析器（YAML提取、标题识别、标题YAML块、任务文件加载）
+│   │   ├── md-parser.ts                # Markdown文件解析器
 │   │   ├── tasks-parser.ts            # Tasks格式列表任务行解析器
 │   │   ├── task-parser.ts             # YAML属性解析器
 │   │   └── dataview-parser.ts         # Dataview格式解析器
-│   ├── process/
-│   │   ├── calendar-view-process.ts   # 日历视图数据处理
-│   │   ├── gantt-view-process.ts      # 甘特图数据处理
-│   │   └── tree-view-process.ts       # 任务树处理（序号去除、状态统计、排序）
 │   ├── task/
-│   │   ├── task-tree.ts               # 统一任务树（数据结构、构建、筛选、扁平化、隐藏配置）
-│   │   ├── task-derived.ts            # 任务派生数据（标记检测、时间区间、状态/优先级获取）
+│   │   ├── task-tree.ts               # 统一任务树
+│   │   ├── task-derived.ts            # 任务派生数据
 │   │   ├── task-filter.ts             # 扁平任务筛选
-│   │   └── task-format.ts             # 任务格式化（元数据行HTML、tooltip HTML、描述文本）
+│   │   └── task-format.ts             # 任务格式化
 │   └── command/
 │       └── index.ts                    # 命令注册（当前为空）
 ├── ui/
@@ -222,86 +215,58 @@ src/
 │   ├── panel/
 │   │   ├── panel.ts                    # Panels 面板管理器单例
 │   │   ├── head-panel.ts              # HeadPanel 标题栏按钮条
-│   │   ├── time-panel.ts             # TimePanel 筛选时间面板
-│   │   ├── status-panel.ts           # StatusPanel 筛选状态面板
-│   │   ├── search-panel.ts           # SearchPanel 筛选描述面板
-│   │   ├── mark-panel.ts             # MarkPanel 筛选标记面板
+│   │   ├── time-panel.ts             # TimePanel 筛选时间面板（含渲染锁）
+│   │   ├── filter-panel.ts           # FilterPanel 筛选内容面板（状态+描述+标记合并）
 │   │   ├── view-panel.ts             # ViewPanel 任务视图面板
 │   │   ├── hide-panel.ts             # HidePanel 视图隐藏面板
 │   │   ├── edit-panel.ts             # EditPanel 编辑面板
 │   │   ├── sort-panel.ts             # SortPanel 视图排序面板
-│   │   └── preset-panel.ts           # PresetPanel 视图配置面板
+│   │   └── sidebar-panel.ts          # PresetPanel 视图配置面板
 │   ├── view/
-│   │   ├── base-task-view.ts          # BaseTaskView 业务视图基类（继承BaseTaskEdit）
+│   │   ├── base-task-view.ts          # BaseTaskView 业务视图基类（甘特图异步初始化）
 │   │   ├── all-task-view.ts           # AllTasksView
 │   │   ├── inbox-task-view.ts         # InboxView
 │   │   ├── important-task-view.ts     # ImportantView
 │   │   ├── today-task-view.ts         # TodayView
 │   │   └── future-task-view.ts        # FutureView
 │   ├── main/
-│   │   ├── card/
-│   │   │   ├── card.ts                # 统一任务卡片入口+编辑上下文
-│   │   │   ├── view-card.ts           # 卡片视图DOM构建
-│   │   │   ├── grid-card.ts           # 卡片网格布局
-│   │   │   └── group-card.ts          # 分组卡片组件
-│   │   ├── list/
-│   │   │   ├── list.ts                # 任务列表
-│   │   │   ├── status-list.ts         # 状态列表
-│   │   │   ├── priority-list.ts       # 优先级列表
-│   │   │   ├── recurring-list.ts      # 循环列表
-│   │   │   ├── time-list.ts           # 时间列表
-│   │   │   ├── timeline-list.ts       # 时间轴列表
-│   │   │   ├── tag-list.ts            # 标签列表
-│   │   │   ├── uniqueId-list.ts       # 唯一ID列表
-│   │   │   ├── depends-list.ts        # 依赖列表
-│   │   │   ├── overdue-list.ts        # 逾期列表
-│   │   │   └── tree-list.ts           # 任务树列表
-│   │   ├── table/
-│   │   │   └── table.ts               # 任务表格
-│   │   ├── board/
-│   │   │   ├── kanban-board.ts        # 看板视图
-│   │   │   └── matrix-board.ts        # 矩阵视图
-│   │   ├── calendar/
-│   │   │   ├── calendar.ts            # 统一日历视图入口
-│   │   │   ├── day-calendar.ts        # 日视图委托
-│   │   │   ├── week-calendar.ts       # 周视图委托
-│   │   │   ├── month-calendar.ts      # 月视图委托
-│   │   │   ├── quarter-calendar.ts    # 季视图委托
-│   │   │   └── year-calendar.ts       # 年视图委托
-│   │   ├── gantt/
-│   │   │   └── gantt.ts               # 甘特图视图
-│   │   └── chart/
-│   │       ├── echart.ts              # ECharts打包导入+全局兼容
-│   │       ├── mark-chart.ts          # 标记统计图（6个饼图）
-│   │       ├── detail-chart.ts        # 详细统计图（堆叠柱状图）
-│   │       └── time-chart.ts          # 时间统计图（占位，待实现）
+│   │   ├── card/                      # 卡片组件
+│   │   ├── list/                      # 列表组件（含 tree-view-process.ts）
+│   │   ├── table/                     # 表格组件
+│   │   ├── board/                     # 看板/矩阵组件
+│   │   ├── calendar/                  # 日历组件（含 calendar-view-process.ts）
+│   │   ├── gantt/                     # 甘特图组件（含 gantt-view-process.ts）
+│   │   └── chart/                     # 图表组件
 │   └── component/
-│       ├── progress/
-│       │   └── progress.ts            # 进度条组件
-│       ├── slider/
-│       │   └── slider.ts              # 通用双滑块+增强滑动条
-│       └── tooltip/
-│           └── tooltip.ts             # Tooltip单例管理器
+│       ├── progress/                  # 进度条组件
+│       ├── slider/                    # 滑动条组件
+│       └── tooltip/                   # Tooltip组件
 └── util/
-    ├── color-utils.ts                  # 颜色工具（主题检测、颜色映射、Canvas叠加转换）
-    ├── date-utils.ts                   # 日期工具集（格式化、ISO周数、各时间范围计算）
-    ├── dom-utils.ts                    # DOM工具（createEl便捷函数）
-    ├── edit-utils.ts                   # 编辑工具（按钮组定义、编辑栏/预览行/复选框DOM构建）
-    ├── logger.ts                       # 简易日志工具
-    └── performance.ts                  # 性能工具（帧节流）
+    ├── color-utils.ts                  # 颜色工具
+    ├── date-utils.ts                   # 日期工具集
+    ├── dom-utils.ts                    # DOM工具（createEl）
+    ├── edit-utils.ts                   # 编辑工具
+    ├── logger.ts                       # 日志工具（仅warn/error）
+    ├── navigator-utils.ts             # 任务导航工具
+    ├── performance.ts                  # 性能工具
+    └── validate-utils.ts              # 配置验证工具
 ```
 
 ## 执行概念
 
-**面板管理**：`Panels.init()` 创建宿主容器、标题栏、面板容器、拖拽手柄 → `syncState()` 从 Store 读取状态 → `refreshContent()` 根据 `barVisibility` 和 `toolbarOrder` 动态创建/复用面板实例（9个面板组件映射表）→ 拖拽手柄调整高度（[30, 85vh]）或折叠/展开。
+**面板管理**：`Panels.init()` 创建宿主容器、标题栏、面板容器、拖拽手柄 → `syncState()` 从 Store 读取状态 → `refreshContent()` 根据 `barVisibility` 和 `toolbarOrder` 动态创建/复用面板实例（7个面板组件映射表）→ 拖拽手柄调整高度（[30, 85vh]）或折叠/展开。
 
 **方案切换**：侧边栏点击 → `store.update({ activePresetId })` → `Panels.syncState()` + `ViewContainer.refresh()` → 动态加载业务视图类并渲染。
 
-**数据缓存**：`DataManager.loadData()` 首次加载 → 调用 `loadAllTaskFiles(app)` 获取所有任务文件 → `buildTaskTree(files)` 构建完整树 → 建立ID映射（uid→node 和 id→node）→ 清空文件content释放内存。后续调用直接返回缓存。`getFilteredTree(filter)` 使用筛选指纹缓存。`getFlatNodes(filter)` 自动过滤 `display:false` 和虚拟根节点。
+**数据缓存**：`DataManager.loadData()` 首次加载 → 调用 `loadAllTaskFiles(app)` 获取所有任务文件 → `buildTaskTree(files)` 构建完整树 → 建立ID映射（uid→node 和 id→node）→ 清空文件content释放内存。后续调用直接返回缓存。`getFilteredTree(filter)` 使用筛选指纹缓存。
 
 **防抖渲染**：`BaseTaskView.render()` 使用50ms定时器防抖。若前次渲染未执行，取消定时器并返回新Promise等待当前渲染完成。
 
-**编辑系统**：`EditStore` 管理编辑状态 → `BaseTaskEdit` 处理进入/退出编辑、卡片状态切换、全局点击事件 → `createEditBar`/`createPreviewRow`（在 `util/edit-utils.ts`）构建编辑UI → `Op` 对象（在 `core/edit/task-editor.ts`）执行标记操作 → 快照通过 `localStorage` 持久化。
+**甘特图初始化**：`renderGanttWithTree` 为 async 函数，通过 `.then()` 异步赋值给 `this.ganttInstance`，避免存储 Promise 对象导致后续 `destroy` 调用失败。
+
+**编辑系统**：`EditStore` 管理编辑状态 → `BaseTaskEdit` 处理进入/退出编辑、卡片状态切换、全局点击事件 → `createEditBar`/`createPreviewRow` 构建编辑UI → `Op` 对象执行标记操作 → 快照通过插件数据持久化。
+
+**日历缓存**：`calendar.ts` 使用 `CalendarCacheEntry` 结构缓存日期-任务映射，提供 `invalidateCalendarCache()` 导出函数，在数据变更和全量重渲染时调用失效。
 
 # 全局数据结构说明
 
@@ -311,12 +276,12 @@ src/
 
 ```typescript
 interface AppState {
-  activePresetId: string | null;      // 当前激活方案ID
-  presets: Preset[];                  // 所有视图方案
-  presetGroups: PresetGroup[];        // 方案分组(预留字段，当前未启用)
-  sidebarCollapsed: boolean;          // 侧边栏折叠状态
-  sidebarWidth: number;               // 侧边栏宽度(默认100)
-  editPanelState?: EditPanelState;    // 编辑面板状态
+  activePresetId: string | null;
+  presets: Preset[];
+  presetGroups: PresetGroup[];
+  sidebarCollapsed: boolean;
+  sidebarWidth: number;
+  editPanelState?: EditPanelState;
 }
 ```
 
@@ -326,24 +291,24 @@ interface AppState {
 
 ```typescript
 interface Preset {
-  id: string;                         // 唯一标识
-  name: string;                       // 视图名称
-  groupId: string;                    // 分组ID
-  businessView: string;               // 业务视图类型(allTasks/inbox/important/today/future)
-  viewStyle: string;                  // 视图样式(19种)
-  icon?: string;                      // 侧边栏图标(Emoji)
-  filter: GlobalFilter;               // 筛选条件
-  hideConfig?: HideConfig;            // 隐藏配置
+  id: string;
+  name: string;
+  groupId: string;
+  businessView: string;
+  viewStyle: string;
+  icon?: string;
+  filter: GlobalFilter;
+  hideConfig?: HideConfig;
   sort: { type: string; order: 'asc' | 'desc' };
-  toolbarOrder?: string[];            // 面板排序(9个面板键)
-  barVisibility?: Record<string, boolean>;  // 面板显隐
-  toolbarPanelsCollapsed?: boolean;   // 面板折叠
-  toolbarPanelsHeight?: number;       // 面板高度(默认300)
-  useDynamic?: boolean;               // 动态时间联动
-  intervalMode?: string;              // 时间模式
-  taskTreeNavCollapsed?: boolean;     // 任务树导航折叠
-  taskTreeNavWidth?: number;          // 任务树导航宽度(默认280)
-  tableColumns?: Record<string, boolean>;  // 表格列显隐
+  toolbarOrder?: string[];
+  barVisibility?: Record<string, boolean>;
+  toolbarPanelsCollapsed?: boolean;
+  toolbarPanelsHeight?: number;
+  useDynamic?: boolean;
+  intervalMode?: string;
+  taskTreeNavCollapsed?: boolean;
+  taskTreeNavWidth?: number;
+  calendarSubView?: string;
 }
 ```
 
@@ -1651,13 +1616,10 @@ Op.autoComplete(line, days=3):
 
 ## 当前已知限制
 
-- 级联日期联动逻辑未实现（独立滑动条各自更新）
-- 甘特图依赖箭头实时更新待增强
 - 移动端适配未充分测试
 - `time-chart.ts` 时间统计图为占位文件（显示"时间统计图功能开发中..."）
 - `command/index.ts` 命令注册为空（无插件命令）
 - `presetGroups` 方案分组为预留字段，侧边栏当前不按分组渲染
-- `organize-task-view.ts`（整理处视图）不存在于当前项目结构中
 
 ## 术语表
 
@@ -1682,167 +1644,3 @@ Op.autoComplete(line, days=3):
 | YA_NAME               | YAML属性名，用于文件/标题任务的属性映射                      |
 | Panels.panelEls       | 面板DOM元素Map（key → HTMLElement），用于面板复用            |
 | Panels.panelInstances | 面板组件实例Map（key → Bar实例），用于面板复用和接口访问     |
-
-# 附录
-
-## 涉及文件清单（完整版，与实际项目结构严格一致）
-
-### 入口与类型
-| 文件               | 职责                                                         |
-| ------------------ | ------------------------------------------------------------ |
-| `src/main.ts`      | 插件入口（Store初始化、预设合并、视图注册、持久化、wasViewOpen恢复） |
-| `src/type/type.ts` | 类型定义（AppState, Preset, GlobalFilter, HideConfig, EditState, EditPanelState, TaskData, TaskTreeNode, FileRelations, IntervalMode等） |
-
-### 核心配置
-| 文件                                 | 职责                                                         |
-| ------------------------------------ | ------------------------------------------------------------ |
-| `src/core/config/config.ts`          | 核心常量（TASK_ELEMENTS完整定义, 颜色定义, 状态/优先级/循环/日期/标签映射, 任务文件识别配置与过滤器, updateTaskFileConfig） |
-| `src/core/config/tasks-config.ts`    | Tasks格式定义（状态符号, TASKS_RX正则, 优先级/循环映射）     |
-| `src/core/config/dataview-config.ts` | Dataview格式定义（inline字段, emoji日期简写）                |
-
-### Store层
-| 文件                                    | 职责                                                         |
-| --------------------------------------- | ------------------------------------------------------------ |
-| `src/core/store/store.ts`               | Store类（全局状态管理+编辑面板状态+editStore集成+编辑操作代理） |
-| `src/core/store/preset/preset.ts`       | 预设管理（增删改激活方案）                                   |
-| `src/core/store/preset/panel-preset.ts` | 面板默认配置（getDefaultFilter, getDefaultHideConfig, getDefaultPresets, YEAR_RANGE_OFFSET） |
-
-### 编辑系统
-| 文件                               | 职责                                                         |
-| ---------------------------------- | ------------------------------------------------------------ |
-| `src/core/edit/task-edit-store.ts` | EditStore编辑状态管理（单/批量模式、预览累积、保存/撤回、快照） |
-| `src/core/edit/base-task-edit.ts`  | BaseTaskEdit编辑交互Mixin（编辑入口、卡片状态管理、编辑上下文、全局点击退出） |
-| `src/core/edit/task-editor.ts`     | 编辑操作对象Op（12种标记设置/删除、自动补全、排序、快照管理、文件写入） |
-
-### 数据层
-| 文件                            | 职责                                                         |
-| ------------------------------- | ------------------------------------------------------------ |
-| `src/core/data/data-manager.ts` | DataManager单例（加载/缓存/筛选指纹/扁平化/失效）            |
-| `src/core/date/date-calc.ts`    | 日期计算模块（ISO周数、年份缓存、格式化、滑动条联动、动态/静态时间处理） |
-
-### 解析器
-| 文件                                 | 职责                                                         |
-| ------------------------------------ | ------------------------------------------------------------ |
-| `src/core/parser/md-parser.ts`       | Markdown文件解析器（YAML提取、标题识别、标题YAML块、任务文件加载、isTaskFile判断） |
-| `src/core/parser/tasks-parser.ts`    | Tasks格式列表任务行解析器（parseTaskLine、TASK_REGEX正则）   |
-| `src/core/parser/task-parser.ts`     | YAML属性解析器（文件任务+标题任务共用）                      |
-| `src/core/parser/dataview-parser.ts` | Dataview格式解析器                                           |
-
-### 组件处理
-| 文件                                        | 职责                                                         |
-| ------------------------------------------- | ------------------------------------------------------------ |
-| `src/core/process/calendar-view-process.ts` | 日历视图数据处理（日期-任务映射、格子数据构建、排序、时间范围生成） |
-| `src/core/process/gantt-view-process.ts`    | 甘特图数据处理（时间区间、范围、图层、网格、甘特条位置、依赖箭头、缩放持久化） |
-| `src/core/process/tree-view-process.ts`     | 任务树处理（序号去除、任务收集、状态统计、排序函数）         |
-
-### 任务核心
-| 文件                            | 职责                                                         |
-| ------------------------------- | ------------------------------------------------------------ |
-| `src/core/task/task-tree.ts`    | 统一任务树（数据结构、构建、文件关系解析、筛选、时间范围筛选、隐藏配置、扁平化） |
-| `src/core/task/task-derived.ts` | 任务派生数据（标记检测、时间区间计算、状态/优先级获取）      |
-| `src/core/task/task-filter.ts`  | 扁平任务筛选（日期/状态/标记/路径/搜索/优先级/循环）         |
-| `src/core/task/task-format.ts`  | 任务格式化（元数据行HTML、tooltip HTML、描述文本构建）       |
-
-### 命令
-| 文件                        | 职责                 |
-| --------------------------- | -------------------- |
-| `src/core/command/index.ts` | 命令注册（当前为空） |
-
-### 设置
-| 文件                     | 职责                                                    |
-| ------------------------ | ------------------------------------------------------- |
-| `src/setting/setting.ts` | 设置面板（任务路径多行+下拉搜索、四级过滤器、实时生效） |
-
-### UI入口
-| 文件           | 职责                                                         |
-| -------------- | ------------------------------------------------------------ |
-| `src/ui/ui.ts` | ManageView + ViewContainer + createManageLayout（三栏布局、视图动态加载） |
-
-### 侧边栏
-| 文件                        | 职责                                                      |
-| --------------------------- | --------------------------------------------------------- |
-| `src/ui/sidebar/sidebar.ts` | SidebarPanel侧边栏面板（折叠/展开、宽度自适应、新建视图） |
-
-### 面板组件
-| 文件                           | 职责                                                         |
-| ------------------------------ | ------------------------------------------------------------ |
-| `src/ui/panel/panel.ts`        | Panels面板管理器单例（宿主容器、标题栏、面板容器、拖拽手柄、9个面板组件映射、面板复用、高度调整、输入聚焦保护、样式注入） |
-| `src/ui/panel/head-panel.ts`   | HeadPanel标题栏按钮条（拖拽排序、眼睛按钮显隐）              |
-| `src/ui/panel/time-panel.ts`   | TimePanel筛选时间面板（时间模式、动态滑动条、静态滑动条五级、联动、跨天检测） |
-| `src/ui/panel/status-panel.ts` | StatusPanel筛选状态面板（主按钮全选/全不选、5种状态子按钮）  |
-| `src/ui/panel/search-panel.ts` | SearchPanel筛选描述面板（文本输入、双层输入保护）            |
-| `src/ui/panel/mark-panel.ts`   | MarkPanel筛选标记面板（优先级/循环/时间/依赖/标签5组）       |
-| `src/ui/panel/view-panel.ts`   | ViewPanel任务视图面板（4组19种视图样式切换）                 |
-| `src/ui/panel/hide-panel.ts`   | HidePanel视图隐藏面板（HideConfig七组控制）                  |
-| `src/ui/panel/edit-panel.ts`   | EditPanel编辑面板（批量编辑/补全时间/保存修改/撤回快照）     |
-| `src/ui/panel/sort-panel.ts`   | SortPanel视图排序面板（15种排序+升降序切换）                 |
-| `src/ui/panel/preset-panel.ts` | PresetPanel视图配置面板（名称/图标、导入导出JSON、恢复默认、删除） |
-
-### 业务视图
-| 文件                                 | 职责                                                         |
-| ------------------------------------ | ------------------------------------------------------------ |
-| `src/ui/view/base-task-view.ts`      | BaseTaskView业务视图基类（继承BaseTaskEdit，50ms防抖渲染、分屏布局、19种视图切换、排序、跳转） |
-| `src/ui/view/all-task-view.ts`       | AllTasksView所有任务视图                                     |
-| `src/ui/view/inbox-task-view.ts`     | InboxView待办任务视图                                        |
-| `src/ui/view/important-task-view.ts` | ImportantView重要任务视图                                    |
-| `src/ui/view/today-task-view.ts`     | TodayView今天任务视图                                        |
-| `src/ui/view/future-task-view.ts`    | FutureView未来任务视图                                       |
-
-### 通用视图组件-卡片
-| 文件                             | 职责                                  |
-| -------------------------------- | ------------------------------------- |
-| `src/ui/main/card/card.ts`       | 统一任务卡片入口+编辑上下文管理       |
-| `src/ui/main/card/view-card.ts`  | 卡片视图DOM构建（详细/简洁/编辑模式） |
-| `src/ui/main/card/grid-card.ts`  | 卡片网格布局                          |
-| `src/ui/main/card/group-card.ts` | 分组卡片组件                          |
-
-### 通用视图组件-列表
-| 文件                                 | 职责                                                         |
-| ------------------------------------ | ------------------------------------------------------------ |
-| `src/ui/main/list/list.ts`           | 任务列表                                                     |
-| `src/ui/main/list/status-list.ts`    | 状态列表                                                     |
-| `src/ui/main/list/priority-list.ts`  | 优先级列表                                                   |
-| `src/ui/main/list/recurring-list.ts` | 循环列表                                                     |
-| `src/ui/main/list/time-list.ts`      | 时间列表（按计划日期分组）                                   |
-| `src/ui/main/list/timeline-list.ts`  | 时间轴列表（按截止日期分组）                                 |
-| `src/ui/main/list/tag-list.ts`       | 标签列表                                                     |
-| `src/ui/main/list/uniqueId-list.ts`  | 唯一ID列表                                                   |
-| `src/ui/main/list/depends-list.ts`   | 依赖列表                                                     |
-| `src/ui/main/list/overdue-list.ts`   | 逾期列表                                                     |
-| `src/ui/main/list/tree-list.ts`      | 任务树列表（聚焦/全树模式、折叠展开、进度条、onRowRender回调） |
-
-### 通用视图组件-其他
-| 文件                                       | 职责                                                   |
-| ------------------------------------------ | ------------------------------------------------------ |
-| `src/ui/main/table/table.ts`               | 任务表格（空列自动隐藏）                               |
-| `src/ui/main/board/kanban-board.ts`        | 看板视图（三列）                                       |
-| `src/ui/main/board/matrix-board.ts`        | 矩阵视图（四象限）                                     |
-| `src/ui/main/calendar/calendar.ts`         | 统一日历视图入口（日/周/月/季/年、样式注入、热力图）   |
-| `src/ui/main/calendar/day-calendar.ts`     | 日视图委托                                             |
-| `src/ui/main/calendar/week-calendar.ts`    | 周视图委托                                             |
-| `src/ui/main/calendar/month-calendar.ts`   | 月视图委托                                             |
-| `src/ui/main/calendar/quarter-calendar.ts` | 季视图委托                                             |
-| `src/ui/main/calendar/year-calendar.ts`    | 年视图委托                                             |
-| `src/ui/main/gantt/gantt.ts`               | 甘特图视图（时间轴分层、甘特条、依赖箭头、缩放、平移） |
-| `src/ui/main/chart/echart.ts`              | ECharts打包导入+全局兼容                               |
-| `src/ui/main/chart/mark-chart.ts`          | 标记统计图（6个饼图）                                  |
-| `src/ui/main/chart/detail-chart.ts`        | 详细统计图（堆叠柱状图+全屏放大）                      |
-| `src/ui/main/chart/time-chart.ts`          | 时间统计图（占位，待实现）                             |
-
-### 基础组件
-| 文件                                    | 职责                                           |
-| --------------------------------------- | ---------------------------------------------- |
-| `src/ui/component/progress/progress.ts` | 进度条组件（分段渲染、tooltip、状态统计）      |
-| `src/ui/component/slider/slider.ts`     | 通用双滑块+增强滑动条（刻度、today标记、标签） |
-| `src/ui/component/tooltip/tooltip.ts`   | Tooltip单例管理器（全局跟踪、延时隐藏）        |
-
-### 工具函数
-| 文件                      | 职责                                                         |
-| ------------------------- | ------------------------------------------------------------ |
-| `src/util/color-utils.ts` | 颜色工具（主题检测、颜色映射、Canvas叠加转换）               |
-| `src/util/date-utils.ts`  | 日期工具集（格式化、ISO周数、各时间范围计算）                |
-| `src/util/dom-utils.ts`   | DOM工具（createEl便捷函数）                                  |
-| `src/util/edit-utils.ts`  | 编辑工具（EDIT_BUTTONS12组定义、编辑栏/预览行/复选框DOM构建、hasContentBeenEdited） |
-| `src/util/logger.ts`      | 简易日志工具（生产环境仅输出错误）                           |
-| `src/util/performance.ts` | 性能工具（throttleByFrame帧节流）                            |
-

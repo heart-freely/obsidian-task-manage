@@ -4,6 +4,7 @@ import {
 	DATE_MARK_ORDER,
 	DEPENDS_COLOR_DEF,
 	getDateMarkColors,
+	getMissingColor,
 	getPriorityColors,
 	getRepeatColors,
 	getStatusColors,
@@ -32,7 +33,7 @@ const DATE_MARK_ZH_NAMES: Record<string, string> = {};
 DATE_MARK_ORDER.forEach((k) => {
 	DATE_MARK_ZH_NAMES[k] = TASK_ELEMENTS[k]?.zhName || k;
 });
-const MISSING_COLOR = "rgba(128,128,128,0.5)";
+const MISSING_COLOR = getMissingColor();
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	container.querySelectorAll(".chart-body").forEach((el) => {

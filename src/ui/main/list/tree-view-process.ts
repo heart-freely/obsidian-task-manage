@@ -74,15 +74,15 @@ export function compareTasks(
 			todo: 0,
 			scheduled: 1,
 			"in-progress": 2,
-			completed: 3,
-			cancelled: 4,
+			cancelled: 3,
+			completed: 4,
 		};
 		const sa = so[nodeA.status] ?? 5;
 		const sb = so[nodeB.status] ?? 5;
 		if (sa !== sb) return (sa - sb) * order;
 	} else if (sortType === "priority") {
 		if (nodeA.priority !== nodeB.priority)
-			return (nodeA.priority - nodeB.priority) * order;
+			return (nodeB.priority - nodeA.priority) * order;
 	} else if (sortType === "scheduled") {
 		const da = nodeA.scheduled;
 		const db = nodeB.scheduled;
@@ -119,15 +119,15 @@ export function sortContentNodes(
 				todo: 0,
 				scheduled: 1,
 				"in-progress": 2,
-				completed: 3,
-				cancelled: 4,
+				cancelled: 3,
+				completed: 4,
 			};
 			const sa = so[a.task.status] ?? 5;
 			const sb = so[b.task.status] ?? 5;
 			if (sa !== sb) return (sa - sb) * order;
 		} else if (sort?.type === "priority") {
 			if (a.task.priority !== b.task.priority)
-				return (a.task.priority - b.task.priority) * order;
+				return (b.task.priority - a.task.priority) * order;
 		}
 
 		return (
