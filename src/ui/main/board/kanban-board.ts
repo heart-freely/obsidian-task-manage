@@ -33,7 +33,7 @@ export function renderKanban(
 			color: statusColors["in-progress"],
 		},
 	];
-	const board = createEl("div");
+	const board = createDiv();
 	board.className = "kanban-board";
 	board.addClass("task-flex", "task-gap-3", "task-items-start");
 	columns.forEach((col) => {

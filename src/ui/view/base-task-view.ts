@@ -415,7 +415,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			this.resizeHandle = lc.createDiv({
 				cls: "task-tree-nav-resize task-tree-nav-resize-visible",
 			});
-			const arrow = createEl("span");
+			const arrow = createSpan();
 			arrow.addClass("task-tree-nav-arrow");
 			arrow.textContent = "◀";
 			arrow.title = "折叠任务树";
@@ -444,7 +444,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			this.resizeHandle = lc.createDiv({
 				cls: "task-tree-nav-resize task-tree-nav-resize-hidden",
 			});
-			const arrow = createEl("span");
+			const arrow = createSpan();
 			arrow.addClass("task-tree-nav-arrow");
 			arrow.textContent = "▶";
 			arrow.title = "展开任务树";

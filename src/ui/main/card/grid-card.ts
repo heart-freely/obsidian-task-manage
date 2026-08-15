@@ -16,7 +16,7 @@ export function renderCards(
 		container.createDiv({ text: "暂无任务" });
 		return;
 	}
-	const grid = createEl("div");
+	const grid = createDiv();
 	grid.className = "task-cards-grid";
 	grid.addClass("task-grid", "task-grid-cols-auto-fill", "task-gap-3");
 	nodes.forEach((node) => {

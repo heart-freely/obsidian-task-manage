@@ -95,7 +95,7 @@ export class BaseTaskEdit {
 				const checked = this.editStore
 					.getState()
 					.selectedTasks.has(uid);
-				const cb = createEl("input") as HTMLInputElement;
+				const cb = createEl("input");
 				cb.type = "checkbox";
 				cb.checked = checked;
 				cb.className = "edit-checkbox";
@@ -529,7 +529,7 @@ export class BaseTaskEdit {
 			}
 		} else {
 			if (!previewRow) {
-				previewRow = createEl("div");
+				previewRow = createDiv();
 				previewRow.className = "task-preview-row task-hidden";
 				card.appendChild(previewRow);
 			} else {

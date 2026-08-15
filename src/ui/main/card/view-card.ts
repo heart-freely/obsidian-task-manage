@@ -25,7 +25,7 @@ function buildDescriptionDOM(
 	_compact: boolean,
 ): DocumentFragment {
 	const frag = createFragment();
-	const span = createEl("span");
+	const span = createSpan();
 	span.textContent = buildDescription(node, _compact);
 	frag.appendChild(span);
 	return frag;
@@ -142,7 +142,7 @@ export function createViewCard(
 	if (!node.display) li.addClass("task-opacity-40");
 
 	if (compact) {
-		const descDiv = createEl("div");
+		const descDiv = createDiv();
 		descDiv.className = "task-desc";
 		descDiv.addClass(
 			"task-font-normal",
@@ -154,7 +154,7 @@ export function createViewCard(
 		descDiv.appendChild(buildDescriptionDOM(node, compact));
 		li.appendChild(descDiv);
 	} else {
-		const row1 = createEl("div");
+		const row1 = createDiv();
 		row1.addClass("task-flex", "task-items-center", "task-gap-1");
 		if (isBatchMode && editCtx && node.type === "list") {
 			row1.appendChild(
@@ -163,7 +163,7 @@ export function createViewCard(
 				}),
 			);
 		}
-		const descEl = createEl("span");
+		const descEl = createSpan();
 		descEl.className = "task-desc";
 		descEl.appendChild(buildDescriptionDOM(node, compact));
 		descEl.addClass(
@@ -208,7 +208,7 @@ export function createViewCard(
 				),
 			);
 		} else {
-			const pr = createEl("div");
+			const pr = createDiv();
 			pr.className = "task-preview-row";
 			pr.addClass("task-hidden");
 			li.appendChild(pr);

@@ -35,7 +35,7 @@ export function renderMatrix(
 		priorityColors[2],
 		priorityColors[3],
 	];
-	const grid = createEl("div");
+	const grid = createDiv();
 	grid.className = "matrix-grid";
 	grid.addClass(
 		"task-grid",

@@ -156,7 +156,7 @@ export class EditPanel {
 			},
 		);
 		acRow.appendChild(daysInput);
-		const daysLabel = createEl("span");
+		const daysLabel = createSpan();
 		daysLabel.textContent = "天";
 		daysLabel.addClass(
 			"task-text-smaller",

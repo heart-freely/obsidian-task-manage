@@ -1,6 +1,5 @@
 // src/core/config/config.ts
 
-import { PathFilterConfig, TaskItemFilterConfig } from "../../setting/setting";
 import {
 	getThemeColor,
 	getThemeColorArray,
@@ -8,6 +7,19 @@ import {
 	makeColor,
 	ThemeColor,
 } from "../../util/color-utils";
+
+export interface PathFilterConfig {
+	pattern: string;
+	caseSensitive: boolean;
+	wholeWord: boolean;
+	useRegex: boolean;
+	exclude: boolean;
+}
+
+export interface TaskItemFilterConfig {
+	pattern: string;
+	exclude: boolean;
+}
 
 export const TASK_ELEMENT_ORDER = [
 	"status",

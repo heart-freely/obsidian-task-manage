@@ -1,23 +1,10 @@
 // src/setting/setting.ts
 
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
-import { updateTaskFileConfig } from "../core/config/config";
+import { PathFilterConfig, TaskItemFilterConfig, updateTaskFileConfig } from "../core/config/config";
 import { DataManager } from "../core/data/data-manager";
 import { ManageViewLike } from "../type/type";
 import { safeMergeConfig } from "../util/validate-utils";
-
-export interface PathFilterConfig {
-	pattern: string;
-	caseSensitive: boolean;
-	wholeWord: boolean;
-	useRegex: boolean;
-	exclude: boolean;
-}
-
-export interface TaskItemFilterConfig {
-	pattern: string;
-	exclude: boolean;
-}
 
 export interface TaskManageSettings {
 	taskRootPath: string;

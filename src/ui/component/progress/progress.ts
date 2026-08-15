@@ -20,7 +20,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 	const { counts, total, height, showPercent } = options;
 	const bh = height || "6px";
 	const st = total || 1;
-	const container = createEl("div");
+	const container = createDiv();
 	container.className = "task-progress-bar";
 	container.addClass(
 		"task-flex",
@@ -28,7 +28,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		"task-gap-1",
 		"task-min-w-15",
 	);
-	const barWrapper = createEl("div");
+	const barWrapper = createDiv();
 	barWrapper.addClass(
 		"task-flex-1",
 		"task-rounded-sm",
@@ -51,7 +51,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		if (count > 0) {
 			const pct = Math.min((count / st) * 100, 100 - accumulated);
 			accumulated += pct;
-			const seg = createEl("div");
+			const seg = createDiv();
 			seg.addClass("task-h-full", "task-flex-shrink-0");
 			seg.style.width = pct + "%";
 			seg.style.background = statusColors[status] || "var(--text-muted)";
@@ -62,7 +62,7 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 	if (showPercent !== false) {
 		const done = (counts["completed"] || 0) + (counts["cancelled"] || 0);
 		const pct = Math.min(Math.round((done / st) * 100), 100);
-		const label = createEl("span");
+		const label = createSpan();
 		label.addClass(
 			"task-text-smaller",
 			"task-text-muted",

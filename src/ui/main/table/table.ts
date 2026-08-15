@@ -153,7 +153,7 @@ export function renderTaskTable(
 }
 
 function createTh(text: string, mode: "nowrap" | "wrap"): HTMLTableCellElement {
-	const th = createEl("th") as HTMLTableCellElement;
+	const th = createEl("th");
 	th.textContent = text;
 	th.addClass(
 		"task-px-2",
@@ -174,7 +174,7 @@ function createTh(text: string, mode: "nowrap" | "wrap"): HTMLTableCellElement {
 }
 
 function createTd(text: string, wrap: boolean): HTMLTableCellElement {
-	const td = createEl("td") as HTMLTableCellElement;
+	const td = createEl("td");
 	td.textContent = text;
 	td.addClass(
 		"task-px-2",

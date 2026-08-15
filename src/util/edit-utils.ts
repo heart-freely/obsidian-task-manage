@@ -448,7 +448,7 @@ export function createEditBar(
 	node: TaskTreeNode,
 	options: EditBarOptions,
 ): HTMLElement {
-	const bar = createEl("div");
+	const bar = createDiv();
 	bar.className = "task-edit-bar";
 	const editCtx = getEditContext();
 	if (
@@ -523,7 +523,7 @@ export function createEditBar(
 	updateAllButtonStyles();
 	const fileName = node.path.split("/").pop()?.replace(".md", "") || "";
 	if (fileName) {
-		const fs = createEl("span");
+		const fs = createSpan();
 		fs.textContent = `📄 ${fileName}`;
 		fs.className = "edit-file-name";
 		bar.appendChild(fs);
@@ -750,7 +750,7 @@ function createCustomSubRow(
 				ex.remove();
 				return;
 			}
-			const dd = createEl("div");
+			const dd = createDiv();
 			dd.className = "id-select-dropdown task-id-select-dropdown";
 			const br = sb.getBoundingClientRect();
 			dd.setCssProps({
@@ -758,7 +758,7 @@ function createCustomSubRow(
 				"--task-dropdown-top": br.bottom + 4 + "px",
 			});
 			io.forEach((opt) => {
-				const item = createEl("div");
+				const item = createDiv();
 				item.textContent = `${opt.id}: ${opt.desc}`;
 				item.title = `${opt.id}: ${opt.desc}`;
 				item.className = "task-id-select-item";
@@ -865,7 +865,7 @@ export function createSubRow(
 	group: EditButtonGroup,
 	options: EditBarOptions,
 ): HTMLElement {
-	const sr = createEl("div");
+	const sr = createDiv();
 	sr.className = "edit-sub-row";
 	const ctx = createSubRowContext(node, group, options, sr);
 	ctx._subRow = sr;
@@ -884,12 +884,12 @@ export function createPreviewRow(
 	hasEdits?: boolean,
 	onRestore?: (() => void) | null,
 ): HTMLElement {
-	const row = createEl("div");
+	const row = createDiv();
 	row.className = "task-preview-row";
 	row.addClass(
 		saved ? "task-edit-preview-saved" : "task-edit-preview-unsaved",
 	);
-	const ts = createEl("span");
+	const ts = createSpan();
 	ts.className = "edit-preview-text";
 	if (saved) {
 		ts.textContent = `📝 已保存: ${previewText}`;

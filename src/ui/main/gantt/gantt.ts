@@ -42,19 +42,19 @@ function createTimelineHeader(
 	const textColor = "var(--text-normal)";
 	const mutedColor = dark ? "#999" : "#888";
 
-	const header = createEl("div");
+	const header = createDiv();
 	header.className = "gantt-header gantt-header-dynamic";
 	header.setCssProps({
 		"--gantt-header-height": HEADER_HEIGHT + "px",
 		"--gantt-header-width": treeWidth + totalWidth + "px",
 	});
 
-	const spacer = createEl("div");
+	const spacer = createDiv();
 	spacer.className = "gantt-header-spacer";
 	spacer.setCssProps({ "--gantt-spacer-width": treeWidth + "px" });
 	header.appendChild(spacer);
 
-	const inner = createEl("div");
+	const inner = createDiv();
 	inner.className = "gantt-header-inner-dynamic";
 	inner.setCssProps({
 		"--gantt-inner-left": treeWidth + "px",
@@ -139,7 +139,7 @@ function createTimelineHeader(
 			const x1 = treeWidth + dateToX(cur.getTime());
 			const x2 = treeWidth + dateToX(nextTs);
 			if (x2 > x1) {
-				const el = createEl("span");
+				const el = createSpan();
 				el.textContent = layer.getLabel(cur);
 				el.className = "gantt-header-label";
 				if (nextTs < tr.maxTime)
@@ -340,7 +340,7 @@ export async function renderGanttWithTree(
 		edges: { left: number; width: number },
 		y: number,
 	): HTMLElement {
-		const bar = createEl("div");
+		const bar = createDiv();
 		bar.className = "gantt-bar gantt-bar-dynamic";
 		bar.setAttribute("data-task-bar", "true");
 		bar.setAttribute("data-uid", node.uid);
@@ -356,7 +356,7 @@ export async function renderGanttWithTree(
 		});
 
 		if (edges.width > 60) {
-			const desc = createEl("span");
+			const desc = createSpan();
 			desc.className = "gantt-bar-desc";
 			desc.textContent = node.text || node.content || "";
 			bar.appendChild(desc);
@@ -369,7 +369,7 @@ export async function renderGanttWithTree(
 				: 0,
 		);
 		if (dur && edges.width > 30) {
-			const label = createEl("span");
+			const label = createSpan();
 			label.className = "gantt-bar-label";
 			label.textContent = dur;
 			bar.appendChild(label);
@@ -563,7 +563,7 @@ export async function renderGanttWithTree(
 					const d = new Date(timeRange.minTime + i * 86400000);
 					if (d.getDate() === 1) {
 						const x: number = dateToX(d.getTime());
-						const line = createEl("div");
+						const line = createDiv();
 						line.className = "gantt-timeline-line";
 						line.setCssProps({ "--gantt-line-left": x + "px" });
 						oldLineLayer.appendChild(line);
@@ -594,7 +594,7 @@ export async function renderGanttWithTree(
 	}
 
 	container.addClass("gantt-container");
-	const scrollArea = createEl("div");
+	const scrollArea = createDiv();
 	scrollArea.className = "gantt-scroll-area";
 	container.appendChild(scrollArea);
 
@@ -636,7 +636,7 @@ export async function renderGanttWithTree(
 			scrollArea.removeEventListener("scroll", syncHeaderScroll);
 		if (deferredUpdateTimer) window.clearTimeout(deferredUpdateTimer);
 
-		const treeContainer = createEl("div");
+		const treeContainer = createDiv();
 		treeContainer.className =
 			"gantt-tree-container gantt-tree-container-dynamic";
 		treeContainer.setCssProps({
@@ -659,7 +659,7 @@ export async function renderGanttWithTree(
 					if (node.id) taskMap.set(node.id, node);
 					const cc = rowEl.querySelector<HTMLElement>("div");
 					if (cc && getBarEdges(node)) {
-						const lb = createEl("span");
+						const lb = createSpan();
 						lb.textContent = "➤";
 						lb.className = "gantt-locate-btn";
 						lb.addEventListener("click", (ev) => {
@@ -700,7 +700,7 @@ export async function renderGanttWithTree(
 			header.addClass("gantt-header-top");
 			scrollArea.insertBefore(header, treeContainer);
 
-			const lineLayer = createEl("div");
+			const lineLayer = createDiv();
 			lineLayer.className =
 				"gantt-timeline-lines gantt-timeline-lines-dynamic gantt-timeline-lines-height";
 			lineLayer.setCssProps({
@@ -711,7 +711,7 @@ export async function renderGanttWithTree(
 				const d = new Date(timeRange.minTime + i * 86400000);
 				if (d.getDate() === 1) {
 					const x: number = dateToX(d.getTime());
-					const line = createEl("div");
+					const line = createDiv();
 					line.className = "gantt-timeline-line";
 					line.setCssProps({ "--gantt-line-left": x + "px" });
 					lineLayer.appendChild(line);
@@ -719,7 +719,7 @@ export async function renderGanttWithTree(
 			}
 			scrollArea.appendChild(lineLayer);
 
-			gridOverlay = createEl("div");
+			gridOverlay = createDiv();
 			gridOverlay.className =
 				"gantt-grid-overlay gantt-grid-overlay-dynamic gantt-grid-overlay-height";
 			gridOverlay.setCssProps({
@@ -729,7 +729,7 @@ export async function renderGanttWithTree(
 			updateGridLevel(zoomState.dayWidth);
 			scrollArea.appendChild(gridOverlay);
 
-			todayLine = createEl("div");
+			todayLine = createDiv();
 			todayLine.className =
 				"gantt-today-line gantt-today-line-dynamic gantt-today-line-height";
 			const todayTs: number = DateUtils.setStart(new Date()).getTime();
@@ -738,7 +738,7 @@ export async function renderGanttWithTree(
 			updateTodayLine();
 			scrollArea.appendChild(todayLine);
 
-			barsContainer = createEl("div");
+			barsContainer = createDiv();
 			barsContainer.className = "gantt-bars-dynamic";
 			barsContainer.setCssProps({ "--gantt-bars-width": totalW + "px" });
 			scrollArea.appendChild(barsContainer);

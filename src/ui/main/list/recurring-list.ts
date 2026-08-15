@@ -26,7 +26,7 @@ export function renderRecurring(
 		groups[cycle].push(node);
 	});
 	const cycleOrder = ["every day", "every week", "every month", "every year"];
-	const grid = createEl("div");
+	const grid = createDiv();
 	grid.className = "recurring-grid";
 	grid.addClass(
 		"task-grid",

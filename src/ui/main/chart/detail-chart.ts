@@ -63,10 +63,10 @@ export function renderDetail(
 			if (arr && idx < arr.length) arr[idx]++;
 		}
 	});
-	const wrapper = createEl("div");
+	const wrapper = createDiv();
 	wrapper.className = "detail-chart-wrapper";
 	wrapper.addClass("task-w-full", "task-min-h-100", "task-relative");
-	const chartDiv = createEl("div");
+	const chartDiv = createDiv();
 	chartDiv.addClass("task-w-full", "task-h-125");
 	wrapper.appendChild(chartDiv);
 	const zoomBtn = createEl("button");
@@ -120,7 +120,7 @@ export function renderDetail(
 	};
 	chart.setOption(option);
 	zoomBtn.addEventListener("click", () => {
-		const modal = createEl("div");
+		const modal = createDiv();
 		modal.addClass(
 			"task-fixed",
 			"task-inset-0",
@@ -142,7 +142,7 @@ export function renderDetail(
 			"task-text-white",
 			"task-clickable",
 		);
-		const bigChartDiv = createEl("div");
+		const bigChartDiv = createDiv();
 		bigChartDiv.addClass("task-w-90", "task-h-90");
 		modal.appendChild(bigChartDiv);
 		modal.appendChild(closeBtn);

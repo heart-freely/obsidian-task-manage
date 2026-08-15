@@ -51,7 +51,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	const dependsColor = getThemeColor(DEPENDS_COLOR_DEF);
 	const tagColor = getThemeColor(TAG_COLOR_DEF);
 	const totalCount = nodes.length;
-	const grid = createEl("div");
+	const grid = createDiv();
 	grid.className = "chart-grid";
 	grid.addClass("task-grid", "task-grid-cols-3", "task-gap-4", "task-w-full");
 	container.appendChild(grid);
@@ -68,10 +68,10 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		title: string,
 		data: { name: string; value: number; color?: string }[],
 	) {
-		const item = createEl("div");
+		const item = createDiv();
 		item.className = "chart-item";
 		item.addClass("task-min-w-0");
-		const header = createEl("div");
+		const header = createDiv();
 		header.className = "chart-header";
 		header.addClass(
 			"task-text-center",
@@ -82,7 +82,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		header.textContent = title;
 		item.appendChild(header);
 		const chartHeight = getChartHeight(data.length);
-		const chartDiv = createEl("div");
+		const chartDiv = createDiv();
 		chartDiv.className = "chart-body task-chart-dynamic-height task-w-full";
 		chartDiv.setCssProps({ "--task-chart-height": chartHeight });
 		item.appendChild(chartDiv);

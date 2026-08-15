@@ -23,7 +23,7 @@ export interface TreeListOptions {
 }
 
 function createRowWrapper(depth: number): HTMLElement {
-	const w = createEl("div");
+	const w = createDiv();
 	w.addClass(
 		"task-flex",
 		"task-items-center",
@@ -34,7 +34,7 @@ function createRowWrapper(depth: number): HTMLElement {
 	return w;
 }
 function createToggleBtn(childContainer: HTMLElement): HTMLElement {
-	const b = createEl("span");
+	const b = createSpan();
 	b.className = "tree-toggle-btn";
 	b.addClass(
 		"task-inline-flex",
@@ -71,7 +71,7 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	return b;
 }
 function createSpacer(): HTMLElement {
-	const s = createEl("span");
+	const s = createSpan();
 	s.addClass("task-inline-flex", "task-w-4", "task-flex-shrink-0");
 	return s;
 }
@@ -81,7 +81,7 @@ function addProgressBadge(
 	counts: Record<string, number>,
 	total: number,
 ) {
-	const w = createEl("div");
+	const w = createDiv();
 	w.addClass(
 		"task-flex",
 		"task-items-center",
@@ -97,7 +97,7 @@ function addProgressBadge(
 	});
 	pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 	w.appendChild(pb);
-	const b = createEl("span");
+	const b = createSpan();
 	b.textContent = "(" + total + ")";
 	b.addClass("task-text-smaller", "task-text-muted", "task-flex-shrink-0");
 	w.appendChild(b);
@@ -110,10 +110,10 @@ export function renderTaskTree(
 ) {
 	container.empty();
 	const displayRoot = options.focusRoot || options.root;
-	const tree = createEl("div");
+	const tree = createDiv();
 	tree.className = "task-tree";
 	if (options.focusRoot) {
-		const focusBar = createEl("div");
+		const focusBar = createDiv();
 		focusBar.addClass(
 			"task-px-1",
 			"task-py-0",
@@ -135,7 +135,7 @@ export function renderTaskTree(
 		focusBar.addEventListener("click", () => options.onRestore?.());
 		tree.appendChild(focusBar);
 	} else {
-		const rootRow = createEl("div");
+		const rootRow = createDiv();
 		rootRow.addClass(
 			"task-flex",
 			"task-items-center",
@@ -143,7 +143,7 @@ export function renderTaskTree(
 			"task-px-1",
 			"task-py-0",
 		);
-		const rootTitle = createEl("span");
+		const rootTitle = createSpan();
 		rootTitle.addClass("task-text-sm", "task-text-muted");
 		rootTitle.textContent = "🗂️ 任务管理";
 		rootRow.appendChild(rootTitle);
@@ -166,7 +166,7 @@ export function renderTaskTree(
 			});
 			pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 			rootRow.appendChild(pb);
-			const badge = createEl("span");
+			const badge = createSpan();
 			badge.addClass(
 				"task-text-smaller",
 				"task-text-muted",
@@ -193,13 +193,13 @@ function renderNode(
 	if (!node.display) return;
 	if (!node.match && node.children.length === 0) return;
 	const hasChildren = node.children.length > 0;
-	const childContainer = createEl("div");
+	const childContainer = createDiv();
 	const nodeStats = countNodeStatuses(node);
 	const displayDepth = Math.max(0, node.depth - depthOffset);
 	const rowWrapper = createRowWrapper(displayDepth);
 	if (hasChildren) rowWrapper.appendChild(createToggleBtn(childContainer));
 	else rowWrapper.appendChild(createSpacer());
-	const contentContainer = createEl("div");
+	const contentContainer = createDiv();
 	contentContainer.addClass(
 		"task-flex",
 		"task-items-center",
@@ -219,7 +219,7 @@ function renderNode(
 	if (nodeStats.total > 0 && hasChildren)
 		addProgressBadge(contentContainer, nodeStats.counts, nodeStats.total);
 	rowWrapper.appendChild(contentContainer);
-	const rightSpacer = createEl("div");
+	const rightSpacer = createDiv();
 	rightSpacer.addClass("task-flex-1");
 	rowWrapper.appendChild(rightSpacer);
 	parentEl.appendChild(rowWrapper);

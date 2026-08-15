@@ -7,7 +7,7 @@ class TooltipManager {
 
 	ensureDiv() {
 		if (!this.div) {
-			this.div = createEl("div");
+			this.div = createDiv();
 			this.div.className = "dataview-tooltip";
 			document.body.appendChild(this.div);
 			document.addEventListener("mousemove", (e) => {

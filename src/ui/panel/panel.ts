@@ -62,24 +62,24 @@ export class Panels {
 		this.app = app;
 		this.panelHost = container.createDiv({ cls: "panel-host" });
 		this.panelHost.addClass("panel-host-layout");
-		this.buttonBarEl = createEl("div");
+		this.buttonBarEl = createDiv();
 		this.buttonBarEl.className = "panel-header";
 		this.buttonBarEl.addClass("panel-header-layout");
 		this.headPanel = new HeadPanel(this.buttonBarEl, store);
-		this.panelsContainer = createEl("div");
+		this.panelsContainer = createDiv();
 		this.panelsContainer.className = "panel-container";
 		this.panelsContainer.addClass("panel-container-layout");
-		this.panelContentInner = createEl("div");
+		this.panelContentInner = createDiv();
 		this.panelContentInner.addClass("panel-content-inner");
 		this.panelContentInner.appendChild(this.buttonBarEl);
 		this.panelsContainer.appendChild(this.panelContentInner);
 		this.panelHost.appendChild(this.panelsContainer);
-		this.resizeHandle = createEl("div");
+		this.resizeHandle = createDiv();
 		this.resizeHandle.className =
 			"panel-resize-handle panel-resize-handle-layout";
 		this.resizeHandle.title = "拖拽调整高度 / 点击中间箭头折叠";
 		this.panelHost.appendChild(this.resizeHandle);
-		const arrow = createEl("span");
+		const arrow = createSpan();
 		arrow.addClass("panel-resize-arrow");
 		arrow.textContent = "▲";
 		arrow.addEventListener("mousedown", (e) => {
@@ -233,7 +233,7 @@ export class Panels {
 		}
 		for (const key of visibleKeys) {
 			if (!this.panelEls.has(key)) {
-				const panel = createEl("div");
+				const panel = createDiv();
 				panel.className = "panel-content";
 				panel.setAttribute("data-panel-key", key);
 				this.panelEls.set(key, panel);

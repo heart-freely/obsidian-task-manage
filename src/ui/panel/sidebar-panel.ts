@@ -69,7 +69,7 @@ export class SidebarPanel {
 			cls: "panel-btn",
 		});
 		importBtn.addEventListener("click", () => {
-			const input = createEl("input") as HTMLInputElement;
+			const input = createEl("input");
 			input.type = "file";
 			input.accept = ".json";
 			input.addEventListener("change", () => {
@@ -118,7 +118,7 @@ export class SidebarPanel {
 			const blob = new Blob([JSON.stringify(pr, null, 2)], {
 				type: "application/json",
 			});
-			const a = createEl("a") as HTMLAnchorElement;
+			const a = createEl("a");
 			a.href = URL.createObjectURL(blob);
 			a.download = `task-view-${pr.name}.json`;
 			a.click();
