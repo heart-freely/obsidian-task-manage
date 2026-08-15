@@ -8,6 +8,7 @@
 | 2.2.0 | 2026-06-11 | 状态键名修正(planned→scheduled)、新增HideConfig结构、面板架构简化、intervalMode扩展、侧边栏简化、数据层引入DataManager |
 | 2.3.0 | 2026-06-27 | 全面更新至当前代码实现：新增EditPanel面板、编辑系统重构（EditStore+BaseTaskEdit+task-editor）、侧边栏SidebarPanel独立文件、所有面板组件完整描述、工具模块补充、文件路径修正 |
 | 2.4.0 | 2026-07-31 | 审核修复版本：类型安全转换（新增GanttSvgElement、EChartsInstance、AppLike、VaultLike等接口）、面板键名统一为filter、logger模块精简、甘特图异步初始化修复、视图回调补全、日历缓存失效机制、时间轴性能优化、TimePanel渲染锁、侧边栏宽度调整优化 |
+| 2.5.0 | 2026-08-15 | 审核告警清零：改用 Obsidian 全局 DOM 函数（createEl/createDiv/createSpan/createSvg/createFragment）替代自定义 dom-utils；prefer-create-el 的 div/span 简写；no-unsafe 类型收窄与 normalizeIntervalMode 守卫；删除多余 as 断言；拆解 config↔setting 循环依赖；tsconfig lib 升级 ES2019（trimStart）；快照/甘特缩放由 localStorage 迁移至 loadData/saveData；display deprecated 改用私有 renderSettings |
 
 # 引言
 
@@ -15,12 +16,12 @@
 
 - **项目名称**：Task Manage
 - **文档名称**：软件(结构)设计说明 (SDD)
-- **版本**：2.4.0
-- **更新日期**：2026-07-31
+- **版本**：2.5.0
+- **更新日期**：2026-08-15
 
 ## 系统概述
 
-本插件将 Obsidian 中的任务标记转化为结构化数据，通过19种可视化视图帮助用户管理任务。采用 Store + 组件化 + 方案（Preset）架构：Store 为单一状态源（发布/订阅），Preset 驱动视图配置，Panels 管理器统一控制7个功能面板。业务视图与通用组件完全解耦。
+本插件将 Obsidian 中的任务标记转化为结构化数据，通过20种可视化视图（含时间统计占位）帮助用户管理任务。采用 Store + 组件化 + 方案（Preset）架构：Store 为单一状态源（发布/订阅），Preset 驱动视图配置，Panels 管理器统一控制7个功能面板。业务视图与通用组件完全解耦。
 
 ## 文档概述
 
@@ -30,7 +31,7 @@
 
 - Obsidian API ≥ 0.15.0
 - TypeScript 5.x + esbuild
-- 依赖：Dataview、Obsidian Tasks、ECharts
+- 依赖：Obsidian Tasks、ECharts（Dataview 格式由内置解析器处理，无需安装 Dataview 插件）
 
 # 引用文件
 
@@ -46,7 +47,7 @@
 
 系统核心功能：任务数据读取与解析、多视图展示、全局筛选与排序、任务编辑与批量修改、状态持久化。
 
-**功能视图**：待办（InboxView）、重要（ImportantView）、今天（TodayView）、未来（FutureView）、所有任务（AllTasksView）、基础统计图、详细统计图。
+**功能视图**：待办（InboxView）、重要（ImportantView）、今天（TodayView）、未来（FutureView）、所有任务（AllTasksView）、基础统计图、详细统计图、时间统计图（占位，开发中）。
 
 **配置面板**（7个功能栏，默认顺序）：
 
@@ -54,7 +55,7 @@
 | :----- | :------- | :----------------------------------------------------------- |
 | filter | 筛选内容 | 状态筛选 + 描述搜索 + 标记筛选（优先级/循环/日期/依赖/标签），合并为统一筛选面板 |
 | time   | 筛选时间 | 动态+静态滑动条，三种时间模式（any-date/scheduled-due/starts-done），动态↔静态单向联动 |
-| view   | 任务视图 | 4组19种视图样式切换                                          |
+| view   | 任务视图 | 4组20种视图样式切换（含时间统计占位）                                          |
 | hide   | 视图隐藏 | 基于HideConfig的状态/优先级/循环/标记隐藏                    |
 | edit   | 视图编辑 | 批量编辑/补全时间/保存修改/撤回快照                          |
 | sort   | 视图排序 | 15种排序选项（原始+14种字段）                                |
@@ -87,7 +88,7 @@
 
 | 约束项   | 说明                                                         |
 | :------- | :----------------------------------------------------------- |
-| 运行环境 | Obsidian 0.15.0+，需启用 Dataview 和 Obsidian Tasks 插件     |
+| 运行环境 | Obsidian 0.15.0+，需启用 Obsidian Tasks 插件（ECharts 已打包进 main.js） |
 | CSS变量  | 假定主题提供 `--font-text`、`--font-ui-small`、`--font-ui-smaller`、`--text-normal`、`--text-muted`、`--background-primary`、`--background-secondary`、`--background-modifier-border`、`--background-modifier-hover`、`--background-modifier-active`、`--interactive-accent`、`--interactive-normal` |
 | 浏览器   | Chromium (Electron)，支持 ES2018+、ResizeObserver、CSS Flexbox |
 | 移动端   | 当前未充分测试                                               |
@@ -142,7 +143,7 @@
 
 组件:
   名称: BaseTaskView
-  描述: 业务视图基类（继承BaseTaskEdit），防抖渲染(50ms)，分屏布局，19种视图切换，任务跳转。甘特图异步初始化避免阻塞
+  描述: 业务视图基类（继承BaseTaskEdit），防抖渲染(50ms)，分屏布局，20种视图切换，任务跳转。甘特图异步初始化避免阻塞
   接口: [render, destroy, renderByStyle, getDefaultFilter, applySort, openTaskAtLine, renderEmpty, renderSplitLayout, toggleTaskTreeNav]
   依赖: [Store, DataManager, EditStore, BaseTaskEdit]
 
@@ -244,7 +245,6 @@ src/
 └── util/
     ├── color-utils.ts                  # 颜色工具
     ├── date-utils.ts                   # 日期工具集
-    ├── dom-utils.ts                    # DOM工具（createEl）
     ├── edit-utils.ts                   # 编辑工具
     ├── logger.ts                       # 日志工具（仅warn/error）
     ├── navigator-utils.ts             # 任务导航工具
@@ -309,6 +309,7 @@ interface Preset {
   taskTreeNavCollapsed?: boolean;
   taskTreeNavWidth?: number;
   calendarSubView?: string;
+  tableColumns?: Record<string, boolean>;
 }
 ```
 
@@ -351,6 +352,8 @@ interface EditState {
   previews: Map<string, string>;      // 预览文本映射(uid → 预览行文本)
   savedTasks: Set<string>;            // 已保存的任务UID集合
   expandedButton: string | null;      // 当前展开的编辑按钮键
+  syncMode: boolean;                  // 是否同步编辑模式（批量编辑时所有选中任务同步修改）
+  primaryTaskUid: string | null;      // 同步模式下主任务UID
 }
 ```
 
@@ -361,6 +364,7 @@ interface EditPanelState {
   batchMode: boolean;                 // 是否批量模式
   selectedCount: number;              // 选中任务数量
   hasSnapshots: boolean;              // 是否有历史快照
+  syncMode: boolean;                  // 是否同步编辑模式
 }
 ```
 
@@ -412,6 +416,11 @@ interface TaskTreeNode {
   headingLevel?: number;              // 标题级别(仅heading类型)
   headingText?: string;               // 标题文本(仅heading类型)
   fileRelations?: FileRelations;      // 文件间关系(仅file类型)
+  yamlStartLine: number;              // YAML块起始行
+  yamlEndLine: number;                // YAML块结束行
+  isFrontmatter: boolean;             // 是否frontmatter（文件任务）
+  hasYaml: boolean;                   // 是否含YAML块
+  [key: string]: unknown;             // 索引签名，允许动态键访问
 }
 
 interface FileRelations {
@@ -472,7 +481,7 @@ interface FileRelations {
 | toolbarPanelsHeight    | number   | 300                                                 | 面板高度(px)                                      |
 | intervalMode           | string   | 各预设覆盖为特定值                                  | 时间模式(any-date/scheduled-due/starts-done/none) |
 | presets                | Preset[] | 见 `core/store/preset/panel-preset.ts`              | 方案列表（5个默认预设）                           |
-| toolbarOrder           | string[] | [excut,search,mark,time,view,hide,edit,sort,config] | 面板排序（9个面板）                               |
+| toolbarOrder           | string[] | [filter,time,view,hide,edit,sort,config] | 面板排序（7个面板）                               |
 | taskTreeNavCollapsed   | boolean  | true                                                | 任务树导航折叠                                    |
 | taskTreeNavWidth       | number   | 280                                                 | 任务树导航宽度(px)                                |
 
@@ -490,7 +499,9 @@ interface FileRelations {
 | `getActivePreset(): Preset \| undefined`                     | 获取当前激活方案               |
 | `setSaveFn(fn): void`                                        | 设置持久化回调                 |
 | `updateEditPanelState(panelState: EditPanelState): void`     | 静默更新编辑面板状态           |
-| `setEditStore(es): void` / `getEditStore(): any`             | 编辑状态管理                   |
+| `setEditStore(es): void` / `getEditStore(): EditStoreRef \| null` | 编辑状态管理                   |
+| `setTaskView(view): void` / `getTaskView()`                  | 任务视图引用（刷新卡片、保存后聚焦） |
+| `setOnEditCardsChanged/setOnFullRender/setOnApplyEditContext/setOnFullInvalidate` | 编辑卡片变化、全量渲染、编辑上下文、失效回调桥 |
 | `toggleBatchMode()` / `toggleSelectAll(nodes)`               | 编辑操作代理                   |
 | `applyEdit(markKey, value)` / `applyAutoComplete(days)` / `applySortTags()` | 编辑操作代理                   |
 | `saveCurrent()` / `revertSnapshot(index)` / `getSnapshots()` | 保存/撤回代理                  |
@@ -515,7 +526,7 @@ interface FileRelations {
 | ------------------------------------------------------------ | ---------------------------------------------- |
 | `render(): Promise<void>`                                    | 渲染视图(50ms防抖，取消前次未执行渲染)         |
 | `destroy(): void`                                            | 销毁视图（清理订阅、定时器、事件、甘特图实例） |
-| `renderByStyle(container, nodes, style, filter, intervalMode, tree?, sort?): void` | 按19种视图样式渲染                             |
+| `renderByStyle(container, nodes, style, filter, intervalMode, tree?, sort?): void` | 按20种视图样式渲染                             |
 | `getDefaultFilter(): GlobalFilter`                           | 获取默认筛选（子类可覆写）                     |
 | `applySort(nodes, sort): TaskTreeNode[]`                     | 应用排序(空值排最后，支持15种字段)             |
 | `openTaskAtLine(node): void`                                 | 打开文件并跳转到任务行（带重试滚动）           |
@@ -553,6 +564,8 @@ interface FileRelations {
 | `saveCurrent()` / `saveSingle(node)` / `saveAll()`           | 保存操作             |
 | `revertSingle(node)` / `revertSnapshot(index)`               | 撤回操作             |
 | `getSnapshots()`                                             | 获取快照列表         |
+| `toggleSyncMode()` / `setPrimaryTask(uid)`                   | 同步编辑模式与主任务 |
+| `syncToStore()`                                              | 同步编辑状态到 Store 编辑面板 |
 | `subscribePanel(listener)`                                   | 订阅面板更新         |
 
 ## DateCalc
@@ -707,11 +720,9 @@ display:flex; align-items:center; justify-content:flex-start; margin-bottom:4px;
 
 | 键     | 组件类      |
 | ------ | ----------- |
-| config | PresetPanel |
+| config | SidebarPanel |
 | time   | TimePanel   |
-| excut  | StatusPanel |
-| search | SearchPanel |
-| mark   | MarkPanel   |
+| filter | FilterPanel |
 | view   | ViewPanel   |
 | sort   | SortPanel   |
 | hide   | HidePanel   |
@@ -760,10 +771,8 @@ mouseup → updatePreset({ toolbarPanelsHeight: newHeight }); dragging=false
 
 | 键     | 标签     |
 | ------ | -------- |
+| filter | 筛选内容 |
 | time   | 筛选时间 |
-| excut  | 筛选状态 |
-| search | 筛选描述 |
-| mark   | 筛选标记 |
 | view   | 任务视图 |
 | hide   | 视图隐藏 |
 | edit   | 视图编辑 |
@@ -909,62 +918,17 @@ adjustSidebarWidth():
 
 **特有约束**：`onPresetChanged()` 在预设切换时由 Panels 调用。初始化时异步加载数据获取任务时间范围。滑动条组件通过 `createEnhancedSlider` 创建，存储引用到 `enhancedSliders` Map 和 `updateMidLines` Map。
 
-### StatusPanel（筛选状态）
-
-| 属性      | 值                                     |
-| --------- | -------------------------------------- |
-| 标识符    | `ui.panel.status-panel`                |
-| 文件      | `src/ui/panel/status-panel.ts`         |
-| Store操作 | 读 filter.statuses; 写 filter.statuses |
-
-**功能**：按5种执行状态多选筛选。主按钮"状态"控制全选/全不选（全选=空数组），子按钮依次为：待办中/计划中/进行中/已完成/已取消。选中高亮，逻辑为"或"。面板按钮使用独立的 `PANEL_STATUS_LABELS` 映射覆盖显示文字。
-
-**按钮布局**：
-
-```
-筛选状态  [状态] [待办中] [计划中] [进行中] [已完成] [已取消]
-```
-
-**状态键名**：统一使用 `scheduled` 作为"计划中"状态键名。
-
-### SearchPanel（筛选描述）
-
-| 属性      | 值                                         |
-| --------- | ------------------------------------------ |
-| 标识符    | `ui.panel.search-panel`                    |
-| 文件      | `src/ui/panel/search-panel.ts`             |
-| Store操作 | 读 filter.searchText; 写 filter.searchText |
-
-**功能**：文本输入框，placeholder"输入关键词匹配筛选任务，多个关键词用空格分隔，回车搜索"。支持多段关键字（空格分隔），逻辑为"且"。
-
-**输入保护（双层）**：
-
-1. **值缓存**：维护 `currentValue` 保存用户输入。Store 触发重渲染时若已有输入框，仅同步 value 不重建 DOM
-2. **聚焦检测**：Panels 检测输入框聚焦状态，若聚焦则跳过整个面板内容重建
-
-**搜索触发**：Enter键或blur事件触发搜索，延迟300ms防抖。
-
-### MarkPanel（筛选标记）
+### FilterPanel（筛选内容）
 
 | 属性      | 值                                                           |
 | --------- | ------------------------------------------------------------ |
-| 标识符    | `ui.panel.mark-panel`                                        |
-| 文件      | `src/ui/panel/mark-panel.ts`                                 |
-| Store操作 | 读 filter.priorityValues, filter.repeatCycles, filter.includeMarks; 写同 |
+| 标识符    | `ui.panel.filter-panel`                                    |
+| 文件      | `src/ui/panel/filter-panel.ts`                             |
+| Store操作 | 读 filter.statuses/searchText/priorityValues/repeatCycles/includeMarks; 写同 |
 
-**功能**：按标记类型筛选，5组。默认全选（空数组=不过滤）。
+**功能**：合并状态筛选、描述搜索、标记筛选为统一筛选面板，7组（筛选状态/描述/优先/循环/时间/依赖/标签）。状态主按钮"状态"控制全选/全不选（全选=空数组），子按钮：待办中/计划中/进行中/已完成/已取消，状态键名统一 `scheduled`；描述搜索支持多段关键字（空格分隔"且"逻辑，Enter/blur 触发，300ms 防抖）；标记组默认全选（空数组=不过滤），优先级组逆序排列，主按钮控制子按钮全选/全不选。
 
-**分组与按钮排列**：
-
-| 行标签   | 按钮                                                    |
-| -------- | ------------------------------------------------------- |
-| 筛选优先 | 主按钮"优先级" + 🔺⏫🔼🔽⏬（逆序排列）                      |
-| 筛选循环 | 主按钮"循环" + 🔁 every day/week/month/year              |
-| 筛选时间 | 创建/计划/开始/取消/完成/截止（多选，includeMarks控制） |
-| 筛选依赖 | 唯一ID/引用ID（多选，includeMarks控制）                 |
-| 筛选标签 | 标签（includeMarks控制）                                |
-
-**优先级组和循环组**：主按钮控制子按钮全选/全不选。任意子项选中→主按钮高亮，所有子项取消→主按钮取消高亮。子按钮始终可见。
+**输入保护（双层）**：值缓存（Store 触发重渲染时仅同步 value 不重建 DOM）+ 聚焦检测（输入框聚焦时跳过面板内容重建）。
 
 ### ViewPanel（任务视图）
 
@@ -974,7 +938,7 @@ adjustSidebarWidth():
 | 文件      | `src/ui/panel/view-panel.ts` |
 | Store操作 | 读 viewStyle; 写 viewStyle   |
 
-**功能**：切换19种视图样式，多选一。分4组，每组有独立标签：
+**功能**：切换20种视图样式（含时间统计占位），多选一。分4组，每组有独立标签：
 
 | 组       | 标签     | 视图列表                                                     |
 | -------- | -------- | ------------------------------------------------------------ |
@@ -1007,7 +971,7 @@ adjustSidebarWidth():
 | 隐藏依赖 | 主按钮"依赖" + 唯一ID/引用ID                         |
 | 隐藏标签 | 标签（单选）                                         |
 
-各组主按钮控制对应子按钮全选/全不选，行为与MarkPanel相同。
+各组主按钮控制对应子按钮全选/全不选，行为与FilterPanel相同。
 
 ### EditPanel（视图编辑）
 
@@ -1037,7 +1001,7 @@ adjustSidebarWidth():
 | -------------- | ---------- | ----------------------------------------------------------- |
 | 历史选择下拉框 | 始终显示   | 有快照时显示快照列表（时间+任务数），无快照显示"无历史原文" |
 | 恢复原文按钮   | 有历史快照 | 调用 `store.revertSnapshot(idx)`                            |
-| 清空历史按钮   | 有历史快照 | 确认后清除 `localStorage` 中的 `organizeSnapshots`          |
+| 清空历史按钮   | 有历史快照 | 确认后清除插件数据中的 `organizeSnapshots` 快照          |
 
 **状态样式**：不可用按钮使用 `opacity: 0.5; cursor: not-allowed;`。操作生效时按钮短暂高亮（300ms后移除active类）。
 
@@ -1278,11 +1242,11 @@ Op.autoComplete(line, days=3):
   7. 再次 sortTags 返回
 ```
 
-**标记排序顺序**：`priority → repeat → created → scheduled → starts → due → done → cancelled → tag → id → forbid`
+**标记排序顺序**：`priority → repeat → created → scheduled → starts → cancelled → done → due → id → forbid → tag`（与 `TASK_ELEMENT_ORDER` 一致）
 
 **批量写入**：`writeToFiles(app, getNode, taskIds, linesMap)` 按文件路径分组 → 对每个文件调用 `app.vault.process(file, data => ...)` 替换指定行。
 
-**快照管理**：`loadSnapshots()`/`saveSnapshots()`/`addSnapshot(map)` 操作 `localStorage`(键`organizeSnapshots`，最多5个)。快照格式为 `[{ time: string, snapshot: Record<uid, rawLine> }]`。
+**快照管理**：`loadSnapshots()`/`saveSnapshots()`/`addSnapshot(map)` 通过 `initStorage()` 的回调写入 Obsidian 插件数据（`data.json` 的 `organizeSnapshots` 字段，最多5个）。快照格式为 `[{ time: string, snapshot: Record<uid, rawLine> }]`。
 
 ## 通用视图组件
 
@@ -1388,7 +1352,7 @@ Op.autoComplete(line, days=3):
 6. 遍历所有甘特条更新位置
 7. 调用SVG `__redraw()` 方法重绘依赖箭头
 
-**缩放**：Alt+滚轮缩放（dayWidth [0.5, 40]，步进 ×1.3/×0.7）。以鼠标位置为中心保持时间点不变。缩放状态持久化到 `localStorage`(键`ganttZoomState`，存储`{ dayWidth }`)。
+**缩放**：Alt+滚轮缩放（dayWidth [0.5, 40]，步进 ×1.3/×0.7）。以鼠标位置为中心保持时间点不变。缩放状态持久化到插件数据（`ganttZoomState` 字段，存储`{ dayWidth }`）。
 
 **拖拽平移**：mousedown非甘特条区域开始拖拽，记录起始位置和滚动位置，mousemove更新水平滚动。
 
@@ -1498,7 +1462,7 @@ Op.autoComplete(line, days=3):
 | 模块                  | 文件                                    | 说明                                                         |
 | --------------------- | --------------------------------------- | ------------------------------------------------------------ |
 | calendar-view-process | `core/process/calendar-view-process.ts` | 日历视图数据处理：`buildDateTaskMap`（仅首尾日期，`added Set` 去重）、`buildCellItems`（任务/线条/占位符类型判断，今天特殊处理）、`buildGlobalOrder`（优先级→状态排序）、`inferDateRange`、`getWeeksInRange`/`getMonthsInRange`/`getQuartersInRange`/`getYearsInRange`（时间范围列表生成）、`getMonthDays`（42天日期数组）。 |
-| gantt-view-process    | `core/process/gantt-view-process.ts`    | 甘特图数据处理：`getTaskInterval`（时间区间）、`calcRangeFromRoots`（范围推断，支持传入 `dateRange`）、`getTimelineLayers`（根据 dayWidth 计算图层）、`getGridLineStyle`（网格线样式/颜色/透明度）、`getGridLevels`（网格级别数组）、`getGridFirstLineDate`（网格起始日期）、`advanceGridLineDate`（网格线日期推进）、`calcBarEdges`（甘特条左右位置和宽度）、`calcDependencyPath`（依赖箭头SVG路径）、`loadZoomState`/`saveZoomState`（localStorage缩放持久化）、`formatGanttDuration`（时长格式化）、`isDarkTheme`（主题检测）。 |
+| gantt-view-process    | `ui/main/gantt/gantt-view-process.ts`    | 甘特图数据处理：`getTaskInterval`（时间区间）、`calcRangeFromRoots`（范围推断，支持传入 `dateRange`）、`getTimelineLayers`（根据 dayWidth 计算图层）、`getGridLineStyle`（网格线样式/颜色/透明度）、`getGridLevels`（网格级别数组）、`getGridFirstLineDate`（网格起始日期）、`advanceGridLineDate`（网格线日期推进）、`calcBarEdges`（甘特条左右位置和宽度）、`calcDependencyPath`（依赖箭头SVG路径）、`loadZoomState`/`saveZoomState`（插件数据缩放持久化）、`formatGanttDuration`（时长格式化）、`isDarkTheme`（主题检测）。 |
 | tree-view-process     | `core/process/tree-view-process.ts`     | 任务树处理：`removeHeadingNumber`（去除number headings插件生成的序号）、`collectAllTasksFromNode`（收集子树任务，深度优先+去重）、`countNodeStatuses`（状态统计）、`sortFileNodes`/`sortContentNodes`（排序函数）、`getNodeGroupOrder`（类型分组排序权重：list=0, heading=1, file=2）、`compareTasks`（任务比较函数）。 |
 
 ### 日期计算
@@ -1554,8 +1518,8 @@ Op.autoComplete(line, days=3):
 | 存储方式                              | 内容                                                         |
 | ------------------------------------- | ------------------------------------------------------------ |
 | `Plugin.loadData()/saveData()`        | AppState(presets, sidebarCollapsed, sidebarWidth, activePresetId, presetGroups, editPanelState) + settings(taskRootPath, 四级过滤器) |
-| `localStorage`(键`organizeSnapshots`) | 整理处最近5次编辑快照 `[{ time: string, snapshot: Record<uid, rawLine> }]` |
-| `localStorage`(键`ganttZoomState`)    | 甘特图缩放状态 `{ dayWidth: number }`                        |
+| `Plugin.loadData()/saveData()`（`organizeSnapshots` 字段） | 整理处最近5次编辑快照 `[{ time: string, snapshot: Record<uid, rawLine> }]` |
+| `Plugin.loadData()/saveData()`（`ganttZoomState` 字段）    | 甘特图缩放状态 `{ dayWidth: number }`                        |
 
 **持久化流程**：`main.ts` 的 `persistData()` 函数合并当前 Store 状态和插件设置数据后调用 `this.saveData()`。Store 的 `update()` 自动调用 `save()` → `saveFn()` → `persistData()`。`updateSilent()` + `saveSilent()` 用于需要静默持久化的场景。
 
@@ -1574,14 +1538,14 @@ Op.autoComplete(line, days=3):
 | 侧边栏折叠/展开   | 宽度切换(40px↔自适应)，按钮内容变化(图标↔图标+文字)，状态持久化 |
 | 侧边栏宽度自适应  | 按钮宽度统一对齐，容器无多余留白，展开时自动计算宽度         |
 | 视图切换          | 右侧内容+面板状态同步刷新，预设数据正确恢复，动态加载视图类正确 |
-| 面板拖拽排序      | 标题按钮顺序更新(9个面板)，面板排列同步，持久化正确          |
+| 面板拖拽排序      | 标题按钮顺序更新(7个面板)，面板排列同步，持久化正确          |
 | 眼睛按钮显隐      | 面板显示/隐藏，折叠时自动展开面板，标题按钮透明度变化(opacity:1↔0.4) |
 | 面板高度调整      | 拖拽实时生效，释放持久化，范围钳制[30, 85vh]                 |
 | 面板复用          | 切换预设时已存在面板不重建，输入框聚焦时跳过内容刷新         |
 | 时间滑动条联动    | useDynamic控制动态→静态单向同步，取消时恢复saved状态(无saved回退今年全年) |
 | 时间模式切换      | intervalMode变化时筛选结果相应变化。日历/甘特图none→回退any-date |
 | 筛选组合          | 状态+描述+标记+时间多条件筛选正确，全选(空数组)时不过滤      |
-| 视图样式          | 19种视图正确渲染，空数据空状态文本正确，视图切换按钮高亮     |
+| 视图样式          | 20种视图正确渲染，空数据空状态文本正确，视图切换按钮高亮     |
 | 排序              | 15种排序(原始+14字段)正确，升降序切换，空值始终排最后        |
 | 任务树            | 三种节点类型正确显示，折叠展开+tree-toggle事件，进度条统计(去重uid)，排序和缩进(24px)，聚焦/全树模式切换 |
 | 日历              | 日/周/月/季/年视图正确，格子渲染(卡片/线条/占位符类型判断)，年视图热力图颜色强度，空时间段标签，主题切换样式更新(重新注入) |
@@ -1606,7 +1570,7 @@ Op.autoComplete(line, days=3):
 | SidebarPanel                                        | 侧边栏功能设计、侧边栏UI设计                                 |
 | Panels + 各功能面板(9个)                            | 视图配置面板功能设计、视图配置面板UI设计、各筛选/排序/隐藏/编辑/配置功能 |
 | BaseTaskView + 业务视图子类(5个)                    | 业务视图设计（待办/今天/未来/重要/所有任务）                 |
-| 通用视图组件(19种)                                  | 通用视图UI设计（列表/卡片/表格/看板/矩阵/日历/甘特图/任务树/统计图表等） |
+| 通用视图组件(20种)                                  | 通用视图UI设计（列表/卡片/表格/看板/矩阵/日历/甘特图/任务树/统计图表等） |
 | DataManager + 解析器 + 任务树                       | 任务数据读取与解析、任务树数据结构                           |
 | EditStore + BaseTaskEdit + task-editor + edit-utils | 编辑视图设计（单个编辑/批量编辑）、编辑视图UI设计            |
 | Store + 设置面板                                    | 持久化设计、插件配置                                         |
@@ -1627,7 +1591,7 @@ Op.autoComplete(line, days=3):
 | --------------------- | ------------------------------------------------------------ |
 | Preset                | 视图方案，保存完整筛选条件、视图样式、面板状态               |
 | Store                 | 全局状态管理器，发布/订阅模式                                |
-| Panels                | 面板管理器单例，管理9个功能面板                              |
+| Panels                | 面板管理器单例，管理7个功能面板                              |
 | DataManager           | 数据管理器单例，统一数据加载和缓存                           |
 | HideConfig            | 隐藏配置接口，独立于 GlobalFilter                            |
 | GlobalFilter          | 全局筛选条件接口                                             |

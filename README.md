@@ -65,19 +65,17 @@ Click **➕ New View** to create custom solutions.
 
 ### 4. Filter & Sort
 
-The top view configuration panel provides 9 toolbars:
+The top view configuration panel provides 7 toolbars:
 
-| Panel           | Function                                                                                                      |
-| --------------- | ------------------------------------------------------------------------------------------------------------- |
-| Filter Status   | Filter by execution status (Todo/Planned/In Progress/Done/Cancelled), main button for Select All/Deselect All |
-| Filter Describe | Keyword search (space-separated, multiple words with "AND" logic), press Enter to search                      |
-| Filter Marks    | Priority/Recurrence/Created/Planned/Start/Cancelled/Done/Due Date/Unique ID/Reference ID/Tag                  |
-| Filter Time     | Dynamic slider (Day/Week/Month/Quarter/Year) + Static slider, with "Use Dynamic" linkage support              |
-| Task View       | 4 groups of 19 view styles (Basic/Mark/Manage/Statistics)                                                     |
-| View Hide       | Hide Recurring/Done/Cancelled/Specific Status/Priority/Description/Marked tasks                               |
-| View Sort       | Original order + 14 sort fields, with ascending/descending support                                            |
-| View Edit       | Batch edit/Complete time/Mark sort/Save changes/Snapshot rollback                                             |
-| View Config     | View name & icon/Import & Export JSON/Restore default/Delete view                                             |
+| Panel       | Function                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------- |
+| Filter      | Status (Todo/Planned/In Progress/Done/Cancelled) + keyword search (space-separated "AND" logic) + marks (Priority/Recurrence/Dates/Unique ID/Reference ID/Tag) |
+| Time        | Dynamic slider (Day/Week/Month/Quarter/Year) + Static slider, with "Use Dynamic" linkage support              |
+| Task View   | 4 groups of 19 view styles (Basic/Mark/Manage/Statistics)                                                     |
+| View Hide   | Hide Recurring/Done/Cancelled/Specific Status/Priority/Description/Marked tasks                               |
+| View Sort   | Original order + 14 sort fields, with ascending/descending support                                            |
+| View Edit   | Batch edit/Complete time/Mark sort/Save changes/Snapshot rollback                                             |
+| View Config | View name & icon/Import & Export JSON/Restore default/Delete view                                             |
 
 All filter conditions are automatically saved and restored on restart.
 
@@ -144,6 +142,7 @@ Three-level display: File → Heading → List Task:
 
 - **Mark Statistics**: 6 pie charts, counting Status/Priority/Recurrence/Date/Dependency/Tag
 - **Detailed Statistics**: Stacked bar chart showing task count changes by date across statuses
+- **Time Statistics**: Under development
 
 ## Task Mark Format
 
@@ -161,9 +160,9 @@ The plugin parses Emoji marks in task lines:
 | `➕ YYYY-MM-DD` | Created Date      | ➕ 2025-09-06                    |
 | `⏳ YYYY-MM-DD` | Planned Date      | ⏳ 2025-09-06                    |
 | `🛫 YYYY-MM-DD` | Start Date        | 🛫 2025-09-06                    |
-| `📅 YYYY-MM-DD` | Due Date          | 📅 2026-04-06                    |
-| `✅ YYYY-MM-DD` | Done Date         | ✅ 2023-04-17                    |
 | `❌ YYYY-MM-DD` | Cancelled Date    | ❌ 2023-04-18                    |
+| `✅ YYYY-MM-DD` | Done Date         | ✅ 2023-04-17                    |
+| `📅 YYYY-MM-DD` | Due Date          | 📅 2026-04-06                    |
 | `🆔 id`         | Unique ID         | 🆔 dcf64c                        |
 | `⛔ id1,id2`    | Task Dependencies | ⛔ dcf64c,h17ye                  |
 | `🏁 keyword`    | Custom Tag        | 🏁 keep                          |

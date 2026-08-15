@@ -351,47 +351,35 @@ npm test
 
 ### 审核报错修复
 
-| 规则                          | 正确做法                                                     |
-| :---------------------------- | :----------------------------------------------------------- |
-| `no-static-styles-assignment` | 用 CSS 类 + CSS 变量方式（见 CSS 语法规范）                  |
-| `no-unsupported-api`          | `minAppVersion` 设为使用的最新 API 版本，或替换为兼容旧版的等效 API（如 `workspace.revealLeaf(leaf)` → `workspace.setActiveLeaf(leaf, { focus: true })`） |
-| `no-innerhtml`                | 用 `textContent` 或 DOM API                                  |
-| `no-dynamic-style-elements`   | 写入 `styles.css`，状态颜色逐个 `setProperty`                |
-| `no-html-headings`            | 用 `new Setting().setName("标题").setHeading()`              |
+| 规则 | 正确做法 |
+| :--- | :--- |
+| `no-static-styles-assignment` | 用 CSS 类 + CSS 变量 |
+| `no-unsupported-api` | `minAppVersion` 设为最新 API 版本，或替换兼容旧版 API（如 `revealLeaf` → `setActiveLeaf`） |
+| `no-innerhtml` | 用 `textContent` 或 DOM API |
+| `no-dynamic-style-elements` | 写入 `styles.css`，颜色逐个 `setProperty` |
+| `no-html-headings` | `new Setting().setName("标题").setHeading()` |
 
 #### CSS 语法规范
 
-用 CSS 类 + CSS 变量替代所有 `el.style.xxx` 直接样式操作，仅替换样式写法，不改变业务逻辑。
+用 CSS 类 + CSS 变量替代 `el.style.xxx`，只改写法不改逻辑，类名统一 `task-` 前缀：
 
-| 原则       | 说明                                                         |
-| :--------- | :----------------------------------------------------------- |
-| 静态样式   | `el.addClass("task-xxx")`                                    |
-| 动态样式   | `el.addClass("task-dynamic-xxx")` + `el.setCssProps({ "--task-xxx": value })` |
-| 显隐切换   | `el.toggleClass("task-hidden", condition)`                   |
-| 类名前缀   | 统一 `task-`，避免冲突                                       |
-| 动态值设置 | 用 `setCssProps` 或 `style.setProperty`                      |
-| 类操作     | 优先 `addClass` / `removeClass` / `toggleClass`              |
+- 静态样式：`el.addClass("task-xxx")`
+- 动态样式：`el.addClass("task-dynamic-xxx")` + `el.setCssProps({ "--task-xxx": value })`
+- 显隐切换：`el.toggleClass("task-hidden", condition)`
 
-替换示例
-
-| 原写法                      | 替换写法                                   |
-| :-------------------------- | :----------------------------------------- |
-| `el.style.display = "flex"` | `el.addClass("task-flex")`                 |
+| 原写法 | 替换写法 |
+| :--- | :--- |
+| `el.style.display = "flex"` | `el.addClass("task-flex")` |
 | `el.style.display = "none"` | `el.toggleClass("task-hidden", condition)` |
-| `el.style.color = c`        | `el.setCssProps({ "--task-color": c })`    |
-
-```typescript
-el.addClass("task-dynamic-bg");
-el.setCssProps({ "--task-bg": userColor });
-```
+| `el.style.color = c` | `el.setCssProps({ "--task-color": c })` |
 
 ```css
 .task-dynamic-bg { background-color: var(--task-bg, var(--background-primary)); }
 ```
 
-**高频更新场景注意事项**：甘特图等需要批量更新元素样式的场景，应将同一元素的多个 `setCssProps` 调用合并为一次，避免多次触发浏览器重排导致性能下降。同时 `style.cssText` 改为 CSS 类时需注意 `all: unset` 等全局重置样式可能被覆盖的问题。
+**注意**：甘特图等批量更新样式时，合并同一元素的多个 `setCssProps`，避免多次重排；`style.cssText` 改 CSS 类时注意 `all: unset` 可能被覆盖。
 
-**修复流程**：查看审核报错定位文件+行号 → 分析错误类型选择修复方案 → 单文件修改编译测试 → 提交审核确认错误消失 → 重复至所有 Error 清零。
+**修复流程**：定位文件+行号 → 分析 → 最小改动 → 编译测试 → 提交验证 → 重复至 Error 清零。
 
 ### 审核警告消除
 
