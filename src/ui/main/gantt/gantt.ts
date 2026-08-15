@@ -5,7 +5,6 @@ import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { GanttSvgElement } from "../../../type/type";
 import { DateUtils } from "../../../util/date-utils";
-import { createEl } from "../../../util/dom-utils";
 import { tooltip } from "../../component/tooltip/tooltip";
 import { renderTaskTree } from "../list/tree-list";
 import {
@@ -169,10 +168,7 @@ function createDependencySVG(
 	totalWidth: number,
 ): GanttSvgElement {
 	const DEP_COLOR = "var(--text-muted)";
-	const svg: GanttSvgElement = document.createElementNS(
-		"http://www.w3.org/2000/svg",
-		"svg",
-	);
+	const svg: GanttSvgElement = createSvg("svg");
 	svg.setAttribute(
 		"class",
 		"gantt-dependencies gantt-dependency-svg-dynamic",
@@ -204,15 +200,9 @@ function createDependencySVG(
 					const sy = sPos.y;
 					if (tPos.left <= sPos.right + 4) return;
 					const d = `M ${sPos.right} ${sy} L ${tPos.left - 6} ${sy} L ${tPos.left - 6} ${ty}`;
-					const g = document.createElementNS(
-						"http://www.w3.org/2000/svg",
-						"g",
-					);
+					const g = createSvg("g");
 					g.addClass("task-clickable");
-					const path = document.createElementNS(
-						"http://www.w3.org/2000/svg",
-						"path",
-					);
+					const path = createSvg("path");
 					path.setAttribute("d", d);
 					path.setAttribute("fill", "none");
 					path.setAttribute("stroke", DEP_COLOR);
@@ -224,10 +214,7 @@ function createDependencySVG(
 					path.setAttribute("stroke-linejoin", "round");
 					g.appendChild(path);
 					const as = GANTT_CONFIG.DEPENDENCY_ARROW_SIZE;
-					const arrow = document.createElementNS(
-						"http://www.w3.org/2000/svg",
-						"polygon",
-					);
+					const arrow = createSvg("polygon");
 					arrow.setAttribute(
 						"points",
 						`${tPos.left},${ty} ${tPos.left - as},${ty - as / 2} ${tPos.left - as},${ty + as / 2}`,

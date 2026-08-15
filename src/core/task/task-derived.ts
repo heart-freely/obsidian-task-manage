@@ -51,6 +51,19 @@ export function getTaskTimeRange(
 	return { start: Math.min(start, end), end: Math.max(start, end) };
 }
 
+/** 将 string 规范化到 IntervalMode 字面量联合，未知值回退为 scheduled-due */
+export function normalizeIntervalMode(s: string): IntervalMode {
+	switch (s) {
+		case "scheduled-due":
+		case "starts-done":
+		case "any-date":
+		case "none":
+			return s;
+		default:
+			return "scheduled-due";
+	}
+}
+
 export function getFileName(node: TaskTreeNodeLike): string {
 	return node.path.split("/").pop()?.replace(/\.md$/, "") ?? "";
 }

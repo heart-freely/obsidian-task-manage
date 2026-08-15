@@ -2,7 +2,6 @@
 
 import { Store } from "../../core/store/store";
 import { EditStoreLike, TaskViewLike } from "../../type/type";
-import { createEl } from "../../util/dom-utils";
 
 interface SnapshotItem {
 	time: string;

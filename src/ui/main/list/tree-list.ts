@@ -1,7 +1,6 @@
 // src/ui/main/list/tree-list.ts
 
 import { TaskTreeNode } from "../../../core/task/task-tree";
-import { createEl } from "../../../util/dom-utils";
 import { createProgressBar } from "../../component/progress/progress";
 import { createTaskCard } from "../card/card";
 import {

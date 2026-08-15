@@ -21,7 +21,6 @@ import { getTaskMarks } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { EChartsInstance } from "../../../type/type";
 import { getThemeColor } from "../../../util/color-utils";
-import { createEl } from "../../../util/dom-utils";
 import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
 
@@ -89,7 +88,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		item.appendChild(chartDiv);
 		grid.appendChild(item);
 		try {
-			const chart: EChartsInstance = echarts.init(
+			const chart = echarts.init(
 				chartDiv,
 			);
 			chart.setOption({

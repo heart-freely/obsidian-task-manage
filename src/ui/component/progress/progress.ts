@@ -7,7 +7,6 @@ import {
 	STATUS_NAMES,
 } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
-import { createEl } from "../../../util/dom-utils";
 import { tooltip } from "../tooltip/tooltip";
 
 export interface ProgressBarOptions {

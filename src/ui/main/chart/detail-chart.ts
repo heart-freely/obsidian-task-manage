@@ -9,7 +9,6 @@ import {
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { EChartsInstance } from "../../../type/type";
 import { DateUtils } from "../../../util/date-utils";
-import { createEl } from "../../../util/dom-utils";
 import { getEChartsTooltipConfig } from "../../component/tooltip/tooltip";
 import { echarts } from "./echart";
 

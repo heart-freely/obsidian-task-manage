@@ -1,8 +1,8 @@
 // src/core/process/calendar-view-process.ts
 // 日历视图数据处理 — 纯函数，不涉及 DOM
 
-import { getTaskTimeRange } from "../../../core/task/task-derived";
-import { IntervalMode, TaskTreeNodeLike } from "../../../type/type";
+import { getTaskTimeRange, normalizeIntervalMode } from "../../../core/task/task-derived";
+import { TaskTreeNodeLike } from "../../../type/type";
 import { DateUtils } from "../../../util/date-utils";
 
 // ========== 日期工具 ==========
@@ -26,7 +26,7 @@ export function getTaskInterval(
 	node: TaskTreeNodeLike,
 	intervalMode: string,
 ): { start: number; end: number } | null {
-	const range = getTaskTimeRange(node, intervalMode as IntervalMode);
+	const range = getTaskTimeRange(node, normalizeIntervalMode(intervalMode));
 	if (!range) return null;
 	return { start: range.start, end: range.end };
 }

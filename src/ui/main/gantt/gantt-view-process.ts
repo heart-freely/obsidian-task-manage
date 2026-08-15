@@ -4,7 +4,7 @@
 import { YEAR_RANGE_OFFSET } from "../../../core/store/preset/panel-preset";
 import {
 	getTaskTimeRange,
-	IntervalMode,
+	normalizeIntervalMode,
 } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { DateUtils } from "../../../util/date-utils";
@@ -64,7 +64,7 @@ export function getTaskInterval(
 	node: TaskTreeNode,
 	intervalMode: string = "scheduled-due",
 ): { start: Date; end: Date } | null {
-	const range = getTaskTimeRange(node, intervalMode as IntervalMode);
+	const range = getTaskTimeRange(node, normalizeIntervalMode(intervalMode));
 	if (!range) return null;
 	return { start: new Date(range.start), end: new Date(range.end) };
 }

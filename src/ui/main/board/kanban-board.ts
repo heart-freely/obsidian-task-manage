@@ -2,7 +2,6 @@
 
 import { getStatusColors } from "../../../core/config/config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
-import { createEl } from "../../../util/dom-utils";
 import { createGroupCard } from "../card/group-card";
 
 export function renderKanban(

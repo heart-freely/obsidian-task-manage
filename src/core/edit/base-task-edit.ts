@@ -2,7 +2,6 @@
 
 import { getEditContext, setEditContext } from "../../ui/main/card/card";
 import { Panels } from "../../ui/panel/panel";
-import { createEl } from "../../util/dom-utils";
 import {
 	createEditBar,
 	createPreviewRow,

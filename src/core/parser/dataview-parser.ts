@@ -1,6 +1,6 @@
 // src/core/parser/dataview-parser.ts
 
-import { TaskData, TaskStatus } from "../../type/type";
+import { TaskData } from "../../type/type";
 import {
 	DATAVIEW_EMOJI_DATE_REGEX,
 	DATAVIEW_EMOJI_FIELD_MAP,

@@ -1,6 +1,6 @@
 // src/core/parser/md-parser.ts
 
-import { TaskData, TaskStatus } from "../../type/type";
+import { TaskData } from "../../type/type";
 import {
 	matchTaskFileName,
 	matchTaskFilePath,
@@ -13,7 +13,7 @@ import { parseTaskLine, TASK_REGEX } from "./tasks-parser";
 function setRecord(
 	record: Record<string, unknown>,
 	key: string,
-	value: unknown,
+	value: string,
 ): void {
 	record[key] = value;
 }

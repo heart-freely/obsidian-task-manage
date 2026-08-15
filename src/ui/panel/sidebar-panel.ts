@@ -3,7 +3,6 @@
 import { getDefaultPresets } from "../../core/store/preset/panel-preset";
 import { Store } from "../../core/store/store";
 import { Preset } from "../../type/type";
-import { createEl } from "../../util/dom-utils";
 import { Panels } from "./panel";
 
 export class SidebarPanel {

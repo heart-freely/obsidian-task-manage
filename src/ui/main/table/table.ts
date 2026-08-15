@@ -11,7 +11,6 @@ import {
 } from "../../../core/task/task-derived";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { formatDisplayDate } from "../../../util/date-utils";
-import { createEl } from "../../../util/dom-utils";
 import { removeHeadingNumber } from "../list/tree-view-process";
 
 interface TaskTableOptions {

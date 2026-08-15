@@ -3,7 +3,6 @@
 import { parseTaskLine } from "../core/parser/tasks-parser";
 import { TaskTreeNode } from "../core/task/task-tree";
 import { getEditContext } from "../ui/main/card/card";
-import { createEl } from "./dom-utils";
 
 export interface EditButtonGroup {
 	key: string;

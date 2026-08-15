@@ -18,7 +18,6 @@ import {
 } from "../../core/task/task-tree";
 import { AppLike, GlobalFilter } from "../../type/type";
 import { DateUtils } from "../../util/date-utils";
-import { createEl } from "../../util/dom-utils";
 import logger from "../../util/logger";
 import { TaskNavigator } from "../../util/navigator-utils";
 import { renderKanban } from "../main/board/kanban-board";

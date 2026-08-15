@@ -1,6 +1,5 @@
 // src/ui/component/tooltip/tooltip.ts
 
-import { createEl } from "../../../util/dom-utils";
 
 class TooltipManager {
 	private div: HTMLElement | null = null;

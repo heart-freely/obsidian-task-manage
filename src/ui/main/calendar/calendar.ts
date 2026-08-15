@@ -4,7 +4,6 @@
 import { buildTooltip, getDisplayText } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { TaskTreeNodeLike } from "../../../type/type";
-import { createEl } from "../../../util/dom-utils";
 import logger from "../../../util/logger";
 import { tooltip } from "../../component/tooltip/tooltip";
 import { createTaskCard } from "../card/card";

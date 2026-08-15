@@ -3,7 +3,6 @@
 import { getStatusColors } from "../../../core/config/config";
 import { buildDescription, buildTooltip } from "../../../core/task/task-format";
 import { TaskTreeNode } from "../../../core/task/task-tree";
-import { createEl } from "../../../util/dom-utils";
 import {
 	createCheckbox,
 	createEditBar,
@@ -25,7 +24,7 @@ function buildDescriptionDOM(
 	node: TaskTreeNode,
 	_compact: boolean,
 ): DocumentFragment {
-	const frag = document.createDocumentFragment();
+	const frag = createFragment();
 	const span = createEl("span");
 	span.textContent = buildDescription(node, _compact);
 	frag.appendChild(span);

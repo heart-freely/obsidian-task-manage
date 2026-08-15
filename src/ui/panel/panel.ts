@@ -1,7 +1,6 @@
 // src/ui/panel/panel.ts
 
 import { Store } from "../../core/store/store";
-import { createEl } from "../../util/dom-utils";
 import { EditPanel } from "./edit-panel";
 import { FilterPanel } from "./filter-panel";
 import { HeadPanel } from "./head-panel";
@@ -257,7 +256,7 @@ export class Panels {
 			}
 		}
 		if (nr) {
-			const f = document.createDocumentFragment();
+			const f = createFragment();
 			for (const p of eo) f.appendChild(p);
 			this.panelContentInner.appendChild(f);
 		}

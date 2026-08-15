@@ -1,7 +1,6 @@
 // src/ui/main/card/group-card.ts
 
 import { TaskTreeNode } from "../../../core/task/task-tree";
-import { createEl } from "../../../util/dom-utils";
 import { createTaskCard } from "./card";
 
 export interface GroupCardOptions {
