@@ -44,7 +44,7 @@ export function parseTaskLine(
 	const sm = fullLine.match(/^\s*- \[(.)\]\s*/);
 	if (sm && !matchTaskItem(sm[1])) return null;
 	const status: TaskStatus = sm
-		? ((SYMBOL_TO_STATUS[sm[1]] || "todo") as TaskStatus)
+		? (SYMBOL_TO_STATUS[sm[1]] || "todo")
 		: "todo";
 	const text = fullLine.replace(/^\s*- \[.\]\s*/, "");
 	function m(rx: RegExp, idx?: number): string | null {

@@ -91,7 +91,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		try {
 			const chart: EChartsInstance = echarts.init(
 				chartDiv,
-			) as EChartsInstance;
+			);
 			chart.setOption({
 				backgroundColor: "transparent",
 				textStyle: { color: textColor },
@@ -253,7 +253,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	dateMarks.forEach((mk) => {
 		const count = nodes.filter((n) => {
 			const marks = getTaskMarks(n);
-			return marks[mk as keyof typeof marks];
+			return marks[mk];
 		}).length;
 		makeHasNonePie(
 			dateIcons[mk] + " " + DATE_MARK_ZH_NAMES[mk],

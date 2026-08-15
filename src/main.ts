@@ -20,6 +20,13 @@ import {
 import { ManageView } from "./ui/ui";
 import logger from "./util/logger";
 
+/** 将 loadData 返回的 any 安全收窄为 Record<string, unknown> */
+function asRecord(raw: unknown): Record<string, unknown> {
+	return raw && typeof raw === "object"
+		? (raw as Record<string, unknown>)
+		: {};
+}
+
 export default class TaskManagePlugin extends Plugin {
 	store!: Store;
 	settings!: TaskManageSettings;
@@ -31,7 +38,7 @@ export default class TaskManagePlugin extends Plugin {
 			let savedData: Record<string, unknown> = {};
 
 			try {
-				savedData = (await this.loadData()) || {};
+				savedData = asRecord(await this.loadData());
 			} catch (e: unknown) {
 				logger.warn("[TaskManage] 加载设置失败:", e);
 				savedData = {};
@@ -47,8 +54,7 @@ export default class TaskManagePlugin extends Plugin {
 					}>)
 				: [];
 			initStorage(snapshots, async (newSnapshots) => {
-				const data: Record<string, unknown> =
-					(await this.loadData()) || {};
+				const data = asRecord(await this.loadData());
 				data["organizeSnapshots"] = newSnapshots;
 				await this.saveData(data);
 			});
@@ -59,8 +65,7 @@ export default class TaskManagePlugin extends Plugin {
 					? (savedData["ganttZoomState"] as { dayWidth: number })
 					: null;
 			initGanttStorage(ganttZoom, async (zoomState) => {
-				const data: Record<string, unknown> =
-					(await this.loadData()) || {};
+				const data = asRecord(await this.loadData());
 				data["ganttZoomState"] = zoomState;
 				await this.saveData(data);
 			});
@@ -301,13 +306,11 @@ export default class TaskManagePlugin extends Plugin {
 		})();
 	}
 
-	async onunload(): Promise<void> {
+	onunload(): void {
 		if (this.saveAllSettings) {
-			try {
-				await this.saveAllSettings();
-			} catch (e: unknown) {
+			void this.saveAllSettings().catch((e: unknown) => {
 				logger.error("[TaskManage] 卸载持久化失败:", e);
-			}
+			});
 		}
 		document
 			.querySelectorAll(".toolbar-buttons")

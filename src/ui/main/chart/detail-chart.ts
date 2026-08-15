@@ -52,7 +52,7 @@ export function renderDetail(
 	}
 	const seriesData: Record<string, number[]> = {};
 	ALLOWED_STATUSES.forEach((st) => {
-		seriesData[st] = new Array(dates.length).fill(0);
+		seriesData[st] = new Array<number>(dates.length).fill(0);
 	});
 	nodes.forEach((n) => {
 		const ds = n.scheduled
@@ -86,7 +86,7 @@ export function renderDetail(
 	container.appendChild(wrapper);
 	let chart: EChartsInstance | null = null;
 	try {
-		chart = echarts.init(chartDiv) as EChartsInstance;
+		chart = echarts.init(chartDiv);
 	} catch (e: unknown) {
 		console.error("[TaskManage] 详细统计图初始化失败:", e);
 		chartDiv.textContent = "图表加载失败";
@@ -150,7 +150,7 @@ export function renderDetail(
 		document.body.appendChild(modal);
 		let bigChart: EChartsInstance | null = null;
 		try {
-			bigChart = echarts.init(bigChartDiv) as EChartsInstance;
+			bigChart = echarts.init(bigChartDiv);
 			bigChart.setOption(option);
 		} catch (e: unknown) {
 			console.error("[TaskManage] 放大图表初始化失败:", e);

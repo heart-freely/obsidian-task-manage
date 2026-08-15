@@ -19,11 +19,11 @@ export class EditPanel {
 	constructor(container: HTMLElement, store: Store) {
 		this.container = container;
 		this.store = store;
-		this.editStore = store.getEditStore() as EditStoreLike | null;
-		this.taskView = store.getTaskView() as TaskViewLike | null;
+		this.editStore = store.getEditStore();
+		this.taskView = store.getTaskView();
 		this.render();
 
-		const es = store.getEditStore() as EditStoreLike | null;
+		const es = store.getEditStore();
 		if (es && typeof es.subscribePanel === "function") {
 			es.subscribePanel(() => this.render());
 		}
@@ -32,8 +32,8 @@ export class EditPanel {
 	destroy() {}
 
 	private refreshRefs() {
-		this.editStore = this.store.getEditStore() as EditStoreLike | null;
-		this.taskView = this.store.getTaskView() as TaskViewLike | null;
+		this.editStore = this.store.getEditStore();
+		this.taskView = this.store.getTaskView();
 	}
 
 	render() {
@@ -210,7 +210,7 @@ export class EditPanel {
 					"task-appearance-none",
 				);
 				if (!hasSnapshots) {
-					const opt = el.createEl("option", {
+					el.createEl("option", {
 						text: "无编辑备份",
 						disabled: true,
 					});

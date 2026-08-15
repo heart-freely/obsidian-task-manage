@@ -26,7 +26,7 @@ function buildDescriptionDOM(
 	_compact: boolean,
 ): DocumentFragment {
 	const frag = document.createDocumentFragment();
-	const span = document.createElement("span");
+	const span = createEl("span");
 	span.textContent = buildDescription(node, _compact);
 	frag.appendChild(span);
 	return frag;

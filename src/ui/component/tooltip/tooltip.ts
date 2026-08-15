@@ -1,12 +1,14 @@
 // src/ui/component/tooltip/tooltip.ts
 
+import { createEl } from "../../../util/dom-utils";
+
 class TooltipManager {
 	private div: HTMLElement | null = null;
 	private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
 	ensureDiv() {
 		if (!this.div) {
-			this.div = document.createElement("div");
+			this.div = createEl("div");
 			this.div.className = "dataview-tooltip";
 			document.body.appendChild(this.div);
 			document.addEventListener("mousemove", (e) => {
@@ -34,7 +36,7 @@ class TooltipManager {
 		const div = this.ensureDiv();
 		while (div.firstChild) div.removeChild(div.firstChild);
 		html.split("<br>").forEach((part, i) => {
-			if (i > 0) div.appendChild(document.createElement("br"));
+			if (i > 0) div.appendChild(createEl("br"));
 			div.appendChild(document.createTextNode(part));
 		});
 		div.classList.remove("dataview-tooltip-hidden");

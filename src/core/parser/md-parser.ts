@@ -118,14 +118,12 @@ function parseFrontmatter(content: string): Record<string, unknown> {
 		const ci = line.indexOf(":");
 		if (ci === -1) continue;
 		const key = line.substring(0, ci).trim();
-		let value: unknown = line.substring(ci + 1).trim();
-		if (typeof value === "string") {
-			if (
-				(value.startsWith("'") && value.endsWith("'")) ||
-				(value.startsWith('"') && value.endsWith('"'))
-			) {
-				value = value.slice(1, -1);
-			}
+		let value = line.substring(ci + 1).trim();
+		if (
+			(value.startsWith("'") && value.endsWith("'")) ||
+			(value.startsWith('"') && value.endsWith('"'))
+		) {
+			value = value.slice(1, -1);
 		}
 		if (key) setRecord(result, key, value);
 	}
@@ -260,7 +258,7 @@ function parseFileContent(
 			if (!node.task && matchTaskHeading(title)) {
 				node.task = {
 					rawLine: trimmed,
-					status: "none" as TaskStatus,
+					status: "none",
 					content: title,
 					priority: 5,
 					repeat: "",
@@ -331,7 +329,7 @@ function promoteToHeadingTasks(nodes: ContentNode[]) {
 		) {
 			node.task = {
 				rawLine: node.raw,
-				status: "none" as TaskStatus,
+				status: "none",
 				content: node.text,
 				priority: 5,
 				repeat: "",
@@ -383,14 +381,12 @@ function parseHeadingYamlBlock(
 		const colonIdx = yamlLine.indexOf(":");
 		if (colonIdx === -1) continue;
 		const key = yamlLine.substring(0, colonIdx).trim();
-		let value: unknown = yamlLine.substring(colonIdx + 1).trim();
-		if (typeof value === "string") {
-			if (
-				(value.startsWith("'") && value.endsWith("'")) ||
-				(value.startsWith('"') && value.endsWith('"'))
-			)
-				value = value.slice(1, -1);
-		}
+		let value = yamlLine.substring(colonIdx + 1).trim();
+		if (
+			(value.startsWith("'") && value.endsWith("'")) ||
+			(value.startsWith('"') && value.endsWith('"'))
+		)
+			value = value.slice(1, -1);
 		if (key && value !== "") setRecord(yamlData, key, value);
 	}
 	return {

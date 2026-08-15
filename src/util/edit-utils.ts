@@ -561,13 +561,13 @@ function createSubRowContext(
 	return {
 		getMainBtn: () =>
 			(
-				subRow.closest(".task-edit-bar") as HTMLElement | null
+				subRow.closest<HTMLElement>(".task-edit-bar")
 			)?.querySelector(
 				`[data-mark-key="${group.key}"]`,
 			) as HTMLElement | null,
 		updateMainBtnText: (t) => {
 			const mb = (
-				subRow.closest(".task-edit-bar") as HTMLElement | null
+				subRow.closest<HTMLElement>(".task-edit-bar")
 			)?.querySelector(
 				`[data-mark-key="${group.key}"]`,
 			) as HTMLElement | null;

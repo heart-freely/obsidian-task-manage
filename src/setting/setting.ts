@@ -384,10 +384,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		if (this.folderCache) return this.folderCache;
 		try {
 			const files: Array<{ path?: string; children?: unknown[] }> =
-				this.app.vault.getAllLoadedFiles() as Array<{
-					path?: string;
-					children?: unknown[];
-				}>;
+				this.app.vault.getAllLoadedFiles();
 			const folders = new Set<string>();
 			for (const file of files) {
 				if (file && file.children) {

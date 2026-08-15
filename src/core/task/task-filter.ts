@@ -41,7 +41,7 @@ export function filterTasks(
 		result = result.filter((node) => {
 			const marks = getTaskMarks(node);
 			return filter.includeMarks.some(
-				(m) => marks[m as keyof typeof marks],
+				(m) => marks[m],
 			);
 		});
 	if (filter.rootPath)

@@ -105,14 +105,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			(uid: string) => this.dataManager.getNodeByUid(uid),
 			this.store,
 		);
-		this.store.setEditStore(
-			this.editStore as unknown as Parameters<
-				typeof this.store.setEditStore
-			>[0],
-		);
-		this.store.setTaskView(
-			this as unknown as Parameters<typeof this.store.setTaskView>[0],
-		);
+		this.store.setEditStore(this.editStore);
+		this.store.setTaskView(this);
 		Panels.getInstance().initPanelSubscriptions();
 		const state = store.getState();
 		this._lastActivePresetId = state.activePresetId;
@@ -302,7 +296,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			});
 			ganttPromise
 				.then((instance) => {
-					this.ganttInstance = instance as unknown as GanttInstance;
+					this.ganttInstance = instance;
 				})
 				.catch(() => {
 					this.ganttInstance = null;
@@ -829,7 +823,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			if (vb === null) return -1;
 			return typeof va === "string"
 				? va.localeCompare(vb as string) * o
-				: ((va as number) - (vb as number)) * o;
+				: (va - (vb as number)) * o;
 		});
 		return s;
 	}

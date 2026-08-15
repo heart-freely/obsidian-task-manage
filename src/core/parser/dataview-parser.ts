@@ -42,7 +42,7 @@ export function parseDataviewTask(lineText: string): TaskData {
 	const f = { ...inf, ...emj };
 	return {
 		rawLine: lineText,
-		status: (f["状态"] || "todo") as TaskStatus,
+		status: f["状态"] || "todo",
 		content: f["描述"] || f["名称"] || "",
 		priority: f["优先级"] ? parseInt(f["优先级"]) : 5,
 		repeat: f["循环"] || "",

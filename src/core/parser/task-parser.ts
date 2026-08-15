@@ -32,7 +32,7 @@ export function parseTaskFromYaml(
 		typeof yamlData["任务优先级"] === "string"
 			? yamlData["任务优先级"]
 			: "none";
-	const sk: TaskStatus = (sm[rawStatus] || "none") as TaskStatus;
+	const sk: TaskStatus = sm[rawStatus] || "none";
 	const pi = rawPriority === "none" ? 5 : (pm[rawPriority] ?? 5);
 
 	const fd = (val: unknown): number | null => {

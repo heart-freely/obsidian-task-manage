@@ -101,7 +101,7 @@ export function buildTaskTree(files: ParsedFileData[]): TaskTreeNode {
 		const hcr = file.contentRoots?.length > 0;
 		if (!file.fileTask && !hcr) continue;
 		const td = file.fileTask || {
-			status: "none" as TaskStatus,
+			status: "none",
 			content: name,
 			priority: 5,
 			repeat: "",
@@ -146,7 +146,7 @@ export function buildTaskTree(files: ParsedFileData[]): TaskTreeNode {
 			isFrontmatter: true,
 			hasYaml: hf,
 		};
-		if (hcr) fn.children = convertContentNodes(file.contentRoots!, fn);
+		if (hcr) fn.children = convertContentNodes(file.contentRoots, fn);
 		nodeMap.set(file.path, fn);
 	}
 	for (const file of files) {
@@ -454,11 +454,11 @@ function taskMatchesFilter(
 	const adm = ["created", "scheduled", "starts", "cancelled", "done", "due"];
 	const dms = adm.filter((k) => im.includes(k));
 	if (dms.length)
-		ag.push(() => dms.some((m) => marks[m as keyof typeof marks]));
+		ag.push(() => dms.some((m) => marks[m]));
 	const dpm = ["id", "forbid"];
 	const dpms = dpm.filter((k) => im.includes(k));
 	if (dpms.length)
-		ag.push(() => dpms.some((m) => marks[m as keyof typeof marks]));
+		ag.push(() => dpms.some((m) => marks[m]));
 	if (im.includes("tag")) ag.push(() => !!node.tag);
 	if (options.searchText) {
 		const kw = options.searchText
@@ -605,7 +605,7 @@ function isNodeHidden(node: TaskTreeNode, hideConfig: HideConfig): boolean {
 	if (hideConfig.hideMarks.length > 0) {
 		const marks = getTaskMarks(node);
 		for (const m of hideConfig.hideMarks) {
-			if (marks[m as keyof typeof marks]) return true;
+			if (marks[m]) return true;
 		}
 	}
 	if (hideConfig.hideSearchText) {

@@ -78,9 +78,9 @@ export class BaseTaskEdit {
 
 	private refreshAllCardsForBatchMode() {
 		const searchRoot = this.rightContentContainer || this.container;
-		const cards = searchRoot.querySelectorAll(
+		const cards = searchRoot.querySelectorAll<HTMLElement>(
 			".task-item:not(.task-item-compact)",
-		) as NodeListOf<HTMLElement>;
+		);
 		const isBatchMode = this.editStore.getState().batchMode;
 		cards.forEach((card) => {
 			const uid = card.getAttribute("data-uid");
@@ -121,9 +121,9 @@ export class BaseTaskEdit {
 		const es = this.editStore;
 		if (!es.getState().batchMode) return;
 		const searchRoot = this.rightContentContainer || this.container;
-		const cards = searchRoot.querySelectorAll(
+		const cards = searchRoot.querySelectorAll<HTMLElement>(
 			".task-item:not(.task-item-compact)",
-		) as NodeListOf<HTMLElement>;
+		);
 		const visibleNodes: TaskTreeNode[] = [];
 		cards.forEach((card) => {
 			const uid = card.getAttribute("data-uid");

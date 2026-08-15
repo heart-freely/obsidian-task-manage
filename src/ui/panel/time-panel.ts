@@ -340,7 +340,8 @@ export class TimePanel {
 	}
 
 	private rebuildDynamicSlider() {
-		if (!this.dynamicSection?.parentNode) return;
+		const dynSection = this.dynamicSection;
+		if (!dynSection || !dynSection.parentNode) return;
 		this.enhancedSliders.get("dynamic")?.destroy();
 		this.enhancedSliders.delete("dynamic");
 		this.updateMidLines.delete("dynamic");
@@ -358,7 +359,7 @@ export class TimePanel {
 		const minV = Math.min(ds, de);
 		const maxV = Math.max(ds, de);
 		const r = createEnhancedSlider({
-			container: this.dynamicSection!,
+			container: dynSection,
 			min: -dmx,
 			max: dmx,
 			start: minV,
@@ -412,7 +413,7 @@ export class TimePanel {
 			getTodaySliderValue(
 				lv,
 				this.currentMinYear,
-				DateUtils.getISOWeekNumber,
+				(d: Date) => DateUtils.getISOWeekNumber(d),
 				weeksInYear,
 				daysInYear,
 			);
@@ -501,7 +502,7 @@ export class TimePanel {
 			getTodaySliderValue(
 				lv,
 				this.currentMinYear,
-				DateUtils.getISOWeekNumber,
+				(d: Date) => DateUtils.getISOWeekNumber(d),
 				weeksInYear,
 				daysInYear,
 			);

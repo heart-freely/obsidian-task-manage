@@ -208,8 +208,8 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		});
 		if (!ns) mb.addClass("active");
 		mb.onclick = () => {
-			const others = selected.filter((m) => !keys!.includes(m));
-			onChange(ns ? [...others, ...keys!] : others);
+			const others = selected.filter((m) => !keys.includes(m));
+			onChange(ns ? [...others, ...keys] : others);
 		};
 		const sp = row.createDiv({ cls: "panel-sub" });
 		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
