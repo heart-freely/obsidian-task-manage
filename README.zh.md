@@ -9,7 +9,7 @@
 
 三级任务管理（文件/标题/列表），19种视图（看板/矩阵/日历/甘特图/任务树/统计），批量编辑任务标记，支持多种任务管理方式。
 
-![Task Manage](./screenshots/Task Manage.gif)
+![Task Manage](./screenshots/task-manage.gif)
 
 ## 为什么选择任务管理插件
 

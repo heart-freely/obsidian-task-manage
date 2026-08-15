@@ -9,7 +9,7 @@
 
 3-level task management (file/heading/list), 19 views (kanban/matrix/calendar/Gantt/task tree/statistics), batch edit task marks, supports multiple task management methods.
 
-![Task Manage](./screenshots/Task Manage.gif)
+![Task Manage](./screenshots/task-manage.gif)
 
 ## Why Choose Task Manage
 
