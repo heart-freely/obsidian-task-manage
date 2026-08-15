@@ -9,6 +9,7 @@ import {
 } from "../config/config";
 import { parseTaskFromYaml } from "./task-parser";
 import { parseTaskLine, TASK_REGEX } from "./tasks-parser";
+import logger from "../../util/logger";
 
 function setRecord(
 	record: Record<string, unknown>,

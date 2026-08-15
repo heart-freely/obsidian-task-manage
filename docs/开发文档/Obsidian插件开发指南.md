@@ -409,10 +409,10 @@ el.setCssProps({ "--task-bg": userColor });
 | CSS `all: unset` 移除                                  | ⚠️ 显示异常 | 编辑按钮使用显式属性替代后按钮高度不一致，**恢复 `all: unset` 版本作为唯一例外** |
 | CSS 重复属性合并                                       | ✅ 有效     | `.panel-container-layout` 合并重复的 `padding` 和 `border` 声明 |
 | 具体 HTML 元素类型                                     | ✅ 有效     | `HTMLInputElement`、`HTMLSelectElement`、`HTMLAnchorElement` 替代 `HTMLElement` 后，edit-panel.ts、sidebar-panel.ts、base-task-edit.ts 的类型错误已消除 |
-| `tsconfig.json` 配置升级                               | ✅ 有效     | `target: "ES2018"`，`lib: ["ES2018", "DOM"]`，`padStart`、`Object.entries` 全部消除 |
+| `tsconfig.json` 配置升级                               | ✅ 有效     | `target: "ES2019"`，`lib: ["ES2019", "DOM"]`，`padStart`、`Object.entries`、`trimStart` 全部消除（`trimStart` 是 ES2019 方法，`lib` 停在 ES2018 会使其类型解析失败并传染为 `no-unsafe-*`） |
 | 接口类型统一                                           | ✅ 有效     | `TreeFilterOptions.searchText` 从 `string[]` 改为 `string`，`DataManagerLike.loadData` 返回类型与实际实现对齐，`CalendarCacheEntry.dateTaskMap` 统一为 `Map<string, TaskTreeNodeLike[]>`，类型错误消除 |
 | 缺失导入                                               | ✅ 有效     | `import logger`、`import { App }` 显式导入后相关隐式 any 错误消除 |
-| Plugin 返回类型                                        | ✅ 有效     | `onload(): void` 同步声明，异步逻辑包装在 IIFE 中；`onunload(): Promise<void>` 显式标注返回类型 |
+| Plugin 返回类型                                        | ✅ 有效     | `onload(): void` 同步声明，异步逻辑包装在 IIFE 中；`onunload(): void`（不能用 `Promise<void>`，Plugin 基类要求 `void`，否则报 Promise-returning），异步用 `void ...catch(...)` |
 | 逗号表达式改为 if-else                                 | ✅ 有效     | `base-task-edit.ts` 中三元运算符逗号表达式改为 if-else 语句块，消除 `Expected an assignment or function call` 警告 |
 | 甘特图异步初始化                                       | ✅ 有效     | `renderGanttWithTree` 通过 `.then()` 异步赋值，修复 `destroy is not a function` 错误 |
 | 渲染锁                                                 | ✅ 有效     | `TimePanel` 添加 `isRendering`/`pendingRender` 标志，防止异步渲染竞态 |
@@ -422,6 +422,10 @@ el.setCssProps({ "--task-bg": userColor });
 | 删除 nouislider 依赖                                   | ✅ 有效     | 项目未使用 nouislider，`npm uninstall nouislider`；残留的 `main.css`（nouislider 样式）已从仓库删除，插件样式统一在 `styles.css` |
 | Logger 精简                                            | ✅ 有效     | 删除 `info` 和 `debug` 方法，仅保留 `warn` 和 `error`，消除 `no-console` Error |
 | 面板键名统一                                           | ✅ 有效     | `excut`、`search`、`mark` 合并为 `filter` 面板，减少面板数量至 7 个 |
+| `prefer-create-el` 改用 Obsidian 全局 DOM 函数          | ✅ 有效     | `createEl("div")`→`createDiv()`、`createEl("span")`→`createSpan()`（规则对 div/span 有简写建议）；`document.createElement`→全局 `createEl`、`document.createDocumentFragment`→`createFragment()`、`document.createElementNS(svg,…)`→`createSvg(…)`。注意 Obsidian 的 `createEl`/`createDiv`/`createSpan`/`createSvg`/`createFragment` 是 `declare global` 全局函数，**不能 `import { createEl } from "obsidian"`**（运行时报 `createEl is not a function`），应直接调用全局函数 |
+| `no-unsafe-*` 类型收窄                                 | ✅ 有效     | `main.ts` 的 `loadData()` 返回 any → `asRecord()` 类型守卫收窄；`detail-chart.ts` 的 `new Array().fill()` → `new Array<number>()`；`md-parser.ts` 的 YAML `value: unknown` → `string`；`intervalMode as IntervalMode` → `normalizeIntervalMode()` 类型守卫替代断言 |
+| 多余 `as` 断言删除                                     | ✅ 有效     | `TaskStatus`、`MarkKey` 实际是 `string` 别名（`BaseChildDef.key: string`、`ALL_MARKS: string[]`），`as TaskStatus`、`m as keyof typeof marks` 是 `string as string` 多余断言，直接删除；改用 Obsidian 泛型 `createEl<K>` 返回具体类型后 `as HTMLInputElement` 等也多余 |
+| 循环依赖消除                                           | ✅ 有效     | `config.ts` ↔ `setting.ts` 循环依赖会导致 typescript-eslint 类型分析退化。把共享类型（`PathFilterConfig`/`TaskItemFilterConfig`）下沉到 `config.ts` 定义，`setting.ts` 改为 import，消除环 |
 
 #### 尝试后无效的方法
 
@@ -430,7 +434,7 @@ el.setCssProps({ "--task-bg": userColor });
 | 显式属性替代 `all: unset`                       | CSS `all: unset` 警告 | 无法完全复制 `all: unset` 的重置效果，编辑按钮高度不一致     |
 | `eslint-disable-next-line`                      | Warning 级别警告      | 审核不接受 Warning 级别的禁用注释                            |
 | `@ts-expect-error`                              | `no-explicit-any`     | TypeScript 不认可该错误存在                                  |
-| 自定义 `createEl` 替代 `document.createElement` | `prefer-create-el`    | 审核工具检查 AST 中的 `document.createElement` 调用，不认函数名，自定义函数内部仍使用 `document.createElement` |
+| 自定义模块级 `createEl`（如 `util/dom-utils.ts`）替代 `document.createElement` | `prefer-create-el` | 无效：审核不认自定义函数。正确做法是直接调用 Obsidian 的全局 DOM 函数（`declare global` 提供，无需 import），并把 `createEl("div"/"span")` 简写为 `createDiv()`/`createSpan()` |
 | 双类名提高特异性                                | `!important` 替代方案 | 编辑按钮类名在 TS 代码中动态切换，双类名语法不适用           |
 | `this: void` 注解                               | `unbound-method`      | `time-panel.ts` 的两个方法已正确使用箭头函数，审核误报       |
 
@@ -438,15 +442,8 @@ el.setCssProps({ "--task-bg": userColor });
 
 | 类别                              | 原因                                                         |
 | --------------------------------- | ------------------------------------------------------------ |
-| `no-unsafe-call`                  | `Record<string, unknown>` 动态属性调用：`config.ts` 中 `TASK_ELEMENTS` 遍历构建颜色映射；`tasks-config.ts` 中 `TASKS_RX` 正则构建；`task-parser.ts` 中 YAML 字段动态映射；`md-parser.ts` 中 YAML 解析 `yamlData[key] = value` 动态赋值；Obsidian `vault.process` 回调 |
-| `no-unsafe-member-access`         | YAML 解析返回 `Record<string, unknown>` 的动态键访问：`md-parser.ts` 中 frontmatter 字段访问；配置映射的动态键访问：`config.ts` 中 `STATUS_COLOR_DEFS[c.key]`；浏览器 DOM API 返回值 |
-| `no-unsafe-assignment`            | 动态属性赋值给变量：`md-parser.ts` 中 `yamlData[key] = value`；第三方库返回值类型推断不足：`main.ts` 中 `this.loadData()` 返回 `Promise<unknown>` |
-| `no-unsafe-argument`              | `unknown` 类型传入回调参数：`task-editor.ts` 中 `app.vault.process(file, fn)` 回调参数；Obsidian API 参数类型无法覆盖 |
-| `no-unsafe-return`                | 函数返回 `Record<string, unknown>` 类型：`md-parser.ts` 中 `parseFrontmatter()` 返回 YAML 解析结果；`color-utils.ts` 中 `rgbaToSolidOnDark()` 颜色计算 |
-| 必要类型断言                      | `as TaskStatus` 类型收窄：`tasks-parser.ts` 中 `SYMBOL_TO_STATUS` 字符串到字面量联合类型转换；`as unknown as` 跨模块转换：`edit-panel.ts` 中 `store.getEditStore()` 类型适配；`marks[m as keyof typeof marks]` 动态键访问 |
-| `prefer-create-el`                | 审核工具检查 AST 中的 `document.createElement` 调用，项目自定义 `createEl` 内部使用 `document.createElement`，约 100+ 处无法通过审核 |
-| `unbound-method`（time-panel.ts） | 审核误报，`onStaticChange` 方法通过箭头函数回调正确绑定 `this` |
-| `display is deprecated`           | Obsidian 版本兼容，保留 `display` 方法但已实现 `getSettingDefinitions()` |
+| `unbound-method`（time-panel.ts） | 审核误报，方法已通过箭头函数回调正确绑定 `this`            |
+| `display is deprecated`           | Obsidian 版本兼容，保留 `display` 方法但已实现 `getSettingDefinitions()`（Recommendation，非阻断） |
 
 
 
