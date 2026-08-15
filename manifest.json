@@ -1,7 +1,7 @@
 {
 	"id": "task-manage",
 	"name": "Task Manage",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"minAppVersion": "1.5.0",
 	"description": "3-level task management (file/heading/list), 19 views (kanban/matrix/calendar/Gantt/task tree/statistics), batch edit task marks, supports multiple task management methods.",
 	"author": "heart-freely",
