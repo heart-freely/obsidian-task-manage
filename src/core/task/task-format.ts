@@ -61,7 +61,7 @@ export function buildMetaRow(node: TaskTreeNode): string {
 
 /**
  * 构建 tooltip HTML
- * 顺序：状态 → 优先级 → 循环 → 创建 → 计划 → 开始 → 截止 → 完成 → 取消 → id → forbid → tag
+ * 顺序：状态 → 优先级 → 循环 → 创建 → 计划 → 开始 → 取消 → 完成 → 截止 → id → forbid → tag
  */
 export function buildTooltip(node: TaskTreeNode): string {
 	const parts: string[] = [];
