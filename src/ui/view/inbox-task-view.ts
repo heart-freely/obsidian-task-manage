@@ -10,6 +10,7 @@ export class InboxView extends BaseTaskView {
 		return filter;
 	}
 	protected renderEmpty() {
-		this.container.createDiv({ text: "📭 暂无待办任务" });
+		this.container.empty();
+		this.container.createDiv({ text: "📭 暂无待办任务", cls: "task-empty-message" });
 	}
 }

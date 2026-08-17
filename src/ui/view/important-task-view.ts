@@ -11,6 +11,7 @@ export class ImportantView extends BaseTaskView {
 		return filter;
 	}
 	protected renderEmpty() {
-		this.container.createDiv({ text: "⭐ 暂无重要任务" });
+		this.container.empty();
+		this.container.createDiv({ text: "⭐ 暂无重要任务", cls: "task-empty-message" });
 	}
 }

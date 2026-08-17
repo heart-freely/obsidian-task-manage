@@ -20,6 +20,7 @@ export class FutureView extends BaseTaskView {
 		return filter;
 	}
 	protected renderEmpty() {
-		this.container.createDiv({ text: "🔜 暂无未来任务" });
+		this.container.empty();
+		this.container.createDiv({ text: "🔜 暂无未来任务", cls: "task-empty-message" });
 	}
 }

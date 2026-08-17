@@ -68,7 +68,7 @@ export class ViewContainer {
 		const preset = this.store.getActivePreset();
 		if (!preset) {
 			this.container.empty();
-			this.container.createDiv({ text: "请从侧边栏选择一个方案" });
+			this.container.createDiv({ text: "请从侧边栏选择一个方案", cls: "task-empty-message" });
 			return;
 		}
 		const loader = VIEW_LOADERS[preset.businessView];

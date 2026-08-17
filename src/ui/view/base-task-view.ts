@@ -589,7 +589,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.isResizing = false;
 	}
 	protected renderEmpty() {
-		this.container.createDiv({ text: "没有符合条件的任务" });
+		this.container.empty();
+		this.container.createDiv({ text: "没有符合条件的任务", cls: "task-empty-message" });
 	}
 
 	protected renderByStyle(
