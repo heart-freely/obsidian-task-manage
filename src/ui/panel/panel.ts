@@ -60,27 +60,27 @@ export class Panels {
 		this.store = store;
 		this.viewEl = viewEl;
 		this.app = app;
-		this.panelHost = container.createDiv({ cls: "panel-host" });
-		this.panelHost.addClass("panel-host-layout");
+		this.panelHost = container.createDiv({ cls: "task-panel-host" });
+		this.panelHost.addClass("task-panel-host-layout");
 		this.buttonBarEl = createDiv();
-		this.buttonBarEl.className = "panel-header";
-		this.buttonBarEl.addClass("panel-header-layout");
+		this.buttonBarEl.className = "task-panel-header";
+		this.buttonBarEl.addClass("task-panel-header-layout");
 		this.headPanel = new HeadPanel(this.buttonBarEl, store);
 		this.panelsContainer = createDiv();
-		this.panelsContainer.className = "panel-container";
-		this.panelsContainer.addClass("panel-container-layout");
+		this.panelsContainer.className = "task-panel-container";
+		this.panelsContainer.addClass("task-panel-container-layout");
 		this.panelContentInner = createDiv();
-		this.panelContentInner.addClass("panel-content-inner");
+		this.panelContentInner.addClass("task-panel-content-inner");
 		this.panelContentInner.appendChild(this.buttonBarEl);
 		this.panelsContainer.appendChild(this.panelContentInner);
 		this.panelHost.appendChild(this.panelsContainer);
 		this.resizeHandle = createDiv();
 		this.resizeHandle.className =
-			"panel-resize-handle panel-resize-handle-layout";
+			"task-panel-resize-handle task-panel-resize-handle-layout";
 		this.resizeHandle.title = "拖拽调整高度 / 点击中间箭头折叠";
 		this.panelHost.appendChild(this.resizeHandle);
 		const arrow = createSpan();
-		arrow.addClass("panel-resize-arrow");
+		arrow.addClass("task-panel-resize-arrow");
 		arrow.textContent = "▲";
 		arrow.addEventListener("mousedown", (e) => {
 			e.stopPropagation();
@@ -205,8 +205,8 @@ export class Panels {
 			"time",
 			"view",
 			"hide",
-			"edit",
 			"sort",
+			"edit",
 			"config",
 		];
 		const barVisibility = preset.barVisibility ?? {};
@@ -234,7 +234,7 @@ export class Panels {
 		for (const key of visibleKeys) {
 			if (!this.panelEls.has(key)) {
 				const panel = createDiv();
-				panel.className = "panel-content";
+				panel.className = "task-panel-content";
 				panel.setAttribute("data-panel-key", key);
 				this.panelEls.set(key, panel);
 				if (PANEL_COMPONENTS[key])
@@ -267,8 +267,8 @@ export class Panels {
 		if (arrow) {
 			arrow.textContent = this.isPanelsCollapsed ? "▼" : "▲";
 			arrow.title = this.isPanelsCollapsed
-				? "展开视图配置面板"
-				: "折叠视图配置面板";
+				? "展开视图管理"
+				: "折叠视图管理";
 		}
 	}
 	private updateViewPadding() {

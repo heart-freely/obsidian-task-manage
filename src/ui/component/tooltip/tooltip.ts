@@ -14,13 +14,13 @@ class TooltipManager {
 				const t = e.target as HTMLElement;
 				if (
 					!t.closest(".task-item") &&
-					!t.closest(".gantt-bar") &&
+					!t.closest(".task-gantt-bar") &&
 					!t.closest(".cal-task-item") &&
-					!t.closest(".cal-span-line") &&
+					!t.closest(".task-cal-span-line") &&
 					!t.closest(".task-progress-bar") &&
 					!t.closest(".cal-more-indicator") &&
-					!t.closest(".timeline-bar") &&
-					!t.closest(".year-view-day")
+					!t.closest(".task-timeline-bar") &&
+					!t.closest(".task-year-view-day")
 				) {
 					if (this.hideTimer) window.clearTimeout(this.hideTimer);
 					this.hideTimer = window.setTimeout(() => this.hide(), 100);

@@ -349,7 +349,26 @@ npm test
 
 ## 审核
 
-### 审核报错修复
+### 审核报告结构
+
+Obsidian 插件审核报告分四个段落：**Releases**（发布资产）、**Behavior**（行为）、**Dependencies**（依赖）、**Build verification**（构建一致性）。本插件当前状态：Releases、Behavior（Vault Read）、Dependencies、Build verification 全部 Pass，仅 Behavior 段的 Vault Enumeration 为 Recommendation（非阻断）。
+
+### Releases（发布资产）
+
+| 建议项 | 处理结果 | 做法 |
+| :--- | :--- | :--- |
+| Missing GitHub artifact attestations | ✅ 已消除 | 在 `.github/workflows/release.yml` 的 Build 之后加 `actions/attest-build-provenance@v2`，`subject-path`/`subject-name` 列出 `main.js`、`styles.css`，`permissions` 需 `id-token: write` + `attestations: write`。签名后审核转为两个 Pass |
+
+### Behavior（行为）
+
+| 建议项 | 处理结果 | 做法 |
+| :--- | :--- | :--- |
+| Dynamic Code Execution（eval/new Function） | ✅ 已消除 | `import * as echarts from "echarts"` 会打包整个 echarts，其 geo/GeoJSONResource 模块的 parseInput 兜底分支含 `new Function`。改为 `echarts/core` 并按需 `echarts.use([PieChart, BarChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer])` 后 `new Function` 消失，`main.js` 3.59 MB → 1.97 MB（-45%） |
+| Vault Enumeration（枚举全部文件） | ⚠️ 固有保留 | 任务插件固有行为：`getMarkdownFiles()` 发现任务文件、`getAllLoadedFiles()` 用于设置文件夹下拉，已由任务文件夹过滤器约束读取范围。审核为 Recommendation（非阻断），且同报 Vault Read: Pass 佐证读取有节制 |
+
+### Code Audit（代码审计）
+
+#### 报错修复
 
 | 规则 | 正确做法 |
 | :--- | :--- |
@@ -359,7 +378,7 @@ npm test
 | `no-dynamic-style-elements` | 写入 `styles.css`，颜色逐个 `setProperty` |
 | `no-html-headings` | `new Setting().setName("标题").setHeading()` |
 
-#### CSS 语法规范
+##### CSS 语法规范
 
 用 CSS 类 + CSS 变量替代 `el.style.xxx`，只改写法不改逻辑，类名统一 `task-` 前缀：
 
@@ -381,9 +400,9 @@ npm test
 
 **修复流程**：定位文件+行号 → 分析 → 最小改动 → 编译测试 → 提交验证 → 重复至 Error 清零。
 
-### 审核警告消除
+#### 警告消除
 
-#### 可消除的警告
+##### 可消除的警告
 
 | 修复方法                                               | 是否有效   | 验证依据                                                     |
 | ------------------------------------------------------ | ---------- | ------------------------------------------------------------ |
@@ -394,7 +413,6 @@ npm test
 | 空 `catch` 块添加注释说明                              | ✅ 有效     | 审核结果中无 `no-empty` 报错                                 |
 | `no-floating-promises` 添加 `void`                     | ✅ 有效     | `time-panel.ts` 中 `void this.render()`、`base-task-view.ts` 中 `void TaskNavigator.openTaskAtLine()`、`void this.store.saveSilent()` 已应用，警告消除 |
 | CSS `!important` 移除                                  | ✅ 有效     | 面板按钮、编辑按钮的 `!important` 移除后，通过提高选择器特异性保持样式不丢失 |
-| CSS `all: unset` 移除                                  | ⚠️ 显示异常 | 编辑按钮使用显式属性替代后按钮高度不一致，**恢复 `all: unset` 版本作为唯一例外** |
 | CSS 重复属性合并                                       | ✅ 有效     | `.panel-container-layout` 合并重复的 `padding` 和 `border` 声明 |
 | 具体 HTML 元素类型                                     | ✅ 有效     | `HTMLInputElement`、`HTMLSelectElement`、`HTMLAnchorElement` 替代 `HTMLElement` 后，edit-panel.ts、sidebar-panel.ts、base-task-edit.ts 的类型错误已消除 |
 | `tsconfig.json` 配置升级                               | ✅ 有效     | `target: "ES2019"`，`lib: ["ES2019", "DOM"]`，`padStart`、`Object.entries`、`trimStart` 全部消除（`trimStart` 是 ES2019 方法，`lib` 停在 ES2018 会使其类型解析失败并传染为 `no-unsafe-*`） |
@@ -402,20 +420,12 @@ npm test
 | 缺失导入                                               | ✅ 有效     | `import logger`、`import { App }` 显式导入后相关隐式 any 错误消除 |
 | Plugin 返回类型                                        | ✅ 有效     | `onload(): void` 同步声明，异步逻辑包装在 IIFE 中；`onunload(): void`（不能用 `Promise<void>`，Plugin 基类要求 `void`，否则报 Promise-returning），异步用 `void ...catch(...)` |
 | 逗号表达式改为 if-else                                 | ✅ 有效     | `base-task-edit.ts` 中三元运算符逗号表达式改为 if-else 语句块，消除 `Expected an assignment or function call` 警告 |
-| 甘特图异步初始化                                       | ✅ 有效     | `renderGanttWithTree` 通过 `.then()` 异步赋值，修复 `destroy is not a function` 错误 |
-| 渲染锁                                                 | ✅ 有效     | `TimePanel` 添加 `isRendering`/`pendingRender` 标志，防止异步渲染竞态 |
-| 日历缓存失效                                           | ✅ 有效     | `calendar.ts` 引入 `CalendarCacheEntry` 结构化缓存，提供 `invalidateCalendarCache()` 函数，在数据变更时调用 |
-| 时间轴预计算                                           | ✅ 有效     | `renderTimeline` 中预计算 `taskRowInfo` Map，避免多行时重复遍历任务列表 |
-| 分帧渲染                                               | ✅ 有效     | `list` 和 `cards` 视图通过 `requestAnimationFrame` 分批渲染（每帧 50 个），缓解大任务量时 UI 阻塞 |
-| 删除 nouislider 依赖                                   | ✅ 有效     | 项目未使用 nouislider，`npm uninstall nouislider`；残留的 `main.css`（nouislider 样式）已从仓库删除，插件样式统一在 `styles.css` |
-| Logger 精简                                            | ✅ 有效     | 删除 `info` 和 `debug` 方法，仅保留 `warn` 和 `error`，消除 `no-console` Error |
-| 面板键名统一                                           | ✅ 有效     | `excut`、`search`、`mark` 合并为 `filter` 面板，减少面板数量至 7 个 |
 | `prefer-create-el` 改用 Obsidian 全局 DOM 函数          | ✅ 有效     | `createEl("div")`→`createDiv()`、`createEl("span")`→`createSpan()`（规则对 div/span 有简写建议）；`document.createElement`→全局 `createEl`、`document.createDocumentFragment`→`createFragment()`、`document.createElementNS(svg,…)`→`createSvg(…)`。注意 Obsidian 的 `createEl`/`createDiv`/`createSpan`/`createSvg`/`createFragment` 是 `declare global` 全局函数，**不能 `import { createEl } from "obsidian"`**（运行时报 `createEl is not a function`），应直接调用全局函数 |
 | `no-unsafe-*` 类型收窄                                 | ✅ 有效     | `main.ts` 的 `loadData()` 返回 any → `asRecord()` 类型守卫收窄；`detail-chart.ts` 的 `new Array().fill()` → `new Array<number>()`；`md-parser.ts` 的 YAML `value: unknown` → `string`；`intervalMode as IntervalMode` → `normalizeIntervalMode()` 类型守卫替代断言 |
 | 多余 `as` 断言删除                                     | ✅ 有效     | `TaskStatus`、`MarkKey` 实际是 `string` 别名（`BaseChildDef.key: string`、`ALL_MARKS: string[]`），`as TaskStatus`、`m as keyof typeof marks` 是 `string as string` 多余断言，直接删除；改用 Obsidian 泛型 `createEl<K>` 返回具体类型后 `as HTMLInputElement` 等也多余 |
 | 循环依赖消除                                           | ✅ 有效     | `config.ts` ↔ `setting.ts` 循环依赖会导致 typescript-eslint 类型分析退化。把共享类型（`PathFilterConfig`/`TaskItemFilterConfig`）下沉到 `config.ts` 定义，`setting.ts` 改为 import，消除环 |
 
-#### 尝试后无效的方法
+##### 尝试后无效的方法
 
 | 修复方法                                        | 尝试解决的问题        | 无效原因                                                     |
 | ----------------------------------------------- | --------------------- | ------------------------------------------------------------ |
@@ -426,14 +436,25 @@ npm test
 | 双类名提高特异性                                | `!important` 替代方案 | 编辑按钮类名在 TS 代码中动态切换，双类名语法不适用           |
 | `this: void` 注解                               | `unbound-method`      | `time-panel.ts` 的两个方法已正确使用箭头函数，审核误报       |
 
-#### 无法消除的警告
+##### 无法消除的警告
 
 | 类别                              | 原因                                                         |
 | --------------------------------- | ------------------------------------------------------------ |
 | `unbound-method`（time-panel.ts） | 审核误报，方法已通过箭头函数回调正确绑定 `this`            |
-| `display is deprecated`           | Obsidian 版本兼容，保留 `display` 方法但已实现 `getSettingDefinitions()`（Recommendation，非阻断） |
+| `display is deprecated`           | 已用 `display()` 薄包装 + 私有 `renderSettings()` 缓解，保留 `display` 仅为兼容（Recommendation，非阻断） |
 
+### 重构与性能优化
 
+| 改动 | 说明 |
+| :--- | :--- |
+| 甘特图异步初始化 | `renderGanttWithTree` 通过 `.then()` 异步赋值，修复 `destroy is not a function` 错误 |
+| 渲染锁 | `TimePanel` 添加 `isRendering`/`pendingRender` 标志，防止异步渲染竞态 |
+| 日历缓存失效 | `calendar.ts` 引入 `CalendarCacheEntry` 结构化缓存，提供 `invalidateCalendarCache()` 函数，在数据变更时调用 |
+| 时间轴预计算 | `renderTimeline` 中预计算 `taskRowInfo` Map，避免多行时重复遍历任务列表 |
+| 分帧渲染 | `list` 和 `cards` 视图通过 `requestAnimationFrame` 分批渲染（每帧 50 个），缓解大任务量时 UI 阻塞 |
+| 删除 nouislider 依赖 | 项目未使用 nouislider，`npm uninstall nouislider`；残留的 `main.css`（nouislider 样式）已从仓库删除，插件样式统一在 `styles.css` |
+| Logger 精简 | 删除 `info` 和 `debug` 方法，仅保留 `warn` 和 `error`，消除 `no-console` Error |
+| 面板键名统一 | `excut`、`search`、`mark` 合并为 `filter` 面板，减少面板数量至 7 个 |
 
 ### 对源代码的影响
 

@@ -211,7 +211,7 @@ function renderTimeline(
 		if (rowsWithTasks.length === 0) return false;
 
 		const body = createDiv();
-		body.className = "timeline-body";
+		body.className = "task-timeline-body";
 
 		for (const row of rowsWithTasks) {
 			const tasksInRow: TaskTreeNodeLike[] = [];
@@ -229,11 +229,11 @@ function renderTimeline(
 			const rowHeight = TIMELINE_ROW_HEIGHT + taskAreaHeight;
 
 			const rowGroup = createDiv();
-			rowGroup.addClass("timeline-row-group");
+			rowGroup.addClass("task-timeline-row-group");
 			rowGroup.setCssProps({ "--timeline-row-height": rowHeight + "px" });
 
 			const dateRow = createDiv();
-			dateRow.addClass("timeline-date-row");
+			dateRow.addClass("task-timeline-date-row");
 			dateRow.setCssProps({
 				"--timeline-cols": `repeat(${colsPerRow}, 1fr)`,
 			});
@@ -241,7 +241,7 @@ function renderTimeline(
 			for (let col = 0; col < colsPerRow; col++) {
 				const idx = row * colsPerRow + col;
 				const dayEl = createDiv();
-				dayEl.className = "timeline-header-day";
+				dayEl.className = "task-timeline-header-day";
 
 				if (idx < actualDays) {
 					const d = displayDays[idx];
@@ -257,7 +257,7 @@ function renderTimeline(
 						count > 0
 					) {
 						const intensity = 0.05 + (count / heatMapMax) * 0.3;
-						dayEl.addClass("timeline-heat-day");
+						dayEl.addClass("task-timeline-heat-day");
 						dayEl.setCssProps({
 							"--timeline-heat-bg": `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`,
 						});
@@ -272,7 +272,7 @@ function renderTimeline(
 			rowGroup.appendChild(dateRow);
 
 			const taskArea = createDiv();
-			taskArea.addClass("timeline-task-area");
+			taskArea.addClass("task-timeline-task-area");
 			taskArea.setCssProps({
 				"--timeline-task-top": TIMELINE_ROW_HEIGHT + "px",
 				"--timeline-task-height": taskAreaHeight + "px",
@@ -281,7 +281,7 @@ function renderTimeline(
 			for (let col = 0; col <= colsPerRow; col++) {
 				const line = createDiv();
 				line.className =
-					"timeline-grid-line timeline-grid-line-dynamic";
+					"task-timeline-grid-line task-timeline-grid-line-dynamic";
 				line.setCssProps({
 					"--timeline-line-left": col * colWidth + "%",
 				});
@@ -299,7 +299,7 @@ function renderTimeline(
 				const spanCols = rowInfo.taskEnd - rowInfo.taskStart + 1;
 
 				const bar = createDiv();
-				bar.className = `timeline-bar timeline-bar-dynamic ${task.status}`;
+				bar.className = `timeline-bar task-timeline-bar-dynamic ${task.status}`;
 				bar.setCssProps({
 					"--timeline-bar-left": col * colWidth + "%",
 					"--timeline-bar-top":
@@ -308,7 +308,7 @@ function renderTimeline(
 				});
 
 				const label = createSpan();
-				label.className = "timeline-bar-text";
+				label.className = "task-timeline-bar-text";
 				label.textContent = task.text || task.content || "";
 				bar.appendChild(label);
 
@@ -327,7 +327,7 @@ function renderTimeline(
 				}
 
 				const interval = taskIntervals.get(task.uid);
-				if (!interval) bar.addClass("timeline-bar-no-interval");
+				if (!interval) bar.addClass("task-timeline-bar-no-interval");
 
 				if (onTaskClick) {
 					bar.addEventListener("dblclick", (e) => {
@@ -390,7 +390,7 @@ export function renderCalendarView(
 
 	if (nodes.length === 0) {
 		const empty = createDiv();
-		empty.className = "empty-message";
+		empty.className = "task-empty-message";
 		empty.textContent = "📭 符合条件的无任务";
 		container.appendChild(empty);
 		return;
@@ -438,7 +438,7 @@ export function renderCalendarView(
 	}
 
 	const titleEl = createDiv();
-	titleEl.addClass("calendar-filter-title");
+	titleEl.addClass("task-calendar-filter-title");
 	const filterTitle: string =
 		options?.filterTitle ||
 		`${formatDate(startDate)} ~ ${formatDate(endDate)} · ${nodes.length}个任务`;
@@ -446,7 +446,7 @@ export function renderCalendarView(
 	container.appendChild(titleEl);
 
 	const toolbar = createDiv();
-	toolbar.className = "calendar-toolbar";
+	toolbar.className = "task-calendar-toolbar";
 	const viewLabels: Record<string, string> = {
 		year: "年",
 		quarter: "季",
@@ -467,7 +467,7 @@ export function renderCalendarView(
 	const onTaskClick = options?.onClick;
 
 	const stackDiv = createDiv();
-	stackDiv.className = "calendar-stack";
+	stackDiv.className = "task-calendar-stack";
 	const emptyPeriods: string[] = [];
 
 	if (subView === "day") {
@@ -482,7 +482,7 @@ export function renderCalendarView(
 		dayGroup.appendChild(header);
 		if (dayNodes.length === 0) {
 			const empty = createDiv();
-			empty.className = "empty-message";
+			empty.className = "task-empty-message";
 			empty.textContent = "📭 当日无任务";
 			dayGroup.appendChild(empty);
 		} else {
@@ -515,11 +515,11 @@ export function renderCalendarView(
 				days.push(d);
 			}
 			const weekBlock = createDiv();
-			weekBlock.className = "timeline-block";
+			weekBlock.className = "task-timeline-block";
 			stackDiv.appendChild(weekBlock);
 			const weekNum = getISOWeekNumber(week.start);
 			const title = createDiv();
-			title.className = "timeline-block-title";
+			title.className = "task-timeline-block-title";
 			title.textContent = `${week.start.getFullYear()}年${padTwo(week.start.getMonth() + 1)}月${padTwo(weekNum)}周`;
 			weekBlock.appendChild(title);
 			const hasContent = renderTimeline(
@@ -547,10 +547,10 @@ export function renderCalendarView(
 			for (let d = 1; d <= daysInMonth; d++)
 				days.push(new Date(m.year, m.month, d));
 			const block = createDiv();
-			block.className = "timeline-block";
+			block.className = "task-timeline-block";
 			stackDiv.appendChild(block);
 			const title = createDiv();
-			title.className = "timeline-block-title";
+			title.className = "task-timeline-block-title";
 			title.textContent = `${m.year}年${padTwo(m.month + 1)}月`;
 			block.appendChild(title);
 			const hasContent = renderTimeline(
@@ -574,10 +574,10 @@ export function renderCalendarView(
 			const startMonth = (q.quarter - 1) * 3;
 			let quarterHasContent = false;
 			const quarterBlock = createDiv();
-			quarterBlock.className = "timeline-block";
+			quarterBlock.className = "task-timeline-block";
 			stackDiv.appendChild(quarterBlock);
 			const title = createDiv();
-			title.className = "timeline-block-title calendar-quarter-title";
+			title.className = "task-timeline-block-title task-calendar-quarter-title";
 			title.textContent = `${q.year}年${padTwo(q.quarter)}季`;
 			quarterBlock.appendChild(title);
 			for (let mo = 0; mo < 3; mo++) {
@@ -587,11 +587,11 @@ export function renderCalendarView(
 				for (let d = 1; d <= daysInMonth; d++)
 					days.push(new Date(q.year, monthIdx, d));
 				const monthBlock = createDiv();
-				monthBlock.className = "timeline-block";
+				monthBlock.className = "task-timeline-block";
 				quarterBlock.appendChild(monthBlock);
 				const monthTitle = createDiv();
 				monthTitle.className =
-					"timeline-block-title calendar-month-title";
+					"task-timeline-block-title task-calendar-month-title";
 				monthTitle.textContent = `${padTwo(monthIdx + 1)}月`;
 				monthBlock.appendChild(monthTitle);
 				const hasContent = renderTimeline(
@@ -620,10 +620,10 @@ export function renderCalendarView(
 		for (const y of getYearsInRange(startDate, endDate)) {
 			let yearHasContent = false;
 			const yearBlock = createDiv();
-			yearBlock.className = "timeline-block";
+			yearBlock.className = "task-timeline-block";
 			stackDiv.appendChild(yearBlock);
 			const title = createDiv();
-			title.className = "timeline-block-title calendar-year-title";
+			title.className = "task-timeline-block-title task-calendar-year-title";
 			title.textContent = `${y}年`;
 			yearBlock.appendChild(title);
 			for (let m = 0; m < 12; m++) {
@@ -641,11 +641,11 @@ export function renderCalendarView(
 				if (!monthHasTask) continue;
 				yearHasContent = true;
 				const monthBlock = createDiv();
-				monthBlock.className = "timeline-block";
+				monthBlock.className = "task-timeline-block";
 				yearBlock.appendChild(monthBlock);
 				const monthTitle = createDiv();
 				monthTitle.className =
-					"timeline-block-title calendar-month-title";
+					"task-timeline-block-title task-calendar-month-title";
 				monthTitle.textContent = `${padTwo(m + 1)}月`;
 				monthBlock.appendChild(monthTitle);
 				const actualDays = days.length;
@@ -653,7 +653,7 @@ export function renderCalendarView(
 				const scrollDiv = createDiv();
 				scrollDiv.addClass("task-relative");
 				const header = createDiv();
-				header.className = "year-view-header";
+				header.className = "task-year-view-header";
 				for (let i = 0; i < actualDays; i++) {
 					const d = days[i];
 					const dateStr = formatDate(d);
@@ -661,12 +661,12 @@ export function renderCalendarView(
 					const isToday = dateStr === todayStr;
 					const dayEl = createDiv();
 					dayEl.className =
-						"year-view-day" + (isToday ? " today" : "");
+						"task-year-view-day" + (isToday ? " today" : "");
 					dayEl.textContent = padTwo(d.getDate());
 					dayEl.addClass("task-clickable");
 					if (globalMaxCount > 0 && count > 0) {
 						const intensity = 0.1 + (count / globalMaxCount) * 0.9;
-						dayEl.addClass("year-heat-day");
+						dayEl.addClass("task-year-heat-day");
 						dayEl.setCssProps({
 							"--year-heat-bg": `rgba(${YEAR_HEAT_RGB}, ${intensity.toFixed(2)})`,
 						});
@@ -689,10 +689,10 @@ export function renderCalendarView(
 
 	if (emptyPeriods.length > 0) {
 		const emptyRow = createDiv();
-		emptyRow.className = "empty-periods-row";
+		emptyRow.className = "task-empty-periods-row";
 		for (const period of emptyPeriods) {
 			const tag: HTMLElement = createSpan();
-			tag.className = "empty-period-tag";
+			tag.className = "task-empty-period-tag";
 			tag.textContent = period;
 			emptyRow.appendChild(tag);
 		}

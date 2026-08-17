@@ -297,7 +297,7 @@ export class TimePanel {
 
 	private updateModeButtons() {
 		const mb = this.container.querySelector(
-			".panel-btn:not(.sub-btn)",
+			".task-panel-btn:not(.sub-btn)",
 		) as HTMLElement;
 		if (mb) {
 			if (this.intervalMode !== "none") mb.addClass("active");
@@ -652,11 +652,11 @@ export class TimePanel {
 				this.currentMaxYear = this.staticEnd.getFullYear();
 				this.childSlidersDrivenByYear = true;
 			}
-			const mr = this.container.createDiv({ cls: "panel-row" });
-			mr.createSpan({ text: "时间筛选", cls: "panel-label" });
+			const mr = this.container.createDiv({ cls: "task-panel-row" });
+			mr.createSpan({ text: "时间筛选", cls: "task-panel-label" });
 			const mainBtn = mr.createEl("button", {
 				text: "时间模式",
-				cls: "panel-btn",
+				cls: "task-panel-btn",
 			});
 			if (this.intervalMode !== "none") mainBtn.addClass("active");
 			mainBtn.addEventListener("click", () => {
@@ -670,7 +670,7 @@ export class TimePanel {
 						intervalMode: this.intervalMode,
 					});
 			});
-			const sp = mr.createDiv({ cls: "panel-sub" });
+			const sp = mr.createDiv({ cls: "task-panel-sub" });
 			sp.addClass(
 				"task-flex",
 				"task-flex-wrap",
@@ -685,17 +685,17 @@ export class TimePanel {
 			modes.forEach(({ key, label }) => {
 				const btn = sp.createEl("button", {
 					text: label,
-					cls: "panel-btn sub-btn",
+					cls: "task-panel-btn sub-btn",
 				});
 				if (this.intervalMode === key) btn.addClass("active");
 				btn.addEventListener("click", () => this.onSelectMode(key));
 				this.modeBtns.set(key, btn);
 			});
 			this.dynamicSection = this.container.createDiv({
-				cls: "panel-section",
+				cls: "task-panel-section",
 			});
-			const uRow = this.dynamicSection.createDiv({ cls: "panel-row" });
-			uRow.createSpan({ text: "动态时间", cls: "panel-label" });
+			const uRow = this.dynamicSection.createDiv({ cls: "task-panel-row" });
+			uRow.createSpan({ text: "动态时间", cls: "task-panel-label" });
 			(["年", "季", "月", "周", "日"] as const).forEach((u) => {
 				const k =
 					u === "年"
@@ -709,7 +709,7 @@ export class TimePanel {
 									: "day";
 				const b = uRow.createEl("button", {
 					text: u,
-					cls: "panel-btn",
+					cls: "task-panel-btn",
 				});
 				if (this.dynamicUnit === k) b.addClass("active");
 				this.unitBtns.set(k, b);
@@ -717,7 +717,7 @@ export class TimePanel {
 			});
 			this.useDynamicBtn = uRow.createEl("button", {
 				text: "使用动态",
-				cls: "panel-btn",
+				cls: "task-panel-btn",
 			});
 			if (this.useDynamic) this.useDynamicBtn.addClass("active");
 			this.useDynamicBtn.addEventListener("click", () =>
@@ -725,11 +725,11 @@ export class TimePanel {
 			);
 			this.rebuildDynamicSlider();
 			this.staticSection = this.container.createDiv({
-				cls: "panel-section",
+				cls: "task-panel-section",
 			});
 			this.staticSection
-				.createDiv({ cls: "panel-row" })
-				.createSpan({ text: "静态时间", cls: "panel-label" });
+				.createDiv({ cls: "task-panel-row" })
+				.createSpan({ text: "静态时间", cls: "task-panel-label" });
 			this.rebuildStaticSliders();
 		} finally {
 			this.isRendering = false;

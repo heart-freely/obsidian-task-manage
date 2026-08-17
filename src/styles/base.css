@@ -1,0 +1,52 @@
+/* ================================================================
+   Obsidian Task Manage — 完整样式文件
+   ================================================================ */
+
+/* ========== 布局 ========== */
+.manage-root {
+	display: flex;
+	height: 100%;
+	overflow: hidden;
+}
+.manage-sidebar:not([style*="width: 40px"]) .task-preset-btn {
+	width: 100%;
+	box-sizing: border-box;
+	text-align: left;
+	padding: 6px 12px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition: width 0.15s ease;
+}
+.manage-main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	position: relative;
+	min-height: 0;
+	min-width: 0;
+}
+.manage-toolbar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 10;
+	pointer-events: none;
+}
+.manage-view {
+	flex: 1;
+	overflow: hidden;
+	min-height: 0;
+	padding: 0;
+	position: relative;
+}
+
+/* ========== 通用辅助 ========== */
+.task-empty-message {
+	padding: 40px;
+	text-align: center;
+	color: var(--text-muted);
+	font-style: italic;
+}

@@ -83,25 +83,25 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		statusLabels,
 		mainBtnTextOverrides,
 	} = options;
-	row.createSpan({ text: label, cls: "panel-label" });
+	row.createSpan({ text: label, cls: "task-panel-label" });
 
 	if (type === "statuses") {
 		const ns = selected.length === 0;
 		const labels = statusLabels || STATUS_NAMES;
 		const mb = row.createEl("button", {
 			text: mainBtnTextOverrides?.statuses || "状态",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (!ns) mb.addClass("active");
 		mb.onclick = () => {
 			onChange(ns ? [...BASIC_STATUSES] : []);
 		};
-		const sp = row.createDiv({ cls: "panel-sub" });
+		const sp = row.createDiv({ cls: "task-panel-sub" });
 		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
 		BASIC_STATUSES.forEach((st) => {
 			const btn = sp.createEl("button", {
 				text: labels[st] || st,
-				cls: "panel-btn sub-btn",
+				cls: "task-panel-btn sub-btn",
 			});
 			if (selected.includes(st)) btn.addClass("active");
 			btn.onclick = () => {
@@ -117,7 +117,7 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 	if (type === "searchText") {
 		const input = row.createEl("input", {
 			type: "text",
-			cls: "panel-input",
+			cls: "task-panel-input",
 			attr: { placeholder: "输入关键词，多个关键词用空格分隔，回车搜索" },
 		});
 		input.addClass("task-w-380");
@@ -146,18 +146,18 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		const ns = selected.length === 0;
 		const mb = row.createEl("button", {
 			text: mainBtnTextOverrides?.priorityValues || "优先级",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (!ns) mb.addClass("active");
 		mb.onclick = () => {
 			onChange(ns ? [...PRIORITY_ICONS] : []);
 		};
-		const sp = row.createDiv({ cls: "panel-sub" });
+		const sp = row.createDiv({ cls: "task-panel-sub" });
 		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
 		PRIORITY_ICONS.forEach((icon) => {
 			const btn = sp.createEl("button", {
 				text: icon,
-				cls: "panel-btn sub-btn",
+				cls: "task-panel-btn sub-btn",
 			});
 			if (selected.includes(icon)) btn.addClass("active");
 			btn.onclick = () => {
@@ -174,18 +174,18 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		const ns = selected.length === 0;
 		const mb = row.createEl("button", {
 			text: mainBtnTextOverrides?.repeatCycles || "循环",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (!ns) mb.addClass("active");
 		mb.onclick = () => {
 			onChange(ns ? [...REPEAT_ORDER] : []);
 		};
-		const sp = row.createDiv({ cls: "panel-sub" });
+		const sp = row.createDiv({ cls: "task-panel-sub" });
 		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
 		REPEAT_ORDER.forEach((cycle) => {
 			const btn = sp.createEl("button", {
 				text: `🔁 ${cycle}`,
-				cls: "panel-btn sub-btn",
+				cls: "task-panel-btn sub-btn",
 			});
 			if (selected.includes(cycle)) btn.addClass("active");
 			btn.onclick = () => {
@@ -204,19 +204,19 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 			text:
 				mainBtnTextOverrides?.marks ||
 				label.replace(/^(筛选|隐藏)/, ""),
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (!ns) mb.addClass("active");
 		mb.onclick = () => {
 			const others = selected.filter((m) => !keys.includes(m));
 			onChange(ns ? [...others, ...keys] : others);
 		};
-		const sp = row.createDiv({ cls: "panel-sub" });
+		const sp = row.createDiv({ cls: "task-panel-sub" });
 		sp.addClass("task-flex", "task-flex-wrap", "task-gap-1", "task-ml-2");
 		keys.forEach((mk) => {
 			const btn = sp.createEl("button", {
 				text: MARK_NAMES[mk] || mk,
-				cls: "panel-btn sub-btn",
+				cls: "task-panel-btn sub-btn",
 			});
 			if (selected.includes(mk)) btn.addClass("active");
 			btn.onclick = () => {
@@ -234,7 +234,7 @@ export function buildToggleGroup(options: ToggleGroupOptions): void {
 		const isSel = selected.includes(mk);
 		const btn = row.createEl("button", {
 			text: mainBtnTextOverrides?.marks || MARK_NAMES[mk] || mk,
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (isSel) btn.addClass("active");
 		btn.onclick = () => {
@@ -284,7 +284,7 @@ export class FilterPanel {
 			});
 		};
 		FILTER_GROUPS.forEach((group) => {
-			const row = this.container.createDiv({ cls: "panel-row" });
+			const row = this.container.createDiv({ cls: "task-panel-row" });
 			if (group.type === "statuses") {
 				buildToggleGroup({
 					row,

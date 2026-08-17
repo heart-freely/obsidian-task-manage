@@ -1,0 +1,95 @@
+/* ========== 视图切换按钮 ========== */
+.task-view-btn {
+	padding: 4px 12px;
+	border-radius: 16px;
+	border: none;
+	cursor: pointer;
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+}
+.task-view-btn.active {
+	background: var(--interactive-accent);
+	color: white;
+}
+
+/* ========== BaseTaskView 动态样式 ========== */
+.task-view-padding-reset {
+	padding: 0;
+	margin: 0;
+}
+.task-view-full {
+	height: 100%;
+	overflow: hidden;
+}
+.task-split-layout {
+	display: flex;
+	height: 100%;
+	position: relative;
+	overflow: hidden;
+}
+.task-tree-nav-dynamic {
+	width: var(--tree-nav-width, 280px);
+	min-width: var(--tree-nav-min-width, 200px);
+	max-width: 500px;
+	border-right: var(
+		--tree-nav-border-right,
+		1px solid var(--background-modifier-border)
+	);
+	background: var(--background-primary);
+	overflow: hidden;
+	transition:
+		width 0.2s ease,
+		min-width 0.2s ease;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+}
+.task-tree-nav-content-inner {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 4px 0;
+}
+.task-tree-nav-resize-visible {
+	width: 8px;
+	min-width: 8px;
+	cursor: col-resize;
+	background: rgba(128, 128, 128, 0.4);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: var(--resize-opacity, 0);
+	transition: opacity 0.15s;
+	flex-shrink: 0;
+	position: relative;
+}
+.task-tree-nav-resize-hidden {
+	width: 8px;
+	min-width: 8px;
+	cursor: col-resize;
+	background: rgba(128, 128, 128, 0.4);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: var(--resize-opacity, 0);
+	transition: opacity 0.15s;
+	flex-shrink: 0;
+	position: relative;
+}
+.task-tree-nav-arrow {
+	cursor: pointer;
+	font-size: 8px;
+	color: rgba(255, 255, 255, 0.8);
+	line-height: 1;
+	user-select: none;
+	writing-mode: vertical-lr;
+}
+.task-right-content {
+	flex: 1;
+	overflow: auto;
+	min-width: 0;
+	padding: 0;
+}
+.task-cursor-col-resize {
+	cursor: col-resize;
+}

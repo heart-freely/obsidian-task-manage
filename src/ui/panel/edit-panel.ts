@@ -54,12 +54,12 @@ export class EditPanel {
 		const ds = "opacity: 0.5; cursor: not-allowed;";
 		this.container.empty();
 
-		const row1 = this.container.createDiv({ cls: "panel-row" });
+		const row1 = this.container.createDiv({ cls: "task-panel-row" });
 		row1.addClass("task-flex-wrap", "task-gap-1", "task-mb-1");
-		row1.createSpan({ text: "批量编辑", cls: "panel-label" });
+		row1.createSpan({ text: "批量编辑", cls: "task-panel-label" });
 		const batchBtn = row1.createEl("button", {
 			text: "批量编辑",
-			cls: "panel-btn edit-batch-btn",
+			cls: "task-panel-btn edit-batch-btn",
 		});
 		if (isBatchMode) batchBtn.addClass("active");
 		batchBtn.addEventListener("click", (e) => {
@@ -67,7 +67,7 @@ export class EditPanel {
 			tv?.toggleBatchMode?.();
 		});
 
-		const sub = row1.createDiv({ cls: "panel-sub" });
+		const sub = row1.createDiv({ cls: "task-panel-sub" });
 		sub.addClass(
 			"task-flex",
 			"task-flex-wrap",
@@ -77,7 +77,7 @@ export class EditPanel {
 		);
 		const syncBtn = sub.createEl("button", {
 			text: "同步模式",
-			cls: "panel-btn sub-btn",
+			cls: "task-panel-btn sub-btn",
 		});
 		if (!isBatchMode) syncBtn.style.cssText += ds;
 		if (isSyncMode) syncBtn.addClass("active");
@@ -89,7 +89,7 @@ export class EditPanel {
 		});
 		const selBtn = sub.createEl("button", {
 			text: hasSelected && isBatchMode ? "全不选" : "全选",
-			cls: "panel-btn sub-btn",
+			cls: "task-panel-btn sub-btn",
 		});
 		if (!isBatchMode) selBtn.style.cssText += ds;
 		selBtn.addEventListener("click", () => {
@@ -98,7 +98,7 @@ export class EditPanel {
 		});
 		const srtBtn = sub.createEl("button", {
 			text: "标记排序",
-			cls: "panel-btn sub-btn",
+			cls: "task-panel-btn sub-btn",
 		});
 		if (!isBatchMode || !hasSelected) srtBtn.style.cssText += ds;
 		srtBtn.addEventListener("click", () => {
@@ -112,7 +112,7 @@ export class EditPanel {
 		acRow.addClass("task-inline-flex", "task-items-center", "task-gap-1");
 		const acBtn = createEl("button");
 		acBtn.textContent = "补全时间";
-		acBtn.className = "panel-btn sub-btn";
+		acBtn.className = "task-panel-btn sub-btn";
 		if (!isBatchMode || !hasSelected) acBtn.style.cssText += ds;
 		acBtn.addEventListener("click", () => {
 			if (!isBatchMode || !hasSelected) return;
@@ -171,7 +171,7 @@ export class EditPanel {
 
 		const clrBtn = sub.createEl("button", {
 			text: "恢复原文",
-			cls: "panel-btn sub-btn",
+			cls: "task-panel-btn sub-btn",
 		});
 		if (!isBatchMode || !hasSelected) clrBtn.style.cssText += ds;
 		clrBtn.addEventListener("click", () => {
@@ -182,7 +182,7 @@ export class EditPanel {
 		});
 		const savBtn = sub.createEl("button", {
 			text: "保存编辑",
-			cls: "panel-btn sub-btn",
+			cls: "task-panel-btn sub-btn",
 		});
 		if (!isBatchMode || !hasSelected) savBtn.style.cssText += ds;
 		savBtn.addEventListener("click", () => {
@@ -192,14 +192,14 @@ export class EditPanel {
 			window.setTimeout(() => savBtn.removeClass("active"), 300);
 		});
 
-		const row2 = this.container.createDiv({ cls: "panel-row" });
+		const row2 = this.container.createDiv({ cls: "task-panel-row" });
 		row2.addClass("task-flex-wrap", "task-gap-1");
-		row2.createSpan({ text: "批量撤回", cls: "panel-label" });
+		row2.createSpan({ text: "批量撤回", cls: "task-panel-label" });
 
 		const ss = createEl(
 			"select",
 			{
-				cls: "panel-btn",
+				cls: "task-panel-btn",
 			},
 			(el) => {
 				el.addClass(
@@ -228,7 +228,7 @@ export class EditPanel {
 
 		const revBtn = row2.createEl("button", {
 			text: "备份恢复",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (!hasSnapshots) revBtn.style.cssText += ds;
 		revBtn.addEventListener("click", () => {
@@ -242,7 +242,7 @@ export class EditPanel {
 		});
 		const clsSnapBtn = row2.createEl("button", {
 			text: "清空备份",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (!hasSnapshots) clsSnapBtn.style.cssText += ds;
 		clsSnapBtn.addEventListener("click", () => {

@@ -1,0 +1,33 @@
+/* ========== 统计图表 ========== */
+.task-chart-grid {
+	width: 100%;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+	margin: 0;
+	padding: 8px;
+}
+.task-chart-item {
+	background: var(--background-secondary);
+	border-radius: 8px;
+	padding: 4px;
+	display: flex;
+	flex-direction: column;
+	height: 250px;
+	overflow: hidden;
+}
+.task-chart-item .task-chart-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	height: 24px;
+}
+.task-chart-body {
+	flex: 1;
+	min-height: 0;
+	width: 100%;
+}
+.task-chart-dynamic-height {
+	height: var(--task-chart-height, 300px);
+}
+

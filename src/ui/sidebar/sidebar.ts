@@ -37,7 +37,7 @@ export class SidebarPanel {
 		}
 
 		const existingButtons =
-			this.container.querySelectorAll<HTMLElement>(".preset-btn");
+			this.container.querySelectorAll<HTMLElement>(".task-preset-btn");
 		const buttonsToReset: HTMLElement[] = [];
 		existingButtons.forEach((btn) => {
 			buttonsToReset.push(btn);
@@ -55,15 +55,15 @@ export class SidebarPanel {
 			cls:
 				"side-top-row" +
 				(collapsed
-					? " side-top-row-collapsed"
-					: " side-top-row-vertical"),
+					? " task-side-top-row-collapsed"
+					: " task-side-top-row-vertical"),
 		});
 		const toggleBtn = topRow.createEl("button", {
 			text: collapsed ? "▶" : "◀",
-			cls: "preset-btn",
+			cls: "task-preset-btn",
 			title: collapsed ? "展开侧边栏" : "折叠侧边栏",
 		});
-		if (collapsed) toggleBtn.className = "preset-btn side-icon-btn";
+		if (collapsed) toggleBtn.className = "task-preset-btn task-side-icon-btn";
 		toggleBtn.addEventListener("click", () => {
 			const st = this.store.getState();
 			const nc = !st.sidebarCollapsed;
@@ -72,7 +72,7 @@ export class SidebarPanel {
 				sidebarWidth: nc ? 40 : st.sidebarWidth || 100,
 			});
 		});
-		const contentDiv = this.container.createDiv({ cls: "side-content" });
+		const contentDiv = this.container.createDiv({ cls: "task-side-content" });
 		contentDiv.addClass(
 			"task-overflow-y-auto",
 			"task-flex-1",
@@ -88,7 +88,7 @@ export class SidebarPanel {
 			state.presets.forEach((preset) => {
 				const btn = iconBar.createEl("button", {
 					text: preset.icon || preset.name.charAt(0),
-					cls: "preset-btn side-icon-btn",
+					cls: "task-preset-btn task-side-icon-btn",
 					title: preset.name,
 				});
 				if (state.activePresetId === preset.id) btn.addClass("active");
@@ -99,7 +99,7 @@ export class SidebarPanel {
 			contentDiv
 				.createEl("button", {
 					text: "➕",
-					cls: "preset-btn side-icon-btn",
+					cls: "task-preset-btn task-side-icon-btn",
 					title: "新建视图",
 				})
 				.addEventListener("click", () => this.createNewPreset());
@@ -109,10 +109,10 @@ export class SidebarPanel {
 		this.container.addClass("task-sidebar-dynamic-min-width");
 		const listDiv = contentDiv.createDiv({ cls: "preset-list" });
 		state.presets.forEach((preset) => {
-			const row = listDiv.createDiv({ cls: "preset-row" });
+			const row = listDiv.createDiv({ cls: "task-preset-row" });
 			const btn = row.createEl("button", {
 				text: (preset.icon || "📋") + " " + preset.name,
-				cls: "preset-btn",
+				cls: "task-preset-btn",
 			});
 			if (state.activePresetId === preset.id) btn.addClass("active");
 			btn.addEventListener("click", () =>
@@ -122,7 +122,7 @@ export class SidebarPanel {
 		contentDiv
 			.createEl("button", {
 				text: "➕ 新建视图",
-				cls: "preset-btn",
+				cls: "task-preset-btn",
 				attr: { style: "margin-top: auto;" },
 			})
 			.addEventListener("click", () => this.createNewPreset());
@@ -161,7 +161,7 @@ export class SidebarPanel {
 	private adjustSidebarWidth() {
 		if (this.store.getState().sidebarCollapsed) return;
 		const buttons =
-			this.container.querySelectorAll<HTMLElement>(".preset-btn");
+			this.container.querySelectorAll<HTMLElement>(".task-preset-btn");
 		if (buttons.length === 0) return;
 		buttons.forEach((btn) => {
 			btn.removeClass("task-sidebar-btn-fixed");

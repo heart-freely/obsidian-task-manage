@@ -38,8 +38,8 @@ export class SidebarPanel {
 			});
 		};
 
-		const rowName = this.container.createDiv({ cls: "panel-row" });
-		rowName.createSpan({ text: "视图名称", cls: "panel-label" });
+		const rowName = this.container.createDiv({ cls: "task-panel-row" });
+		rowName.createSpan({ text: "视图名称", cls: "task-panel-label" });
 		const nameInput = rowName.createEl("input", {
 			type: "text",
 			attr: { placeholder: "输入视图名称" },
@@ -50,11 +50,11 @@ export class SidebarPanel {
 			updatePreset({ name: nameInput.value.trim() || "未命名" }),
 		);
 
-		const row2 = this.container.createDiv({ cls: "panel-row" });
-		row2.createSpan({ text: "视图图标", cls: "panel-label" });
+		const row2 = this.container.createDiv({ cls: "task-panel-row" });
+		row2.createSpan({ text: "视图图标", cls: "task-panel-label" });
 		const iconInput = row2.createEl("input", {
 			type: "text",
-			cls: "panel-input panel-input-sm",
+			cls: "task-panel-input task-panel-input-sm",
 			attr: { placeholder: "Emoji" },
 		});
 		iconInput.value = preset.icon || "";
@@ -62,70 +62,11 @@ export class SidebarPanel {
 			updatePreset({ icon: iconInput.value.trim() || undefined }),
 		);
 
-		const row4 = this.container.createDiv({ cls: "panel-row" });
-		row4.createSpan({ text: "视图配置", cls: "panel-label" });
-		const importBtn = row4.createEl("button", {
-			text: "📥 导入配置",
-			cls: "panel-btn",
-		});
-		importBtn.addEventListener("click", () => {
-			const input = createEl("input");
-			input.type = "file";
-			input.accept = ".json";
-			input.addEventListener("change", () => {
-				if (!input.files?.length) return;
-				input.files[0]
-					.text()
-					.then((text: string) => {
-						try {
-							const data: unknown = JSON.parse(text);
-							if (!data || typeof data !== "object") return;
-							const st = this.store.getState();
-							const pr = st.presets.find(
-								(p) => p.id === st.activePresetId,
-							);
-							if (!pr) return;
-							const merged: Preset = {
-								...pr,
-								...(data as Partial<Preset>),
-								id: pr.id,
-							};
-							this.store.update({
-								presets: st.presets.map((p) =>
-									p.id === pr.id ? merged : p,
-								),
-							});
-							Panels.getInstance().refreshTimePanel();
-							this.render();
-						} catch {
-							/* JSON 解析失败 */
-						}
-					})
-					.catch(() => {
-						/* 读取失败 */
-					});
-			});
-			input.click();
-		});
-		const exportBtn = row4.createEl("button", {
-			text: "📤 导出配置",
-			cls: "panel-btn",
-		});
-		exportBtn.addEventListener("click", () => {
-			const st = this.store.getState();
-			const pr = st.presets.find((p) => p.id === st.activePresetId);
-			if (!pr) return;
-			const blob = new Blob([JSON.stringify(pr, null, 2)], {
-				type: "application/json",
-			});
-			const a = createEl("a");
-			a.href = URL.createObjectURL(blob);
-			a.download = `task-view-${pr.name}.json`;
-			a.click();
-		});
+		const row4 = this.container.createDiv({ cls: "task-panel-row" });
+		row4.createSpan({ text: "视图管理", cls: "task-panel-label" });
 		const resetBtn = row4.createEl("button", {
 			text: "🔄 恢复默认",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		resetBtn.addEventListener("click", () => {
 			const st = this.store.getState();
@@ -139,7 +80,7 @@ export class SidebarPanel {
 		});
 		const delBtn = row4.createEl("button", {
 			text: "🗑️ 删除视图",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		delBtn.addEventListener("click", () => {
 			const st = this.store.getState();

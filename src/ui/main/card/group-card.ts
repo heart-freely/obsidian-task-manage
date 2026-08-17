@@ -15,7 +15,7 @@ export interface GroupCardOptions {
 export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	const { title, count, tasks, onClick, onEnterEdit, color } = options;
 	const colDiv = createDiv();
-	colDiv.className = "group-card";
+	colDiv.className = "task-group-card";
 	colDiv.addClass(
 		"task-group-card",
 		"task-bg-primary",
@@ -27,7 +27,7 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	);
 	if (color) colDiv.style.borderLeft = `4px solid ${color}`;
 	const header = createDiv();
-	header.className = "group-card-header";
+	header.className = "task-group-card-header";
 	header.addClass(
 		"task-flex",
 		"task-justify-start",
@@ -40,13 +40,13 @@ export function createGroupCard(options: GroupCardOptions): HTMLElement {
 	const titleSpan = createSpan();
 	titleSpan.textContent = title;
 	const countSpan = createSpan();
-	countSpan.className = "group-card-count";
+	countSpan.className = "task-group-card-count";
 	countSpan.addClass("task-text-muted", "task-text-nowrap");
 	countSpan.textContent = String(count);
 	header.appendChild(titleSpan);
 	header.appendChild(countSpan);
 	const body = createDiv();
-	body.className = "group-card-body";
+	body.className = "task-group-card-body";
 	body.addClass("task-py-1");
 	const list = createEl("ul");
 	list.className = "task-list";

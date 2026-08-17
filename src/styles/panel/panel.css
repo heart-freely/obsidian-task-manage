@@ -1,0 +1,203 @@
+/* ========== 视图配置面板 ========== */
+.task-panel-host {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 50;
+	pointer-events: auto;
+}
+.task-panel-container {
+	position: relative;
+	z-index: 49;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	box-sizing: border-box;
+}
+.task-panel-header {
+	padding: 4px 6px;
+	display: flex;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	background-color: var(--background-primary);
+	border: none;
+	border-bottom: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	box-sizing: border-box;
+	gap: 0;
+	flex-shrink: 0;
+}
+.task-panel-content {
+	padding: 4px 6px;
+	background: var(--background-secondary);
+}
+
+/* 面板按钮 */
+.task-panel-btn {
+	padding: 3px 6px;
+	font-family: var(--font-text);
+	font-size: var(--font-ui-small);
+	line-height: var(--line-height-normal);
+	margin: 2px 4px 2px 0;
+	text-align: left;
+	white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-start;
+	flex-grow: 0;
+	flex-shrink: 0;
+	width: auto;
+	min-width: auto;
+	height: auto;
+	border-radius: 16px;
+	background: var(--interactive-normal);
+	border: none;
+	cursor: pointer;
+}
+.task-panel-btn.active {
+	background: var(--interactive-accent);
+	color: white;
+}
+.task-panel-btn.sub-btn {
+	padding: 2px 5px;
+	font-size: var(--font-ui-smaller);
+	border-radius: 12px;
+}
+.task-panel-label {
+	font-family: var(--font-text);
+	font-size: var(--font-ui-small);
+	font-weight: normal;
+	color: var(--text-normal);
+	width: 4em;
+	flex-shrink: 0;
+	margin: 0;
+	margin-right: 6px;
+	padding: 0;
+	border: none;
+	box-sizing: border-box;
+	overflow: hidden;
+	white-space: normal;
+	word-break: keep-all;
+}
+.task-panel-row {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	margin-bottom: 4px;
+	flex-wrap: wrap;
+}
+.task-panel-sub {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	margin-left: 8px;
+}
+.task-panel-section {
+	margin: 0;
+	padding: 0;
+}
+.task-panel-view-btn {
+	min-width: auto;
+}
+.task-panel-input {
+	padding: 4px 8px;
+	border-radius: 12px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 13px;
+	min-width: 200px;
+}
+.task-panel-input-sm {
+	width: 48px;
+	min-width: 48px;
+	padding: 3px 4px;
+	font-size: 14px;
+	text-align: center;
+}
+
+/* 标题栏按钮 */
+.task-panel-header-btn {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	cursor: grab;
+	padding: 4px 8px;
+	border-radius: 6px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	user-select: none;
+	font-size: 12px;
+	white-space: nowrap;
+}
+.task-panel-header-btn:hover {
+	background: var(--background-modifier-hover);
+}
+.task-panel-header-btn.active {
+	background: var(--background-modifier-active);
+}
+.task-panel-header-btn:active {
+	cursor: grabbing;
+}
+.task-panel-header-btn.dragging {
+	opacity: 0.5;
+}
+.task-panel-header-btn.drag-over {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent);
+}
+.task-panel-header-label {
+	font-family: inherit;
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+}
+.task-panel-eye {
+	font-size: 12px;
+	cursor: pointer;
+}
+
+/* 拖拽手柄 */
+.task-panel-resize-handle {
+	height: 8px;
+	min-height: 8px;
+	cursor: row-resize;
+	background: rgba(128, 128, 128, 0.4);
+	border-radius: 0 0 4px 4px;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity 0.15s;
+	box-sizing: border-box;
+	position: relative;
+	z-index: 60;
+	flex-shrink: 0;
+	margin-top: 0;
+}
+
+/* ================================================================
+   HeadPanel
+   ================================================================ */
+.task-head-bar {
+	padding: 4px 6px;
+	display: flex;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	background: var(--background-secondary);
+	border: none;
+	border-bottom: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	box-sizing: border-box;
+	gap: 0;
+}

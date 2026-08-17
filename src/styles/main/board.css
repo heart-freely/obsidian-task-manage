@@ -1,0 +1,33 @@
+/* ========== 看板 ========== */
+.task-kanban-board {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+.task-kanban-col {
+	flex: 1;
+	min-width: 0;
+}
+.task-kanban-board {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	overflow-x: auto;
+	padding: 8px 0;
+}
+.task-kanban-col {
+	flex: 1;
+	min-width: 240px;
+	background-color: var(--background-secondary);
+	border-radius: 8px;
+	padding: 12px;
+}
+
+/* ========== 矩阵 ========== */
+.task-matrix-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: 1fr 1fr;
+	gap: 12px;
+}
+

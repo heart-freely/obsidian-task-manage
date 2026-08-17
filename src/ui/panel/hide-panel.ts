@@ -71,7 +71,7 @@ export class HidePanel {
 		};
 
 		HIDE_GROUPS.forEach((group) => {
-			const row = this.container.createDiv({ cls: "panel-row" });
+			const row = this.container.createDiv({ cls: "task-panel-row" });
 			if (group.type === "statuses") {
 				buildToggleGroup({
 					row,

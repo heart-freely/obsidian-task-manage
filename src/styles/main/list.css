@@ -1,0 +1,91 @@
+/* ========== 任务树 ========== */
+.task-tree {
+	font-size: var(--font-ui-small);
+}
+.task-tree-indent {
+	margin-left: var(--task-indent, 0px);
+}
+.task-tree-toggle-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	min-width: 16px;
+	height: 22px;
+	font-size: 10px;
+	flex-shrink: 0;
+	cursor: pointer;
+	user-select: none;
+}
+
+/* 分屏布局 */
+.task-split-layout {
+	display: flex;
+	height: 100%;
+	position: relative;
+	overflow: hidden;
+}
+.task-tree-nav {
+	background: var(--background-primary);
+	overflow: hidden;
+	transition:
+		width 0.2s ease,
+		min-width 0.2s ease;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+}
+.task-tree-nav-toggle {
+	width: 20px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--background-secondary);
+	border-right: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	font-size: 10px;
+	flex-shrink: 0;
+	writing-mode: vertical-lr;
+	letter-spacing: 2px;
+	user-select: none;
+}
+.task-tree-nav-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	flex-shrink: 0;
+}
+.task-tree-nav-content {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 4px 0;
+}
+.task-tree-nav-resize {
+	width: 8px;
+	min-width: 8px;
+	cursor: col-resize;
+	background: rgba(128, 128, 128, 0.4);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity 0.15s;
+	flex-shrink: 0;
+	position: relative;
+}
+.task-right-content {
+	flex: 1;
+	overflow: auto;
+	min-width: 0;
+	padding: 0;
+}
+.task-view-content {
+	padding: 0;
+	margin: 0;
+}
+

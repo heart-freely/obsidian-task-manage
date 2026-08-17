@@ -34,7 +34,7 @@ export function renderKanban(
 		},
 	];
 	const board = createDiv();
-	board.className = "kanban-board";
+	board.className = "task-kanban-board";
 	board.addClass("task-flex", "task-gap-3", "task-items-start");
 	columns.forEach((col) => {
 		const card = createGroupCard({

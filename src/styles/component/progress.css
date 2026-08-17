@@ -1,0 +1,31 @@
+/* ========== 进度条 ========== */
+.task-progress-bar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 60px;
+}
+.task-progress-bar-container {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 60px;
+}
+.task-progress-bar {
+	flex: 1;
+	border-radius: 3px;
+	overflow: hidden;
+	background: var(--background-modifier-border);
+	display: flex;
+}
+.task-progress-bar-segment {
+	height: 100%;
+	flex-shrink: 0;
+}
+.task-progress-bar-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+

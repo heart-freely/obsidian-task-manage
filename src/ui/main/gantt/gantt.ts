@@ -43,19 +43,19 @@ function createTimelineHeader(
 	const mutedColor = dark ? "#999" : "#888";
 
 	const header = createDiv();
-	header.className = "gantt-header gantt-header-dynamic";
+	header.className = "task-gantt-header task-gantt-header-dynamic";
 	header.setCssProps({
 		"--gantt-header-height": HEADER_HEIGHT + "px",
 		"--gantt-header-width": treeWidth + totalWidth + "px",
 	});
 
 	const spacer = createDiv();
-	spacer.className = "gantt-header-spacer";
+	spacer.className = "task-gantt-header-spacer";
 	spacer.setCssProps({ "--gantt-spacer-width": treeWidth + "px" });
 	header.appendChild(spacer);
 
 	const inner = createDiv();
-	inner.className = "gantt-header-inner-dynamic";
+	inner.className = "task-gantt-header-inner-dynamic";
 	inner.setCssProps({
 		"--gantt-inner-left": treeWidth + "px",
 		"--gantt-inner-width": totalWidth + "px",
@@ -141,9 +141,9 @@ function createTimelineHeader(
 			if (x2 > x1) {
 				const el = createSpan();
 				el.textContent = layer.getLabel(cur);
-				el.className = "gantt-header-label";
+				el.className = "task-gantt-header-label";
 				if (nextTs < tr.maxTime)
-					el.addClass("gantt-header-label-border-right");
+					el.addClass("task-gantt-header-label-border-right");
 				el.setCssProps({
 					"--gantt-label-left": x1 + "px",
 					"--gantt-label-top": idx * eachH + "px",
@@ -171,7 +171,7 @@ function createDependencySVG(
 	const svg: GanttSvgElement = createSvg("svg");
 	svg.setAttribute(
 		"class",
-		"gantt-dependencies gantt-dependency-svg-dynamic",
+		"gantt-dependencies task-gantt-dependency-svg-dynamic",
 	);
 	svg.setAttribute("width", String(totalWidth));
 	svg.setCssProps({ "--gantt-svg-width": totalWidth + "px" });
@@ -341,7 +341,7 @@ export async function renderGanttWithTree(
 		y: number,
 	): HTMLElement {
 		const bar = createDiv();
-		bar.className = "gantt-bar gantt-bar-dynamic";
+		bar.className = "task-gantt-bar task-gantt-bar-dynamic";
 		bar.setAttribute("data-task-bar", "true");
 		bar.setAttribute("data-uid", node.uid);
 		const barLeftPx: string = actualTreeWidth + edges.left + "px";
@@ -357,7 +357,7 @@ export async function renderGanttWithTree(
 
 		if (edges.width > 60) {
 			const desc = createSpan();
-			desc.className = "gantt-bar-desc";
+			desc.className = "task-gantt-bar-desc";
 			desc.textContent = node.text || node.content || "";
 			bar.appendChild(desc);
 		}
@@ -370,7 +370,7 @@ export async function renderGanttWithTree(
 		);
 		if (dur && edges.width > 30) {
 			const label = createSpan();
-			label.className = "gantt-bar-label";
+			label.className = "task-gantt-bar-label";
 			label.textContent = dur;
 			bar.appendChild(label);
 		}
@@ -499,7 +499,7 @@ export async function renderGanttWithTree(
 
 	function updateLayoutWidths() {
 		const tc = scrollArea.querySelector<HTMLElement>(
-			".gantt-tree-container",
+			".task-gantt-tree-container",
 		);
 		actualTreeWidth = tc?.offsetWidth || initTreeWidth;
 		const tw = zoomState.totalWidth;
@@ -537,7 +537,7 @@ export async function renderGanttWithTree(
 		deferredUpdateTimer = window.setTimeout(() => {
 			const tw = zoomState.totalWidth;
 			const oldHeader =
-				scrollArea.querySelector<HTMLElement>(".gantt-header");
+				scrollArea.querySelector<HTMLElement>(".task-gantt-header");
 			if (oldHeader)
 				oldHeader.replaceWith(
 					createTimelineHeader(
@@ -551,7 +551,7 @@ export async function renderGanttWithTree(
 				);
 
 			const oldLineLayer = scrollArea.querySelector<HTMLElement>(
-				".gantt-timeline-lines",
+				".task-gantt-timeline-lines",
 			);
 			if (oldLineLayer) {
 				oldLineLayer.innerHTML = "";
@@ -564,7 +564,7 @@ export async function renderGanttWithTree(
 					if (d.getDate() === 1) {
 						const x: number = dateToX(d.getTime());
 						const line = createDiv();
-						line.className = "gantt-timeline-line";
+						line.className = "task-gantt-timeline-line";
 						line.setCssProps({ "--gantt-line-left": x + "px" });
 						oldLineLayer.appendChild(line);
 					}
@@ -593,14 +593,14 @@ export async function renderGanttWithTree(
 		}, 150);
 	}
 
-	container.addClass("gantt-container");
+	container.addClass("task-gantt-container");
 	const scrollArea = createDiv();
-	scrollArea.className = "gantt-scroll-area";
+	scrollArea.className = "task-gantt-scroll-area";
 	container.appendChild(scrollArea);
 
 	scrollArea.addEventListener("mouseover", (e) => {
 		const bar = (e.target as HTMLElement).closest<HTMLElement>(
-			".gantt-bar",
+			".task-gantt-bar",
 		);
 		if (!bar) {
 			tooltip.hide();
@@ -615,7 +615,7 @@ export async function renderGanttWithTree(
 	});
 	scrollArea.addEventListener("mousemove", (e) => {
 		const bar = (e.target as HTMLElement).closest<HTMLElement>(
-			".gantt-bar",
+			".task-gantt-bar",
 		);
 		if (bar) tooltip.move(e.clientX, e.clientY);
 	});
@@ -638,7 +638,7 @@ export async function renderGanttWithTree(
 
 		const treeContainer = createDiv();
 		treeContainer.className =
-			"gantt-tree-container gantt-tree-container-dynamic";
+			"task-gantt-tree-container task-gantt-tree-container-dynamic";
 		treeContainer.setCssProps({
 			"--gantt-tree-top": GANTT_CONFIG.HEADER_HEIGHT + "px",
 		});
@@ -661,7 +661,7 @@ export async function renderGanttWithTree(
 					if (cc && getBarEdges(node)) {
 						const lb = createSpan();
 						lb.textContent = "➤";
-						lb.className = "gantt-locate-btn";
+						lb.className = "task-gantt-locate-btn";
 						lb.addEventListener("click", (ev) => {
 							ev.stopPropagation();
 							const te = getBarEdges(node);
@@ -697,12 +697,12 @@ export async function renderGanttWithTree(
 				tw2,
 				actualTreeWidth,
 			);
-			header.addClass("gantt-header-top");
+			header.addClass("task-gantt-header-top");
 			scrollArea.insertBefore(header, treeContainer);
 
 			const lineLayer = createDiv();
 			lineLayer.className =
-				"gantt-timeline-lines gantt-timeline-lines-dynamic gantt-timeline-lines-height";
+				"task-gantt-timeline-lines task-gantt-timeline-lines-dynamic task-gantt-timeline-lines-height";
 			lineLayer.setCssProps({
 				"--gantt-lines-left": actualTreeWidth + "px",
 				"--gantt-lines-width": tw2 + "px",
@@ -712,7 +712,7 @@ export async function renderGanttWithTree(
 				if (d.getDate() === 1) {
 					const x: number = dateToX(d.getTime());
 					const line = createDiv();
-					line.className = "gantt-timeline-line";
+					line.className = "task-gantt-timeline-line";
 					line.setCssProps({ "--gantt-line-left": x + "px" });
 					lineLayer.appendChild(line);
 				}
@@ -721,7 +721,7 @@ export async function renderGanttWithTree(
 
 			gridOverlay = createDiv();
 			gridOverlay.className =
-				"gantt-grid-overlay gantt-grid-overlay-dynamic gantt-grid-overlay-height";
+				"task-gantt-grid-overlay task-gantt-grid-overlay-dynamic task-gantt-grid-overlay-height";
 			gridOverlay.setCssProps({
 				"--gantt-grid-left": actualTreeWidth + "px",
 				"--gantt-grid-width": tw2 + "px",
@@ -731,7 +731,7 @@ export async function renderGanttWithTree(
 
 			todayLine = createDiv();
 			todayLine.className =
-				"gantt-today-line gantt-today-line-dynamic gantt-today-line-height";
+				"task-gantt-today-line task-gantt-today-line-dynamic task-gantt-today-line-height";
 			const todayTs: number = DateUtils.setStart(new Date()).getTime();
 			const todayLeft: string = actualTreeWidth + dateToX(todayTs) + "px";
 			todayLine.setCssProps({ "--gantt-today-left": todayLeft });
@@ -739,18 +739,18 @@ export async function renderGanttWithTree(
 			scrollArea.appendChild(todayLine);
 
 			barsContainer = createDiv();
-			barsContainer.className = "gantt-bars-dynamic";
+			barsContainer.className = "task-gantt-bars-dynamic";
 			barsContainer.setCssProps({ "--gantt-bars-width": totalW + "px" });
 			scrollArea.appendChild(barsContainer);
 
 			currentSvg = createDependencySVG(taskMap, totalW);
-			currentSvg.addClass("gantt-svg-top", "gantt-svg-height");
+			currentSvg.addClass("task-gantt-svg-top", "task-gantt-svg-height");
 			currentSvg.setCssProps({ "--gantt-svg-z": "7" });
 			scrollArea.appendChild(currentSvg);
 
 			syncHeaderScroll = () => {
 				const h =
-					scrollArea.querySelector<HTMLElement>(".gantt-header");
+					scrollArea.querySelector<HTMLElement>(".task-gantt-header");
 				if (h)
 					h.setCssProps({
 						"--gantt-header-translate": `translateX(${-scrollArea.scrollLeft}px)`,
@@ -829,8 +829,8 @@ export async function renderGanttWithTree(
 	scrollArea.addEventListener("wheel", onWheel, { passive: false });
 	scrollArea.addEventListener("mousedown", (e: MouseEvent) => {
 		if (
-			(e.target as HTMLElement).closest(".gantt-bar") ||
-			(e.target as HTMLElement).closest(".gantt-tree-container")
+			(e.target as HTMLElement).closest(".task-gantt-bar") ||
+			(e.target as HTMLElement).closest(".task-gantt-tree-container")
 		)
 			return;
 		isDragging = true;
@@ -864,7 +864,7 @@ export async function renderGanttWithTree(
 			if (deferredUpdateTimer) window.clearTimeout(deferredUpdateTimer);
 			if (onTreeToggle) {
 				const tc = scrollArea.querySelector<HTMLElement>(
-					".gantt-tree-container",
+					".task-gantt-tree-container",
 				);
 				tc?.removeEventListener("tree-toggle", onTreeToggle);
 				onTreeToggle = null;

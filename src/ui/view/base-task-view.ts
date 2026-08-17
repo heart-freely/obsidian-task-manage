@@ -269,7 +269,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.container.textContent = "";
 		if (style === "tree") {
 			const vc = this.container.createDiv({
-				cls: "view-content task-view-padding-reset",
+				cls: "task-view-content task-view-padding-reset",
 			});
 			renderTaskTree(vc, {
 				root: dateFilteredTree,
@@ -282,7 +282,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			});
 		} else if (style === "gantt") {
 			const vc = this.container.createDiv({
-				cls: "view-content task-view-full",
+				cls: "task-view-content task-view-full",
 			});
 			const ganttPromise = renderGanttWithTree(vc, dateFilteredTree, {
 				onTaskClick: (n) => this.openTaskAtLine(n),
@@ -338,7 +338,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 	}
 	private getScrollContainer(): HTMLElement | null {
 		if (this.rightContentContainer) return this.rightContentContainer;
-		const vc = this.container.querySelector<HTMLElement>(".view-content");
+		const vc = this.container.querySelector<HTMLElement>(".task-view-content");
 		if (vc && vc.scrollHeight > vc.clientHeight) return vc;
 		if (this.container.scrollHeight > this.container.clientHeight)
 			return this.container;
@@ -388,7 +388,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		const pc = preset?.taskTreeNavCollapsed ?? false;
 		const pw = preset?.taskTreeNavWidth ?? 280;
 		const lc = this.container.createDiv({
-			cls: "split-layout task-split-layout",
+			cls: "task-split-layout task-split-layout",
 		});
 		this.taskTreeNavContainer = lc.createDiv({ cls: "task-tree-nav" });
 		this.taskTreeNavContainer.addClass("task-tree-nav-dynamic");
@@ -465,7 +465,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			});
 		}
 		this.rightContentContainer = lc.createDiv({
-			cls: "right-content task-right-content",
+			cls: "task-right-content task-right-content",
 		});
 		this.renderByStyle(
 			this.rightContentContainer,

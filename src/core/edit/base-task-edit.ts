@@ -98,7 +98,7 @@ export class BaseTaskEdit {
 				const cb = createEl("input");
 				cb.type = "checkbox";
 				cb.checked = checked;
-				cb.className = "edit-checkbox";
+				cb.className = "task-edit-checkbox";
 				cb.addClass("task-flex-shrink-0", "task-clickable");
 				cb.addEventListener("click", (e) => e.stopPropagation());
 				cb.addEventListener("change", () => {
@@ -336,7 +336,7 @@ export class BaseTaskEdit {
 		const descEl = card.querySelector(".task-desc") as HTMLElement;
 		if (descEl) {
 			const nd = descEl.cloneNode(true) as HTMLElement;
-			nd.className = "task-desc edit-desc-readonly";
+			nd.className = "task-desc task-edit-desc-readonly";
 			descEl.parentNode?.replaceChild(nd, descEl);
 		}
 		const editBar = card.querySelector(".task-edit-bar") as HTMLElement;
@@ -378,7 +378,7 @@ export class BaseTaskEdit {
 			descEl.removeAttribute("contenteditable");
 			descEl.removeAttribute("data-edit-bound");
 			const nd = descEl.cloneNode(true) as HTMLElement;
-			nd.className = "task-desc edit-desc-readonly";
+			nd.className = "task-desc task-edit-desc-readonly";
 			descEl.parentNode?.replaceChild(nd, descEl);
 		}
 		const previewRow = card.querySelector(
@@ -573,7 +573,7 @@ export class BaseTaskEdit {
 			)
 				return;
 		}
-		if (target.closest(".panel-host")) {
+		if (target.closest(".task-panel-host")) {
 			if (state.batchMode) {
 				if (target.closest("[data-panel-key='edit']")) {
 					if (target.closest(".edit-batch-btn")) {

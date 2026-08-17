@@ -1,0 +1,25 @@
+/* ========== 表格 ========== */
+.task-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+.task-table th {
+	padding: 4px 8px;
+	text-align: left;
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	font-weight: 600;
+	white-space: nowrap;
+}
+.task-table td {
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-size: var(--font-ui-smaller);
+	vertical-align: top;
+}
+.task-row:hover {
+	background: var(--background-modifier-hover);
+	cursor: pointer;
+}
+

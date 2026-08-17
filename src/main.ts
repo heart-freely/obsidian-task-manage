@@ -1,5 +1,24 @@
 // src/main.ts
 
+import "./styles/base.css";
+import "./styles/sidebar/sidebar.css";
+import "./styles/panel/panel.css";
+import "./styles/view/view.css";
+import "./styles/main/card.css";
+import "./styles/main/list.css";
+import "./styles/main/table.css";
+import "./styles/main/board.css";
+import "./styles/component/progress.css";
+import "./styles/main/chart.css";
+import "./styles/main/calendar.css";
+import "./styles/component/tooltip.css";
+import "./styles/utilities.css";
+import "./styles/panel/panel-layout.css";
+import "./styles/util/edit.css";
+import "./styles/component/slider.css";
+import "./styles/setting.css";
+import "./styles/main/gantt.css";
+
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
@@ -319,7 +338,7 @@ export default class TaskManagePlugin extends Plugin {
 			.querySelectorAll(".toolbar-panels")
 			.forEach((el) => el.remove());
 		document
-			.querySelectorAll(".panel-resize-handle")
+			.querySelectorAll(".task-panel-resize-handle")
 			.forEach((el) => el.remove());
 	}
 

@@ -47,7 +47,7 @@ export function createSlider(options: SliderOptions): {
 } {
 	const { container, min, max, start, end, onChange, rowCls } = options;
 
-	const row = container.createDiv({ cls: rowCls || "slider-row" });
+	const row = container.createDiv({ cls: rowCls || "task-slider-row" });
 	row.addClass("task-w-full", "task-items-center", "task-flex-nowrap");
 
 	const track = row.createDiv();
@@ -78,7 +78,7 @@ export function createSlider(options: SliderOptions): {
 		"task-h-full",
 		"task-bg-accent",
 		"task-rounded-sm",
-		"slider-fill-dynamic",
+		"task-slider-fill-dynamic",
 	);
 	fill.setCssProps({
 		"--slider-left": sp + "%",
@@ -94,7 +94,7 @@ export function createSlider(options: SliderOptions): {
 			"task-h-4",
 			"task-bg-accent",
 			"task-clickable-grab",
-			"slider-handle-dynamic",
+			"task-slider-handle-dynamic",
 		);
 		el.setCssProps({
 			"--slider-left": pct + "%",
@@ -285,7 +285,7 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		rowCls,
 	} = options;
 
-	const outerRow = container.createDiv({ cls: rowCls || "slider-row" });
+	const outerRow = container.createDiv({ cls: rowCls || "task-slider-row" });
 	outerRow.addClass(
 		"task-flex",
 		"task-items-center",
@@ -313,7 +313,7 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		"task-overflow-hidden",
 		"task-text-ellipsis",
 		"task-flex-shrink-0",
-		"slider-label-dynamic",
+		"task-slider-label-dynamic",
 	);
 	labelSpan.setCssProps({
 		"--slider-label-width": lw,
@@ -353,15 +353,15 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 			"task-absolute",
 			"task-top-0",
 			"task-z-1",
-			"slider-tick-dynamic",
+			"task-slider-tick-dynamic",
 		);
 		mark.setCssProps({
 			"--slider-left": ((v - min) / range) * 100 + "%",
 		});
 		if (isToday) {
-			mark.addClass("slider-tick-today-dynamic");
+			mark.addClass("task-slider-tick-today-dynamic");
 		} else {
-			mark.addClass("slider-tick-normal-dynamic");
+			mark.addClass("task-slider-tick-normal-dynamic");
 		}
 	}
 	if (
@@ -375,8 +375,8 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 			"task-absolute",
 			"task-top-0",
 			"task-z-1",
-			"slider-tick-dynamic",
-			"slider-tick-today-dynamic",
+			"task-slider-tick-dynamic",
+			"task-slider-tick-today-dynamic",
 		);
 		mark.setCssProps({
 			"--slider-left": ((todayValue - min) / range) * 100 + "%",
@@ -388,7 +388,7 @@ export function createEnhancedSlider(options: EnhancedSliderOptions): {
 		"task-absolute",
 		"task-top--2",
 		"task-z-1",
-		"slider-midline-dynamic",
+		"task-slider-midline-dynamic",
 	);
 	if (midValue !== undefined) {
 		midLine.setCssProps({

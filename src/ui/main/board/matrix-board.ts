@@ -36,7 +36,7 @@ export function renderMatrix(
 		priorityColors[3],
 	];
 	const grid = createDiv();
-	grid.className = "matrix-grid";
+	grid.className = "task-matrix-grid";
 	grid.addClass(
 		"task-grid",
 		"task-grid-cols-2",

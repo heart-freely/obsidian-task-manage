@@ -1,0 +1,20 @@
+.dataview-tooltip {
+	position: fixed;
+	background: #2d2d2d;
+	color: #f0f0f0;
+	border: 1px solid #555;
+	border-radius: 8px;
+	padding: 10px 14px;
+	pointer-events: none;
+	z-index: 10000;
+	max-width: 450px;
+	font-size: 13px;
+	line-height: 1.5;
+	display: none;
+}
+.dataview-tooltip-visible {
+	display: block;
+}
+.dataview-tooltip-hidden {
+	display: none;
+}

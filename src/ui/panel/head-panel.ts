@@ -7,10 +7,10 @@ const PANEL_LABELS: Record<string, string> = {
 	filter: "筛选内容",
 	time: "筛选时间",
 	view: "任务视图",
-	hide: "视图隐藏",
-	edit: "视图编辑",
-	sort: "视图排序",
-	config: "视图配置",
+	hide: "任务隐藏",
+	edit: "任务编辑",
+	sort: "任务排序",
+	config: "视图管理",
 };
 
 export class HeadPanel {
@@ -44,8 +44,8 @@ export class HeadPanel {
 			"time",
 			"view",
 			"hide",
-			"edit",
 			"sort",
+			"edit",
 			"config",
 		];
 
@@ -64,18 +64,18 @@ export class HeadPanel {
 
 		toolbarOrder.forEach((barKey, index, arr) => {
 			const btnDiv = createDiv();
-			btnDiv.className = "panel-header-btn";
+			btnDiv.className = "task-panel-header-btn";
 			btnDiv.setAttribute("data-key", barKey);
 			btnDiv.draggable = true;
 			if (index < arr.length - 1) btnDiv.addClass("task-mr-1");
 
 			const label = createSpan();
-			label.className = "panel-header-label";
+			label.className = "task-panel-header-label";
 			label.textContent = PANEL_LABELS[barKey] || barKey;
 			btnDiv.appendChild(label);
 
 			const eyeBtn = createSpan();
-			eyeBtn.className = "panel-eye";
+			eyeBtn.className = "task-panel-eye";
 			eyeBtn.textContent = "👁";
 			const isVisible = barVisibility[barKey] !== false;
 			eyeBtn.addClass(isVisible ? "task-opacity-100" : "task-opacity-40");

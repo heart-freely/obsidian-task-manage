@@ -35,7 +35,7 @@ function createRowWrapper(depth: number): HTMLElement {
 }
 function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 	const b = createSpan();
-	b.className = "tree-toggle-btn";
+	b.className = "task-tree-toggle-btn";
 	b.addClass(
 		"task-inline-flex",
 		"task-items-center",
@@ -61,7 +61,7 @@ function createToggleBtn(childContainer: HTMLElement): HTMLElement {
 		}
 		const treeRoot =
 			b.closest(".task-tree") ||
-			b.closest(".gantt-tree-container") ||
+			b.closest(".task-gantt-tree-container") ||
 			b.closest(".task-tree-nav-content");
 		if (treeRoot)
 			treeRoot.dispatchEvent(

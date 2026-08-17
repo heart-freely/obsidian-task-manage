@@ -35,7 +35,7 @@ DATE_MARK_ORDER.forEach((k) => {
 const MISSING_COLOR = getMissingColor();
 
 export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
-	container.querySelectorAll(".chart-body").forEach((el) => {
+	container.querySelectorAll(".task-chart-body").forEach((el) => {
 		const instance = echarts.getInstanceByDom(el as HTMLElement) as
 			| EChartsInstance
 			| undefined;
@@ -52,7 +52,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 	const tagColor = getThemeColor(TAG_COLOR_DEF);
 	const totalCount = nodes.length;
 	const grid = createDiv();
-	grid.className = "chart-grid";
+	grid.className = "task-chart-grid";
 	grid.addClass("task-grid", "task-grid-cols-3", "task-gap-4", "task-w-full");
 	container.appendChild(grid);
 	const theme = getComputedStyle(document.body);
@@ -69,10 +69,10 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		data: { name: string; value: number; color?: string }[],
 	) {
 		const item = createDiv();
-		item.className = "chart-item";
+		item.className = "task-chart-item";
 		item.addClass("task-min-w-0");
 		const header = createDiv();
-		header.className = "chart-header";
+		header.className = "task-chart-header";
 		header.addClass(
 			"task-text-center",
 			"task-font-semibold",
@@ -83,7 +83,7 @@ export function renderMarkChart(container: HTMLElement, nodes: TaskTreeNode[]) {
 		item.appendChild(header);
 		const chartHeight = getChartHeight(data.length);
 		const chartDiv = createDiv();
-		chartDiv.className = "chart-body task-chart-dynamic-height task-w-full";
+		chartDiv.className = "task-chart-body task-chart-dynamic-height task-w-full";
 		chartDiv.setCssProps({ "--task-chart-height": chartHeight });
 		item.appendChild(chartDiv);
 		grid.appendChild(item);

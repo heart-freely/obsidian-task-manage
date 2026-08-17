@@ -64,10 +64,10 @@ export class ViewPanel {
 		});
 
 		groups.forEach((styles, group) => {
-			const groupRow = this.container.createDiv({ cls: "panel-row" });
+			const groupRow = this.container.createDiv({ cls: "task-panel-row" });
 			groupRow.createSpan({
 				text: GROUP_NAMES[group] || group,
-				cls: "panel-label",
+				cls: "task-panel-label",
 			});
 			const btnsContainer = groupRow.createDiv({
 				cls: "view-btns-container",
@@ -75,7 +75,7 @@ export class ViewPanel {
 			styles.forEach(({ key, label }) => {
 				const btn = btnsContainer.createEl("button", {
 					text: label,
-					cls: "panel-btn panel-view-btn",
+					cls: "task-panel-btn task-panel-view-btn",
 				});
 				if (key === currentStyle) btn.addClass("active");
 				btn.onclick = () => {

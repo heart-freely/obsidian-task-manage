@@ -1,0 +1,120 @@
+/* ================================================================
+   滑动条
+   ================================================================ */
+.task-slider-row {
+	width: 100%;
+	align-items: center;
+	flex-wrap: nowrap;
+}
+.task-slider-track {
+	flex: 1;
+	position: relative;
+	height: 4px;
+	cursor: pointer;
+	background: var(--background-modifier-border);
+	border-radius: 2px;
+	min-width: 60px;
+	overflow: visible;
+}
+.task-slider-fill {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	background: var(--interactive-accent);
+	border-radius: 2px;
+}
+.task-slider-handle {
+	position: absolute;
+	top: -6px;
+	width: 4px;
+	height: 16px;
+	background: var(--interactive-accent);
+	cursor: grab;
+	z-index: 2;
+}
+.task-slider-handle-start {
+	border-radius: 3px 0 0 3px;
+	transform: translateX(-100%);
+}
+.task-slider-handle-end {
+	border-radius: 0 3px 3px 0;
+	transform: translateX(0);
+}
+.task-slider-tick {
+	position: absolute;
+	top: 0;
+	transform: translateX(-50%);
+	width: 1px;
+	height: 8px;
+	background: var(--text-muted);
+	opacity: 0.4;
+	z-index: 1;
+}
+.task-slider-tick-today {
+	width: 2px;
+	height: 8px;
+	background: var(--text-accent);
+	opacity: 1;
+}
+.task-slider-midline {
+	position: absolute;
+	top: -2px;
+	width: 1px;
+	height: 8px;
+	background: var(--text-muted);
+	opacity: 0.5;
+	z-index: 1;
+}
+.task-slider-label {
+	font-size: var(--font-ui-smaller);
+	text-align: left;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-right: 8px;
+}
+
+/* ========== 滑动条动态样式 ========== */
+.task-slider-fill-dynamic {
+	left: var(--slider-left, 0%);
+	width: var(--slider-width, 0%);
+}
+.task-slider-handle-dynamic {
+	left: var(--slider-left, 0%);
+	border-radius: var(--slider-radius, 0);
+	transform: var(--slider-transform, none);
+}
+.task-slider-label-dynamic {
+	width: var(--slider-label-width, 160px);
+	min-width: var(--slider-label-min-width, 160px);
+	max-width: var(--slider-label-max-width, 160px);
+	text-align: left;
+}
+.task-slider-tick-dynamic {
+	left: var(--slider-left, 0%);
+	transform: translateX(-50%);
+}
+.task-slider-tick-normal-dynamic {
+	width: 1px;
+	height: 8px;
+	background: var(--text-muted);
+	opacity: 0.4;
+}
+.task-slider-tick-today-dynamic {
+	width: 2px;
+	height: 8px;
+	background: var(--text-accent);
+	opacity: 1;
+}
+.task-slider-midline-dynamic {
+	width: 1px;
+	height: 8px;
+	background: var(--text-muted);
+	opacity: 0.5;
+	left: var(--slider-left, 0%);
+}
+.task-cursor-grabbing {
+	cursor: grabbing;
+}

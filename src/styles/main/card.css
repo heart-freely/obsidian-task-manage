@@ -1,0 +1,100 @@
+/* ========== 任务卡片与列表 ========== */
+.task-item {
+	margin: 6px 0;
+	padding: 8px 10px;
+	background: var(--background-primary);
+	border-radius: 8px;
+	font-size: 0.9em;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	color: var(--text-normal);
+	border-bottom: none;
+	box-shadow: none;
+	transition: background 0.1s;
+}
+.task-item:hover {
+	background: var(--background-modifier-hover);
+}
+.task-desc {
+	font-weight: 500;
+	margin-bottom: 4px;
+}
+.task-meta {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.task-item-compact {
+	margin: 0;
+	padding: 1px 0;
+	background: transparent;
+	border-radius: 4px;
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+	border: none;
+	display: block;
+	list-style: none;
+}
+.task-item-compact .task-desc {
+	font-weight: normal;
+	margin-bottom: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-left: 0;
+	line-height: 1.5;
+}
+.task-item-compact .task-meta {
+	display: none;
+}
+
+/* 卡片状态颜色边框 */
+.task-card-status-border {
+	border-left: 3px solid var(--task-status-color, var(--interactive-accent));
+}
+
+/* ========== 任务卡片网格 ========== */
+.task-cards-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 12px;
+}
+.task-card-border-left {
+	border-left: 3px solid rgba(180, 180, 180, 0.2);
+}
+
+/* ========== 分组卡片 ========== */
+.task-group-card {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	margin-bottom: 12px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
+}
+.task-group-card {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	margin-bottom: 12px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
+}
+.task-group-card-header {
+	padding: 8px 12px;
+	font-weight: 600;
+	border-bottom: 1px solid var(--background-modifier-border);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.task-group-card-count {
+	color: var(--text-muted);
+}
+.task-group-card-body {
+	padding: 8px 0;
+}
+

@@ -1,0 +1,205 @@
+/* ========== 日历视图 ========== */
+.task-calendar-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+.task-calendar-toolbar {
+	display: flex;
+	gap: 8px;
+	padding: 8px 0;
+	flex-wrap: wrap;
+	align-items: center;
+}
+.task-calendar-toolbar button {
+	padding: 4px 12px;
+	border-radius: 16px;
+	border: none;
+	cursor: pointer;
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+}
+.task-calendar-toolbar button.active {
+	background: var(--interactive-accent);
+	color: white;
+}
+.task-timeline-block {
+	margin-bottom: 24px;
+}
+.task-timeline-block-title {
+	font-weight: bold;
+	margin-bottom: 4px;
+	color: var(--text-normal);
+	font-size: 1.1em;
+}
+.task-timeline-body {
+	position: relative;
+	width: 100%;
+}
+.task-timeline-grid-line {
+	position: absolute;
+	top: 0;
+	width: 1px;
+	background: var(--background-modifier-border);
+	pointer-events: none;
+}
+.task-timeline-bar {
+	position: absolute;
+	height: 16px;
+	border-radius: 3px;
+	display: flex;
+	align-items: center;
+	padding-left: 4px;
+	overflow: hidden;
+	cursor: pointer;
+	font-size: 11px;
+	color: white;
+	white-space: nowrap;
+}
+.task-timeline-bar-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.task-timeline-header-day {
+	text-align: center;
+	font-size: 11px;
+	padding: 2px 0;
+}
+.task-timeline-header-day.today {
+	color: var(--text-accent);
+	font-weight: bold;
+}
+.task-year-view-header {
+	display: grid;
+	grid-template-columns: repeat(31, 1fr);
+	width: 100%;
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: var(--background-primary);
+}
+.task-year-view-day {
+	text-align: center;
+	font-size: 11px;
+	padding: 4px 0;
+}
+.task-year-view-day.today {
+	color: var(--text-accent);
+	font-weight: bold;
+}
+.task-empty-periods-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	margin-top: 8px;
+	justify-content: flex-start;
+}
+.task-empty-period-tag {
+	font-size: 12px;
+	color: var(--text-muted);
+	padding: 1px 6px;
+	background: var(--background-secondary);
+	border-radius: 10px;
+	line-height: 1.4;
+}
+
+/* 日历任务线条状态颜色 */
+.task-cal-span-line.none,
+.task-timeline-bar.none {
+	background: rgba(128, 128, 128, 0.5);
+}
+.task-cal-span-line.todo,
+.task-timeline-bar.todo {
+	background: rgba(85, 90, 100, 0.75);
+}
+.task-cal-span-line.scheduled,
+.task-timeline-bar.scheduled {
+	background: rgba(105, 125, 170, 0.75);
+}
+.task-cal-span-line.in-progress,
+.task-timeline-bar.in-progress {
+	background: rgba(80, 140, 210, 0.8);
+}
+.task-cal-span-line.completed,
+.task-timeline-bar.completed {
+	background: rgba(80, 150, 120, 0.75);
+}
+.task-cal-span-line.cancelled,
+.task-timeline-bar.cancelled {
+	background: rgba(175, 62, 68, 0.7);
+}
+
+/* ========== 日历视图动态样式 ========== */
+
+/* 标题 */
+.task-calendar-filter-title {
+	margin-bottom: 8px;
+	font-weight: bold;
+	font-size: 14px;
+	color: var(--text-muted);
+}
+.task-calendar-quarter-title {
+	font-size: 1.2em;
+}
+.task-calendar-month-title {
+	font-size: 1em;
+}
+.task-calendar-year-title {
+	font-size: 1.3em;
+}
+
+/* 时间轴行组 */
+.task-timeline-row-group {
+	position: relative;
+	height: var(--timeline-row-height, 40px);
+}
+
+/* 日期行 */
+.task-timeline-date-row {
+	display: grid;
+	grid-template-columns: var(--timeline-cols, repeat(7, 1fr));
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 热力图日期 */
+.task-timeline-heat-day {
+	background-color: var(--timeline-heat-bg, transparent);
+}
+
+/* 任务区域 */
+.task-timeline-task-area {
+	position: absolute;
+	top: var(--timeline-task-top, 20px);
+	left: 0;
+	right: 0;
+	height: var(--timeline-task-height, 20px);
+}
+
+/* 网格线 */
+.task-timeline-grid-line {
+	position: absolute;
+	top: 0;
+	width: 1px;
+	background: var(--background-modifier-border);
+	pointer-events: none;
+}
+.task-timeline-grid-line-dynamic {
+	left: var(--timeline-line-left, 0%);
+	height: 100%;
+}
+
+/* 任务条 */
+.task-timeline-bar-dynamic {
+	left: var(--timeline-bar-left, 0%);
+	top: var(--timeline-bar-top, 0px);
+	width: var(--timeline-bar-width, 0%);
+}
+.task-timeline-bar-no-interval {
+	opacity: 0.5;
+}
+
+/* 年视图热力图 */
+.task-year-heat-day {
+	background-color: var(--year-heat-bg, transparent);
+}

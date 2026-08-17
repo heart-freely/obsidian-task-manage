@@ -57,8 +57,8 @@ const DEFAULT_TOOLBAR_ORDER: string[] = [
 	"time",
 	"view",
 	"hide",
-	"edit",
 	"sort",
+	"edit",
 	"config",
 ];
 

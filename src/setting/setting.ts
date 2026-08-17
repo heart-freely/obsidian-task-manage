@@ -1,6 +1,6 @@
 // src/setting/setting.ts
 
-import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, setIcon, Setting } from "obsidian";
 import { PathFilterConfig, TaskItemFilterConfig, updateTaskFileConfig } from "../core/config/config";
 import { DataManager } from "../core/data/data-manager";
 import { ManageViewLike } from "../type/type";
@@ -57,12 +57,24 @@ const CONFIG_SCHEMA: Record<string, string> = {
 interface PluginRef {
 	settings: TaskManageSettings;
 	saveAllSettings(): Promise<void>;
+	manifest: {
+		name: string;
+		version: string;
+		description: string;
+		author: string;
+		authorUrl?: string;
+		fundingUrl?: string;
+	};
 }
 
 export class TaskManageSettingTab extends PluginSettingTab {
 	plugin: PluginRef;
 	private folderCache: string[] | null = null;
 	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	private currentCard = "task-filter";
+	private searchResults: Array<{ name: string; desc: string; cardId: string; el: HTMLElement }> = [];
+	private selectedSearchIndex = -1;
+	private searchResultsEl: HTMLElement | null = null;
 
 	constructor(app: App, plugin: PluginRef) {
 		super(app, plugin);
@@ -117,10 +129,300 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		this.folderCache = null;
 		const { containerEl } = this;
 		containerEl.empty();
+		containerEl.addClass("task-settings");
 
-		new Setting(containerEl).setName("任务路径").setHeading();
+		const headerBar = containerEl.createDiv({ cls: "task-settings-header-bar" });
+		const titleEl = headerBar.createDiv({ cls: "task-settings-header-title" });
+		titleEl.setText("Task Manage");
+		const searchContainer = headerBar.createDiv({ cls: "task-settings-search-container" });
+		const searchInputContainer = searchContainer.createDiv({ cls: "task-settings-search-input-container" });
+		const searchIcon = searchInputContainer.createSpan({ cls: "task-settings-search-icon" });
+		setIcon(searchIcon, "search");
+		const searchInput = searchInputContainer.createEl("input", { type: "text" });
+		searchInput.addClass("task-settings-search-input");
+		searchInput.placeholder = "搜索设置...";
+		const clearBtn = searchInputContainer.createEl("button", { cls: "task-settings-search-clear" });
+		setIcon(clearBtn, "x");
+		clearBtn.style.display = "none";
+		clearBtn.addEventListener("click", () => {
+			searchInput.value = "";
+			this.performSearch(searchInput.value);
+			searchInput.focus();
+		});
 
-		const pathListContainer = containerEl.createDiv({ cls: "path-list" });
+		const resultsContainer = searchContainer.createDiv({ cls: "task-settings-search-results" });
+		resultsContainer.style.display = "none";
+		this.searchResultsEl = resultsContainer;
+
+		searchInput.addEventListener("input", () => {
+			clearBtn.style.display = searchInput.value ? "flex" : "none";
+			this.performSearch(searchInput.value);
+		});
+		searchInput.addEventListener("keydown", (e: KeyboardEvent) => this.handleSearchKeydown(e));
+		searchInput.addEventListener("blur", () => {
+			window.setTimeout(() => this.hideSearchResults(), 150);
+		});
+
+		const cards = [
+			{ id: "task-index", name: "任务索引", icon: "database", category: "核心设置" },
+			{ id: "task-filter", name: "任务过滤器", icon: "filter", category: "核心设置" },
+			{ id: "plugin-config", name: "插件配置", icon: "settings", category: "核心设置" },
+			{ id: "progress-display", name: "进度显示", icon: "trending-up", category: "状态与进度" },
+			{ id: "task-status", name: "任务状态", icon: "list-checks", category: "状态与进度" },
+			{ id: "about", name: "关于", icon: "info", category: "信息" },
+		];
+
+		const nav = containerEl.createDiv({ cls: "task-settings-nav" });
+		["核心设置", "状态与进度", "信息"].forEach((catName) => {
+			const cat = nav.createDiv({ cls: "task-settings-category" });
+			const header = cat.createDiv({ cls: "task-settings-category-header" });
+			header.setText(catName);
+			const tabs = cat.createDiv({ cls: "task-settings-category-tabs" });
+			cards
+				.filter((c) => c.category === catName)
+				.forEach((card) => {
+					const tab = tabs.createDiv({ cls: "task-settings-card" });
+					tab.setAttribute("data-card-id", card.id);
+					const icon = tab.createSpan({ cls: "task-settings-card-icon" });
+					setIcon(icon, card.icon);
+					const label = tab.createSpan({ cls: "task-settings-card-label" });
+					label.setText(card.name);
+					tab.addEventListener("click", () => this.switchCard(card.id));
+				});
+		});
+
+		const sections = containerEl.createDiv({ cls: "task-settings-sections" });
+
+		const indexSection = this.createSection(sections, "task-index", "任务索引");
+		this.renderEmptyCardPlaceholder(indexSection, "任务索引配置将在后续版本开放");
+
+		const filterSection = this.createSection(sections, "task-filter", "任务过滤器");
+		this.renderTaskFilterSection(filterSection);
+
+		const pluginConfigSection = this.createSection(sections, "plugin-config", "插件配置");
+		this.renderPluginConfigSection(pluginConfigSection);
+
+		const progressSection = this.createSection(sections, "progress-display", "进度显示");
+		this.renderEmptyCardPlaceholder(progressSection, "进度显示配置将在后续版本开放");
+
+		const statusSection = this.createSection(sections, "task-status", "任务状态");
+		this.renderEmptyCardPlaceholder(statusSection, "任务状态配置将在后续版本开放");
+
+		const aboutSection = this.createSection(sections, "about", "关于");
+		this.renderAboutSection(aboutSection);
+
+		this.goBack();
+	}
+
+	private performSearch(query: string): void {
+		const resultsEl = this.searchResultsEl;
+		if (!resultsEl) return;
+		this.searchResults = [];
+		this.selectedSearchIndex = -1;
+
+		const q = query.trim().toLowerCase();
+		if (!q) {
+			this.hideSearchResults();
+			return;
+		}
+
+		const items: Array<{ name: string; desc: string; cardId: string; el: HTMLElement }> = [];
+		this.containerEl.querySelectorAll(".task-settings-section").forEach((sec) => {
+			const cardId = sec.getAttribute("data-card-id") || "";
+			sec.querySelectorAll(".setting-item").forEach((item) => {
+				const nameEl = item.querySelector(".setting-item-name");
+				const descEl = item.querySelector(".setting-item-description");
+				const name = (nameEl?.textContent || "").trim();
+				const desc = (descEl?.textContent || "").trim();
+				if (!name) return;
+				items.push({ name, desc, cardId, el: item as HTMLElement });
+			});
+		});
+
+		this.searchResults = items.filter(
+			(it) =>
+				it.name.toLowerCase().includes(q) ||
+				it.desc.toLowerCase().includes(q),
+		);
+
+		resultsEl.empty();
+		if (this.searchResults.length === 0) {
+			const noEl = resultsEl.createDiv({
+				cls: "task-settings-search-no-result",
+				text: "未找到相关设置",
+			});
+			resultsEl.style.display = "block";
+			return;
+		}
+
+		this.searchResults.forEach((it, index) => {
+			const r = resultsEl.createDiv({ cls: "task-settings-search-result" });
+			r.setAttribute("data-index", String(index));
+			const nameEl = r.createDiv({ cls: "task-settings-search-result-name" });
+			nameEl.textContent = it.name;
+			const metaEl = r.createDiv({ cls: "task-settings-search-result-meta" });
+			metaEl.textContent = this.getCardName(it.cardId);
+			if (it.desc) {
+				const descEl = r.createDiv({ cls: "task-settings-search-result-desc" });
+				descEl.textContent = it.desc;
+			}
+			r.addEventListener("mousedown", (e) => {
+				e.preventDefault();
+				this.selectSearchResult(it);
+			});
+			r.addEventListener("mouseenter", () => {
+				this.setSelectedSearchIndex(index);
+			});
+		});
+		resultsEl.style.display = "block";
+		this.setSelectedSearchIndex(0);
+	}
+
+	private getCardName(cardId: string): string {
+		const map: Record<string, string> = {
+			"task-index": "任务索引",
+			"task-filter": "任务过滤器",
+			"plugin-config": "插件配置",
+			"progress-display": "进度显示",
+			"task-status": "任务状态",
+			about: "关于",
+		};
+		return map[cardId] || cardId;
+	}
+
+	private setSelectedSearchIndex(index: number): void {
+		const resultsEl = this.searchResultsEl;
+		if (!resultsEl) return;
+		resultsEl.querySelectorAll(".task-settings-search-result").forEach((r) => {
+			r.removeClass("task-settings-search-result-selected");
+		});
+		this.selectedSearchIndex = index;
+		if (index >= 0) {
+			const sel = resultsEl.querySelector(`[data-index="${index}"]`);
+			if (sel) {
+				sel.addClass("task-settings-search-result-selected");
+				sel.scrollIntoView({ block: "nearest" });
+			}
+		}
+	}
+
+	private handleSearchKeydown(e: KeyboardEvent): void {
+		if (!this.searchResultsEl || this.searchResultsEl.style.display === "none") {
+			if (e.key === "Escape") this.hideSearchResults();
+			return;
+		}
+		switch (e.key) {
+			case "ArrowDown":
+				e.preventDefault();
+				if (this.selectedSearchIndex < this.searchResults.length - 1)
+					this.setSelectedSearchIndex(this.selectedSearchIndex + 1);
+				break;
+			case "ArrowUp":
+				e.preventDefault();
+				if (this.selectedSearchIndex > 0)
+					this.setSelectedSearchIndex(this.selectedSearchIndex - 1);
+				break;
+			case "Enter":
+				e.preventDefault();
+				if (this.selectedSearchIndex >= 0 && this.searchResults[this.selectedSearchIndex]) {
+					this.selectSearchResult(this.searchResults[this.selectedSearchIndex]);
+				}
+				break;
+			case "Escape":
+				e.preventDefault();
+				this.hideSearchResults();
+				break;
+		}
+	}
+
+	private selectSearchResult(item: { name: string; desc: string; cardId: string; el: HTMLElement }): void {
+		this.hideSearchResults();
+		this.switchCard(item.cardId);
+		window.setTimeout(() => {
+			item.el.scrollIntoView({ block: "center" });
+			item.el.addClass("task-settings-item-highlight");
+			window.setTimeout(() => {
+				item.el.removeClass("task-settings-item-highlight");
+			}, 2000);
+		}, 100);
+	}
+
+	private hideSearchResults(): void {
+		if (this.searchResultsEl) {
+			this.searchResultsEl.style.display = "none";
+			this.searchResultsEl.empty();
+		}
+		this.searchResults = [];
+		this.selectedSearchIndex = -1;
+	}
+
+	private createSection(sections: HTMLElement, cardId: string, title: string): HTMLElement {
+		const section = sections.createDiv({ cls: "task-settings-section" });
+		section.setAttribute("data-card-id", cardId);
+
+		const header = section.createDiv({ cls: "task-settings-section-header" });
+		const backBtn = header.createEl("button", { cls: "task-settings-back-btn" });
+		backBtn.addClass("task-settings-header-button");
+		const backIcon = backBtn.createSpan({ cls: "task-settings-header-button-icon" });
+		setIcon(backIcon, "arrow-left");
+		const backText = backBtn.createSpan({ cls: "task-settings-header-button-text" });
+		backText.setText("返回主设置");
+		backBtn.addEventListener("click", () => this.goBack());
+
+		const titleEl = header.createDiv({ cls: "task-settings-section-title" });
+		titleEl.setText(title);
+
+		return section;
+	}
+
+	private switchCard(cardId: string): void {
+		this.currentCard = cardId;
+		this.containerEl.querySelectorAll(".task-settings-card").forEach((tab) => {
+			if (tab.getAttribute("data-card-id") === cardId) {
+				tab.addClass("task-settings-card-active");
+			} else {
+				tab.removeClass("task-settings-card-active");
+			}
+		});
+		this.showSection(cardId);
+	}
+
+	private showSection(cardId: string): void {
+		const nav = this.containerEl.querySelector(".task-settings-nav");
+		if (nav) (nav as HTMLElement).style.display = "none";
+		this.containerEl.querySelectorAll(".task-settings-section").forEach((sec) => {
+			const el = sec as HTMLElement;
+			if (sec.getAttribute("data-card-id") === cardId) {
+				sec.addClass("task-settings-section-active");
+				el.style.display = "block";
+			} else {
+				sec.removeClass("task-settings-section-active");
+				el.style.display = "none";
+			}
+		});
+	}
+
+	private goBack(): void {
+		const nav = this.containerEl.querySelector(".task-settings-nav");
+		if (nav) (nav as HTMLElement).style.display = "flex";
+		this.containerEl.querySelectorAll(".task-settings-section").forEach((sec) => {
+			sec.removeClass("task-settings-section-active");
+			(sec as HTMLElement).style.display = "none";
+		});
+	}
+
+	private renderEmptyCardPlaceholder(el: HTMLElement, text: string): void {
+		const ph = el.createDiv({ cls: "task-settings-empty" });
+		const icon = ph.createSpan({ cls: "task-settings-empty-icon" });
+		setIcon(icon, "construction");
+		const msg = ph.createDiv({ cls: "task-settings-empty-text" });
+		msg.setText(text);
+	}
+
+	private renderTaskFilterSection(el: HTMLElement): void {
+		new Setting(el).setName("任务路径").setHeading();
+
+		const pathListContainer = el.createDiv({ cls: "path-list" });
 		const rootPath = this.plugin.settings.taskRootPath || "";
 		const paths = rootPath
 			.split(",")
@@ -259,7 +561,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		renderPaths();
 
-		const addPathBtn = containerEl.createEl("button", {
+		const addPathBtn = el.createEl("button", {
 			text: "+ 添加任务路径",
 			cls: "filter-add-btn",
 		});
@@ -270,9 +572,9 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			renderPaths();
 		});
 
-		new Setting(containerEl).setName("匹配任务").setHeading();
+		new Setting(el).setName("匹配任务").setHeading();
 
-		const row1 = containerEl.createDiv({ cls: "filter-two-col" });
+		const row1 = el.createDiv({ cls: "filter-two-col" });
 		row1.addClass(
 			"task-grid",
 			"task-grid-cols-2",
@@ -288,7 +590,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		new Setting(fileCol).setName("任务文件").setHeading();
 		this.renderFilterList(fileCol, "fileFilters", "任务文件名匹配");
 
-		const row2 = containerEl.createDiv({ cls: "filter-two-col" });
+		const row2 = el.createDiv({ cls: "filter-two-col" });
 		row2.addClass(
 			"task-grid",
 			"task-grid-cols-2",
@@ -303,10 +605,12 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		const taskItemCol = row2.createDiv();
 		new Setting(taskItemCol).setName("任务项").setHeading();
 		this.renderTaskItemList(taskItemCol);
+	}
 
-		new Setting(containerEl).setName("插件配置").setHeading();
+	private renderPluginConfigSection(el: HTMLElement): void {
+		new Setting(el).setName("插件配置").setHeading();
 
-		const ioRow = containerEl.createDiv();
+		const ioRow = el.createDiv();
 		ioRow.addClass("task-flex", "task-gap-3");
 
 		const importBtn = ioRow.createEl("button", {
@@ -369,6 +673,24 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			a.download = "task-manage-config.json";
 			a.click();
 		});
+	}
+
+	private renderAboutSection(el: HTMLElement): void {
+		const m = this.plugin.manifest;
+		new Setting(el).setName("Task Manage").setDesc("版本 " + m.version).setHeading();
+		new Setting(el).setName("描述").setDesc(m.description);
+		if (m.author) {
+			const authorSetting = new Setting(el).setName("作者");
+			if (m.authorUrl) {
+				authorSetting.descEl.createEl("a", {
+					text: m.author,
+					href: m.authorUrl,
+					attr: { target: "_blank", rel: "noopener noreferrer" },
+				});
+			} else {
+				authorSetting.setDesc(m.author);
+			}
+		}
 	}
 
 	private getFolders(): string[] {
@@ -669,16 +991,16 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		activeColor?: string,
 	) {
 		btn.removeClass(
-			"setting-toggle-btn-active",
-			"setting-toggle-btn-inactive",
+			"task-setting-toggle-btn-active",
+			"task-setting-toggle-btn-inactive",
 		);
 		if (active) {
-			btn.addClass("setting-toggle-btn-active");
+			btn.addClass("task-setting-toggle-btn-active");
 			btn.setCssProps({
 				"--task-toggle-bg": activeColor || "var(--interactive-accent)",
 			});
 		} else {
-			btn.addClass("setting-toggle-btn-inactive");
+			btn.addClass("task-setting-toggle-btn-inactive");
 		}
 	}
 }

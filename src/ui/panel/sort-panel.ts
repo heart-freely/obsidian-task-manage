@@ -41,11 +41,11 @@ export class SortPanel {
 		const preset = this.store.getActivePreset();
 		if (!preset) return;
 		const cs = preset?.sort ?? { type: "", order: "asc" };
-		const row = this.container.createDiv({ cls: "panel-row" });
-		row.createSpan({ text: "任务排序", cls: "panel-label" });
+		const row = this.container.createDiv({ cls: "task-panel-row" });
+		row.createSpan({ text: "任务排序", cls: "task-panel-label" });
 		const defBtn = row.createEl("button", {
 			text: "原始",
-			cls: "panel-btn",
+			cls: "task-panel-btn",
 		});
 		if (cs.type === "") defBtn.addClass("active");
 		defBtn.onclick = () => {
@@ -63,7 +63,7 @@ export class SortPanel {
 		SORT_OPTIONS.forEach((opt) => {
 			const btn = row.createEl("button", {
 				text: opt.label,
-				cls: "panel-btn",
+				cls: "task-panel-btn",
 			});
 			if (cs.type === opt.type) {
 				btn.setText(opt.label + (cs.order === "asc" ? " ↑" : " ↓"));
