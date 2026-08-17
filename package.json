@@ -1,6 +1,6 @@
 {
 	"name": "task-manage",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "3-level task management (file/heading/list), 19 views (kanban/matrix/calendar/Gantt/task tree/statistics), batch edit task marks, supports multiple task management methods",
 	"main": "main.js",
 	"scripts": {
