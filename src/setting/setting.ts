@@ -143,7 +143,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		searchInput.placeholder = "搜索设置...";
 		const clearBtn = searchInputContainer.createEl("button", { cls: "task-settings-search-clear" });
 		setIcon(clearBtn, "x");
-		clearBtn.style.display = "none";
+		clearBtn.setCssStyles({ display: "none" });
 		clearBtn.addEventListener("click", () => {
 			searchInput.value = "";
 			this.performSearch(searchInput.value);
@@ -151,11 +151,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		});
 
 		const resultsContainer = searchContainer.createDiv({ cls: "task-settings-search-results" });
-		resultsContainer.style.display = "none";
+		resultsContainer.setCssStyles({ display: "none" });
 		this.searchResultsEl = resultsContainer;
 
 		searchInput.addEventListener("input", () => {
-			clearBtn.style.display = searchInput.value ? "flex" : "none";
+			clearBtn.setCssStyles({ display: searchInput.value ? "flex" : "none" });
 			this.performSearch(searchInput.value);
 		});
 		searchInput.addEventListener("keydown", (e: KeyboardEvent) => this.handleSearchKeydown(e));
@@ -247,11 +247,11 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		resultsEl.empty();
 		if (this.searchResults.length === 0) {
-			const noEl = resultsEl.createDiv({
+			resultsEl.createDiv({
 				cls: "task-settings-search-no-result",
 				text: "未找到相关设置",
 			});
-			resultsEl.style.display = "block";
+			resultsEl.setCssStyles({ display: "block" });
 			return;
 		}
 
@@ -274,7 +274,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 				this.setSelectedSearchIndex(index);
 			});
 		});
-		resultsEl.style.display = "block";
+		resultsEl.setCssStyles({ display: "block" });
 		this.setSelectedSearchIndex(0);
 	}
 
@@ -349,7 +349,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 	private hideSearchResults(): void {
 		if (this.searchResultsEl) {
-			this.searchResultsEl.style.display = "none";
+			this.searchResultsEl.setCssStyles({ display: "none" });
 			this.searchResultsEl.empty();
 		}
 		this.searchResults = [];
@@ -389,25 +389,25 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 	private showSection(cardId: string): void {
 		const nav = this.containerEl.querySelector(".task-settings-nav");
-		if (nav) (nav as HTMLElement).style.display = "none";
+		if (nav) (nav as HTMLElement).setCssStyles({ display: "none" });
 		this.containerEl.querySelectorAll(".task-settings-section").forEach((sec) => {
 			const el = sec as HTMLElement;
 			if (sec.getAttribute("data-card-id") === cardId) {
 				sec.addClass("task-settings-section-active");
-				el.style.display = "block";
+				el.setCssStyles({ display: "block" });
 			} else {
 				sec.removeClass("task-settings-section-active");
-				el.style.display = "none";
+				el.setCssStyles({ display: "none" });
 			}
 		});
 	}
 
 	private goBack(): void {
 		const nav = this.containerEl.querySelector(".task-settings-nav");
-		if (nav) (nav as HTMLElement).style.display = "flex";
+		if (nav) (nav as HTMLElement).setCssStyles({ display: "flex" });
 		this.containerEl.querySelectorAll(".task-settings-section").forEach((sec) => {
 			sec.removeClass("task-settings-section-active");
-			(sec as HTMLElement).style.display = "none";
+			(sec as HTMLElement).setCssStyles({ display: "none" });
 		});
 	}
 
@@ -677,7 +677,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 	private renderAboutSection(el: HTMLElement): void {
 		const m = this.plugin.manifest;
-		new Setting(el).setName("Task Manage").setDesc("版本 " + m.version).setHeading();
+		new Setting(el).setName("关于").setDesc("版本 " + m.version).setHeading();
 		new Setting(el).setName("描述").setDesc(m.description);
 		if (m.author) {
 			const authorSetting = new Setting(el).setName("作者");
