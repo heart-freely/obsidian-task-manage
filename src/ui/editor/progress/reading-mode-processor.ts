@@ -5,11 +5,10 @@ import {
 	MarkdownPostProcessorContext,
 	MarkdownRenderChild,
 } from "obsidian";
-import { formatProgressText } from "../../component/progress/progress";
 import { getProgressConfig } from "../../../core/config/progress-config";
-import { getStatusColors, SYMBOL_TO_STATUS } from "../../../core/config/config";
-import { tooltip } from "../../component/tooltip/tooltip";
+import { SYMBOL_TO_STATUS } from "../../../core/config/config";
 import { EditorProgressCounts } from "./range-calculator";
+import { renderProgressDom } from "./progress-render";
 import {
 	cacheTaskProgress,
 	getCachedTaskProgress,
@@ -34,7 +33,7 @@ class ProgressRenderChild extends MarkdownRenderChild {
 	}
 
 	onload() {
-		const bar = createProgressDom(this.counts);
+		const bar = renderProgressDom(this.counts);
 		insertAfterTaskText(this.containerEl, bar);
 	}
 }
@@ -140,7 +139,7 @@ function scheduleTaskBar(_docId: string): void {
 			const label = normalizeLabel(textEl?.textContent || li.textContent || "");
 			const cached = getCachedTaskProgress(label);
 			if (!cached) return;
-			insertAfterTaskText(li, createProgressDom(cached));
+			insertAfterTaskText(li, renderProgressDom(cached));
 		});
 	}, 400);
 }
@@ -247,93 +246,4 @@ function countFromItems(
 		total++;
 	});
 	return { counts, total };
-}
-
-function createProgressDom(counts: EditorProgressCounts): HTMLElement {
-	const cfg = getProgressConfig();
-	const { counts: c, total } = counts;
-	const wrap = document.createElement("span");
-	wrap.className = "task-editor-progress";
-
-	const wantGraphical =
-		cfg.displayMode === "graphical" || cfg.displayMode === "both";
-	const wantText = cfg.displayMode === "text" || cfg.displayMode === "both";
-	const graphical = wantGraphical && total > 0;
-
-	if (graphical) {
-		const bar = document.createElement("span");
-		bar.className = "task-editor-progress-bar";
-		const statusColors = getStatusColors();
-		const st = total || 1;
-		let accumulated = 0;
-		STATUS_ORDER.forEach((status) => {
-			const count = c[status] || 0;
-			if (count > 0) {
-				const pct = Math.min((count / st) * 100, 100 - accumulated);
-				accumulated += pct;
-				const seg = document.createElement("span");
-				seg.className = "task-editor-progress-segment";
-				seg.style.width = pct + "%";
-				seg.style.background =
-					statusColors[status] || "var(--text-muted)";
-				bar.appendChild(seg);
-			}
-		});
-		wrap.appendChild(bar);
-	}
-
-	if (wantText) {
-		const label = document.createElement("span");
-		label.className = "task-editor-progress-label";
-		label.textContent = formatProgressText(
-			c,
-			total,
-			cfg.textFormat,
-			cfg.customFormat,
-		);
-		wrap.appendChild(label);
-	}
-
-	if (cfg.supportHover && total > 0) {
-		const tipHtml = buildTooltip(c, total);
-		wrap.addEventListener("mouseenter", (e) =>
-			tooltip.show(tipHtml, e.clientX, e.clientY),
-		);
-		wrap.addEventListener("mousemove", (e) =>
-			tooltip.move(e.clientX, e.clientY),
-		);
-		wrap.addEventListener("mouseleave", () => tooltip.hide());
-	}
-
-	return wrap;
-}
-
-declare global {
-	interface Window {
-		__TASK_READ_TIMERS__?: Record<string, number>;
-	}
-}
-
-function buildTooltip(counts: Record<string, number>, total: number): string {
-	const st = total || 1;
-	const parts: string[] = [];
-	[
-		{ k: "todo", i: "🔲", l: "待办中" },
-		{ k: "scheduled", i: "❔", l: "计划中" },
-		{ k: "in-progress", i: "⏩", l: "进行中" },
-		{ k: "cancelled", i: "❎", l: "已取消" },
-		{ k: "completed", i: "✅", l: "已完成" },
-	].forEach(({ k, i, l }) => {
-		const c = counts[k] || 0;
-		parts.push(
-			i +
-				" " +
-				l +
-				" " +
-				(st > 0 ? Math.round((c / st) * 100) : 0) +
-				"% " +
-				c,
-		);
-	});
-	return parts.join("<br>");
 }

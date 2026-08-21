@@ -1,4 +1,5 @@
 /* ========== 进度条 ========== */
+/* 根容器：flex 布局 */
 .task-progress-bar {
 	display: flex;
 	align-items: center;
@@ -11,12 +12,14 @@
 	gap: 4px;
 	min-width: 60px;
 }
-.task-progress-bar {
+/* 内部条 */
+.task-progress-bar-inner {
 	flex: 1;
 	border-radius: 3px;
 	overflow: hidden;
 	background: var(--background-modifier-border);
 	display: flex;
+	align-items: center;
 }
 .task-progress-bar-segment {
 	height: 100%;
