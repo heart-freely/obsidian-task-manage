@@ -32,4 +32,7 @@
 	flex-shrink: 0;
 }
 
-.task-progress-bar-disabled { display: none !important; }
+.task-progress-bar.task-progress-bar-disabled,
+.task-editor-progress.task-progress-bar-disabled {
+	display: none;
+}

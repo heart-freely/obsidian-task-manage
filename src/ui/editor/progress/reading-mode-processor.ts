@@ -15,14 +15,6 @@ import {
 	getCachedTaskProgress,
 } from "./progress-shared-cache";
 
-const STATUS_ORDER = [
-	"todo",
-	"scheduled",
-	"in-progress",
-	"cancelled",
-	"completed",
-];
-
 // 记录上次处理的文档（用于切换时清理缓存）
 let lastDocId: string | null = null;
 
@@ -122,9 +114,10 @@ function normalizeLabel(text: string): string {
 
 /** 延迟插入任务进度条：遍历父任务 li，按 label 查共享缓存插入 */
 function scheduleTaskBar(_docId: string): void {
-	const timers = (window.__TASK_READ_TIMERS__ =
+	const timers: Record<string, number> = (window.__TASK_READ_TIMERS__ =
 		window.__TASK_READ_TIMERS__ || {});
-	if (timers[_docId]) window.clearTimeout(timers[_docId]);
+	const existing = timers[_docId];
+	if (existing !== undefined) window.clearTimeout(existing);
 	timers[_docId] = window.setTimeout(() => {
 		delete timers[_docId];
 		const view = document.querySelector(".markdown-reading-view");
@@ -276,4 +269,10 @@ function countFromItems(
 		total++;
 	});
 	return { counts, total };
+}
+
+declare global {
+	interface Window {
+		__TASK_READ_TIMERS__?: Record<string, number>;
+	}
 }

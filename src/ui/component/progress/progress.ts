@@ -1,14 +1,9 @@
 // src/ui/component/progress/progress.ts
 
-import {
-	ALLOWED_STATUSES,
-	getStatusColors,
-} from "../../../core/config/config";
+import { ALLOWED_STATUSES } from "../../../core/config/config";
 import { getProgressConfig } from "../../../core/config/progress-config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { ProgressTextFormat } from "../../../setting/setting";
-import { tooltip } from "../tooltip/tooltip";
-import { formatProgressText } from "./format-text";
 import { renderProgressDom } from "../../editor/progress/progress-render";
 
 
@@ -33,7 +28,6 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 	}
 	const height = options.height || "6px";
 	const showText = options.showText ?? true;
-	const displayMode = options.displayMode ?? cfg.displayMode;
 	// 插件内进度条：flex 布局（task-progress-bar 类），固定内部条
 	// counts 是扁平状态计数对象，包装为 EditorProgressCounts 结构
 	const wrap = renderProgressDom(
@@ -51,12 +45,6 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 	);
 	// 插件内布局：flex 容器 + min-width
 	wrap.addClass("task-flex", "task-items-center", "task-gap-1", "task-min-w-15");
-
-	// displayMode 覆盖：renderProgressDom 读取全局配置，这里应用 options 覆盖
-	if (displayMode !== cfg.displayMode) {
-		// 简单处理：直接重建（罕见场景，仅测试用）
-		void displayMode;
-	}
 	return wrap;
 }
 

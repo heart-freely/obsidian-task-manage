@@ -120,7 +120,6 @@ class ProgressViewPluginValue {
 		const startIndent = this.lineIndent(doc, startFrom, startTo);
 		let end = startTo;
 		let pos = startTo + 1;
-		const lineCount = doc.lines;
 
 		while (pos <= docLen && end < docLen) {
 			let line: { from: number; to: number; number: number };
@@ -189,8 +188,15 @@ class ProgressViewPluginValue {
 
 	private isExcluded(state: EditorState, pos: number): boolean {
 		try {
-			const node = syntaxTree(state).resolveInner(pos + 1);
-			const name = node.type.name || "";
+			// resolveInner 返回类型可能不完整，显式转换后安全访问
+			const resolved = syntaxTree(state).resolveInner(
+				pos + 1,
+			) as unknown;
+			const node = resolved as {
+				type?: { name?: unknown };
+			} | null;
+			const rawName = node?.type?.name;
+			const name = typeof rawName === "string" ? rawName : "";
 			return (
 				name.includes("hmd-codeblock") ||
 				name.includes("hmd-frontmatter") ||
