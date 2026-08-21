@@ -5,7 +5,6 @@ import { forceReindexAll } from "../core/command";
 import { PathFilterConfig, TaskItemFilterConfig, updateTaskFileConfig } from "../core/config/config";
 import { syncProgressConfig } from "../core/config/progress-config";
 import { DataManager } from "../core/data/data-manager";
-import { formatProgressText } from "../ui/component/progress/progress";
 import { AppLike, ManageViewLike } from "../type/type";
 import { safeMergeConfig } from "../util/validate-utils";
 
@@ -16,7 +15,14 @@ export type ProgressTextFormat =
 	| "fraction"
 	| "bracketFraction"
 	| "detailed"
-	| "custom";
+	| "custom"
+	| "range-based";
+
+export interface ProgressRange {
+	min: number;
+	max: number;
+	text: string;
+}
 
 export interface TaskManageSettings {
 	taskRootPath: string;
@@ -25,6 +31,7 @@ export interface TaskManageSettings {
 	headingFilters: PathFilterConfig[];
 	taskItemFilters: TaskItemFilterConfig[];
 	// ===== 进度显示 =====
+	enableProgressDisplay: boolean;
 	progressDisplayMode: ProgressDisplayMode;
 	progressTextFormat: ProgressTextFormat;
 	customProgressFormat: string;
@@ -34,6 +41,14 @@ export interface TaskManageSettings {
 	hideProgressBarTags: string;
 	hideProgressBarFolders: string;
 	hideProgressBarMetadata: string;
+	// ===== 编辑器进度条 =====
+	enableProgressbarInReadingMode: boolean;
+	addProgressBarToNonTaskBullet: boolean;
+	addTaskProgressBarToHeading: boolean;
+	// ===== 进度显示（对齐 taskgenius）=====
+	showProgressBarBasedOnHeading: string;
+	customizeProgressRanges: boolean;
+	progressRanges: ProgressRange[];
 }
 
 export const DEFAULT_SETTINGS: TaskManageSettings = {
@@ -67,6 +82,7 @@ export const DEFAULT_SETTINGS: TaskManageSettings = {
 	],
 	taskItemFilters: [{ pattern: "", exclude: false }],
 	// ===== 进度显示 =====
+	enableProgressDisplay: true,
 	progressDisplayMode: "graphical",
 	progressTextFormat: "bracketFraction",
 	customProgressFormat: "[{{COMPLETED}}/{{TOTAL}}]",
@@ -76,6 +92,20 @@ export const DEFAULT_SETTINGS: TaskManageSettings = {
 	hideProgressBarTags: "",
 	hideProgressBarFolders: "",
 	hideProgressBarMetadata: "",
+	// ===== 编辑器进度条 =====
+	enableProgressbarInReadingMode: true,
+	addProgressBarToNonTaskBullet: false,
+	addTaskProgressBarToHeading: false,
+	// ===== 进度显示（对齐 taskgenius）=====
+	showProgressBarBasedOnHeading: "",
+	customizeProgressRanges: false,
+	progressRanges: [
+		{ min: 0, max: 20, text: "刚开始 {{PROGRESS}}%" },
+		{ min: 20, max: 40, text: "进行中 {{PROGRESS}}%" },
+		{ min: 40, max: 60, text: "完成一半 {{PROGRESS}}%" },
+		{ min: 60, max: 80, text: "进展良好 {{PROGRESS}}%" },
+		{ min: 80, max: 100, text: "即将完成 {{PROGRESS}}%" },
+	],
 };
 
 const CONFIG_SCHEMA: Record<string, string> = {
@@ -93,6 +123,12 @@ const CONFIG_SCHEMA: Record<string, string> = {
 	hideProgressBarTags: "string",
 	hideProgressBarFolders: "string",
 	hideProgressBarMetadata: "string",
+	enableProgressbarInReadingMode: "boolean",
+	addProgressBarToNonTaskBullet: "boolean",
+	addTaskProgressBarToHeading: "boolean",
+	showProgressBarBasedOnHeading: "string",
+	customizeProgressRanges: "boolean",
+	progressRanges: "array",
 };
 
 interface PluginRef {
@@ -163,10 +199,35 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	}
 
 	private refreshManageViews(): void {
-		const leaves = this.app.workspace.getLeavesOfType("manage-view");
-		if (leaves.length > 0) {
-			const view = leaves[0].view as unknown as ManageViewLike;
-			view.refreshView();
+		try {
+			const leaves = this.app.workspace.getLeavesOfType("manage-view");
+			for (const leaf of leaves) {
+				const view = (leaf as { view?: ManageViewLike }).view;
+				if (view && typeof view.refreshView === "function") {
+					view.refreshView();
+				}
+			}
+			// 强制打开的 Markdown 编辑器/阅读视图重新渲染进度条 Widget
+			const mdLeaves = this.app.workspace.getLeavesOfType("markdown");
+			for (const leaf of mdLeaves) {
+				const v = leaf.view as {
+					previewMode?: { rerender?: (force?: boolean) => void };
+					editor?: {
+						setCursor?: (pos: { line: number; ch: number }) => void;
+						getCursor?: () => { line: number; ch: number };
+					};
+				};
+				if (v.previewMode?.rerender) {
+					v.previewMode.rerender(true);
+				}
+				// 触发 CodeMirror 更新以便 ViewPlugin 重建装饰（setCursor 会产生一次事务）
+				if (v.editor?.setCursor && v.editor.getCursor) {
+					const pos = v.editor.getCursor();
+					v.editor.setCursor({ line: pos.line, ch: pos.ch });
+				}
+			}
+		} catch (e) {
+			console.warn("[TaskManage] 刷新视图失败:", e);
 		}
 	}
 
@@ -683,9 +744,25 @@ export class TaskManageSettingTab extends PluginSettingTab {
 
 		const s = this.plugin.settings;
 
+		// 启用进度显示总开关（对齐 taskgenius 工作流卡片开关）
+		new Setting(el)
+			.setName("启用进度显示")
+			.setDesc("启用后显示进度条；关闭后隐藏所有进度条")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(s.enableProgressDisplay)
+					.onChange(async (value) => {
+						s.enableProgressDisplay = value;
+						await this.saveSettings();
+						this.renderSettings();
+					}),
+			);
+
+		if (!s.enableProgressDisplay) return;
+
 		new Setting(el)
 			.setName("显示模式")
-			.setDesc("选择进度条在任务树中的显示方式")
+			.setDesc("选择进度条的显示方式")
 			.addDropdown((dropdown) =>
 				dropdown
 					.addOption("graphical", "图形进度条")
@@ -700,32 +777,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		if (s.progressDisplayMode !== "none") {
-			new Setting(el)
-				.setName("悬停显示进度明细")
-				.setDesc("鼠标悬停在进度条上时显示各状态的详细数量")
-				.addToggle((toggle) =>
-					toggle
-						.setValue(s.supportHoverProgressInfo)
-						.onChange(async (value) => {
-							s.supportHoverProgressInfo = value;
-							await this.saveSettings();
-						}),
-				);
-
-			new Setting(el)
-				.setName("统计子任务")
-				.setDesc("生成进度条时递归统计所有子任务；关闭后仅统计直接子任务")
-				.addToggle((toggle) =>
-					toggle
-						.setValue(s.countSubLevel)
-						.onChange(async (value) => {
-							s.countSubLevel = value;
-							await this.saveSettings();
-						}),
-				);
-		}
-
+		// 文本格式（紧跟显示模式）
 		const showTextOptions =
 			s.progressDisplayMode === "text" || s.progressDisplayMode === "both";
 		if (showTextOptions) {
@@ -739,6 +791,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 						.addOption("fraction", "分数 (3/4)")
 						.addOption("bracketFraction", "括号分数 ([3/4])")
 						.addOption("detailed", "详细 ([3✓ 1⟳ 0✗ 1? / 5])")
+						.addOption("range-based", "基于进度范围文本")
 						.addOption("custom", "自定义格式")
 						.setValue(s.progressTextFormat)
 						.onChange(async (value) => {
@@ -761,29 +814,131 @@ export class TaskManageSettingTab extends PluginSettingTab {
 							.onChange(async (value) => {
 								s.customProgressFormat = value;
 								await this.saveSettings();
-								this.refreshProgressPreview();
+									await this.saveSettings();
 							}),
 					);
 			}
 
-			// 实时预览
-			const previewEl = el.createDiv({ cls: "task-settings-preview" });
-			previewEl.addClass("task-mt-2", "task-text-sm", "task-text-muted");
-			previewEl.setText(
-				"预览: " +
-					formatProgressText(
-						{
-							todo: 1,
-							scheduled: 1,
-							"in-progress": 1,
-							cancelled: 0,
-							completed: 3,
-						},
-						5,
-						s.progressTextFormat,
-						s.customProgressFormat,
-					),
-			);
+			if (s.progressTextFormat === "range-based") {
+				new Setting(el)
+					.setName("自定义进度范围")
+					.setDesc("按完成百分比显示不同的文本（{{PROGRESS}} 为百分比占位符）")
+					.addToggle((toggle) =>
+						toggle
+							.setValue(s.customizeProgressRanges)
+							.onChange(async (value) => {
+								s.customizeProgressRanges = value;
+								await this.saveSettings();
+								this.renderSettings();
+							}),
+					);
+
+				if (s.customizeProgressRanges) {
+					s.progressRanges.forEach((range, index) => {
+						new Setting(el)
+							.setName("范围 " + (index + 1) + ": " + range.min + "%-" + range.max + "%")
+							.setDesc("使用 {{PROGRESS}} 作为百分比占位符")
+							.addText((text) =>
+								text
+									.setPlaceholder("文本模板")
+									.setValue(range.text)
+									.onChange(async (value) => {
+										s.progressRanges[index].text = value;
+										await this.saveSettings();
+									await this.saveSettings();
+									}),
+							)
+							.addButton((button) => {
+								button.setButtonText("删除").onClick(async () => {
+									s.progressRanges.splice(index, 1);
+									await this.saveSettings();
+									this.renderSettings();
+								});
+							});
+					});
+
+					const addRow = el.createDiv({ cls: "task-flex" });
+					addRow.addClass("task-gap-2", "task-mt-2");
+					const minInput = addRow.createEl("input", { type: "text", attr: { placeholder: "最小%" } });
+					const maxInput = addRow.createEl("input", { type: "text", attr: { placeholder: "最大%" } });
+					const textInput = addRow.createEl("input", { type: "text", attr: { placeholder: "文本 ({{PROGRESS}})" } });
+					const addBtn = addRow.createEl("button", { text: "添加", cls: "filter-add-btn" });
+					addBtn.addEventListener("click", () => {
+						const min = parseInt(minInput.value);
+						const max = parseInt(maxInput.value);
+						const text = textInput.value;
+						if (isNaN(min) || isNaN(max) || !text) return;
+						s.progressRanges.push({ min, max, text });
+						void this.saveSettings();
+						this.renderSettings();
+					});
+				}
+			}
+
+		}
+
+		// 统计子任务（文本格式之后）
+		if (s.progressDisplayMode !== "none") {
+			new Setting(el)
+				.setName("统计子任务")
+				.setDesc("生成进度条时递归统计所有子任务；关闭后仅统计直接子任务")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(s.countSubLevel)
+						.onChange(async (value) => {
+							s.countSubLevel = value;
+							await this.saveSettings();
+						}),
+				);
+
+			new Setting(el)
+				.setName("悬停显示进度明细")
+				.setDesc("鼠标悬停在进度条上时显示各状态的详细数量")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(s.supportHoverProgressInfo)
+						.onChange(async (value) => {
+							s.supportHoverProgressInfo = value;
+							await this.saveSettings();
+						}),
+				);
+
+			new Setting(el)
+				.setName("为普通列表项添加进度条")
+				.setDesc("为非任务 bullet（无复选框）显示其子任务的进度条")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(s.addProgressBarToNonTaskBullet)
+						.onChange(async (value) => {
+							s.addProgressBarToNonTaskBullet = value;
+							await this.saveSettings();
+						}),
+				);
+
+			new Setting(el)
+				.setName("为标题添加进度条")
+				.setDesc("在标题下显示该标题下所有任务的进度条")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(s.addTaskProgressBarToHeading)
+						.onChange(async (value) => {
+							s.addTaskProgressBarToHeading = value;
+							await this.saveSettings();
+						}),
+				);
+
+			// 在阅读模式中显示进度条（紧跟为标题添加进度条）
+			new Setting(el)
+				.setName("在阅读模式中显示进度条")
+				.setDesc("在阅读视图中为父任务/标题显示进度条")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(s.enableProgressbarInReadingMode)
+						.onChange(async (value) => {
+							s.enableProgressbarInReadingMode = value;
+							await this.saveSettings();
+						}),
+				);
 		}
 
 		new Setting(el).setName("隐藏进度条").setHeading();
@@ -840,30 +995,23 @@ export class TaskManageSettingTab extends PluginSettingTab {
 							await this.saveSettings();
 						}),
 				);
+
+			new Setting(el)
+				.setName("仅在这些标题下显示进度条")
+				.setDesc('逗号分隔的标题列表，仅在匹配的标题下显示进度条。留空表示全部显示。例如："任务汇总,周报"')
+				.addText((text) =>
+					text
+						.setPlaceholder("任务汇总,周报")
+						.setValue(s.showProgressBarBasedOnHeading)
+						.onChange(async (value) => {
+							s.showProgressBarBasedOnHeading = value;
+							await this.saveSettings();
+						}),
+				);
 		}
+
 	}
 
-	private refreshProgressPreview(): void {
-		const s = this.plugin.settings;
-		const preview = this.containerEl.querySelector(".task-settings-preview");
-		if (preview) {
-			preview.setText(
-				"预览: " +
-					formatProgressText(
-						{
-							todo: 1,
-							scheduled: 1,
-							"in-progress": 1,
-							cancelled: 0,
-							completed: 3,
-						},
-						5,
-						s.progressTextFormat,
-						s.customProgressFormat,
-					),
-			);
-		}
-	}
 
 	private renderPluginConfigSection(el: HTMLElement): void {
 		new Setting(el).setName("插件配置").setHeading();

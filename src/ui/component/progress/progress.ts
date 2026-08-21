@@ -61,6 +61,22 @@ export function formatProgressText(
 				"[" + completed + "✓ " + inProgress + "⟳ " + abandoned +
 				"✗ " + planned + "? / " + total + "]"
 			);
+		case "range-based": {
+			// 自定义进度范围文本（对齐 taskgenius）
+			const cfg = getProgressConfig();
+			if (cfg.customizeProgressRanges && cfg.progressRanges.length > 0) {
+				const range = cfg.progressRanges.find(
+					(r) => pct >= r.min && pct <= r.max,
+				);
+				if (range) {
+					return range.text.replace(
+						/{{PROGRESS}}/g,
+						String(pct),
+					);
+				}
+			}
+			return pct + "%";
+		}
 		case "custom":
 			if (customFormat) {
 				return customFormat
@@ -82,6 +98,11 @@ export function formatProgressText(
 export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 	const cfg = getProgressConfig();
 	const { counts, total, height } = options;
+	if (!cfg.enabled) {
+		const disabled = createDiv({ cls: "task-progress-bar-disabled" });
+		disabled.setCssStyles({ display: "none" });
+		return disabled;
+	}
 	const displayMode = options.displayMode ?? cfg.displayMode;
 	const textFormat = options.textFormat ?? cfg.textFormat;
 	const customFormat = options.customFormat ?? cfg.customFormat;

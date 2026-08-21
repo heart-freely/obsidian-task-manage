@@ -18,11 +18,14 @@ import "./styles/util/edit.css";
 import "./styles/component/slider.css";
 import "./styles/setting.css";
 import "./styles/main/gantt.css";
+import "./styles/editor/progress-widget.css";
 
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
 import { syncProgressConfig } from "./core/config/progress-config";
+import { taskProgressEditorExtension } from "./ui/editor/progress/live-preview-plugin";
+import { updateProgressInReadingMode } from "./ui/editor/progress/reading-mode-processor";
 import { DataManager } from "./core/data/data-manager";
 import { getSnapshotCache, initStorage } from "./core/edit/task-editor";
 import { getDefaultPresets } from "./core/store/preset/panel-preset";
@@ -115,6 +118,7 @@ export default class TaskManagePlugin extends Plugin {
 						fileFilters: this.settings.fileFilters,
 						headingFilters: this.settings.headingFilters,
 						taskItemFilters: this.settings.taskItemFilters,
+						enableProgressDisplay: this.settings.enableProgressDisplay,
 						progressDisplayMode: this.settings.progressDisplayMode,
 						progressTextFormat: this.settings.progressTextFormat,
 						customProgressFormat: this.settings.customProgressFormat,
@@ -125,6 +129,18 @@ export default class TaskManagePlugin extends Plugin {
 						hideProgressBarTags: this.settings.hideProgressBarTags,
 						hideProgressBarFolders: this.settings.hideProgressBarFolders,
 						hideProgressBarMetadata: this.settings.hideProgressBarMetadata,
+						enableProgressbarInReadingMode:
+							this.settings.enableProgressbarInReadingMode,
+						addProgressBarToNonTaskBullet:
+							this.settings.addProgressBarToNonTaskBullet,
+						addTaskProgressBarToHeading:
+							this.settings.addTaskProgressBarToHeading,
+						showProgressBarBasedOnHeading:
+							this.settings.showProgressBarBasedOnHeading,
+						showProgressPreview: this.settings.showProgressPreview,
+						customizeProgressRanges:
+							this.settings.customizeProgressRanges,
+						progressRanges: this.settings.progressRanges,
 					};
 					if (state) {
 						Object.assign(dataToSave, state);
@@ -313,6 +329,16 @@ export default class TaskManagePlugin extends Plugin {
 
 			registerAllCommands(this, this.store);
 			this.addSettingTab(new TaskManageSettingTab(this.app, this));
+
+			// 编辑模式（Live Preview）进度条
+			this.registerEditorExtension(taskProgressEditorExtension());
+
+			// 阅读模式进度条（对齐 taskgenius：默认 sortOrder 0）
+			this.registerMarkdownPostProcessor((el, ctx) => {
+				if (this.settings.enableProgressbarInReadingMode) {
+					updateProgressInReadingMode(el, ctx);
+				}
+			});
 
 			this.registerView(
 				"manage-view",

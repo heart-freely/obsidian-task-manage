@@ -29,3 +29,4 @@
 	flex-shrink: 0;
 }
 
+.task-progress-bar-disabled { display: none !important; }

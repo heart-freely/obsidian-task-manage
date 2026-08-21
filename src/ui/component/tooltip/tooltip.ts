@@ -18,6 +18,7 @@ class TooltipManager {
 					!t.closest(".cal-task-item") &&
 					!t.closest(".task-cal-span-line") &&
 					!t.closest(".task-progress-bar") &&
+					!t.closest(".task-editor-progress") &&
 					!t.closest(".cal-more-indicator") &&
 					!t.closest(".task-timeline-bar") &&
 					!t.closest(".task-year-view-day")

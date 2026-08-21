@@ -1,0 +1,71 @@
+/* ========== 编辑器/阅读模式进度条 ========== */
+/* 编辑模式（Live Preview）内嵌 Widget */
+.task-editor-progress {
+	display: inline-block;
+	position: relative;
+	margin-left: 5px;
+	margin-bottom: 1px;
+	vertical-align: middle;
+	line-height: 1;
+	user-select: none;
+}
+
+/* 阅读模式：进度条插入在任务文本容器内部 */
+.markdown-reading-view .task-editor-progress {
+	display: inline-block;
+	position: relative;
+	margin-left: 5px;
+	vertical-align: middle;
+	line-height: 1;
+	flex: 0 0 auto;
+}
+
+/* 兼容 li 为 flex 容器的情况 */
+.markdown-reading-view .task-list-item > .task-editor-progress {
+	flex: 0 0 auto;
+	align-self: center;
+}
+
+.task-editor-progress-bar {
+	display: inline-block;
+	width: 60px;
+	height: 8px;
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--background-modifier-border);
+	vertical-align: middle;
+}
+
+.task-editor-progress-segment {
+	height: 100%;
+	float: left;
+	display: block;
+}
+
+.task-editor-progress-label {
+	display: inline-block;
+	font-size: 13px;
+	color: var(--text-muted);
+	white-space: nowrap;
+	margin-left: 3px;
+	vertical-align: middle;
+}
+
+/* 阅读模式标题下的进度条 */
+.markdown-reading-view h1 > .task-editor-progress,
+.markdown-reading-view h2 > .task-editor-progress,
+.markdown-reading-view h3 > .task-editor-progress,
+.markdown-reading-view h4 > .task-editor-progress,
+.markdown-reading-view h5 > .task-editor-progress,
+.markdown-reading-view h6 > .task-editor-progress {
+	margin-left: 10px;
+	display: inline-block;
+}
+
+/* 编辑模式（Live Preview）：标题行的进度条 */
+.HyperMD-header .task-editor-progress,
+.cm-line.HyperMD-header .task-editor-progress {
+	display: inline-block;
+	margin-left: 6px;
+	vertical-align: middle;
+}
