@@ -24,11 +24,13 @@ class ProgressViewPluginValue {
 	}
 
 	update(update: ViewUpdate) {
-		// 任意更新都重建（含设置变更后的强制刷新；扫描仅限可见区域，开销可忽略）
-		try {
-			this.decorations = this.buildDeco(update.view);
-		} catch (e) {
-			console.warn("[TaskManage] 进度条装饰更新失败:", e);
+		// 仅文档变化或视口变化时重建（光标/选区移动不重建，避免每次击键全量扫描）
+		if (update.docChanged || update.viewportChanged) {
+			try {
+				this.decorations = this.buildDeco(update.view);
+			} catch (e) {
+				console.warn("[TaskManage] 进度条装饰更新失败:", e);
+			}
 		}
 	}
 
@@ -44,6 +46,7 @@ class ProgressViewPluginValue {
 		let pos = Math.max(0, Math.min(from, docLen));
 		// 当前标题上下文（用于 showProgressBarBasedOnHeading 过滤）
 		let currentHeadingLabel = "";
+		// 允许显示的标题列表（循环外计算一次）
 		while (pos <= to && pos < docLen) {
 			let line: { from: number; to: number; number: number };
 			try {
@@ -91,7 +94,7 @@ class ProgressViewPluginValue {
 								.replace(/^\s*([-*+]|\d+\.)\s\[[^\]]*\]\s*/, "")
 								.trim()
 								.slice(0, 40);
-							cacheTaskProgress(label, counts);
+							cacheTaskProgress("editor", label, counts);
 						}
 						const widgetDeco = Decoration.widget({
 							widget: new TaskEditorProgressWidget(counts, view),

@@ -11,6 +11,7 @@ import { EditorProgressCounts } from "./range-calculator";
 import { renderProgressDom } from "./progress-render";
 import {
 	cacheTaskProgress,
+	clearTaskProgressCache,
 	getCachedTaskProgress,
 } from "./progress-shared-cache";
 
@@ -21,6 +22,9 @@ const STATUS_ORDER = [
 	"cancelled",
 	"completed",
 ];
+
+// 记录上次处理的文档（用于切换时清理缓存）
+let lastDocId: string | null = null;
 
 
 /** 进度条渲染子组件：Obsidian 管理生命周期，DOM 不会被渲染器清理 */
@@ -45,7 +49,12 @@ export function updateProgressInReadingMode(
 	try {
 		const cfg = getProgressConfig();
 		if (!cfg.enabled || cfg.displayMode === "none") return;
-		const docId = ctx.docId || ctx.sourcePath || "default";
+		const docId = ctx.sourcePath || ctx.docId || "default";
+		// 文档切换时清理旧缓存（用 sourcePath 判断，同一文档的 block 共享同一路径）
+		if (lastDocId !== docId) {
+			lastDocId = docId;
+			clearTaskProgressCache();
+		}
 		(element as HTMLElement & { __docId?: string }).__docId = docId;
 
 		// 处理标题块
@@ -89,7 +98,7 @@ export function updateProgressInReadingMode(
 			const fullText =
 				textEl?.textContent || parentTask.textContent || "";
 			const label = normalizeLabel(fullText);
-			cacheTaskProgress(label, counts);
+			cacheTaskProgress(docId, label, counts);
 			scheduleTaskBar(docId);
 		});
 	} catch (e) {
@@ -137,11 +146,32 @@ function scheduleTaskBar(_docId: string): void {
 				":scope > .tasks-list-text, :scope > .task-list-item-list-item-text",
 			);
 			const label = normalizeLabel(textEl?.textContent || li.textContent || "");
-			const cached = getCachedTaskProgress(label);
+			const cached = getCachedTaskProgress(_docId, label);
 			if (!cached) return;
-			insertAfterTaskText(li, renderProgressDom(cached));
+			const bar = renderProgressDom(cached);
+			insertAfterTaskText(li, bar);
+			bindCheckboxUpdates(li, bar);
 		});
-	}, 400);
+	}, 60);
+}
+
+/** 绑定子任务 checkbox 变化：重算进度并更新进度条（交互优化） */
+function bindCheckboxUpdates(parent: HTMLElement, bar: HTMLElement): void {
+	const update = () => {
+		// 重算该父任务的直接子任务状态
+		const children = Array.from(
+			parent.querySelectorAll<HTMLElement>(
+				":scope > ul > li.task-list-item, :scope > div.el-ul > li.task-list-item",
+			),
+		);
+		const counts = countFromItems(children, true);
+		if (counts.total === 0) return;
+		// 重建进度条并替换，替换后重新绑定（新 bar 的 checkbox 监听由父级 change 委托处理）
+		const newBar = renderProgressDom(counts);
+		bar.replaceWith(newBar);
+	};
+	// 用事件委托：监听父级 li 的 change，冒泡捕获所有 checkbox 变化
+	parent.addEventListener("change", update);
 }
 
 /** 把进度条插入到父任务文本之后（任务文本后、子任务列表前） */
