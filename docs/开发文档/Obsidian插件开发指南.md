@@ -435,6 +435,9 @@ Obsidian 插件审核报告分四个段落：**Releases**（发布资产）、**
 | `@codemirror/*` 声明到 dependencies                     | ✅ 有效     | esbuild external 的运行时模块（Obsidian 内置提供）也需在 `package.json` 的 `dependencies` 声明，版本与 Obsidian 内置一致（`@codemirror/view` 6.38.6、`@codemirror/state` 6.5.0），消除 "should be listed in the project's dependencies" 警告 |
 | 移除 `syntaxTree` 依赖，纯文本跟踪代码块/frontmatter   | ✅ 有效     | `syntaxTree(state).resolveInner()` 因 `@codemirror/language` 类型不完整回退 any，触发 `no-unsafe-call`/`no-unsafe-member-access`。改为循环中维护 `inCodeFence`/`inFrontmatter` 状态（``` ``` ``` 切换围栏、文档开头 `---` 打开第二个 `---` 关闭），`shouldProcess` 加入 `!inCodeFence && !inFrontmatter` 条件，彻底移除 `@codemirror/language` 依赖，同时消除依赖缺失警告 |
 | `window.__xxx__` 全局缓存类型化                        | ✅ 有效     | `window.__TASK_READ_TIMERS__` 未声明类型时赋值/读取触发 `no-unsafe-*`。用 `declare global { interface Window { __TASK_READ_TIMERS__?: Record<string, number> } }` 声明 + 显式 `Record<string, number>` 类型化访问，消除警告 |
+| 重构后清理失效 import/变量                           | ✅ 有效     | 进度条渲染委托给 `renderProgressDom` 后，`progress.ts` 的 `getStatusColors`/`tooltip`/`formatProgressText` import 全部失效需删除；`live-preview-plugin.ts` 的 `lineCount`、`reading-mode-processor.ts` 的 `STATUS_ORDER` 同样删除，消除 "defined but never used" 警告 |
+| 移除 `void` 占位 hack                                | ✅ 有效     | `createProgressBar` 中 `displayMode` 覆盖参数在重构后不再需要（渲染统一读全局配置），删除 `const displayMode = options.displayMode ?? cfg.displayMode` 及其 `if (displayMode !== cfg.displayMode) { void displayMode; }` 占位块，消除无意义代码 |
+| CSS `!important` 用双类名提高特异性                  | ✅ 有效     | `.task-progress-bar-disabled { display: none !important; }` 改为 `.task-progress-bar.task-progress-bar-disabled, .task-editor-progress.task-progress-bar-disabled { display: none; }`。注意：**静态类场景**适用双类名；TS 动态切换类名的场景（编辑按钮）双类名不适用，需改用其他方式 |
 
 ##### 尝试后无效的方法
 
