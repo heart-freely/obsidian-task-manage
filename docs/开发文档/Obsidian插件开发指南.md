@@ -245,6 +245,12 @@ export function registerCommands(plugin: Plugin) {
 - `isDesktopOnly`：布尔值，是否仅桌面可用
 
 可选字段：`author`、`authorUrl`、`fundingUrl`（字符串或映射）。  
+
+**URL 可达性（审核要求）**：`authorUrl`/`fundingUrl` 必须可访问，审核工具会实际请求并判定 `Manifest URL field is not reachable`。
+
+- `authorUrl` 应指向**实际存在的页面**：个人主页不存在时，改用**公开仓库地址**（如 `https://github.com/<user>/<repo>`）
+- `fundingUrl` 仅当赞助页确实启用时填写（如 GitHub Sponsors 未启用会 404），不确定时**删除该字段**
+
 规范验证工具：https://github.com/obsidianmd/obsidian-releases/blob/master/.github/workflows/validate-plugin-entry.yml
 
 ### 资金支持链接
@@ -358,6 +364,7 @@ Obsidian 插件审核报告分四个段落：**Releases**（发布资产）、**
 | 建议项 | 处理结果 | 做法 |
 | :--- | :--- | :--- |
 | Missing GitHub artifact attestations | ✅ 已消除 | 在 `.github/workflows/release.yml` 的 Build 之后加 `actions/attest-build-provenance@v2`，`subject-path`/`subject-name` 列出 `main.js`、`styles.css`，`permissions` 需 `id-token: write` + `attestations: write`。签名后审核转为两个 Pass |
+| Manifest URL 不可达 | ✅ 已消除 | `authorUrl` 指向不存在的个人主页、`fundingUrl` 指向未启用的赞助页会报 `Manifest URL field is not reachable`。改为公开仓库地址（`https://github.com/<user>/<repo>`），删除不可达的 `fundingUrl` |
 
 ### Behavior（行为）
 
@@ -424,6 +431,10 @@ Obsidian 插件审核报告分四个段落：**Releases**（发布资产）、**
 | `no-unsafe-*` 类型收窄                                 | ✅ 有效     | `main.ts` 的 `loadData()` 返回 any → `asRecord()` 类型守卫收窄；`detail-chart.ts` 的 `new Array().fill()` → `new Array<number>()`；`md-parser.ts` 的 YAML `value: unknown` → `string`；`intervalMode as IntervalMode` → `normalizeIntervalMode()` 类型守卫替代断言 |
 | 多余 `as` 断言删除                                     | ✅ 有效     | `TaskStatus`、`MarkKey` 实际是 `string` 别名（`BaseChildDef.key: string`、`ALL_MARKS: string[]`），`as TaskStatus`、`m as keyof typeof marks` 是 `string as string` 多余断言，直接删除；改用 Obsidian 泛型 `createEl<K>` 返回具体类型后 `as HTMLInputElement` 等也多余 |
 | 循环依赖消除                                           | ✅ 有效     | `config.ts` ↔ `setting.ts` 循环依赖会导致 typescript-eslint 类型分析退化。把共享类型（`PathFilterConfig`/`TaskItemFilterConfig`）下沉到 `config.ts` 定义，`setting.ts` 改为 import，消除环 |
+| 渲染模块抽独立文件打破循环                             | ✅ 有效     | 页面进度条复用重构时 `progress.ts` ↔ `progress-render.ts` 循环引用，`formatProgressText` 在阅读模式未初始化（TDZ）。把文本格式化抽到独立 `format-text.ts`，两处都从它导入，消除环 |
+| `@codemirror/*` 声明到 dependencies                     | ✅ 有效     | esbuild external 的运行时模块（Obsidian 内置提供）也需在 `package.json` 的 `dependencies` 声明，版本与 Obsidian 内置一致（`@codemirror/view` 6.38.6、`@codemirror/state` 6.5.0），消除 "should be listed in the project's dependencies" 警告 |
+| 移除 `syntaxTree` 依赖，纯文本跟踪代码块/frontmatter   | ✅ 有效     | `syntaxTree(state).resolveInner()` 因 `@codemirror/language` 类型不完整回退 any，触发 `no-unsafe-call`/`no-unsafe-member-access`。改为循环中维护 `inCodeFence`/`inFrontmatter` 状态（``` ``` ``` 切换围栏、文档开头 `---` 打开第二个 `---` 关闭），`shouldProcess` 加入 `!inCodeFence && !inFrontmatter` 条件，彻底移除 `@codemirror/language` 依赖，同时消除依赖缺失警告 |
+| `window.__xxx__` 全局缓存类型化                        | ✅ 有效     | `window.__TASK_READ_TIMERS__` 未声明类型时赋值/读取触发 `no-unsafe-*`。用 `declare global { interface Window { __TASK_READ_TIMERS__?: Record<string, number> } }` 声明 + 显式 `Record<string, number>` 类型化访问，消除警告 |
 
 ##### 尝试后无效的方法
 
