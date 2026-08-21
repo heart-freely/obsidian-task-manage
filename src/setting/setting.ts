@@ -1,10 +1,22 @@
 // src/setting/setting.ts
 
 import { App, Notice, PluginSettingTab, setIcon, Setting } from "obsidian";
+import { forceReindexAll } from "../core/command";
 import { PathFilterConfig, TaskItemFilterConfig, updateTaskFileConfig } from "../core/config/config";
+import { syncProgressConfig } from "../core/config/progress-config";
 import { DataManager } from "../core/data/data-manager";
-import { ManageViewLike } from "../type/type";
+import { formatProgressText } from "../ui/component/progress/progress";
+import { AppLike, ManageViewLike } from "../type/type";
 import { safeMergeConfig } from "../util/validate-utils";
+
+export type ProgressDisplayMode = "graphical" | "text" | "both" | "none";
+export type ProgressTextFormat =
+	| "percentage"
+	| "bracketPercentage"
+	| "fraction"
+	| "bracketFraction"
+	| "detailed"
+	| "custom";
 
 export interface TaskManageSettings {
 	taskRootPath: string;
@@ -12,6 +24,16 @@ export interface TaskManageSettings {
 	fileFilters: PathFilterConfig[];
 	headingFilters: PathFilterConfig[];
 	taskItemFilters: TaskItemFilterConfig[];
+	// ===== 进度显示 =====
+	progressDisplayMode: ProgressDisplayMode;
+	progressTextFormat: ProgressTextFormat;
+	customProgressFormat: string;
+	supportHoverProgressInfo: boolean;
+	countSubLevel: boolean;
+	hideProgressBarBasedOnConditions: boolean;
+	hideProgressBarTags: string;
+	hideProgressBarFolders: string;
+	hideProgressBarMetadata: string;
 }
 
 export const DEFAULT_SETTINGS: TaskManageSettings = {
@@ -44,6 +66,16 @@ export const DEFAULT_SETTINGS: TaskManageSettings = {
 		},
 	],
 	taskItemFilters: [{ pattern: "", exclude: false }],
+	// ===== 进度显示 =====
+	progressDisplayMode: "graphical",
+	progressTextFormat: "bracketFraction",
+	customProgressFormat: "[{{COMPLETED}}/{{TOTAL}}]",
+	supportHoverProgressInfo: true,
+	countSubLevel: true,
+	hideProgressBarBasedOnConditions: false,
+	hideProgressBarTags: "",
+	hideProgressBarFolders: "",
+	hideProgressBarMetadata: "",
 };
 
 const CONFIG_SCHEMA: Record<string, string> = {
@@ -52,6 +84,15 @@ const CONFIG_SCHEMA: Record<string, string> = {
 	fileFilters: "array",
 	headingFilters: "array",
 	taskItemFilters: "array",
+	progressDisplayMode: "string",
+	progressTextFormat: "string",
+	customProgressFormat: "string",
+	supportHoverProgressInfo: "boolean",
+	countSubLevel: "boolean",
+	hideProgressBarBasedOnConditions: "boolean",
+	hideProgressBarTags: "string",
+	hideProgressBarFolders: "string",
+	hideProgressBarMetadata: "string",
 };
 
 interface PluginRef {
@@ -72,6 +113,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 	private folderCache: string[] | null = null;
 	private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 	private currentCard = "task-filter";
+	private sectionsRendered = false;
 	private searchResults: Array<{ name: string; desc: string; cardId: string; el: HTMLElement }> = [];
 	private selectedSearchIndex = -1;
 	private searchResultsEl: HTMLElement | null = null;
@@ -95,14 +137,10 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			headingFilters: this.plugin.settings.headingFilters,
 			taskItemFilters: this.plugin.settings.taskItemFilters,
 		});
+		syncProgressConfig(this.plugin.settings);
 		void this.plugin.saveAllSettings();
 		DataManager.getInstance().invalidate();
-
-		const leaves = this.app.workspace.getLeavesOfType("manage-view");
-		if (leaves.length > 0) {
-			const view = leaves[0].view as unknown as ManageViewLike;
-			view.refreshView();
-		}
+		this.refreshManageViews();
 	}
 
 	private async saveSettings(): Promise<void> {
@@ -113,12 +151,23 @@ export class TaskManageSettingTab extends PluginSettingTab {
 			headingFilters: this.plugin.settings.headingFilters,
 			taskItemFilters: this.plugin.settings.taskItemFilters,
 		});
+		syncProgressConfig(this.plugin.settings);
+		// 立即刷新打开的视图，使进度显示设置马上生效
+		this.refreshManageViews();
 
 		if (this.saveDebounceTimer) window.clearTimeout(this.saveDebounceTimer);
 		this.saveDebounceTimer = window.setTimeout(() => {
 			void this.plugin.saveAllSettings();
 			this.saveDebounceTimer = null;
 		}, 300);
+	}
+
+	private refreshManageViews(): void {
+		const leaves = this.app.workspace.getLeavesOfType("manage-view");
+		if (leaves.length > 0) {
+			const view = leaves[0].view as unknown as ManageViewLike;
+			view.refreshView();
+		}
 	}
 
 	display(): void {
@@ -194,7 +243,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		const sections = containerEl.createDiv({ cls: "task-settings-sections" });
 
 		const indexSection = this.createSection(sections, "task-index", "任务索引");
-		this.renderEmptyCardPlaceholder(indexSection, "任务索引配置将在后续版本开放");
+		this.renderIndexSection(indexSection);
 
 		const filterSection = this.createSection(sections, "task-filter", "任务过滤器");
 		this.renderTaskFilterSection(filterSection);
@@ -203,7 +252,7 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		this.renderPluginConfigSection(pluginConfigSection);
 
 		const progressSection = this.createSection(sections, "progress-display", "进度显示");
-		this.renderEmptyCardPlaceholder(progressSection, "进度显示配置将在后续版本开放");
+		this.renderProgressDisplaySection(progressSection);
 
 		const statusSection = this.createSection(sections, "task-status", "任务状态");
 		this.renderEmptyCardPlaceholder(statusSection, "任务状态配置将在后续版本开放");
@@ -211,7 +260,13 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		const aboutSection = this.createSection(sections, "about", "关于");
 		this.renderAboutSection(aboutSection);
 
-		this.goBack();
+		// 重渲染时保持当前卡片，首次进入显示卡片列表
+		if (this.currentCard && this.sectionsRendered) {
+			this.showSection(this.currentCard);
+		} else {
+			this.goBack();
+		}
+		this.sectionsRendered = true;
 	}
 
 	private performSearch(query: string): void {
@@ -419,6 +474,22 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		msg.setText(text);
 	}
 
+	private renderIndexSection(el: HTMLElement): void {
+		new Setting(el)
+			.setName("重建索引")
+			.setDesc(
+				"强制重新扫描所有任务文件并重建索引。当任务缺失、状态或日期显示不正确时使用。",
+			)
+			.addButton((button) => {
+				button
+					.setButtonText("重建索引")
+					.setClass("mod-warning")
+					.onClick(() => {
+						void forceReindexAll(this.app as unknown as AppLike);
+					});
+			});
+	}
+
 	private renderTaskFilterSection(el: HTMLElement): void {
 		new Setting(el).setName("任务路径").setHeading();
 
@@ -605,6 +676,193 @@ export class TaskManageSettingTab extends PluginSettingTab {
 		const taskItemCol = row2.createDiv();
 		new Setting(taskItemCol).setName("任务项").setHeading();
 		this.renderTaskItemList(taskItemCol);
+	}
+
+	private renderProgressDisplaySection(el: HTMLElement): void {
+		new Setting(el).setName("进度显示").setDesc("自定义任务进度条的显示方式").setHeading();
+
+		const s = this.plugin.settings;
+
+		new Setting(el)
+			.setName("显示模式")
+			.setDesc("选择进度条在任务树中的显示方式")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("graphical", "图形进度条")
+					.addOption("text", "纯文本进度")
+					.addOption("both", "图形 + 文本")
+					.addOption("none", "不显示进度")
+					.setValue(s.progressDisplayMode)
+					.onChange(async (value) => {
+						s.progressDisplayMode = value as typeof s.progressDisplayMode;
+						await this.saveSettings();
+						this.renderSettings();
+					}),
+			);
+
+		if (s.progressDisplayMode !== "none") {
+			new Setting(el)
+				.setName("悬停显示进度明细")
+				.setDesc("鼠标悬停在进度条上时显示各状态的详细数量")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(s.supportHoverProgressInfo)
+						.onChange(async (value) => {
+							s.supportHoverProgressInfo = value;
+							await this.saveSettings();
+						}),
+				);
+
+			new Setting(el)
+				.setName("统计子任务")
+				.setDesc("生成进度条时递归统计所有子任务；关闭后仅统计直接子任务")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(s.countSubLevel)
+						.onChange(async (value) => {
+							s.countSubLevel = value;
+							await this.saveSettings();
+						}),
+				);
+		}
+
+		const showTextOptions =
+			s.progressDisplayMode === "text" || s.progressDisplayMode === "both";
+		if (showTextOptions) {
+			new Setting(el)
+				.setName("文本格式")
+				.setDesc("选择进度文本的展示格式")
+				.addDropdown((dropdown) =>
+					dropdown
+						.addOption("percentage", "百分比 (75%)")
+						.addOption("bracketPercentage", "括号百分比 ([75%])")
+						.addOption("fraction", "分数 (3/4)")
+						.addOption("bracketFraction", "括号分数 ([3/4])")
+						.addOption("detailed", "详细 ([3✓ 1⟳ 0✗ 1? / 5])")
+						.addOption("custom", "自定义格式")
+						.setValue(s.progressTextFormat)
+						.onChange(async (value) => {
+							s.progressTextFormat = value as typeof s.progressTextFormat;
+							await this.saveSettings();
+							this.renderSettings();
+						}),
+				);
+
+			if (s.progressTextFormat === "custom") {
+				new Setting(el)
+					.setName("自定义格式")
+					.setDesc(
+						"可用占位符：{{COMPLETED}} {{TOTAL}} {{IN_PROGRESS}} {{PLANNED}} {{ABANDONED}} {{NOT_STARTED}} {{PERCENT}}",
+					)
+					.addText((text) =>
+						text
+							.setPlaceholder("[{{COMPLETED}}/{{TOTAL}}]")
+							.setValue(s.customProgressFormat)
+							.onChange(async (value) => {
+								s.customProgressFormat = value;
+								await this.saveSettings();
+								this.refreshProgressPreview();
+							}),
+					);
+			}
+
+			// 实时预览
+			const previewEl = el.createDiv({ cls: "task-settings-preview" });
+			previewEl.addClass("task-mt-2", "task-text-sm", "task-text-muted");
+			previewEl.setText(
+				"预览: " +
+					formatProgressText(
+						{
+							todo: 1,
+							scheduled: 1,
+							"in-progress": 1,
+							cancelled: 0,
+							completed: 3,
+						},
+						5,
+						s.progressTextFormat,
+						s.customProgressFormat,
+					),
+			);
+		}
+
+		new Setting(el).setName("隐藏进度条").setHeading();
+
+		new Setting(el)
+			.setName("基于条件隐藏进度条")
+			.setDesc("启用后可按标签、文件夹或元数据隐藏特定任务的进度条")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(s.hideProgressBarBasedOnConditions)
+					.onChange(async (value) => {
+						s.hideProgressBarBasedOnConditions = value;
+						await this.saveSettings();
+						this.renderSettings();
+					}),
+			);
+
+		if (s.hideProgressBarBasedOnConditions) {
+			new Setting(el)
+				.setName("按标签隐藏")
+				.setDesc('指定隐藏进度条的标签（逗号分隔，不带 #）。例如："no-progress-bar,hide-progress"')
+				.addText((text) =>
+					text
+						.setPlaceholder("no-progress-bar,hide-progress")
+						.setValue(s.hideProgressBarTags)
+						.onChange(async (value) => {
+							s.hideProgressBarTags = value;
+							await this.saveSettings();
+						}),
+				);
+
+			new Setting(el)
+				.setName("按文件夹隐藏")
+				.setDesc('指定隐藏进度条的文件夹路径（逗号分隔）。例如："Daily Notes,Projects/Hidden"')
+				.addText((text) =>
+					text
+						.setPlaceholder("Daily Notes,Projects/Hidden")
+						.setValue(s.hideProgressBarFolders)
+						.onChange(async (value) => {
+							s.hideProgressBarFolders = value;
+							await this.saveSettings();
+						}),
+				);
+
+			new Setting(el)
+				.setName("按元数据隐藏")
+				.setDesc('指定文件 frontmatter 中隐藏进度条的键值（逗号分隔）。例如："hide-progress-bar: true"')
+				.addText((text) =>
+					text
+						.setPlaceholder("hide-progress-bar: true")
+						.setValue(s.hideProgressBarMetadata)
+						.onChange(async (value) => {
+							s.hideProgressBarMetadata = value;
+							await this.saveSettings();
+						}),
+				);
+		}
+	}
+
+	private refreshProgressPreview(): void {
+		const s = this.plugin.settings;
+		const preview = this.containerEl.querySelector(".task-settings-preview");
+		if (preview) {
+			preview.setText(
+				"预览: " +
+					formatProgressText(
+						{
+							todo: 1,
+							scheduled: 1,
+							"in-progress": 1,
+							cancelled: 0,
+							completed: 3,
+						},
+						5,
+						s.progressTextFormat,
+						s.customProgressFormat,
+					),
+			);
+		}
 	}
 
 	private renderPluginConfigSection(el: HTMLElement): void {

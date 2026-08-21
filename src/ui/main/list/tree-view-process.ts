@@ -1,6 +1,8 @@
 // src/core/process/tree-view-process.ts
 // 任务树视图数据处理
 
+import { getProgressConfig } from "../../../core/config/progress-config";
+import { DataManager } from "../../../core/data/data-manager";
 import { ContentNode } from "../../../core/parser/md-parser";
 import { TaskTreeNode } from "../../../core/task/task-tree";
 import { countTaskStatuses } from "../../component/progress/progress";
@@ -32,14 +34,72 @@ export function collectAllTasksFromNode(node: TaskTreeNode): TaskTreeNode[] {
 	return all;
 }
 
-export function countNodeStatuses(node: TaskTreeNode): {
+/**
+ * 统计节点进度。countSubLevel 为 false 时只统计直接子任务，
+ * 为 true 时（默认）递归统计全部子任务。
+ */
+export function countNodeStatuses(
+	node: TaskTreeNode,
+	countSubLevel?: boolean,
+): {
 	counts: Record<string, number>;
 	total: number;
 } {
-	const tasks = collectAllTasksFromNode(node).filter(
-		(t) => t.display && t.uid !== "__task_root__",
-	);
+	const useRecursive = countSubLevel ?? getProgressConfig().countSubLevel;
+	const tasks = useRecursive
+		? collectAllTasksFromNode(node).filter(
+				(t) => t.display && t.uid !== "__task_root__",
+			)
+		: (node.children || []).filter(
+				(t) => t.display && t.uid !== "__task_root__",
+			);
 	return countTaskStatuses(tasks);
+}
+
+/**
+ * 根据全局配置判断是否应隐藏某个节点的进度条
+ * （基于标签 / 文件夹 / 元数据条件）
+ */
+export function shouldHideProgressBar(node: TaskTreeNode): boolean {
+	const cfg = getProgressConfig();
+	if (!cfg.hideBasedOnConditions) return false;
+
+	// 按标签隐藏
+	if (cfg.hideTags.length > 0) {
+		const nodeTags: string[] = [];
+		if (node.tag) nodeTags.push(node.tag.trim());
+		if (
+			cfg.hideTags.some((tag) =>
+				nodeTags.some((nt) => nt === tag || nt.startsWith(tag + "/")),
+			)
+		)
+			return true;
+	}
+
+	// 按文件夹隐藏（匹配路径前缀，支持多级）
+	if (cfg.hideFolders.length > 0) {
+		const path = node.path || "";
+		if (
+			cfg.hideFolders.some(
+				(folder) => path === folder || path.startsWith(folder + "/"),
+			)
+		)
+			return true;
+	}
+
+	// 按元数据隐藏（匹配文件 frontmatter 的 key: value，如 "hide-progress-bar: true"）
+	if (cfg.hideMetadata.length > 0) {
+		const yaml = DataManager.getInstance().getFileYaml(node.path || "");
+		const yamlText = Object.entries(yaml)
+			.map(([k, v]) => k + ": " + String(v))
+			.join("\n");
+		if (
+			cfg.hideMetadata.some((md) => md && yamlText.includes(md.trim()))
+		)
+			return true;
+	}
+
+	return false;
 }
 
 export function countContentNodeStatuses(node: ContentNode): {

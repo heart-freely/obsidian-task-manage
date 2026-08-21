@@ -22,6 +22,7 @@ import "./styles/main/gantt.css";
 import { Plugin } from "obsidian";
 import { registerAllCommands } from "./core/command";
 import { updateTaskFileConfig } from "./core/config/config";
+import { syncProgressConfig } from "./core/config/progress-config";
 import { DataManager } from "./core/data/data-manager";
 import { getSnapshotCache, initStorage } from "./core/edit/task-editor";
 import { getDefaultPresets } from "./core/store/preset/panel-preset";
@@ -114,6 +115,16 @@ export default class TaskManagePlugin extends Plugin {
 						fileFilters: this.settings.fileFilters,
 						headingFilters: this.settings.headingFilters,
 						taskItemFilters: this.settings.taskItemFilters,
+						progressDisplayMode: this.settings.progressDisplayMode,
+						progressTextFormat: this.settings.progressTextFormat,
+						customProgressFormat: this.settings.customProgressFormat,
+						supportHoverProgressInfo: this.settings.supportHoverProgressInfo,
+						countSubLevel: this.settings.countSubLevel,
+						hideProgressBarBasedOnConditions:
+							this.settings.hideProgressBarBasedOnConditions,
+						hideProgressBarTags: this.settings.hideProgressBarTags,
+						hideProgressBarFolders: this.settings.hideProgressBarFolders,
+						hideProgressBarMetadata: this.settings.hideProgressBarMetadata,
 					};
 					if (state) {
 						Object.assign(dataToSave, state);
@@ -135,6 +146,7 @@ export default class TaskManagePlugin extends Plugin {
 				headingFilters: this.settings.headingFilters,
 				taskItemFilters: this.settings.taskItemFilters,
 			});
+			syncProgressConfig(this.settings);
 
 			const defaultPresets = getDefaultPresets();
 			let mergedPresets: Preset[] = [];

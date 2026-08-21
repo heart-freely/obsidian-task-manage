@@ -6,6 +6,7 @@ import { createTaskCard } from "../card/card";
 import {
 	countNodeStatuses,
 	removeHeadingNumber,
+	shouldHideProgressBar,
 	sortFileNodes,
 } from "./tree-view-process";
 
@@ -93,7 +94,6 @@ function addProgressBadge(
 		counts,
 		total,
 		height: "8px",
-		showPercent: true,
 	});
 	pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
 	w.appendChild(pb);
@@ -151,7 +151,7 @@ export function renderTaskTree(
 			(sum, child) => sum + countNodeStatuses(child).total,
 			0,
 		);
-		if (childTotal > 0) {
+		if (childTotal > 0 && !shouldHideProgressBar(options.root)) {
 			const mergedCounts: Record<string, number> = {};
 			for (const child of options.root.children) {
 				const cs = countNodeStatuses(child);
@@ -162,7 +162,6 @@ export function renderTaskTree(
 				counts: mergedCounts,
 				total: childTotal,
 				height: "8px",
-				showPercent: true,
 			});
 			pb.addClass(
 				"task-w-15",
@@ -221,7 +220,11 @@ function renderNode(
 	const descEl = card.querySelector<HTMLElement>(".task-desc");
 	if (descEl) descEl.addClass("task-text-sm");
 	contentContainer.appendChild(card);
-	if (nodeStats.total > 0 && hasChildren)
+	if (
+		nodeStats.total > 0 &&
+		hasChildren &&
+		!shouldHideProgressBar(node)
+	)
 		addProgressBadge(contentContainer, nodeStats.counts, nodeStats.total);
 	rowWrapper.appendChild(contentContainer);
 	const rightSpacer = createDiv();

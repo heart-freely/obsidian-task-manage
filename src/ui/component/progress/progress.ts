@@ -6,18 +6,88 @@ import {
 	STATUS_ICONS,
 	STATUS_NAMES,
 } from "../../../core/config/config";
+import { getProgressConfig } from "../../../core/config/progress-config";
 import { TaskTreeNode } from "../../../core/task/task-tree";
+import { ProgressTextFormat } from "../../../setting/setting";
 import { tooltip } from "../tooltip/tooltip";
 
 export interface ProgressBarOptions {
 	counts: Record<string, number>;
 	total: number;
 	height?: string;
-	showPercent?: boolean;
+	displayMode?: "graphical" | "text" | "both" | "none";
+	textFormat?: ProgressTextFormat;
+	customFormat?: string;
+	showText?: boolean;
+	supportHover?: boolean;
+}
+
+function doneCount(counts: Record<string, number>): number {
+	return (counts["completed"] || 0) + (counts["cancelled"] || 0);
+}
+
+export function percentDone(counts: Record<string, number>, total: number): number {
+	const st = total || 1;
+	return Math.min(Math.round((doneCount(counts) / st) * 100), 100);
+}
+
+export function formatProgressText(
+	counts: Record<string, number>,
+	total: number,
+	format: ProgressTextFormat,
+	customFormat?: string,
+): string {
+	const st = total || 1;
+	const completed = counts["completed"] || 0;
+	const cancelled = counts["cancelled"] || 0;
+	const inProgress = counts["in-progress"] || 0;
+	const planned = counts["scheduled"] || 0;
+	const abandoned = cancelled;
+	const notStarted = counts["todo"] || 0;
+	const done = completed + cancelled;
+	const pct = Math.min(Math.round((done / st) * 100), 100);
+
+	switch (format) {
+		case "percentage":
+			return pct + "%";
+		case "bracketPercentage":
+			return "[" + pct + "%]";
+		case "fraction":
+			return done + "/" + total;
+		case "bracketFraction":
+			return "[" + done + "/" + total + "]";
+		case "detailed":
+			return (
+				"[" + completed + "✓ " + inProgress + "⟳ " + abandoned +
+				"✗ " + planned + "? / " + total + "]"
+			);
+		case "custom":
+			if (customFormat) {
+				return customFormat
+					.replace(/{{COMPLETED}}/g, String(completed))
+					.replace(/{{TOTAL}}/g, String(total))
+					.replace(/{{IN_PROGRESS}}/g, String(inProgress))
+					.replace(/{{PLANNED}}/g, String(planned))
+					.replace(/{{ABANDONED}}/g, String(abandoned))
+					.replace(/{{NOT_STARTED}}/g, String(notStarted))
+					.replace(/{{PERCENT}}/g, String(pct))
+					.replace(/{{PROGRESS}}/g, String(pct));
+			}
+			return "[" + done + "/" + total + "]";
+		default:
+			return pct + "%";
+	}
 }
 
 export function createProgressBar(options: ProgressBarOptions): HTMLElement {
-	const { counts, total, height, showPercent } = options;
+	const cfg = getProgressConfig();
+	const { counts, total, height } = options;
+	const displayMode = options.displayMode ?? cfg.displayMode;
+	const textFormat = options.textFormat ?? cfg.textFormat;
+	const customFormat = options.customFormat ?? cfg.customFormat;
+	const supportHover = options.supportHover ?? cfg.supportHover;
+	const showText = options.showText ?? true;
+
 	const bh = height || "6px";
 	const st = total || 1;
 	const container = createDiv();
@@ -28,40 +98,47 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 		"task-gap-1",
 		"task-min-w-15",
 	);
-	const barWrapper = createDiv();
-	barWrapper.addClass(
-		"task-flex-1",
-		"task-rounded-sm",
-		"task-overflow-hidden",
-		"task-bg-border",
-		"task-flex",
-	);
-	barWrapper.style.height = bh;
-	const statusColors = getStatusColors();
-	const order = [
-		"todo",
-		"scheduled",
-		"in-progress",
-		"cancelled",
-		"completed",
-	];
-	let accumulated = 0;
-	order.forEach((status) => {
-		const count = counts[status] || 0;
-		if (count > 0) {
-			const pct = Math.min((count / st) * 100, 100 - accumulated);
-			accumulated += pct;
-			const seg = createDiv();
-			seg.addClass("task-h-full", "task-flex-shrink-0");
-			seg.style.width = pct + "%";
-			seg.style.background = statusColors[status] || "var(--text-muted)";
-			barWrapper.appendChild(seg);
-		}
-	});
-	container.appendChild(barWrapper);
-	if (showPercent !== false) {
-		const done = (counts["completed"] || 0) + (counts["cancelled"] || 0);
-		const pct = Math.min(Math.round((done / st) * 100), 100);
+
+	const wantGraphical = displayMode === "graphical" || displayMode === "both";
+	const wantText = displayMode === "text" || displayMode === "both";
+	const graphical = wantGraphical && total > 0;
+
+	if (graphical) {
+		const barWrapper = createDiv();
+		barWrapper.addClass(
+			"task-flex-1",
+			"task-rounded-sm",
+			"task-overflow-hidden",
+			"task-bg-border",
+			"task-flex",
+		);
+		barWrapper.style.height = bh;
+		const statusColors = getStatusColors();
+		const order = [
+			"todo",
+			"scheduled",
+			"in-progress",
+			"cancelled",
+			"completed",
+		];
+		let accumulated = 0;
+		order.forEach((status) => {
+			const count = counts[status] || 0;
+			if (count > 0) {
+				const pct = Math.min((count / st) * 100, 100 - accumulated);
+				accumulated += pct;
+				const seg = createDiv();
+				seg.addClass("task-h-full", "task-flex-shrink-0");
+				seg.style.width = pct + "%";
+				seg.style.background =
+					statusColors[status] || "var(--text-muted)";
+				barWrapper.appendChild(seg);
+			}
+		});
+		container.appendChild(barWrapper);
+	}
+
+	if (wantText && showText) {
 		const label = createSpan();
 		label.addClass(
 			"task-text-smaller",
@@ -69,10 +146,16 @@ export function createProgressBar(options: ProgressBarOptions): HTMLElement {
 			"task-text-nowrap",
 			"task-flex-shrink-0",
 		);
-		label.textContent = pct + "%";
+		label.textContent = formatProgressText(
+			counts,
+			total,
+			textFormat,
+			customFormat,
+		);
 		container.appendChild(label);
 	}
-	const tipHtml = buildProgressTooltip(counts, st);
+
+	const tipHtml = supportHover ? buildProgressTooltip(counts, st) : "";
 	if (tipHtml) {
 		container.addEventListener("mouseenter", (e) =>
 			tooltip.show(tipHtml, e.clientX, e.clientY),
@@ -119,7 +202,7 @@ function buildProgressTooltip(
 	].forEach(({ k, i, l }) => {
 		const c = counts[k] || 0;
 		parts.push(
-			`${i} ${l} ${total > 0 ? Math.round((c / total) * 100) : 0}% ${c}`,
+			i + " " + l + " " + (total > 0 ? Math.round((c / total) * 100) : 0) + "% " + c,
 		);
 	});
 	return parts.join("<br>");

@@ -206,6 +206,12 @@ export class DataManager {
 		return allNodes.find((n) => n.uid === uid);
 	}
 
+	/** 按路径获取文件级 frontmatter（用于进度条隐藏条件等） */
+	getFileYaml(path: string): Record<string, unknown> {
+		const file = this.cache.files?.find((f) => f.path === path);
+		return file?.yaml ?? {};
+	}
+
 	invalidate() {
 		this.cache = {
 			files: null,
