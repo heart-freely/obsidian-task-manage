@@ -3,8 +3,7 @@
 // 扫描可见区域的任务行，计算行区间子任务并插入内嵌进度条 Widget
 
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { EditorState, Range, Text } from "@codemirror/state";
-import { syntaxTree } from "@codemirror/language";
+import { Range, Text } from "@codemirror/state";
 import { TaskEditorProgressWidget } from "./live-preview-widget";
 import { countTasksInRange } from "./range-calculator";
 import { cacheTaskProgress } from "./progress-shared-cache";
@@ -47,6 +46,13 @@ class ProgressViewPluginValue {
 		// 当前标题上下文（用于 showProgressBarBasedOnHeading 过滤）
 		let currentHeadingLabel = "";
 		// 允许显示的标题列表（循环外计算一次）
+		const allowedHeadings = cfg.showProgressBarBasedOnHeading
+			.split(",")
+			.map((h) => h.trim())
+			.filter(Boolean);
+		// 代码块/frontmatter 状态跟踪（纯文本判断）
+		let inCodeFence = false;
+		let inFrontmatter = false;
 		while (pos <= to && pos < docLen) {
 			let line: { from: number; to: number; number: number };
 			try {
@@ -55,6 +61,7 @@ class ProgressViewPluginValue {
 				break;
 			}
 			const text = doc.sliceString(line.from, line.to);
+			const trimmed = text.trim();
 			const isTask = TASK_LINE_RE.test(text);
 			const isHeading = /^\s*#{1,6}\s/.test(text);
 			const isBullet = /^\s*([-*+]|\d+\.)\s/.test(text);
@@ -62,21 +69,27 @@ class ProgressViewPluginValue {
 				currentHeadingLabel = text.replace(/^\s*#{1,6}\s+/, "").trim();
 			}
 
-			const allowedHeadings = cfg.showProgressBarBasedOnHeading
-				.split(",")
-				.map((h) => h.trim())
-				.filter(Boolean);
+			// 更新代码块/frontmatter 状态
+			if (inFrontmatter && trimmed.startsWith("---")) {
+				inFrontmatter = false;
+			} else if (pos === 0 && trimmed.startsWith("---")) {
+				inFrontmatter = true;
+			}
+			if (trimmed.startsWith("```")) inCodeFence = !inCodeFence;
+
 			const headingAllowed =
 				allowedHeadings.length === 0 ||
 				allowedHeadings.includes(currentHeadingLabel);
 
 			const shouldProcess =
+				!inCodeFence &&
+				!inFrontmatter &&
 				headingAllowed &&
 				(isTask ||
 					(cfg.addProgressBarToNonTaskBullet && isBullet) ||
 					(cfg.addTaskProgressBarToHeading && isHeading));
 
-			if (shouldProcess && !this.isExcluded(view.state, line.from)) {
+			if (shouldProcess) {
 				const range = isHeading
 					? this.calcHeadingRange(doc, line.from, line.to)
 					: this.calcRange(doc, line.from, line.to);
@@ -184,28 +197,6 @@ class ProgressViewPluginValue {
 			else break;
 		}
 		return n;
-	}
-
-	private isExcluded(state: EditorState, pos: number): boolean {
-		try {
-			// resolveInner 返回类型可能不完整，显式转换后安全访问
-			const resolved = syntaxTree(state).resolveInner(
-				pos + 1,
-			) as unknown;
-			const node = resolved as {
-				type?: { name?: unknown };
-			} | null;
-			const rawName = node?.type?.name;
-			const name = typeof rawName === "string" ? rawName : "";
-			return (
-				name.includes("hmd-codeblock") ||
-				name.includes("hmd-frontmatter") ||
-				name.includes("codeblock") ||
-				name.includes("frontmatter")
-			);
-		} catch {
-			return false;
-		}
 	}
 }
 
