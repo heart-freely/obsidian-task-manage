@@ -63,23 +63,32 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	opacity: var(--resize-opacity, 0);
+	opacity: var(--resize-opacity, 0.3);
 	transition: opacity 0.15s;
 	flex-shrink: 0;
 	position: relative;
+	z-index: 60;
 }
+.task-tree-nav-resize-visible:hover {
+	opacity: 1;
+}
+/* 折叠状态：折叠条常驻可见（点击箭头展开任务树） */
 .task-tree-nav-resize-hidden {
 	width: 8px;
 	min-width: 8px;
-	cursor: col-resize;
+	cursor: pointer;
 	background: rgba(128, 128, 128, 0.4);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	opacity: var(--resize-opacity, 0);
+	opacity: var(--resize-opacity, 0.35);
 	transition: opacity 0.15s;
 	flex-shrink: 0;
 	position: relative;
+	z-index: 60;
+}
+.task-tree-nav-resize-hidden:hover {
+	opacity: 1;
 }
 .task-tree-nav-arrow {
 	cursor: pointer;

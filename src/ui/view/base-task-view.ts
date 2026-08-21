@@ -434,7 +434,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 			});
 			this.resizeHandle.addEventListener("mouseleave", () => {
 				if (!this.isResizing && this.resizeHandle)
-					this.resizeHandle.setCssProps({ "--resize-opacity": "0" });
+					this.resizeHandle.setCssProps({ "--resize-opacity": "0.3" });
 			});
 			this.resizeHandle.addEventListener("mousedown", (e) => {
 				if (e.target === arrow) return;
@@ -461,7 +461,8 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 				this.resizeHandle!.setCssProps({ "--resize-opacity": "1" });
 			});
 			this.resizeHandle.addEventListener("mouseleave", () => {
-				this.resizeHandle!.setCssProps({ "--resize-opacity": "0" });
+				// 折叠状态：保持半透明可见，方便点击展开
+				this.resizeHandle!.setCssProps({ "--resize-opacity": "0.35" });
 			});
 		}
 		this.rightContentContainer = lc.createDiv({
