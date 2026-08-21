@@ -40,6 +40,9 @@
 .task-flex-shrink-0 {
 	flex-shrink: 0;
 }
+.task-flex-none {
+	flex: none;
+}
 
 /* 溢出 */
 .task-overflow-auto {

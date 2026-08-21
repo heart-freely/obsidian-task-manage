@@ -269,7 +269,7 @@ export abstract class BaseTaskView extends BaseTaskEdit {
 		this.container.textContent = "";
 		if (style === "tree") {
 			const vc = this.container.createDiv({
-				cls: "task-view-content task-view-padding-reset",
+				cls: "task-view-content task-view-scroll",
 			});
 			renderTaskTree(vc, {
 				root: dateFilteredTree,

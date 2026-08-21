@@ -299,7 +299,7 @@ function renderTimeline(
 				const spanCols = rowInfo.taskEnd - rowInfo.taskStart + 1;
 
 				const bar = createDiv();
-				bar.className = `timeline-bar task-timeline-bar-dynamic ${task.status}`;
+				bar.className = `task-timeline-bar task-timeline-bar-dynamic ${task.status}`;
 				bar.setCssProps({
 					"--timeline-bar-left": col * colWidth + "%",
 					"--timeline-bar-top":

@@ -164,7 +164,12 @@ export function renderTaskTree(
 				height: "8px",
 				showPercent: true,
 			});
-			pb.addClass("task-w-15", "task-min-w-15", "task-flex-shrink-0");
+			pb.addClass(
+				"task-w-15",
+				"task-min-w-15",
+				"task-flex-shrink-0",
+				"task-flex-none",
+			);
 			rootRow.appendChild(pb);
 			const badge = createSpan();
 			badge.addClass(
